@@ -159,7 +159,25 @@ function QuotePage() {
                 <p className="text-xs text-muted-foreground mt-1">Save this to look up your quote anytime</p>
               </div>
             )}
-            <p className="text-muted-foreground mb-8">We'll review your request and get back to you within 24 hours.</p>
+            <p className="text-muted-foreground mb-6">We'll review your request and get back to you within 24 hours.</p>
+            {!linked && !user && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+                <p className="text-sm font-medium text-foreground mb-2">Want to track this quote?</p>
+                <p className="text-xs text-muted-foreground mb-3">Create an account or sign in to link this quote to your profile for easy access later.</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <Link to="/signup"><Button size="sm" className="bg-gradient-warm text-primary-foreground gap-1"><LogIn className="w-3 h-3" /> Sign Up</Button></Link>
+                  <Link to="/login"><Button size="sm" variant="outline" className="gap-1"><LogIn className="w-3 h-3" /> Sign In</Button></Link>
+                </div>
+              </div>
+            )}
+            {!linked && user && submittedQuoteId && (
+              <Button onClick={handleLinkToAccount} disabled={linking} className="bg-gradient-warm text-primary-foreground gap-2 mb-6">
+                <LinkIcon className="w-4 h-4" /> {linking ? "Linking..." : "Link to My Account"}
+              </Button>
+            )}
+            {linked && (
+              <p className="text-sm text-primary font-medium mb-6">✓ Linked to your account</p>
+            )}
             <div className="flex flex-wrap gap-3 justify-center">
               <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
                 <Download className="w-4 h-4" /> Download PDF
