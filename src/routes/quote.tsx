@@ -27,10 +27,10 @@ const MENU_STYLES = [
 ];
 
 const PROTEINS = {
-  meat: ["Filet Mignon", "Lamb Chops", "Duck Breast", "Chicken Roulade"],
-  seafood: ["Salmon", "Lobster Tail", "Seared Scallops", "Tuna Tartare"],
-  vegetarian: ["Portobello Wellington", "Stuffed Bell Peppers", "Eggplant Parmesan", "Cauliflower Steak"],
-  mixed: ["Filet Mignon", "Salmon", "Chicken Roulade", "Portobello Wellington"],
+  meat: ["Chicken", "Beef", "Pork", "Lamb"],
+  seafood: ["Fish", "Shrimp", "Crab", "Lobster"],
+  vegetarian: ["Tofu", "Mushroom", "Eggplant", "Cauliflower"],
+  mixed: ["Chicken", "Beef", "Fish", "Tofu"],
 };
 
 const ALLERGIES = ["Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"];
