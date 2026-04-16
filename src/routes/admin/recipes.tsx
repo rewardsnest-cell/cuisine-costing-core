@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, ChefHat } from "lucide-react";
+import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -20,11 +20,25 @@ type Recipe = {
   category: string | null;
   cuisine: string | null;
   servings: number;
+  prep_time: number | null;
+  cook_time: number | null;
   total_cost: number;
   cost_per_serving: number;
   is_vegetarian: boolean;
   is_vegan: boolean;
   is_gluten_free: boolean;
+  allergens: string[] | null;
+  instructions: string | null;
+};
+
+type Ingredient = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  cost_per_unit: number | null;
+  inventory_item_id: string | null;
+  inventory_item?: { name: string; average_cost_per_unit: number; unit: string } | null;
 };
 
 function RecipesPage() {
@@ -32,6 +46,9 @@ function RecipesPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", category: "", cuisine: "", servings: "4" });
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("recipes").select("*").order("name");
@@ -60,6 +77,190 @@ function RecipesPage() {
     load();
   };
 
+  const openDetail = async (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setLoadingDetail(true);
+    const { data } = await supabase
+      .from("recipe_ingredients")
+      .select("*, inventory_items(name, average_cost_per_unit, unit)")
+      .eq("recipe_id", recipe.id)
+      .order("name");
+    if (data) {
+      setIngredients(
+        data.map((d: any) => ({
+          ...d,
+          inventory_item: d.inventory_items || null,
+        }))
+      );
+    }
+    setLoadingDetail(false);
+  };
+
+  // Detail view
+  if (selectedRecipe) {
+    const calcCost = (ing: Ingredient) => {
+      if (ing.inventory_item) {
+        return ing.quantity * ing.inventory_item.average_cost_per_unit;
+      }
+      return ing.quantity * (ing.cost_per_unit || 0);
+    };
+
+    const totalCost = ingredients.reduce((sum, ing) => sum + calcCost(ing), 0);
+    const costPerServing = selectedRecipe.servings > 0 ? totalCost / selectedRecipe.servings : 0;
+    const suggestedPrice = costPerServing * 3.5; // 350% markup typical for catering
+
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" onClick={() => setSelectedRecipe(null)} className="gap-2 -ml-2">
+          <ArrowLeft className="w-4 h-4" /> Back to Recipes
+        </Button>
+
+        {/* Header */}
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">{selectedRecipe.name}</h1>
+          {selectedRecipe.description && (
+            <p className="text-muted-foreground mt-1">{selectedRecipe.description}</p>
+          )}
+          <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+            {selectedRecipe.category && <span className="px-2.5 py-0.5 bg-muted rounded-full">{selectedRecipe.category}</span>}
+            {selectedRecipe.cuisine && <span className="px-2.5 py-0.5 bg-muted rounded-full">{selectedRecipe.cuisine}</span>}
+            {selectedRecipe.is_vegetarian && <span className="px-2.5 py-0.5 bg-success/10 text-success rounded-full">Vegetarian</span>}
+            {selectedRecipe.is_vegan && <span className="px-2.5 py-0.5 bg-success/10 text-success rounded-full">Vegan</span>}
+            {selectedRecipe.is_gluten_free && <span className="px-2.5 py-0.5 bg-gold/20 text-warm rounded-full">Gluten-Free</span>}
+          </div>
+          {selectedRecipe.allergens && selectedRecipe.allergens.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {selectedRecipe.allergens.map((a) => (
+                <span key={a} className="px-2 py-0.5 bg-destructive/10 text-destructive text-xs rounded-full font-medium">{a}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Cost Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card className="shadow-warm border-border/50">
+            <CardContent className="p-4 text-center">
+              <Users className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+              <p className="text-2xl font-bold font-display">{selectedRecipe.servings}</p>
+              <p className="text-xs text-muted-foreground">Servings</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-warm border-border/50">
+            <CardContent className="p-4 text-center">
+              <DollarSign className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+              <p className="text-2xl font-bold font-display">${totalCost.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Total Cost</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-warm border-border/50">
+            <CardContent className="p-4 text-center">
+              <DollarSign className="w-5 h-5 text-gold mx-auto mb-1" />
+              <p className="text-2xl font-bold font-display text-gradient-gold">${costPerServing.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Cost/Serving</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-warm border-border/50">
+            <CardContent className="p-4 text-center">
+              <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+              <p className="text-2xl font-bold font-display">
+                {(selectedRecipe.prep_time || 0) + (selectedRecipe.cook_time || 0)}
+                <span className="text-sm font-normal text-muted-foreground ml-1">min</span>
+              </p>
+              <p className="text-xs text-muted-foreground">Prep + Cook</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Suggested Pricing */}
+        <Card className="shadow-warm border-primary/20 bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm">Suggested Menu Price (3.5× markup)</p>
+              <p className="text-xs text-muted-foreground">Industry standard catering markup</p>
+            </div>
+            <p className="font-display text-2xl font-bold text-gradient-gold">${suggestedPrice.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/serving</span></p>
+          </CardContent>
+        </Card>
+
+        {/* Ingredients Table */}
+        <div>
+          <h2 className="font-display text-lg font-semibold mb-3">Ingredient Cost Breakdown</h2>
+          {loadingDetail ? (
+            <p className="text-muted-foreground text-sm">Loading ingredients...</p>
+          ) : ingredients.length === 0 ? (
+            <Card className="shadow-warm border-border/50">
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">No ingredients linked to this recipe yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-warm border-border/50 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-left">
+                      <th className="py-3 px-4 font-semibold text-muted-foreground">Ingredient</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground">Qty</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground">Unit</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground text-right">Unit Cost</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground text-right">Line Total</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground">Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ingredients.map((ing) => {
+                      const unitCost = ing.inventory_item
+                        ? ing.inventory_item.average_cost_per_unit
+                        : (ing.cost_per_unit || 0);
+                      const lineTotal = calcCost(ing);
+                      const isLinked = !!ing.inventory_item;
+
+                      return (
+                        <tr key={ing.id} className="border-b border-border/50 hover:bg-muted/20">
+                          <td className="py-3 px-4 font-medium">{ing.name}</td>
+                          <td className="py-3 px-4">{ing.quantity}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{ing.unit}</td>
+                          <td className="py-3 px-4 text-right">${unitCost.toFixed(2)}</td>
+                          <td className="py-3 px-4 text-right font-semibold">${lineTotal.toFixed(2)}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isLinked ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                              {isLinked ? "Inventory" : "Manual"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/30">
+                      <td colSpan={4} className="py-3 px-4 font-display font-semibold text-right">Total Recipe Cost</td>
+                      <td className="py-3 px-4 text-right font-display font-bold text-lg">${totalCost.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Instructions */}
+        {selectedRecipe.instructions && (
+          <div>
+            <h2 className="font-display text-lg font-semibold mb-3">Instructions</h2>
+            <Card className="shadow-warm border-border/50">
+              <CardContent className="p-5">
+                <p className="text-sm leading-relaxed whitespace-pre-line">{selectedRecipe.instructions}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -97,14 +298,21 @@ function RecipesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((r) => (
-            <Card key={r.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
+            <Card
+              key={r.id}
+              className="shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer"
+              onClick={() => openDetail(r)}
+            >
               <CardContent className="p-5">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-display text-lg font-semibold">{r.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{r.category} · {r.cuisine}</p>
                   </div>
-                  <button onClick={() => handleDelete(r.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
