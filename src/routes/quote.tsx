@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { useAuth } from "@/hooks/use-auth";
-import { Download, Send, CheckCircle, RotateCcw } from "lucide-react";
+import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import {
   type Step,
   STEPS,
@@ -94,6 +95,10 @@ function QuotePage() {
     doc.save(`TasteQuote-${selections.clientName || "Proposal"}.pdf`);
   };
 
+  const [submittedQuoteId, setSubmittedQuoteId] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linked, setLinked] = useState(false);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -116,14 +121,24 @@ function QuotePage() {
         total: totalAmount * 1.08,
         status: "draft",
         user_id: user?.id || null,
-      }).select("reference_number").single();
+      }).select("id, reference_number").single();
       if (data?.reference_number) setReferenceNumber(data.reference_number);
+      if (data?.id) setSubmittedQuoteId(data.id);
+      if (user?.id) setLinked(true);
       setSubmitted(true);
     } catch (err) {
       console.error("Submit error:", err);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleLinkToAccount = async () => {
+    if (!user || !submittedQuoteId) return;
+    setLinking(true);
+    await supabase.from("quotes").update({ user_id: user.id }).eq("id", submittedQuoteId);
+    setLinked(true);
+    setLinking(false);
   };
 
   const currentIdx = STEPS.indexOf(step);
