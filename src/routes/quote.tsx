@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
-import { Download, Send, CheckCircle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Download, Send, CheckCircle, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/quote")({
   head: () => ({
@@ -29,7 +30,7 @@ const MENU_STYLES = [
   { id: "mixed", label: "Mixed Menu", icon: "🍽️", desc: "The best of everything for all guests" },
 ];
 
-const PROTEINS = {
+const PROTEINS: Record<string, string[]> = {
   meat: ["Chicken", "Beef", "Pork", "Lamb"],
   seafood: ["Fish", "Shrimp", "Crab", "Lobster"],
   vegetarian: ["Tofu", "Mushroom", "Eggplant", "Cauliflower"],
@@ -39,20 +40,23 @@ const PROTEINS = {
 const ALLERGIES = ["Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"];
 const PRICE_PER_DISH = 35;
 
+const INITIAL_SELECTIONS = {
+  style: "",
+  proteins: [] as string[],
+  allergies: [] as string[],
+  guestCount: 50,
+  eventDate: "",
+  eventType: "",
+  clientName: "",
+  clientEmail: "",
+};
+
 function QuotePage() {
+  const { user } = useAuth();
   const [step, setStep] = useState<Step>("style");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selections, setSelections] = useState({
-    style: "",
-    proteins: [] as string[],
-    allergies: [] as string[],
-    guestCount: 50,
-    eventDate: "",
-    eventType: "",
-    clientName: "",
-    clientEmail: "",
-  });
+  const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
 
   const toggleProtein = (p: string) => {
     setSelections((s) => ({
@@ -66,6 +70,12 @@ function QuotePage() {
       ...s,
       allergies: s.allergies.includes(a) ? s.allergies.filter((x) => x !== a) : [...s.allergies, a],
     }));
+  };
+
+  const startOver = () => {
+    setSelections({ ...INITIAL_SELECTIONS });
+    setStep("style");
+    setSubmitted(false);
   };
 
   const totalAmount = selections.guestCount * selections.proteins.length * PRICE_PER_DISH;
@@ -98,6 +108,7 @@ function QuotePage() {
         subtotal: totalAmount,
         total: totalAmount * 1.08,
         status: "draft",
+        user_id: user?.id || null,
       });
       setSubmitted(true);
     } catch (err) {
@@ -120,9 +131,14 @@ function QuotePage() {
             <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Quote Submitted!</h1>
             <p className="text-muted-foreground mb-8">We'll review your request and get back to you within 24 hours.</p>
-            <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
-              <Download className="w-4 h-4" /> Download PDF Proposal
-            </Button>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
+                <Download className="w-4 h-4" /> Download PDF
+              </Button>
+              <Button onClick={startOver} variant="outline" className="gap-2">
+                <RotateCcw className="w-4 h-4" /> Start Over
+              </Button>
+            </div>
           </div>
         </div>
         <PublicFooter />
@@ -135,11 +151,19 @@ function QuotePage() {
       <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-2xl mx-auto">
+          {/* Progress bar */}
           <div className="mb-8">
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-gradient-warm rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Step {currentIdx + 1} of {steps.length}</p>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-muted-foreground">Step {currentIdx + 1} of {steps.length}</p>
+              {currentIdx > 0 && (
+                <button onClick={startOver} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <RotateCcw className="w-3 h-3" /> Start Over
+                </button>
+              )}
+            </div>
           </div>
 
           {step === "style" && (
@@ -166,7 +190,7 @@ function QuotePage() {
               <h1 className="font-display text-3xl font-bold text-foreground mb-2">Select Your Proteins</h1>
               <p className="text-muted-foreground mb-8">Choose one or more main dishes</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(PROTEINS[selections.style as keyof typeof PROTEINS] || []).map((p) => (
+                {(PROTEINS[selections.style] || []).map((p) => (
                   <Card key={p} className={`cursor-pointer transition-all ${selections.proteins.includes(p) ? "ring-2 ring-primary shadow-warm" : "hover:border-primary/30"}`}
                     onClick={() => toggleProtein(p)}>
                     <CardContent className="p-5"><h3 className="font-medium">{p}</h3></CardContent>
