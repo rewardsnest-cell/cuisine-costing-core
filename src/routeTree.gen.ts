@@ -13,6 +13,12 @@ import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
+import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
+import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
+import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
+import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
+import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 
 const QuoteRoute = QuoteRouteImport.update({
   id: '/quote',
@@ -34,16 +40,58 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSuppliersRoute = AdminSuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRecipesRoute = AdminRecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReceiptsRoute = AdminReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuotesRoute = AdminQuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPurchaseOrdersRoute = AdminPurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/quote': typeof QuoteRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
+  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/quote': typeof QuoteRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
+  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -51,14 +99,50 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/quote': typeof QuoteRoute
+  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
+  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/quote' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/quote'
+    | '/admin/inventory'
+    | '/admin/purchase-orders'
+    | '/admin/quotes'
+    | '/admin/receipts'
+    | '/admin/recipes'
+    | '/admin/suppliers'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/quote' | '/admin'
-  id: '__root__' | '/' | '/admin' | '/quote' | '/admin/'
+  to:
+    | '/'
+    | '/quote'
+    | '/admin/inventory'
+    | '/admin/purchase-orders'
+    | '/admin/quotes'
+    | '/admin/receipts'
+    | '/admin/recipes'
+    | '/admin/suppliers'
+    | '/admin'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/quote'
+    | '/admin/inventory'
+    | '/admin/purchase-orders'
+    | '/admin/quotes'
+    | '/admin/receipts'
+    | '/admin/recipes'
+    | '/admin/suppliers'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,14 +181,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/suppliers': {
+      id: '/admin/suppliers'
+      path: '/suppliers'
+      fullPath: '/admin/suppliers'
+      preLoaderRoute: typeof AdminSuppliersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/recipes': {
+      id: '/admin/recipes'
+      path: '/recipes'
+      fullPath: '/admin/recipes'
+      preLoaderRoute: typeof AdminRecipesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/receipts': {
+      id: '/admin/receipts'
+      path: '/receipts'
+      fullPath: '/admin/receipts'
+      preLoaderRoute: typeof AdminReceiptsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/quotes': {
+      id: '/admin/quotes'
+      path: '/quotes'
+      fullPath: '/admin/quotes'
+      preLoaderRoute: typeof AdminQuotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/purchase-orders': {
+      id: '/admin/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/admin/purchase-orders'
+      preLoaderRoute: typeof AdminPurchaseOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
+  AdminQuotesRoute: typeof AdminQuotesRoute
+  AdminReceiptsRoute: typeof AdminReceiptsRoute
+  AdminRecipesRoute: typeof AdminRecipesRoute
+  AdminSuppliersRoute: typeof AdminSuppliersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminInventoryRoute: AdminInventoryRoute,
+  AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
+  AdminQuotesRoute: AdminQuotesRoute,
+  AdminReceiptsRoute: AdminReceiptsRoute,
+  AdminRecipesRoute: AdminRecipesRoute,
+  AdminSuppliersRoute: AdminSuppliersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
