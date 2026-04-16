@@ -9,7 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuoteRouteImport } from './routes/quote'
+import { Route as MyQuotesRouteImport } from './routes/my-quotes'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -20,9 +23,24 @@ import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuoteRoute = QuoteRouteImport.update({
   id: '/quote',
   path: '/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyQuotesRoute = MyQuotesRouteImport.update({
+  id: '/my-quotes',
+  path: '/my-quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -74,7 +92,10 @@ const AdminInventoryRoute = AdminInventoryRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/signup': typeof SignupRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -85,7 +106,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/signup': typeof SignupRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -98,7 +122,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/signup': typeof SignupRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -112,7 +139,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/login'
+    | '/my-quotes'
     | '/quote'
+    | '/signup'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -123,7 +153,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/my-quotes'
     | '/quote'
+    | '/signup'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -135,7 +168,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/login'
+    | '/my-quotes'
     | '/quote'
+    | '/signup'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -148,16 +184,40 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quote': {
       id: '/quote'
       path: '/quote'
       fullPath: '/quote'
       preLoaderRoute: typeof QuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-quotes': {
+      id: '/my-quotes'
+      path: '/my-quotes'
+      fullPath: '/my-quotes'
+      preLoaderRoute: typeof MyQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -251,7 +311,10 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
+  MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
