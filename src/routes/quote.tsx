@@ -43,6 +43,7 @@ function QuotePage() {
   const [step, setStep] = useState<Step>("style");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
 
   const toggleProtein = (p: string) => {
@@ -96,7 +97,7 @@ function QuotePage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await supabase.from("quotes").insert({
+      const { data } = await supabase.from("quotes").insert({
         client_name: selections.clientName,
         client_email: selections.clientEmail,
         event_type: selections.eventType,
@@ -115,7 +116,8 @@ function QuotePage() {
         total: totalAmount * 1.08,
         status: "draft",
         user_id: user?.id || null,
-      });
+      }).select("reference_number").single();
+      if (data?.reference_number) setReferenceNumber(data.reference_number);
       setSubmitted(true);
     } catch (err) {
       console.error("Submit error:", err);
@@ -135,6 +137,13 @@ function QuotePage() {
           <div className="max-w-lg mx-auto text-center">
             <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">Quote Submitted!</h1>
+            {referenceNumber && (
+              <div className="bg-muted rounded-lg p-4 mb-4">
+                <p className="text-xs text-muted-foreground mb-1">Your reference number</p>
+                <p className="font-mono text-2xl font-bold text-primary">{referenceNumber}</p>
+                <p className="text-xs text-muted-foreground mt-1">Save this to look up your quote anytime</p>
+              </div>
+            )}
             <p className="text-muted-foreground mb-8">We'll review your request and get back to you within 24 hours.</p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">

@@ -74,16 +74,22 @@ function MyQuotesPage() {
             <div className="space-y-3">
               {quotes.map((q) => (
                 <Card key={q.id} className="hover:shadow-warm transition-shadow">
-                  <CardContent className="p-5 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{q.event_type || "Untitled Event"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {q.guest_count} guests · {q.event_date || "No date"} · <span className="capitalize">{q.status}</span>
-                      </p>
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-mono text-xs font-semibold text-primary">{q.reference_number || "—"}</span>
+                      <span className="text-xs capitalize px-2 py-0.5 bg-muted rounded-full">{q.status}</span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-display font-bold text-lg">${(q.total || 0).toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString()}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{q.event_type || "Untitled Event"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {q.guest_count} guests · {q.event_date || "No date"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display font-bold text-lg">${(q.total || 0).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

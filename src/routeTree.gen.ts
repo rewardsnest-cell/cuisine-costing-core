@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
+import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -38,6 +39,11 @@ const QuoteRoute = QuoteRouteImport.update({
 const MyQuotesRoute = MyQuotesRouteImport.update({
   id: '/my-quotes',
   path: '/my-quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LookupRoute = LookupRouteImport.update({
+  id: '/lookup',
+  path: '/lookup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/lookup': typeof LookupRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/signup': typeof SignupRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/lookup': typeof LookupRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/signup': typeof SignupRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/lookup': typeof LookupRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/signup': typeof SignupRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/lookup'
     | '/my-quotes'
     | '/quote'
     | '/signup'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/lookup'
     | '/my-quotes'
     | '/quote'
     | '/signup'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/lookup'
     | '/my-quotes'
     | '/quote'
     | '/signup'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  LookupRoute: typeof LookupRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
   SignupRoute: typeof SignupRoute
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/my-quotes'
       fullPath: '/my-quotes'
       preLoaderRoute: typeof MyQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lookup': {
+      id: '/lookup'
+      path: '/lookup'
+      fullPath: '/lookup'
+      preLoaderRoute: typeof LookupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -354,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  LookupRoute: LookupRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
   SignupRoute: SignupRoute,

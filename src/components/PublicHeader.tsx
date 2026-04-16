@@ -17,6 +17,7 @@ export function PublicHeader() {
         <nav className="flex items-center gap-4 sm:gap-6">
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Home</Link>
           <Link to="/quote" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Get a Quote</Link>
+          <Link to="/lookup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Look Up</Link>
           {!loading && user ? (
             <>
               <Link to="/my-quotes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Quotes</Link>
