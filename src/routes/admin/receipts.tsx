@@ -56,7 +56,7 @@ function ReceiptsPage() {
       supabase.from("receipts").select("*").order("created_at", { ascending: false }),
       supabase.from("inventory_items").select("id, name").order("name"),
     ]);
-    if (rData) setReceipts(rData as ReceiptRow[]);
+    if (rData) setReceipts(rData as unknown as ReceiptRow[]);
     if (iData) setInventoryItems(iData as InventoryItem[]);
   };
 
