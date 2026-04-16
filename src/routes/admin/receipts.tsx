@@ -5,11 +5,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Receipt, Upload, CheckCircle, Clock, FileText } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/receipts")({
   component: ReceiptsPage,
 });
+
+type LineItem = {
+  item_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  matched_inventory_id: string | null;
+  matched_inventory_name: string | null;
+};
 
 type ReceiptRow = {
   id: string;
@@ -17,19 +30,34 @@ type ReceiptRow = {
   image_url: string | null;
   total_amount: number;
   status: string;
-  extracted_line_items: any[];
+  extracted_line_items: LineItem[];
   supplier_id: string | null;
   created_at: string;
+  raw_ocr_text: string | null;
+};
+
+type InventoryItem = {
+  id: string;
+  name: string;
 };
 
 function ReceiptsPage() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [reviewReceipt, setReviewReceipt] = useState<ReceiptRow | null>(null);
+  const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
+  const [applyingCosts, setApplyingCosts] = useState(false);
 
   const load = async () => {
-    const { data } = await supabase.from("receipts").select("*").order("created_at", { ascending: false });
-    if (data) setReceipts(data as ReceiptRow[]);
+    const [{ data: rData }, { data: iData }] = await Promise.all([
+      supabase.from("receipts").select("*").order("created_at", { ascending: false }),
+      supabase.from("inventory_items").select("id, name").order("name"),
+    ]);
+    if (rData) setReceipts(rData as ReceiptRow[]);
+    if (iData) setInventoryItems(iData as InventoryItem[]);
   };
 
   useEffect(() => { load(); }, []);
@@ -38,7 +66,7 @@ function ReceiptsPage() {
     setUploading(true);
     try {
       const fileName = `${Date.now()}-${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from("receipts").upload(fileName, file);
+      const { error: uploadError } = await supabase.storage.from("receipts").upload(fileName, file);
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(fileName);
@@ -49,9 +77,11 @@ function ReceiptsPage() {
         receipt_date: new Date().toISOString().split("T")[0],
       });
 
+      toast.success("Receipt uploaded successfully");
       load();
     } catch (err) {
       console.error("Upload error:", err);
+      toast.error("Failed to upload receipt");
     } finally {
       setUploading(false);
     }
@@ -69,6 +99,68 @@ function ReceiptsPage() {
     if (file) handleUpload(file);
   };
 
+  const handleOCR = async (receipt: ReceiptRow) => {
+    if (!receipt.image_url) { toast.error("No image to process"); return; }
+    setProcessing(receipt.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-receipt", {
+        body: { imageUrl: receipt.image_url, receiptId: receipt.id },
+      });
+      if (error) throw error;
+      toast.success(`Extracted ${data.line_items?.length || 0} line items`);
+      load();
+    } catch (err: any) {
+      console.error("OCR error:", err);
+      toast.error(err.message || "OCR processing failed");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const openReview = (receipt: ReceiptRow) => {
+    setReviewReceipt(receipt);
+    setEditedLineItems(Array.isArray(receipt.extracted_line_items) ? [...receipt.extracted_line_items] : []);
+  };
+
+  const updateLineItem = (idx: number, field: keyof LineItem, value: any) => {
+    setEditedLineItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
+  const matchLineItem = (idx: number, inventoryId: string) => {
+    const inv = inventoryItems.find((i) => i.id === inventoryId);
+    setEditedLineItems((prev) =>
+      prev.map((item, i) =>
+        i === idx ? { ...item, matched_inventory_id: inventoryId, matched_inventory_name: inv?.name || null } : item
+      )
+    );
+  };
+
+  const saveLineItems = async () => {
+    if (!reviewReceipt) return;
+    await supabase.from("receipts").update({ extracted_line_items: editedLineItems as any }).eq("id", reviewReceipt.id);
+    toast.success("Line items saved");
+    load();
+    setReviewReceipt(null);
+  };
+
+  const handleApplyCosts = async (receiptId: string) => {
+    setApplyingCosts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-inventory-costs", {
+        body: { receiptId },
+      });
+      if (error) throw error;
+      const updates = data.updates || [];
+      toast.success(`Updated costs for ${updates.length} inventory items`);
+      load();
+    } catch (err: any) {
+      console.error("Apply costs error:", err);
+      toast.error(err.message || "Failed to apply costs");
+    } finally {
+      setApplyingCosts(false);
+    }
+  };
+
   const statusIcon = (status: string) => {
     switch (status) {
       case "processed": return <CheckCircle className="w-4 h-4 text-success" />;
@@ -84,19 +176,13 @@ function ReceiptsPage() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors ${
-          dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-        }`}
+        className={`border-2 border-dashed rounded-2xl p-12 text-center transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
       >
         <Upload className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="font-medium text-foreground mb-1">
-          {uploading ? "Uploading..." : "Drag & drop receipt image or PDF"}
-        </p>
+        <p className="font-medium text-foreground mb-1">{uploading ? "Uploading..." : "Drag & drop receipt image or PDF"}</p>
         <p className="text-sm text-muted-foreground mb-4">Supports JPG, PNG, PDF</p>
         <label className="cursor-pointer">
-          <span className="inline-flex items-center justify-center rounded-lg bg-gradient-warm px-6 py-2.5 text-sm font-semibold text-primary-foreground">
-            Browse Files
-          </span>
+          <span className="inline-flex items-center justify-center rounded-lg bg-gradient-warm px-6 py-2.5 text-sm font-semibold text-primary-foreground">Browse Files</span>
           <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileInput} disabled={uploading} />
         </label>
       </div>
@@ -108,7 +194,7 @@ function ReceiptsPage() {
           <Card className="shadow-warm border-border/50">
             <CardContent className="p-12 text-center">
               <Receipt className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No receipts uploaded yet. Upload your first receipt to start tracking costs.</p>
+              <p className="text-muted-foreground">No receipts uploaded yet.</p>
             </CardContent>
           </Card>
         ) : (
@@ -116,9 +202,7 @@ function ReceiptsPage() {
             {receipts.map((r) => (
               <Card key={r.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
                 <CardContent className="p-4 flex items-center gap-4">
-                  {r.image_url && (
-                    <img src={r.image_url} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-border" />
-                  )}
+                  {r.image_url && <img src={r.image_url} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-border" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {statusIcon(r.status)}
@@ -128,15 +212,102 @@ function ReceiptsPage() {
                       {new Date(r.receipt_date).toLocaleDateString()} · {Array.isArray(r.extracted_line_items) ? r.extracted_line_items.length : 0} items
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-display text-lg font-bold">${Number(r.total_amount).toFixed(2)}</p>
+                  <div className="flex items-center gap-2">
+                    {r.status === "pending" && (
+                      <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
+                        {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
+                        {processing === r.id ? "Processing..." : "Run OCR"}
+                      </Button>
+                    )}
+                    {r.status === "reviewed" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                          <FileText className="w-3.5 h-3.5" /> Review
+                        </Button>
+                        <Button size="sm" onClick={() => handleApplyCosts(r.id)} disabled={applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
+                          {applyingCosts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                          Apply Costs
+                        </Button>
+                      </>
+                    )}
+                    {r.status === "processed" && (
+                      <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" /> View
+                      </Button>
+                    )}
                   </div>
+                  <p className="font-display text-lg font-bold">${Number(r.total_amount).toFixed(2)}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Review Dialog */}
+      <Dialog open={!!reviewReceipt} onOpenChange={(open) => !open && setReviewReceipt(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">Review Extracted Line Items</DialogTitle>
+          </DialogHeader>
+          {reviewReceipt && (
+            <div className="space-y-4">
+              {reviewReceipt.image_url && (
+                <img src={reviewReceipt.image_url} alt="Receipt" className="w-full max-h-48 object-contain rounded-lg border border-border" />
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Item</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Qty</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Unit</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Unit $</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Total</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Inventory Match</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editedLineItems.map((item, idx) => (
+                      <tr key={idx} className="border-b border-border/50">
+                        <td className="py-2 px-2">
+                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs" />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input type="number" value={item.quantity} onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-16" />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input value={item.unit} onChange={(e) => updateLineItem(idx, "unit", e.target.value)} className="h-8 text-xs w-16" />
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-20" />
+                        </td>
+                        <td className="py-2 px-2 font-medium">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                        <td className="py-2 px-2">
+                          <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Match..." /></SelectTrigger>
+                            <SelectContent>
+                              {inventoryItems.map((inv) => (
+                                <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {reviewReceipt.status !== "processed" && (
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
+                  <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
