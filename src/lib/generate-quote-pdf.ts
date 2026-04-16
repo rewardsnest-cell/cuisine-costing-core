@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 type QuoteData = {
   clientName: string;
@@ -89,7 +89,7 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
     `$${(data.guestCount * data.pricePerDish).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
   ]);
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y,
     head: [["Dish", "Servings", "Per Person", "Subtotal"]],
     body: tableBody,
