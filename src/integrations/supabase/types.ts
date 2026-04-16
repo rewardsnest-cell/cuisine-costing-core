@@ -14,7 +14,460 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inventory_items: {
+        Row: {
+          average_cost_per_unit: number
+          category: string | null
+          created_at: string
+          current_stock: number
+          id: string
+          last_receipt_cost: number | null
+          name: string
+          par_level: number
+          supplier_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          average_cost_per_unit?: number
+          category?: string | null
+          created_at?: string
+          current_stock?: number
+          id?: string
+          last_receipt_cost?: number | null
+          name: string
+          par_level?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          average_cost_per_unit?: number
+          category?: string | null
+          created_at?: string
+          current_stock?: number
+          id?: string
+          last_receipt_cost?: number | null
+          name?: string
+          par_level?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          id: string
+          inventory_item_id: string | null
+          name: string
+          purchase_order_id: string
+          quantity: number
+          total_price: number
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          inventory_item_id?: string | null
+          name: string
+          purchase_order_id: string
+          quantity: number
+          total_price?: number
+          unit: string
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          inventory_item_id?: string | null
+          name?: string
+          purchase_order_id?: string
+          quantity?: number
+          total_price?: number
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          expected_delivery: string | null
+          id: string
+          notes: string | null
+          order_date: string
+          status: string
+          supplier_id: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_items: {
+        Row: {
+          id: string
+          name: string
+          quantity: number
+          quote_id: string
+          recipe_id: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          name: string
+          quantity?: number
+          quote_id: string
+          recipe_id?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          quantity?: number
+          quote_id?: string
+          recipe_id?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          actual_cost: number | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          created_at: string
+          dietary_preferences: Json | null
+          event_date: string | null
+          event_type: string | null
+          guest_count: number
+          id: string
+          notes: string | null
+          status: string
+          subtotal: number | null
+          tax_rate: number | null
+          theoretical_cost: number | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          actual_cost?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          dietary_preferences?: Json | null
+          event_date?: string | null
+          event_type?: string | null
+          guest_count?: number
+          id?: string
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          tax_rate?: number | null
+          theoretical_cost?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          actual_cost?: number | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          dietary_preferences?: Json | null
+          event_date?: string | null
+          event_type?: string | null
+          guest_count?: number
+          id?: string
+          notes?: string | null
+          status?: string
+          subtotal?: number | null
+          tax_rate?: number | null
+          theoretical_cost?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      receipts: {
+        Row: {
+          created_at: string
+          extracted_line_items: Json | null
+          id: string
+          image_url: string | null
+          linked_quote_id: string | null
+          raw_ocr_text: string | null
+          receipt_date: string
+          status: string
+          supplier_id: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_line_items?: Json | null
+          id?: string
+          image_url?: string | null
+          linked_quote_id?: string | null
+          raw_ocr_text?: string | null
+          receipt_date?: string
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_line_items?: Json | null
+          id?: string
+          image_url?: string | null
+          linked_quote_id?: string | null
+          raw_ocr_text?: string | null
+          receipt_date?: string
+          status?: string
+          supplier_id?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_linked_quote_id_fkey"
+            columns: ["linked_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_ingredients: {
+        Row: {
+          cost_per_unit: number | null
+          id: string
+          inventory_item_id: string | null
+          name: string
+          notes: string | null
+          quantity: number
+          recipe_id: string
+          unit: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          name: string
+          notes?: string | null
+          quantity: number
+          recipe_id: string
+          unit: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          name?: string
+          notes?: string | null
+          quantity?: number
+          recipe_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          allergens: string[] | null
+          category: string | null
+          cook_time: number | null
+          cost_per_serving: number | null
+          created_at: string
+          cuisine: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          instructions: string | null
+          is_gluten_free: boolean | null
+          is_vegan: boolean | null
+          is_vegetarian: boolean | null
+          name: string
+          prep_time: number | null
+          seasonal_tags: string[] | null
+          servings: number
+          total_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          category?: string | null
+          cook_time?: number | null
+          cost_per_serving?: number | null
+          created_at?: string
+          cuisine?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          is_gluten_free?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name: string
+          prep_time?: number | null
+          seasonal_tags?: string[] | null
+          servings?: number
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string[] | null
+          category?: string | null
+          cook_time?: number | null
+          cost_per_serving?: number | null
+          created_at?: string
+          cuisine?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          is_gluten_free?: boolean | null
+          is_vegan?: boolean | null
+          is_vegetarian?: boolean | null
+          name?: string
+          prep_time?: number | null
+          seasonal_tags?: string[] | null
+          servings?: number
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
