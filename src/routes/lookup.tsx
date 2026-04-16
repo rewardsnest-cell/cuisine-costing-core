@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, Link as LinkIcon } from "lucide-react";
 
 export const Route = createFileRoute("/lookup")({
   head: () => ({
@@ -20,10 +21,18 @@ export const Route = createFileRoute("/lookup")({
 });
 
 function LookupPage() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
+
+  const handleClaim = async (quoteId: string) => {
+    if (!user) return;
+    await supabase.from("quotes").update({ user_id: user.id }).eq("id", quoteId);
+    setClaimedIds((prev) => new Set(prev).add(quoteId));
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +118,14 @@ function LookupPage() {
                         <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
+                    {user && !q.user_id && !claimedIds.has(q.id) && (
+                      <Button size="sm" variant="outline" className="mt-3 w-full gap-1" onClick={() => handleClaim(q.id)}>
+                        <LinkIcon className="w-3 h-3" /> Link to My Account
+                      </Button>
+                    )}
+                    {claimedIds.has(q.id) && (
+                      <p className="text-xs text-primary font-medium mt-3">✓ Linked to your account</p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
