@@ -198,7 +198,10 @@ function QuotePage() {
                 {(PROTEINS[selections.style] || []).map((p) => (
                   <Card key={p} className={`cursor-pointer transition-all ${selections.proteins.includes(p) ? "ring-2 ring-primary shadow-warm" : "hover:border-primary/30"}`}
                     onClick={() => toggleProtein(p)}>
-                    <CardContent className="p-5"><h3 className="font-medium">{p}</h3></CardContent>
+                    <CardContent className="p-5 flex items-center justify-between">
+                      <h3 className="font-medium">{p}</h3>
+                      {selections.proteins.includes(p) && <span className="text-primary font-bold text-lg">✓</span>}
+                    </CardContent>
                   </Card>
                 ))}
               </div>
