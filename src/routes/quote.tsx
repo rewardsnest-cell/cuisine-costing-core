@@ -10,6 +10,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { useAuth } from "@/hooks/use-auth";
 import { Download, Send, CheckCircle, RotateCcw } from "lucide-react";
+import {
+  type Step,
+  STEPS,
+  MENU_STYLES,
+  PROTEINS,
+  ALLERGIES,
+  SIDES_AND_EXTRAS,
+  ADDONS,
+  TIERS,
+  SERVICE_STYLES,
+  PRICE_PER_DISH,
+  INITIAL_SELECTIONS,
+} from "@/components/quote/types";
+import { QuoteStepService } from "@/components/quote/QuoteStepService";
+import { QuoteStepExtras } from "@/components/quote/QuoteStepExtras";
+import { QuoteStepAddons } from "@/components/quote/QuoteStepAddons";
+import { QuoteStepTier } from "@/components/quote/QuoteStepTier";
 
 export const Route = createFileRoute("/quote")({
   head: () => ({
@@ -20,36 +37,6 @@ export const Route = createFileRoute("/quote")({
   }),
   component: QuotePage,
 });
-
-type Step = "style" | "protein" | "dietary" | "details" | "review";
-
-const MENU_STYLES = [
-  { id: "meat", label: "Meat & Poultry", icon: "🥩", desc: "Prime cuts, poultry, and charcuterie" },
-  { id: "seafood", label: "Seafood", icon: "🦐", desc: "Fresh fish, shellfish, and ocean delicacies" },
-  { id: "vegetarian", label: "Vegetarian", icon: "🥗", desc: "Plant-forward dishes with rich flavors" },
-  { id: "mixed", label: "Mixed Menu", icon: "🍽️", desc: "The best of everything for all guests" },
-];
-
-const PROTEINS: Record<string, string[]> = {
-  meat: ["Chicken", "Beef", "Pork", "Lamb"],
-  seafood: ["Fish", "Shrimp", "Crab", "Lobster"],
-  vegetarian: ["Tofu", "Mushroom", "Eggplant", "Cauliflower"],
-  mixed: ["Chicken", "Beef", "Fish", "Tofu"],
-};
-
-const ALLERGIES = ["Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"];
-const PRICE_PER_DISH = 35;
-
-const INITIAL_SELECTIONS = {
-  style: "",
-  proteins: [] as string[],
-  allergies: [] as string[],
-  guestCount: 50,
-  eventDate: "",
-  eventType: "",
-  clientName: "",
-  clientEmail: "",
-};
 
 function QuotePage() {
   const { user } = useAuth();
@@ -78,7 +65,18 @@ function QuotePage() {
     setSubmitted(false);
   };
 
-  const totalAmount = selections.guestCount * selections.proteins.length * PRICE_PER_DISH;
+  const selectedTier = TIERS.find((t) => t.id === selections.tier) || TIERS[0];
+  const dishTotal = selections.guestCount * selections.proteins.length * PRICE_PER_DISH;
+  const extrasTotal = selections.extras.reduce((sum, id) => {
+    const item = SIDES_AND_EXTRAS.find((e) => e.id === id);
+    return sum + (item ? item.price * selections.guestCount : 0);
+  }, 0);
+  const addonsTotal = selections.addons.reduce((sum, id) => {
+    const item = ADDONS.find((a) => a.id === id);
+    return sum + (item ? item.price * selections.guestCount : 0);
+  }, 0);
+  const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier;
+  const totalAmount = Math.round(subtotal);
 
   const handleDownloadPDF = () => {
     const doc = generateQuotePDF({
@@ -104,7 +102,15 @@ function QuotePage() {
         event_type: selections.eventType,
         event_date: selections.eventDate || null,
         guest_count: selections.guestCount,
-        dietary_preferences: { allergies: selections.allergies, style: selections.style, proteins: selections.proteins },
+        dietary_preferences: {
+          allergies: selections.allergies,
+          style: selections.style,
+          proteins: selections.proteins,
+          serviceStyle: selections.serviceStyle,
+          extras: selections.extras,
+          addons: selections.addons,
+          tier: selections.tier,
+        },
         subtotal: totalAmount,
         total: totalAmount * 1.08,
         status: "draft",
@@ -118,9 +124,8 @@ function QuotePage() {
     }
   };
 
-  const steps: Step[] = ["style", "protein", "dietary", "details", "review"];
-  const currentIdx = steps.indexOf(step);
-  const progress = ((currentIdx + 1) / steps.length) * 100;
+  const currentIdx = STEPS.indexOf(step);
+  const progress = ((currentIdx + 1) / STEPS.length) * 100;
 
   if (submitted) {
     return (
@@ -157,7 +162,7 @@ function QuotePage() {
               <div className="h-full bg-gradient-warm rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
             </div>
             <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-muted-foreground">Step {currentIdx + 1} of {steps.length}</p>
+              <p className="text-xs text-muted-foreground">Step {currentIdx + 1} of {STEPS.length}</p>
               {currentIdx > 0 && (
                 <button onClick={startOver} className="text-xs text-primary hover:underline flex items-center gap-1">
                   <RotateCcw className="w-3 h-3" /> Start Over
@@ -218,10 +223,15 @@ function QuotePage() {
               </div>
               <div className="flex gap-3 mt-8">
                 <Button variant="outline" onClick={() => setStep("protein")}>Back</Button>
-                <Button onClick={() => setStep("details")} className="bg-gradient-warm text-primary-foreground">Next</Button>
+                <Button onClick={() => setStep("service")} className="bg-gradient-warm text-primary-foreground">Next</Button>
               </div>
             </div>
           )}
+
+          {step === "service" && <QuoteStepService selections={selections} setSelections={setSelections} setStep={setStep} />}
+          {step === "extras" && <QuoteStepExtras selections={selections} setSelections={setSelections} setStep={setStep} />}
+          {step === "addons" && <QuoteStepAddons selections={selections} setSelections={setSelections} setStep={setStep} />}
+          {step === "tier" && <QuoteStepTier selections={selections} setSelections={setSelections} setStep={setStep} />}
 
           {step === "details" && (
             <div>
@@ -237,7 +247,7 @@ function QuotePage() {
                 </div>
               </div>
               <div className="flex gap-3 mt-8">
-                <Button variant="outline" onClick={() => setStep("dietary")}>Back</Button>
+                <Button variant="outline" onClick={() => setStep("tier")}>Back</Button>
                 <Button onClick={() => setStep("review")} className="bg-gradient-warm text-primary-foreground">Review Quote</Button>
               </div>
             </div>
@@ -253,24 +263,54 @@ function QuotePage() {
                     <div><p className="text-sm text-muted-foreground">Client</p><p className="font-semibold">{selections.clientName || "—"}</p></div>
                     <div className="text-right"><p className="text-sm text-muted-foreground">Guests</p><p className="font-semibold">{selections.guestCount}</p></div>
                   </div>
-                  <div className="border-t pt-4"><p className="text-sm text-muted-foreground mb-2">Menu Style</p><p className="font-medium capitalize">{selections.style}</p></div>
+                  <div className="border-t pt-4 grid grid-cols-2 gap-4">
+                    <div><p className="text-sm text-muted-foreground mb-1">Menu Style</p><p className="font-medium capitalize">{selections.style}</p></div>
+                    <div><p className="text-sm text-muted-foreground mb-1">Service</p><p className="font-medium capitalize">{SERVICE_STYLES.find((s) => s.id === selections.serviceStyle)?.label || "—"}</p></div>
+                  </div>
                   <div className="border-t pt-4">
                     <p className="text-sm text-muted-foreground mb-2">Selected Dishes</p>
                     <ul className="space-y-1">{selections.proteins.map((p) => (<li key={p} className="text-sm font-medium">• {p}</li>))}</ul>
                   </div>
+                  {selections.extras.length > 0 && (
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Sides & Extras</p>
+                      <div className="flex flex-wrap gap-2">{selections.extras.map((id) => {
+                        const item = SIDES_AND_EXTRAS.find((e) => e.id === id);
+                        return item ? <span key={id} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium">{item.icon} {item.label}</span> : null;
+                      })}</div>
+                    </div>
+                  )}
+                  {selections.addons.length > 0 && (
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Add-ons</p>
+                      <div className="flex flex-wrap gap-2">{selections.addons.map((id) => {
+                        const item = ADDONS.find((a) => a.id === id);
+                        return item ? <span key={id} className="px-2 py-0.5 bg-accent/20 text-accent-foreground text-xs rounded-full font-medium">{item.icon} {item.label}</span> : null;
+                      })}</div>
+                    </div>
+                  )}
                   {selections.allergies.length > 0 && (
                     <div className="border-t pt-4">
                       <p className="text-sm text-muted-foreground mb-2">Allergen Accommodations</p>
                       <div className="flex flex-wrap gap-2">{selections.allergies.map((a) => (<span key={a} className="px-2 py-0.5 bg-destructive/10 text-destructive text-xs rounded-full font-medium">{a}</span>))}</div>
                     </div>
                   )}
-                  <div className="border-t pt-4"><p className="text-sm text-muted-foreground mb-2">Event</p><p className="text-sm">{selections.eventType || "—"} · {selections.eventDate || "TBD"}</p></div>
+                  <div className="border-t pt-4 grid grid-cols-2 gap-4">
+                    <div><p className="text-sm text-muted-foreground mb-1">Event</p><p className="text-sm">{selections.eventType || "—"} · {selections.eventDate || "TBD"}</p></div>
+                    <div><p className="text-sm text-muted-foreground mb-1">Tier</p><p className="text-sm font-semibold">{selectedTier.icon} {selectedTier.label}</p></div>
+                  </div>
                   <div className="border-t pt-4 bg-muted/50 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
-                    <div className="flex justify-between items-center">
+                    <div className="space-y-1 text-sm mb-3">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Main dishes ({selections.proteins.length}×{selections.guestCount} guests)</span><span>${dishTotal.toLocaleString()}</span></div>
+                      {extrasTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Sides & extras</span><span>${extrasTotal.toLocaleString()}</span></div>}
+                      {addonsTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>${addonsTotal.toLocaleString()}</span></div>}
+                      {selectedTier.multiplier > 1 && <div className="flex justify-between"><span className="text-muted-foreground">{selectedTier.label} tier ({selectedTier.multiplier}x)</span><span className="text-xs">applied</span></div>}
+                    </div>
+                    <div className="flex justify-between items-center border-t pt-3">
                       <span className="font-display text-lg font-semibold">Estimated Total</span>
                       <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Based on ${PRICE_PER_DISH}/person per dish selection</p>
+                    <p className="text-xs text-muted-foreground mt-1">+8% tax applied at checkout</p>
                   </div>
                 </CardContent>
               </Card>
