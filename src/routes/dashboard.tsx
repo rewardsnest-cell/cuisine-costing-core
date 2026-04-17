@@ -371,6 +371,7 @@ function DashboardPage() {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
       <PublicFooter />
