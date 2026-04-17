@@ -397,7 +397,20 @@ function AIQuotePage() {
                     </div>
                   );
                 })()}
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-destructive">{error}</p>
+                    {lastSentRef.current && (
+                      <button
+                        type="button"
+                        onClick={retry}
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Retry
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="border-t p-3 flex gap-2">
                 <Input
