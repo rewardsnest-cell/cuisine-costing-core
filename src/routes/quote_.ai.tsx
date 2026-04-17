@@ -387,13 +387,27 @@ function AIQuotePage() {
                     </div>
                   );
                 })()}
-                {/* Quick reply chips for the most recent assistant question */}
+                {/* Quick replies for the most recent assistant question */}
                 {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
-                  const chips = suggestChips(messages[messages.length - 1].content);
-                  if (chips.length === 0) return null;
+                  const group = suggestChipGroup(messages[messages.length - 1].content);
+                  if (!group) return null;
+                  if (group.kind === "date") {
+                    return (
+                      <div className="pt-1">
+                        <DateChip onPick={(iso) => void sendChip(iso)} />
+                      </div>
+                    );
+                  }
+                  if (group.kind === "guests") {
+                    return (
+                      <div className="pt-1">
+                        <GuestsChip onSubmit={(n) => void sendChip(String(n))} />
+                      </div>
+                    );
+                  }
                   return (
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {chips.map((chip) => (
+                      {group.chips.map((chip) => (
                         <button
                           key={chip}
                           type="button"
