@@ -346,6 +346,37 @@ function InventoryPage() {
           </table>
         </div>
       )}
+
+      <Dialog open={!!adjustItem} onOpenChange={(o) => !o && setAdjustItem(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-display">Adjust Stock — {adjustItem?.name}</DialogTitle></DialogHeader>
+          {adjustItem && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Current: <span className="font-medium text-foreground">{adjustItem.current_stock} {adjustItem.unit}</span></p>
+              <div>
+                <Label>Action</Label>
+                <Select value={adjustForm.mode} onValueChange={(v) => setAdjustForm({ ...adjustForm, mode: v, value: v === "set" ? String(adjustItem.current_stock) : "0" })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="set">Set to</SelectItem>
+                    <SelectItem value="add">Add</SelectItem>
+                    <SelectItem value="subtract">Subtract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Quantity ({adjustItem.unit})</Label>
+                <Input type="number" step="0.01" value={adjustForm.value} onChange={(e) => setAdjustForm({ ...adjustForm, value: e.target.value })} />
+              </div>
+              <div>
+                <Label>Reason (optional)</Label>
+                <Input placeholder="e.g. Spoilage, count correction, prep" value={adjustForm.reason} onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })} />
+              </div>
+              <Button onClick={submitAdjust} className="w-full bg-gradient-warm text-primary-foreground">Save Adjustment</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
