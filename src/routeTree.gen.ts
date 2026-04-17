@@ -22,6 +22,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as QuoteAiRouteImport } from './routes/quote.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
@@ -102,6 +103,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const QuoteAiRoute = QuoteAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => QuoteRoute,
 } as any)
 const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
@@ -189,7 +195,7 @@ export interface FileRoutesByFullPath {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -218,7 +225,7 @@ export interface FileRoutesByTo {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -249,7 +257,7 @@ export interface FileRoutesById {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
+    | '/quote/ai'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
+    | '/quote/ai'
     | '/admin'
   id:
     | '__root__'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
+    | '/quote/ai'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -371,7 +383,7 @@ export interface RootRouteChildren {
   LookupRoute: typeof LookupRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
-  QuoteRoute: typeof QuoteRoute
+  QuoteRoute: typeof QuoteRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   EventReferenceRoute: typeof EventReferenceRoute
@@ -469,6 +481,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/quote/ai': {
+      id: '/quote/ai'
+      path: '/ai'
+      fullPath: '/quote/ai'
+      preLoaderRoute: typeof QuoteAiRouteImport
+      parentRoute: typeof QuoteRoute
     }
     '/event/$reference': {
       id: '/event/$reference'
@@ -616,6 +635,16 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface QuoteRouteChildren {
+  QuoteAiRoute: typeof QuoteAiRoute
+}
+
+const QuoteRouteChildren: QuoteRouteChildren = {
+  QuoteAiRoute: QuoteAiRoute,
+}
+
+const QuoteRouteWithChildren = QuoteRoute._addFileChildren(QuoteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -626,7 +655,7 @@ const rootRouteChildren: RootRouteChildren = {
   LookupRoute: LookupRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
-  QuoteRoute: QuoteRoute,
+  QuoteRoute: QuoteRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   EventReferenceRoute: EventReferenceRoute,

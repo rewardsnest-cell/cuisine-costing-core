@@ -33,7 +33,13 @@ function HomePage() {
                 to="/quote"
                 className="inline-flex items-center justify-center rounded-lg bg-gradient-warm px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-warm transition-all hover:opacity-90"
               >
-                Build Your Quote
+                Basic Builder
+              </Link>
+              <Link
+                to="/quote/ai"
+                className="inline-flex items-center justify-center rounded-lg bg-gold/90 px-8 py-3.5 text-sm font-semibold text-foreground shadow-warm transition-all hover:bg-gold gap-2"
+              >
+                ✨ Advanced AI Builder
               </Link>
               <Link
                 to="/lookup"
