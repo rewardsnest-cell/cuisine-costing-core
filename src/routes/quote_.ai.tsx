@@ -52,7 +52,7 @@ const CHIP_GROUPS: ChipGroup[] = [
     chips: ["Casual", "Elegant", "Rustic", "Formal", "Festive"] },
   { kind: "text", match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
     chips: ["No alcohol", "Beer & wine only", "Full bar", "Signature cocktail"] },
-  { kind: "text", match: /\b(event type|occasion|wedding|birthday|corporate|anniversary|kind of event|type of (event|celebration))\b/i,
+  { kind: "text", match: /\b(event type|occasion|wedding|birthday|corporate|anniversary|kind of event|type of (event|celebration)|celebrating|what are we celebrat)\b/i,
     chips: ["Wedding", "Birthday", "Corporate", "Anniversary", "Holiday party"] },
   { kind: "text", match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
     chips: ["Chicken", "Beef", "Pork", "Lamb", "Ribeye", "Filet", "Brisket"] },
