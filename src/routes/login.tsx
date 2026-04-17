@@ -79,7 +79,10 @@ function LoginPage() {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
               </div>
               <div>
-                <Label>Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Password</Label>
+                  <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot?</Link>
+                </div>
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
               </div>
               <Button type="submit" className="w-full bg-gradient-warm text-primary-foreground" disabled={submitting}>
