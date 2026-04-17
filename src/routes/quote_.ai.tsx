@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, ArrowLeftRight, Loader2, X, RotateCcw } from "lucide-react";
+import { Sparkles, Send, ArrowLeftRight, Loader2, X, RotateCcw, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
 
 export const Route = createFileRoute("/quote_/ai")({
@@ -523,6 +527,81 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
     <div className="flex justify-between gap-3 text-sm">
       <span className="text-muted-foreground shrink-0">{label}</span>
       <span className="font-medium text-right capitalize">{value}</span>
+    </div>
+  );
+}
+
+function DateChip({ onPick }: { onPick: (iso: string) => void }) {
+  const [date, setDate] = useState<Date | undefined>();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+        >
+          <CalendarIcon className="w-3.5 h-3.5" />
+          {date ? format(date, "PPP") : "Pick a date"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            if (!d) return;
+            setDate(d);
+            setOpen(false);
+            const iso = format(d, "yyyy-MM-dd");
+            onPick(iso);
+          }}
+          disabled={(d) => d < new Date(new Date().toDateString())}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function GuestsChip({ onSubmit }: { onSubmit: (n: number) => void }) {
+  const [val, setVal] = useState("");
+  const presets = [25, 50, 75, 100, 150, 200];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {presets.map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onSubmit(n)}
+          className="text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+        >
+          {n}
+        </button>
+      ))}
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="Custom"
+          className="w-20 text-xs px-2 py-1.5 rounded-full border border-primary/30 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <button
+          type="button"
+          disabled={!val || Number(val) < 1}
+          onClick={() => {
+            const n = Number(val);
+            if (n >= 1) onSubmit(n);
+          }}
+          className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }
