@@ -243,6 +243,14 @@ function QuotePage() {
       <PublicHeader />
       <div className="pt-24 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
+          {/* Mode header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <Badge variant="secondary" className="gap-1">Basic Builder</Badge>
+            <button onClick={switchToAI} className="text-xs text-primary hover:underline flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Switch to Advanced AI <ArrowLeftRight className="w-3 h-3" />
+            </button>
+          </div>
+
           {/* Progress bar */}
           <div className="mb-8">
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
