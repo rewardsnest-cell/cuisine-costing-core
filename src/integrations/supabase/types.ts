@@ -220,6 +220,107 @@ export type Database = {
           },
         ]
       }
+      event_prep_tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          position: number
+          quote_id: string
+          quote_item_id: string | null
+          source: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          position?: number
+          quote_id: string
+          quote_item_id?: string | null
+          source?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          position?: number
+          quote_id?: string
+          quote_item_id?: string | null
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_prep_tasks_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_prep_tasks_quote_item_id_fkey"
+            columns: ["quote_item_id"]
+            isOneToOne: false
+            referencedRelation: "quote_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_time_entries: {
+        Row: {
+          clock_in_at: string
+          clock_out_at: string | null
+          created_at: string
+          employee_user_id: string
+          id: string
+          notes: string | null
+          quote_id: string
+          updated_at: string
+        }
+        Insert: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          created_at?: string
+          employee_user_id: string
+          id?: string
+          notes?: string | null
+          quote_id: string
+          updated_at?: string
+        }
+        Update: {
+          clock_in_at?: string
+          clock_out_at?: string | null
+          created_at?: string
+          employee_user_id?: string
+          id?: string
+          notes?: string | null
+          quote_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_time_entries_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_adjustments: {
         Row: {
           change_amount: number
@@ -660,6 +761,7 @@ export type Database = {
       }
       recipes: {
         Row: {
+          active: boolean
           allergens: string[] | null
           category: string | null
           cook_time: number | null
@@ -681,6 +783,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active?: boolean
           allergens?: string[] | null
           category?: string | null
           cook_time?: number | null
@@ -702,6 +805,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active?: boolean
           allergens?: string[] | null
           category?: string | null
           cook_time?: number | null
@@ -852,6 +956,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_assigned_to_quote: {
+        Args: { _quote_id: string; _user_id: string }
         Returns: boolean
       }
     }
