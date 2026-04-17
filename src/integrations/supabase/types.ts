@@ -50,6 +50,50 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_adjustments: {
+        Row: {
+          change_amount: number
+          created_at: string
+          id: string
+          inventory_item_id: string
+          new_stock: number
+          previous_stock: number
+          reason: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          change_amount?: number
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          new_stock?: number
+          previous_stock?: number
+          reason?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          new_stock?: number
+          previous_stock?: number
+          reason?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           average_cost_per_unit: number

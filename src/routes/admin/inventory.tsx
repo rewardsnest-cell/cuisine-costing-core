@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload } from "lucide-react";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History } from "lucide-react";
 import { toast } from "sonner";
+
+type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
 export const Route = createFileRoute("/admin/inventory")({
   component: InventoryPage,
@@ -49,6 +51,29 @@ function InventoryPage() {
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
   const [adjustForm, setAdjustForm] = useState({ mode: "set", value: "0", reason: "" });
   const [importing, setImporting] = useState(false);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
+  const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
+  const openHistory = async (item: InventoryItem) => {
+    setHistoryItem(item);
+    setAdjustments([]);
+    const { data } = await supabase
+      .from("inventory_adjustments")
+      .select("id, previous_stock, new_stock, change_amount, reason, source, created_at, user_id")
+      .eq("inventory_item_id", item.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const rows = (data || []) as AdjustmentRow[];
+    setAdjustments(rows);
+    const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      const map: Record<string, string> = {};
+      (profiles || []).forEach((p) => { map[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8); });
+      setUserMap(map);
+    }
+  };
 
   const loadItems = async () => {
     const [invRes, supRes] = await Promise.all([
@@ -97,7 +122,18 @@ function InventoryPage() {
     if (adjustForm.mode === "set") newStock = v;
     else if (adjustForm.mode === "add") newStock = adjustItem.current_stock + v;
     else if (adjustForm.mode === "subtract") newStock = adjustItem.current_stock - v;
+    const prev = adjustItem.current_stock;
+    const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("inventory_items").update({ current_stock: newStock }).eq("id", adjustItem.id);
+    await supabase.from("inventory_adjustments").insert({
+      inventory_item_id: adjustItem.id,
+      user_id: user?.id ?? null,
+      previous_stock: prev,
+      new_stock: newStock,
+      change_amount: newStock - prev,
+      reason: adjustForm.reason || null,
+      source: "manual",
+    });
     toast.success(`Updated ${adjustItem.name} → ${newStock} ${adjustItem.unit}`);
     setAdjustItem(null);
     loadItems();
@@ -295,6 +331,9 @@ function InventoryPage() {
                           <button onClick={() => openAdjust(item)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Adjust stock">
                             <Pencil className="w-4 h-4" />
                           </button>
+                          <button onClick={() => openHistory(item)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Adjustment history">
+                            <History className="w-4 h-4" />
+                          </button>
                           <button onClick={() => handleDelete(item.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -373,6 +412,46 @@ function InventoryPage() {
                 <Input placeholder="e.g. Spoilage, count correction, prep" value={adjustForm.reason} onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })} />
               </div>
               <Button onClick={submitAdjust} className="w-full bg-gradient-warm text-primary-foreground">Save Adjustment</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!historyItem} onOpenChange={(o) => !o && setHistoryItem(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Adjustment History — {historyItem?.name}</DialogTitle>
+          </DialogHeader>
+          {adjustments.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">No adjustments recorded yet.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-background border-b">
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2">Date</th>
+                    <th className="py-2">User</th>
+                    <th className="py-2">Source</th>
+                    <th className="py-2 text-right">Change</th>
+                    <th className="py-2 text-right">From → To</th>
+                    <th className="py-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adjustments.map((a) => (
+                    <tr key={a.id} className="border-b last:border-0">
+                      <td className="py-2 pr-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</td>
+                      <td className="py-2 pr-2 text-xs">{a.user_id ? (userMap[a.user_id] || a.user_id.slice(0, 8)) : "—"}</td>
+                      <td className="py-2 pr-2 text-xs"><span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{a.source}</span></td>
+                      <td className={`py-2 pr-2 text-right font-medium ${a.change_amount >= 0 ? "text-success" : "text-destructive"}`}>
+                        {a.change_amount >= 0 ? "+" : ""}{a.change_amount}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-xs text-muted-foreground whitespace-nowrap">{a.previous_stock} → {a.new_stock}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{a.reason || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </DialogContent>
