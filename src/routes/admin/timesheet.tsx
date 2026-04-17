@@ -246,7 +246,16 @@ function TimesheetPage() {
             <Label className="text-xs">End</Label>
             <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onlyApproved}
+                onChange={(e) => setOnlyApproved(e.target.checked)}
+                className="rounded"
+              />
+              Approved only
+            </label>
             <Button
               variant="outline"
               size="sm"
@@ -273,6 +282,16 @@ function TimesheetPage() {
             >
               2 weeks
             </Button>
+            {pendingCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => bulkApprovePending(allPendingIds)}
+                className="gap-2"
+              >
+                <Check className="w-4 h-4" /> Approve {pendingCount} pending
+              </Button>
+            )}
             <Button onClick={exportCsv} className="gap-2" disabled={grouped.length === 0}>
               <Download className="w-4 h-4" /> Export CSV
             </Button>
@@ -339,36 +358,92 @@ function TimesheetPage() {
                         <th className="py-2 px-3 font-medium">In</th>
                         <th className="py-2 px-3 font-medium">Out</th>
                         <th className="py-2 px-3 font-medium text-right">Hours</th>
+                        <th className="py-2 px-3 font-medium">Status</th>
+                        <th className="py-2 px-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {g.rows.map((r) => (
-                        <tr key={r.entry.id} className="border-t border-border/40">
-                          <td className="py-1.5 px-3">
-                            {r.quote?.event_type || "—"}
-                            {r.quote?.client_name ? ` · ${r.quote.client_name}` : ""}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {r.quote?.event_date || ""}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {new Date(r.entry.clock_in_at).toLocaleString([], {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {r.entry.clock_out_at
-                              ? new Date(r.entry.clock_out_at).toLocaleTimeString([], {
-                                  timeStyle: "short",
-                                })
-                              : "—"}
-                          </td>
-                          <td className="py-1.5 px-3 text-right font-mono">
-                            {hoursDecimal(r.ms).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
+                      {g.rows.map((r) => {
+                        const status = r.entry.approval_status;
+                        return (
+                          <tr key={r.entry.id} className="border-t border-border/40">
+                            <td className="py-1.5 px-3">
+                              {r.quote?.event_type || "—"}
+                              {r.quote?.client_name ? ` · ${r.quote.client_name}` : ""}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {r.quote?.event_date || ""}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {new Date(r.entry.clock_in_at).toLocaleString([], {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {r.entry.clock_out_at
+                                ? new Date(r.entry.clock_out_at).toLocaleTimeString([], {
+                                    timeStyle: "short",
+                                  })
+                                : "—"}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono">
+                              {hoursDecimal(r.ms).toFixed(2)}
+                            </td>
+                            <td className="py-1.5 px-3">
+                              <Badge
+                                variant={
+                                  status === "approved"
+                                    ? "default"
+                                    : status === "disputed"
+                                      ? "destructive"
+                                      : "secondary"
+                                }
+                                className="capitalize text-[10px]"
+                              >
+                                {status}
+                              </Badge>
+                            </td>
+                            <td className="py-1.5 px-3 text-right">
+                              <div className="inline-flex gap-1">
+                                {status !== "approved" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Approve"
+                                    onClick={() => setApproval(r.entry.id, "approved")}
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-success" />
+                                  </Button>
+                                )}
+                                {status !== "disputed" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Dispute"
+                                    onClick={() => setApproval(r.entry.id, "disputed")}
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                                  </Button>
+                                )}
+                                {status !== "pending" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Reset to pending"
+                                    onClick={() => setApproval(r.entry.id, "pending")}
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
