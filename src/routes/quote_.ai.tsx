@@ -22,38 +22,47 @@ export const Route = createFileRoute("/quote_/ai")({
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
-const CHIP_GROUPS: { match: RegExp; chips: string[] }[] = [
-  { match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
+type ChipGroup =
+  | { kind: "text"; match: RegExp; chips: string[] }
+  | { kind: "date"; match: RegExp }
+  | { kind: "guests"; match: RegExp };
+
+// Order matters — date/guests must run BEFORE the generic "event type" group.
+const CHIP_GROUPS: ChipGroup[] = [
+  { kind: "date",
+    match: /\b(date of (the )?(event|party|wedding|celebration)|what(?:'s| is) the date|event date|when (?:is|will|are)|pick a date|date you('re| are) planning|the date)\b/i },
+  { kind: "guests",
+    match: /\b(how many (guests|people|attendees)|guest count|number of (guests|people)|approximate (guest|head) count)\b/i },
+  { kind: "text", match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
     chips: ["Buffet", "Plated", "Family Style", "Cocktail Reception"] },
-  { match: /\b(menu style|meat|seafood|vegetarian|mixed menu|what kind of (food|menu)|cuisine direction)\b/i,
+  { kind: "text", match: /\b(menu style|meat|seafood|vegetarian|mixed menu|what kind of (food|menu)|cuisine direction)\b/i,
     chips: ["Meat & Poultry", "Seafood", "Vegetarian", "Mixed Menu"] },
-  { match: /\b(tier|silver|gold|platinum|package|budget level)\b/i,
+  { kind: "text", match: /\b(tier|silver|gold|platinum|package|budget level)\b/i,
     chips: ["Silver", "Gold", "Platinum"] },
-  { match: /\b(allerg|dietary|restriction|intoleran)/i,
+  { kind: "text", match: /\b(allerg|dietary|restriction|intoleran)/i,
     chips: ["None", "Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"] },
-  { match: /\b(spice|spicy|heat level|how spicy)\b/i,
+  { kind: "text", match: /\b(spice|spicy|heat level|how spicy)\b/i,
     chips: ["Mild", "Medium", "Spicy", "Extra spicy"] },
-  { match: /\b(vibe|mood|atmosphere|formal|casual|elegant|rustic)\b/i,
+  { kind: "text", match: /\b(vibe|mood|atmosphere|formal|casual|elegant|rustic)\b/i,
     chips: ["Casual", "Elegant", "Rustic", "Formal", "Festive"] },
-  { match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
+  { kind: "text", match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
     chips: ["No alcohol", "Beer & wine only", "Full bar", "Signature cocktail"] },
-  { match: /\b(event type|occasion|wedding|birthday|corporate|anniversary)\b/i,
+  { kind: "text", match: /\b(event type|occasion|wedding|birthday|corporate|anniversary|kind of event|type of (event|celebration))\b/i,
     chips: ["Wedding", "Birthday", "Corporate", "Anniversary", "Holiday party"] },
-  { match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
+  { kind: "text", match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
     chips: ["Chicken", "Beef", "Pork", "Lamb", "Ribeye", "Filet", "Brisket"] },
-  { match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
+  { kind: "text", match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
     chips: ["Fish", "Shrimp", "Crab", "Lobster", "Salmon", "Tuna"] },
-  { match: /\b(sound good|sound right|confirm|correct\?|ready to|shall we|would you like)\b/i,
+  { kind: "text", match: /\b(sound good|sound right|confirm|correct\?|ready to|shall we|would you like)\b/i,
     chips: ["Yes", "No", "Not sure"] },
 ];
 
-function suggestChips(text: string): string[] {
-  if (!text) return [];
-  const tail = text.split(/(?<=[.?!])\s+/).slice(-2).join(" ");
+function suggestChipGroup(text: string): ChipGroup | null {
+  if (!text) return null;
   for (const group of CHIP_GROUPS) {
-    if (group.match.test(tail)) return group.chips;
+    if (group.match.test(text)) return group;
   }
-  return [];
+  return null;
 }
 
 function deepMergePreferences(base: QuotePreferences | undefined, incoming: QuotePreferences): QuotePreferences {
