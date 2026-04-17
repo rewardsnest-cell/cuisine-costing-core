@@ -151,6 +151,7 @@ function AIQuotePage() {
           if (tc.name === "update_quote_draft" && tc.args) {
             try {
               const parsed = JSON.parse(tc.args);
+              console.log("[quote-ai] tool call parsed:", parsed);
               setSelections((prev) => {
                 const next: QuoteSelections = { ...prev };
                 for (const [k, v] of Object.entries(parsed)) {
@@ -164,6 +165,7 @@ function AIQuotePage() {
                     (next as any)[k] = v;
                   }
                 }
+                console.log("[quote-ai] selections after merge:", next);
                 return next;
               });
             } catch (e) {
