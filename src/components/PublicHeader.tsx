@@ -1,5 +1,14 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Menu } from "lucide-react";
 
 export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
@@ -15,40 +24,77 @@ export function PublicHeader() {
           </div>
           <span className="font-display text-xl font-semibold text-foreground">TasteQuote</span>
         </Link>
-        <nav className="flex items-center gap-4 sm:gap-6">
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Home</Link>
-          <Link to="/quote" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Get a Quote</Link>
-          <Link to="/lookup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Look Up</Link>
-          {!loading && user ? (
-            <>
-              <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
-              {isEmployee && (
-                <Link to="/my-events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Events</Link>
-              )}
-              {isAdmin && (
-                <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-muted/40">
-                  <Link
-                    to="/dashboard"
-                    className={`text-xs font-medium px-2.5 py-1 rounded ${!inAdmin ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    User
-                  </Link>
-                  <Link
-                    to="/admin"
-                    className={`text-xs font-semibold px-2.5 py-1 rounded ${inAdmin ? "bg-primary text-primary-foreground shadow-sm" : "text-primary hover:text-primary/80"}`}
-                  >
-                    Admin
-                  </Link>
-                </div>
-              )}
-              <button onClick={() => signOut()} className="text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-1.5">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-1.5">Sign In</Link>
+
+        <div className="flex items-center gap-3">
+          {!loading && user && isAdmin && (
+            <div className="hidden sm:inline-flex items-center rounded-md border border-border p-0.5 bg-muted/40">
+              <Link
+                to="/dashboard"
+                className={`text-xs font-medium px-2.5 py-1 rounded ${!inAdmin ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                User
+              </Link>
+              <Link
+                to="/admin"
+                className={`text-xs font-semibold px-2.5 py-1 rounded ${inAdmin ? "bg-primary text-primary-foreground shadow-sm" : "text-primary hover:text-primary/80"}`}
+              >
+                Admin
+              </Link>
+            </div>
           )}
-        </nav>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center gap-2 text-sm font-medium text-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
+              <Menu className="w-4 h-4" />
+              <span>Menu</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Navigate</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link to="/">Home</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/quote">Get a Quote</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/lookup">Look Up</Link>
+              </DropdownMenuItem>
+
+              {!loading && user && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  {isEmployee && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-events">My Events</Link>
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin Panel</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => signOut()}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              {!loading && !user && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/login">Sign In</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );
