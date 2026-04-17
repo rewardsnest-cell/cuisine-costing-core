@@ -20,7 +20,7 @@ export function PublicHeader() {
           <Link to="/lookup" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Look Up</Link>
           {!loading && user ? (
             <>
-              <Link to="/my-quotes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Quotes</Link>
+              <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
               {isEmployee && (
                 <Link to="/my-events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Events</Link>
               )}
