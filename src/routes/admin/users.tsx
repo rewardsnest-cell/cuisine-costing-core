@@ -11,7 +11,7 @@ export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
 });
 
-type Profile = { user_id: string; full_name: string | null; created_at: string };
+type Profile = { user_id: string; full_name: string | null; email: string | null; created_at: string };
 type UserRole = { user_id: string; role: string };
 type AdminRequest = {
   id: string;
@@ -31,7 +31,7 @@ function UserManagementPage() {
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, created_at").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("user_id, full_name, email, created_at").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("admin_requests").select("*").order("created_at", { ascending: false }),
     ]);
@@ -146,6 +146,7 @@ function UserManagementPage() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{profile.full_name || "Unnamed User"}</p>
+                  {profile.email && <p className="text-xs text-muted-foreground">{profile.email}</p>}
                   <p className="text-xs text-muted-foreground">Joined {new Date(profile.created_at).toLocaleDateString()}</p>
                   <div className="flex gap-1 mt-1">
                     {userRoles.map((r) => (
