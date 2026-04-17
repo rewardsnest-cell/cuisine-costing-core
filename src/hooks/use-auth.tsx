@@ -7,6 +7,7 @@ interface AuthContext {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isEmployee: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,15 +20,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEmployee, setIsEmployee] = useState(false);
 
-  const checkAdmin = async (userId: string) => {
+  const checkRoles = async (userId: string) => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
+      .eq("user_id", userId);
+    const roles = (data ?? []).map((r: any) => r.role as string);
+    setIsAdmin(roles.includes("admin"));
+    setIsEmployee(roles.includes("employee") || roles.includes("admin"));
   };
 
   useEffect(() => {
@@ -35,9 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkAdmin(session.user.id);
+        checkRoles(session.user.id);
       } else {
         setIsAdmin(false);
+        setIsEmployee(false);
       }
       setLoading(false);
     });
@@ -46,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkAdmin(session.user.id);
+        checkRoles(session.user.id);
       }
       setLoading(false);
     });
@@ -73,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, session, loading, isAdmin, signIn, signUp, signOut }}>
+    <AuthCtx.Provider value={{ user, session, loading, isAdmin, isEmployee, signIn, signUp, signOut }}>
       {children}
     </AuthCtx.Provider>
   );
