@@ -63,25 +63,37 @@ export function PublicHeader() {
               {!loading && user && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>User</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-quotes">My Quotes</Link>
+                  </DropdownMenuItem>
+
                   {(isEmployee || isAdmin) && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/employee">Employee Dashboard</Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Employee</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link to="/employee">Employee Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/my-events">My Events</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
-                  {isEmployee && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/my-events">My Events</Link>
-                    </DropdownMenuItem>
-                  )}
+
                   {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin">Admin Panel</Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin">Admin Panel</Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => signOut()}>
                     Sign Out
