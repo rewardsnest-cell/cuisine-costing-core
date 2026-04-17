@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/admin/schedule")({
   head: () => ({ meta: [{ title: "Schedule — TasteQuote Admin" }] }),
@@ -65,6 +66,24 @@ function SchedulePage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [allEmployees, setAllEmployees] = useState<ProfileLite[]>([]);
+
+  // Load all employees once for the filter dropdown
+  useEffect(() => {
+    (async () => {
+      const { data: roles } = await (supabase as any)
+        .from("user_roles").select("user_id").in("role", ["employee", "admin"]);
+      const userIds = Array.from(new Set(((roles ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+      if (userIds.length === 0) { setAllEmployees([]); return; }
+      const { data: pr } = await supabase
+        .from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      const list = ((pr ?? []) as ProfileLite[]).sort((a, b) =>
+        (a.full_name || a.email || "").localeCompare(b.full_name || b.email || "")
+      );
+      setAllEmployees(list);
+    })();
+  }, []);
 
   const range = useMemo(() => {
     if (view === "month") {
@@ -102,14 +121,25 @@ function SchedulePage() {
     })();
   }, [range.start, range.end]);
 
+  // Quote IDs the selected employee is on (for filtering)
+  const filteredQuoteIds = useMemo(() => {
+    if (employeeFilter === "all") return null;
+    return new Set(assignments.filter((a) => a.employee_user_id === employeeFilter).map((a) => a.quote_id));
+  }, [employeeFilter, assignments]);
+
+  const visibleEvents = useMemo(() => {
+    if (!filteredQuoteIds) return events;
+    return events.filter((e) => filteredQuoteIds.has(e.id));
+  }, [events, filteredQuoteIds]);
+
   const eventsByDate = useMemo(() => {
     const map: Record<string, EventRow[]> = {};
-    for (const e of events) {
+    for (const e of visibleEvents) {
       if (!e.event_date) continue;
       (map[e.event_date] ??= []).push(e);
     }
     return map;
-  }, [events]);
+  }, [visibleEvents]);
 
   const assignmentsByQuote = useMemo(() => {
     const map: Record<string, Assignment[]> = {};
@@ -182,6 +212,26 @@ function SchedulePage() {
             <CalendarDays className="w-4 h-4" /> Today
           </Button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+          <SelectTrigger className="w-[240px] h-9">
+            <SelectValue placeholder="Filter by employee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All employees</SelectItem>
+            {allEmployees.map((e) => (
+              <SelectItem key={e.user_id} value={e.user_id}>
+                {e.full_name || e.email || e.user_id.slice(0, 8)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {employeeFilter !== "all" && (
+          <Button variant="ghost" size="sm" onClick={() => setEmployeeFilter("all")}>Clear</Button>
+        )}
       </div>
 
       {view === "month" ? (
