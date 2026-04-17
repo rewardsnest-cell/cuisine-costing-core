@@ -123,7 +123,19 @@ function QuotePage() {
         user_id: user?.id || null,
       }).select("id, reference_number").single();
       if (data?.reference_number) setReferenceNumber(data.reference_number);
-      if (data?.id) setSubmittedQuoteId(data.id);
+      if (data?.id) {
+        setSubmittedQuoteId(data.id);
+        // Track guest quote in localStorage so it can be auto-linked after login/signup
+        if (!user?.id && typeof window !== "undefined") {
+          try {
+            const existing = JSON.parse(localStorage.getItem("guest_quote_ids") || "[]");
+            if (!existing.includes(data.id)) {
+              existing.push(data.id);
+              localStorage.setItem("guest_quote_ids", JSON.stringify(existing));
+            }
+          } catch {}
+        }
+      }
       if (user?.id) setLinked(true);
       setSubmitted(true);
     } catch (err) {
