@@ -36,10 +36,10 @@ function HomePage() {
                 Build Your Quote
               </Link>
               <Link
-                to="/admin"
+                to="/lookup"
                 className="inline-flex items-center justify-center rounded-lg border border-background/30 bg-background/10 backdrop-blur-sm px-8 py-3.5 text-sm font-semibold text-background transition-all hover:bg-background/20"
               >
-                Admin Portal
+                Look Up My Quote
               </Link>
             </div>
           </div>
