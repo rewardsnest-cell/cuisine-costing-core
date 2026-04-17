@@ -67,6 +67,11 @@ export function PublicHeader() {
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
+                  {(isEmployee || isAdmin) && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/employee">Employee Dashboard</Link>
+                    </DropdownMenuItem>
+                  )}
                   {isEmployee && (
                     <DropdownMenuItem asChild>
                       <Link to="/my-events">My Events</Link>
