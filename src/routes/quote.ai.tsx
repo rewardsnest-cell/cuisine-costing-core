@@ -22,6 +22,40 @@ export const Route = createFileRoute("/quote/ai")({
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
+const CHIP_GROUPS: { match: RegExp; chips: string[] }[] = [
+  { match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
+    chips: ["Buffet", "Plated", "Family Style", "Cocktail Reception"] },
+  { match: /\b(menu style|meat|seafood|vegetarian|mixed menu|what kind of (food|menu)|cuisine direction)\b/i,
+    chips: ["Meat & Poultry", "Seafood", "Vegetarian", "Mixed Menu"] },
+  { match: /\b(tier|silver|gold|platinum|package|budget level)\b/i,
+    chips: ["Silver", "Gold", "Platinum"] },
+  { match: /\b(allerg|dietary|restriction|intoleran)/i,
+    chips: ["None", "Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"] },
+  { match: /\b(spice|spicy|heat level|how spicy)\b/i,
+    chips: ["Mild", "Medium", "Spicy", "Extra spicy"] },
+  { match: /\b(vibe|mood|atmosphere|formal|casual|elegant|rustic)\b/i,
+    chips: ["Casual", "Elegant", "Rustic", "Formal", "Festive"] },
+  { match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
+    chips: ["No alcohol", "Beer & wine only", "Full bar", "Signature cocktail"] },
+  { match: /\b(event type|occasion|wedding|birthday|corporate|anniversary)\b/i,
+    chips: ["Wedding", "Birthday", "Corporate", "Anniversary", "Holiday party"] },
+  { match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
+    chips: ["Chicken", "Beef", "Pork", "Lamb", "Ribeye", "Filet", "Brisket"] },
+  { match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
+    chips: ["Fish", "Shrimp", "Crab", "Lobster", "Salmon", "Tuna"] },
+  { match: /\b(sound good|sound right|confirm|correct\?|ready to|shall we|would you like)\b/i,
+    chips: ["Yes", "No", "Not sure"] },
+];
+
+function suggestChips(text: string): string[] {
+  if (!text) return [];
+  const tail = text.split(/(?<=[.?!])\s+/).slice(-2).join(" ");
+  for (const group of CHIP_GROUPS) {
+    if (group.match.test(tail)) return group.chips;
+  }
+  return [];
+}
+
 function deepMergePreferences(base: QuotePreferences | undefined, incoming: QuotePreferences): QuotePreferences {
   const out: QuotePreferences = { ...(base || {}), ...incoming };
   if (base?.alcohol || incoming.alcohol) {
@@ -196,6 +230,13 @@ function AIQuotePage() {
     await sendToAI(next);
   };
 
+  const sendChip = async (text: string) => {
+    if (loading) return;
+    const next = [...messages, { role: "user" as const, content: text }];
+    setMessages(next);
+    await sendToAI(next);
+  };
+
   const switchToBasic = () => {
     sessionStorage.setItem("quote_handoff", JSON.stringify(selections));
     navigate({ to: "/quote" });
@@ -270,6 +311,25 @@ function AIQuotePage() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
                   </div>
                 )}
+                {/* Quick reply chips for the most recent assistant question */}
+                {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
+                  const chips = suggestChips(messages[messages.length - 1].content);
+                  if (chips.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {chips.map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => void sendChip(chip)}
+                          className="text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
               <div className="border-t p-3 flex gap-2">
