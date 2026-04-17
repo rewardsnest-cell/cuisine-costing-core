@@ -6,11 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck } from "lucide-react";
 
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
 });
+
+type Supplier = { id: string; name: string };
+type InventoryItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+
+type POItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_price: number;
+  inventory_item_id: string | null;
+};
 
 type PO = {
   id: string;
@@ -24,12 +38,28 @@ type PO = {
 
 function PurchaseOrdersPage() {
   const [orders, setOrders] = useState<PO[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<Record<string, POItem[]>>({});
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ notes: "", expected_delivery: "" });
+  const [form, setForm] = useState({ notes: "", expected_delivery: "", supplier_id: "" });
+  const [itemForm, setItemForm] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
 
   const load = async () => {
-    const { data } = await supabase.from("purchase_orders").select("*").order("created_at", { ascending: false });
-    if (data) setOrders(data as PO[]);
+    const [ordersRes, supRes, invRes] = await Promise.all([
+      supabase.from("purchase_orders").select("*").order("created_at", { ascending: false }),
+      supabase.from("suppliers").select("id, name").order("name"),
+      supabase.from("inventory_items").select("id, name, unit, average_cost_per_unit").order("name"),
+    ]);
+    if (ordersRes.data) setOrders(ordersRes.data as PO[]);
+    if (supRes.data) setSuppliers(supRes.data as Supplier[]);
+    if (invRes.data) setInventory(invRes.data as InventoryItem[]);
+  };
+
+  const loadItems = async (poId: string) => {
+    const { data } = await supabase.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
+    if (data) setItems((prev) => ({ ...prev, [poId]: data as POItem[] }));
   };
 
   useEffect(() => { load(); }, []);
@@ -38,14 +68,62 @@ function PurchaseOrdersPage() {
     await supabase.from("purchase_orders").insert({
       notes: form.notes || null,
       expected_delivery: form.expected_delivery || null,
+      supplier_id: form.supplier_id || null,
     });
     setDialogOpen(false);
-    setForm({ notes: "", expected_delivery: "" });
+    setForm({ notes: "", expected_delivery: "", supplier_id: "" });
     load();
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from("purchase_orders").delete().eq("id", id);
+    load();
+  };
+
+  const toggleExpand = async (poId: string) => {
+    if (expanded === poId) {
+      setExpanded(null);
+    } else {
+      setExpanded(poId);
+      if (!items[poId]) await loadItems(poId);
+    }
+  };
+
+  const recalcTotal = async (poId: string) => {
+    const { data } = await supabase.from("purchase_order_items").select("total_price").eq("purchase_order_id", poId);
+    const total = (data || []).reduce((s, r: { total_price: number }) => s + Number(r.total_price), 0);
+    await supabase.from("purchase_orders").update({ total_amount: total }).eq("id", poId);
+  };
+
+  const addItem = async (poId: string) => {
+    const qty = parseFloat(itemForm.quantity) || 0;
+    const price = parseFloat(itemForm.unit_price) || 0;
+    let name = itemForm.name;
+    let unit = itemForm.unit;
+    if (itemForm.inventory_item_id) {
+      const inv = inventory.find((i) => i.id === itemForm.inventory_item_id);
+      if (inv) { name = inv.name; unit = inv.unit; }
+    }
+    if (!name || qty <= 0) return;
+    await supabase.from("purchase_order_items").insert({
+      purchase_order_id: poId,
+      inventory_item_id: itemForm.inventory_item_id || null,
+      name,
+      quantity: qty,
+      unit,
+      unit_price: price,
+      total_price: qty * price,
+    });
+    setItemForm({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+    await loadItems(poId);
+    await recalcTotal(poId);
+    load();
+  };
+
+  const removeItem = async (poId: string, itemId: string) => {
+    await supabase.from("purchase_order_items").delete().eq("id", itemId);
+    await loadItems(poId);
+    await recalcTotal(poId);
     load();
   };
 
@@ -57,6 +135,8 @@ function PurchaseOrdersPage() {
     }
   };
 
+  const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "No vendor";
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -67,6 +147,15 @@ function PurchaseOrdersPage() {
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Purchase Order</DialogTitle></DialogHeader>
             <div className="space-y-3">
+              <div>
+                <Label>Vendor</Label>
+                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label>Expected Delivery</Label><Input type="date" value={form.expected_delivery} onChange={(e) => setForm({ ...form, expected_delivery: e.target.value })} /></div>
               <div><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
               <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground">Create PO</Button>
@@ -84,22 +173,95 @@ function PurchaseOrdersPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {orders.map((po) => (
-            <Card key={po.id} className="shadow-warm border-border/50">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="font-medium">PO #{po.id.slice(0, 8)}</p>
-                  <p className="text-sm text-muted-foreground">Ordered {new Date(po.order_date).toLocaleDateString()}{po.expected_delivery ? ` · Due ${new Date(po.expected_delivery).toLocaleDateString()}` : ""}</p>
-                  {po.notes && <p className="text-sm text-muted-foreground mt-1">{po.notes}</p>}
-                </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(po.status)}`}>{po.status}</span>
-                <p className="font-display text-lg font-bold">${Number(po.total_amount).toFixed(2)}</p>
-                <button onClick={() => handleDelete(po.id)} className="text-muted-foreground hover:text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </CardContent>
-            </Card>
-          ))}
+          {orders.map((po) => {
+            const isOpen = expanded === po.id;
+            const poItems = items[po.id] || [];
+            return (
+              <Card key={po.id} className="shadow-warm border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => toggleExpand(po.id)} className="text-muted-foreground hover:text-foreground">
+                      {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium">PO #{po.id.slice(0, 8)}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <Truck className="w-3 h-3" /> {supplierName(po.supplier_id)} · Ordered {new Date(po.order_date).toLocaleDateString()}{po.expected_delivery ? ` · Due ${new Date(po.expected_delivery).toLocaleDateString()}` : ""}
+                      </p>
+                      {po.notes && <p className="text-sm text-muted-foreground mt-1">{po.notes}</p>}
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(po.status)}`}>{po.status}</span>
+                    <p className="font-display text-lg font-bold">${Number(po.total_amount).toFixed(2)}</p>
+                    <button onClick={() => handleDelete(po.id)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Line Items</p>
+                      {poItems.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-3">No items added yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border/50 text-left text-xs text-muted-foreground">
+                                <th className="py-2">Item</th>
+                                <th className="py-2 text-right">Qty</th>
+                                <th className="py-2">Unit</th>
+                                <th className="py-2 text-right">Unit Cost</th>
+                                <th className="py-2 text-right">Total</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {poItems.map((it) => (
+                                <tr key={it.id} className="border-b border-border/30">
+                                  <td className="py-2 font-medium">{it.name}</td>
+                                  <td className="py-2 text-right">{it.quantity}</td>
+                                  <td className="py-2 text-muted-foreground">{it.unit}</td>
+                                  <td className="py-2 text-right">${Number(it.unit_price).toFixed(2)}</td>
+                                  <td className="py-2 text-right font-medium">${Number(it.total_price).toFixed(2)}</td>
+                                  <td className="py-2 text-right">
+                                    <button onClick={() => removeItem(po.id, it.id)} className="text-muted-foreground hover:text-destructive">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                        <div className="md:col-span-5">
+                          <Label className="text-xs">Inventory Item</Label>
+                          <Select value={itemForm.inventory_item_id} onValueChange={(v) => {
+                            const inv = inventory.find((i) => i.id === v);
+                            setItemForm({ ...itemForm, inventory_item_id: v, name: inv?.name || "", unit: inv?.unit || "each", unit_price: inv ? String(inv.average_cost_per_unit) : itemForm.unit_price });
+                          }}>
+                            <SelectTrigger><SelectValue placeholder="Pick item or type name" /></SelectTrigger>
+                            <SelectContent>
+                              {inventory.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {!itemForm.inventory_item_id && (
+                            <Input className="mt-1" placeholder="Or custom name" value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
+                          )}
+                        </div>
+                        <div className="md:col-span-2"><Label className="text-xs">Qty</Label><Input type="number" step="0.01" value={itemForm.quantity} onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })} /></div>
+                        <div className="md:col-span-2"><Label className="text-xs">Unit</Label><Input value={itemForm.unit} onChange={(e) => setItemForm({ ...itemForm, unit: e.target.value })} /></div>
+                        <div className="md:col-span-2"><Label className="text-xs">Unit Cost</Label><Input type="number" step="0.01" value={itemForm.unit_price} onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })} /></div>
+                        <div className="md:col-span-1"><Button size="sm" className="w-full bg-gradient-warm text-primary-foreground" onClick={() => addItem(po.id)}><Plus className="w-4 h-4" /></Button></div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
