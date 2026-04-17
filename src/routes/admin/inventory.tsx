@@ -51,6 +51,29 @@ function InventoryPage() {
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
   const [adjustForm, setAdjustForm] = useState({ mode: "set", value: "0", reason: "" });
   const [importing, setImporting] = useState(false);
+  const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
+  const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
+  const openHistory = async (item: InventoryItem) => {
+    setHistoryItem(item);
+    setAdjustments([]);
+    const { data } = await supabase
+      .from("inventory_adjustments")
+      .select("id, previous_stock, new_stock, change_amount, reason, source, created_at, user_id")
+      .eq("inventory_item_id", item.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const rows = (data || []) as AdjustmentRow[];
+    setAdjustments(rows);
+    const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      const map: Record<string, string> = {};
+      (profiles || []).forEach((p) => { map[p.user_id] = p.full_name || p.email || p.user_id.slice(0, 8); });
+      setUserMap(map);
+    }
+  };
 
   const loadItems = async () => {
     const [invRes, supRes] = await Promise.all([
