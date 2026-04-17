@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Truck } from "lucide-react";
 
 type Row = {
   name: string;
@@ -10,10 +10,20 @@ type Row = {
   inStock: number;
   toBuy: number;
   inventoryItemId: string | null;
+  unitCost: number;
+  supplierId: string | null;
+  supplierName: string;
+};
+
+type Group = {
+  supplierId: string | null;
+  supplierName: string;
+  rows: Row[];
+  estCost: number;
 };
 
 export function ShoppingList({ quoteId }: { quoteId: string }) {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,28 +59,82 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         }
       }
 
-      // Fetch current stock for linked inventory items
+      // Fetch inventory item details (stock, cost, supplier)
       const invIds = Array.from(agg.values())
         .map((r) => r.inventoryItemId)
         .filter((x): x is string => !!x);
-      const stockMap = new Map<string, number>();
+      const invMap = new Map<
+        string,
+        { current_stock: number; average_cost_per_unit: number; supplier_id: string | null }
+      >();
+      const supplierIds = new Set<string>();
       if (invIds.length) {
         const { data: inv } = await (supabase as any)
           .from("inventory_items")
-          .select("id, current_stock")
+          .select("id, current_stock, average_cost_per_unit, supplier_id")
           .in("id", invIds);
-        for (const i of inv || []) stockMap.set(i.id, Number(i.current_stock) || 0);
+        for (const i of inv || []) {
+          invMap.set(i.id, {
+            current_stock: Number(i.current_stock) || 0,
+            average_cost_per_unit: Number(i.average_cost_per_unit) || 0,
+            supplier_id: i.supplier_id || null,
+          });
+          if (i.supplier_id) supplierIds.add(i.supplier_id);
+        }
       }
 
-      const out: Row[] = Array.from(agg.values())
-        .map((r) => {
-          const inStock = r.inventoryItemId ? stockMap.get(r.inventoryItemId) || 0 : 0;
-          const toBuy = Math.max(0, r.needed - inStock);
-          return { ...r, inStock, toBuy };
-        })
-        .sort((a, b) => a.name.localeCompare(b.name));
+      const supMap = new Map<string, string>();
+      if (supplierIds.size) {
+        const { data: sups } = await (supabase as any)
+          .from("suppliers")
+          .select("id, name")
+          .in("id", Array.from(supplierIds));
+        for (const s of sups || []) supMap.set(s.id, s.name);
+      }
 
-      setRows(out);
+      const allRows: Row[] = Array.from(agg.values()).map((r) => {
+        const inv = r.inventoryItemId ? invMap.get(r.inventoryItemId) : undefined;
+        const inStock = inv?.current_stock || 0;
+        const toBuy = Math.max(0, r.needed - inStock);
+        const supplierId = inv?.supplier_id || null;
+        return {
+          name: r.name,
+          unit: r.unit,
+          needed: r.needed,
+          inStock,
+          toBuy,
+          inventoryItemId: r.inventoryItemId,
+          unitCost: inv?.average_cost_per_unit || 0,
+          supplierId,
+          supplierName: supplierId ? supMap.get(supplierId) || "Unknown supplier" : "Unassigned",
+        };
+      });
+
+      // Group by supplier
+      const grpMap = new Map<string, Group>();
+      for (const r of allRows) {
+        const key = r.supplierId || "__none__";
+        const g = grpMap.get(key) || {
+          supplierId: r.supplierId,
+          supplierName: r.supplierName,
+          rows: [],
+          estCost: 0,
+        };
+        g.rows.push(r);
+        g.estCost += r.toBuy * r.unitCost;
+        grpMap.set(key, g);
+      }
+
+      const out = Array.from(grpMap.values())
+        .map((g) => ({ ...g, rows: g.rows.sort((a, b) => a.name.localeCompare(b.name)) }))
+        .sort((a, b) => {
+          // Real suppliers first, "Unassigned" last
+          if (a.supplierId && !b.supplierId) return -1;
+          if (!a.supplierId && b.supplierId) return 1;
+          return a.supplierName.localeCompare(b.supplierName);
+        });
+
+      setGroups(out);
       setLoading(false);
     })();
   }, [quoteId]);
@@ -78,67 +142,97 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const fmt = (n: number) => n.toFixed(n < 1 && n > 0 ? 2 : 1);
+  const grandTotal = groups.reduce((s, g) => s + g.estCost, 0);
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <p className="text-xs text-muted-foreground">
-          Needed − In stock = To buy. Unlinked ingredients show 0 in stock.
+          Grouped by supplier. Costs use the linked inventory item's average cost.
         </p>
-        <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
-          <Printer className="w-3.5 h-3.5" /> Print
-        </Button>
+        <div className="flex items-center gap-3">
+          <span className="text-sm">
+            Estimated total:{" "}
+            <span className="font-display font-bold text-primary">${grandTotal.toFixed(2)}</span>
+          </span>
+          <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
+            <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+        </div>
       </div>
-      {rows.length === 0 ? (
+
+      {groups.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
           No ingredients found. Menu items must be linked to recipes with ingredients.
         </p>
       ) : (
-        <div className="border border-border/50 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr className="text-left">
-                <th className="py-2 px-3 font-medium">Ingredient</th>
-                <th className="py-2 px-3 font-medium text-right">Needed</th>
-                <th className="py-2 px-3 font-medium text-right">In stock</th>
-                <th className="py-2 px-3 font-medium text-right">To buy</th>
-                <th className="py-2 px-3 font-medium">Unit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => {
-                const covered = r.toBuy === 0 && r.needed > 0;
-                return (
-                  <tr
-                    key={i}
-                    className={`border-t border-border/40 ${covered ? "bg-success/5" : ""}`}
-                  >
-                    <td className="py-2 px-3">
-                      {r.name}
-                      {!r.inventoryItemId && (
-                        <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          unlinked
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono">{fmt(r.needed)}</td>
-                    <td className="py-2 px-3 text-right font-mono text-muted-foreground">
-                      {fmt(r.inStock)}
-                    </td>
-                    <td
-                      className={`py-2 px-3 text-right font-mono font-semibold ${
-                        covered ? "text-success" : r.toBuy > 0 ? "text-foreground" : ""
-                      }`}
+        groups.map((g) => (
+          <div
+            key={g.supplierId || "none"}
+            className="border border-border/50 rounded-lg overflow-hidden"
+          >
+            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/40 border-b border-border/40">
+              <div className="flex items-center gap-2 min-w-0">
+                <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="font-medium text-sm truncate">{g.supplierName}</span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  ({g.rows.length} item{g.rows.length === 1 ? "" : "s"})
+                </span>
+              </div>
+              <span className="text-sm font-display font-bold shrink-0">
+                ${g.estCost.toFixed(2)}
+              </span>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-background">
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-2 px-3 font-medium">Ingredient</th>
+                  <th className="py-2 px-3 font-medium text-right">Needed</th>
+                  <th className="py-2 px-3 font-medium text-right">In stock</th>
+                  <th className="py-2 px-3 font-medium text-right">To buy</th>
+                  <th className="py-2 px-3 font-medium">Unit</th>
+                  <th className="py-2 px-3 font-medium text-right">Est. cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.rows.map((r, i) => {
+                  const covered = r.toBuy === 0 && r.needed > 0;
+                  const lineCost = r.toBuy * r.unitCost;
+                  return (
+                    <tr
+                      key={i}
+                      className={`border-t border-border/40 ${covered ? "bg-success/5" : ""}`}
                     >
-                      {covered ? "✓" : fmt(r.toBuy)}
-                    </td>
-                    <td className="py-2 px-3 text-muted-foreground">{r.unit}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <td className="py-2 px-3">
+                        {r.name}
+                        {!r.inventoryItemId && (
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            unlinked
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono">{fmt(r.needed)}</td>
+                      <td className="py-2 px-3 text-right font-mono text-muted-foreground">
+                        {fmt(r.inStock)}
+                      </td>
+                      <td
+                        className={`py-2 px-3 text-right font-mono font-semibold ${
+                          covered ? "text-success" : ""
+                        }`}
+                      >
+                        {covered ? "✓" : fmt(r.toBuy)}
+                      </td>
+                      <td className="py-2 px-3 text-muted-foreground">{r.unit}</td>
+                      <td className="py-2 px-3 text-right font-mono">
+                        {lineCost > 0 ? `$${lineCost.toFixed(2)}` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))
       )}
     </div>
   );
