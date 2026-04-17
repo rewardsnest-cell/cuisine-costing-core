@@ -1,0 +1,4 @@
+ALTER TABLE public.suppliers
+  ADD COLUMN IF NOT EXISTS website TEXT,
+  ADD COLUMN IF NOT EXISTS office_phone TEXT,
+  ADD COLUMN IF NOT EXISTS cellphone TEXT;
