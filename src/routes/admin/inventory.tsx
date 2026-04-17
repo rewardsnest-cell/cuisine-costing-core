@@ -97,7 +97,18 @@ function InventoryPage() {
     if (adjustForm.mode === "set") newStock = v;
     else if (adjustForm.mode === "add") newStock = adjustItem.current_stock + v;
     else if (adjustForm.mode === "subtract") newStock = adjustItem.current_stock - v;
+    const prev = adjustItem.current_stock;
+    const { data: { user } } = await supabase.auth.getUser();
     await supabase.from("inventory_items").update({ current_stock: newStock }).eq("id", adjustItem.id);
+    await supabase.from("inventory_adjustments").insert({
+      inventory_item_id: adjustItem.id,
+      user_id: user?.id ?? null,
+      previous_stock: prev,
+      new_stock: newStock,
+      change_amount: newStock - prev,
+      reason: adjustForm.reason || null,
+      source: "manual",
+    });
     toast.success(`Updated ${adjustItem.name} → ${newStock} ${adjustItem.unit}`);
     setAdjustItem(null);
     loadItems();
