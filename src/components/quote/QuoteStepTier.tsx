@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import { TIERS, type QuoteSelections, type Step } from "./types";
+import { TIERS, SIDES_AND_EXTRAS, ADDONS, PRICE_PER_DISH, type QuoteSelections, type Step } from "./types";
 
 interface Props {
   selections: QuoteSelections;
@@ -10,6 +10,18 @@ interface Props {
 }
 
 export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
+  const guests = Math.max(selections.guestCount || 0, 1);
+  const dishPerGuest = selections.proteins.length * PRICE_PER_DISH;
+  const extrasPerGuest = selections.extras.reduce((sum, id) => {
+    const item = SIDES_AND_EXTRAS.find((e) => e.id === id);
+    return sum + (item ? item.price : 0);
+  }, 0);
+  const addonsPerGuest = selections.addons.reduce((sum, id) => {
+    const item = ADDONS.find((a) => a.id === id);
+    return sum + (item ? item.price : 0);
+  }, 0);
+  const basePerGuest = dishPerGuest + extrasPerGuest + addonsPerGuest;
+
   return (
     <div>
       <h1 className="font-display text-3xl font-bold text-foreground mb-2">Choose Your Service Tier</h1>
@@ -18,6 +30,8 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
       <div className="grid grid-cols-1 gap-4">
         {TIERS.map((t) => {
           const selected = selections.tier === t.id;
+          const perGuest = basePerGuest * t.multiplier;
+          const tierTotal = Math.round(perGuest * guests);
           return (
             <Card
               key={t.id}
@@ -35,6 +49,13 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{t.desc}</p>
+                    {basePerGuest > 0 && (
+                      <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+                        <span className="font-display text-2xl font-bold text-primary">~${perGuest.toFixed(0)}</span>
+                        <span className="text-xs text-muted-foreground">/ guest</span>
+                        <span className="text-xs text-muted-foreground">· est. ${tierTotal.toLocaleString()} total for {guests} guests</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <ul className="space-y-1.5 pl-1">
