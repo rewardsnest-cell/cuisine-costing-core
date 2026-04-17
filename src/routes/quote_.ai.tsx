@@ -34,8 +34,6 @@ type ChipGroup =
 
 // Order matters — date/guests must run BEFORE the generic "event type" group.
 const CHIP_GROUPS: ChipGroup[] = [
-  { kind: "date",
-    match: /\b(what date|which date|date of (the )?(event|party|wedding|celebration)|what(?:'s| is) the date|event date|when (?:is|will|are|do|would)|pick a date|date you('re| are) (planning|looking|hoping)|the date|host (this|your|the)|hosting (this|your|the)|day are you)\b/i },
   { kind: "guests",
     match: /\b(how many (guests|people|attendees)|guest count|number of (guests|people)|approximate (guest|head) count)\b/i },
   { kind: "text", match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
