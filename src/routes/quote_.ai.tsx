@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/quote_/ai")({
   head: () => ({
@@ -79,6 +80,7 @@ function deepMergePreferences(base: QuotePreferences | undefined, incoming: Quot
 
 function AIQuotePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selections, setSelections] = useState<QuoteSelections>({ ...INITIAL_SELECTIONS });
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -116,9 +118,15 @@ function AIQuotePage() {
     setHydrated(true);
 
     const hasPrefill = !!prefilled && Object.values(prefilled).some((v) => v && (Array.isArray(v) ? v.length : true));
+    const fullName = (user?.user_metadata?.full_name as string | undefined) || (user?.email ?? "");
+    const firstName = fullName.trim().split(/[\s@]/)[0];
+    const cleanFirst = firstName && /^[A-Za-z'-]+$/.test(firstName)
+      ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+      : "";
+    const greeting = cleanFirst ? `Hi ${cleanFirst}!` : "Hi!";
     const opener = hasPrefill
-      ? "Hi! I've got your draft from the basic builder. To pick up where you left off — what's the event date?"
-      : "Hi! I'm your catering concierge. To get started, what kind of event are we celebrating?";
+      ? `${greeting} I've got your draft from the basic builder. To pick up where you left off — what's the event date?`
+      : `${greeting} I'm your catering concierge. To get started, what kind of event are we celebrating?`;
     setMessages([{ role: "assistant", content: opener }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
