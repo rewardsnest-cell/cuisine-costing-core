@@ -480,3 +480,12 @@ function QuotePage() {
     </div>
   );
 }
+
+function PrefRow({ label, value, full }: { label: string; value: string; full?: boolean }) {
+  return (
+    <div className={full ? "sm:col-span-2" : ""}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium capitalize">{value}</p>
+    </div>
+  );
+}
