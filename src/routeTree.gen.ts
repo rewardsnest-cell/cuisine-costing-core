@@ -22,7 +22,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as QuoteAiRouteImport } from './routes/quote.ai'
+import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
@@ -105,9 +105,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   getParentRoute: () => AdminRoute,
 } as any)
 const QuoteAiRoute = QuoteAiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
-  getParentRoute: () => QuoteRoute,
+  id: '/quote_/ai',
+  path: '/quote/ai',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
@@ -195,7 +195,7 @@ export interface FileRoutesByFullPath {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRouteWithChildren
+  '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -225,7 +225,7 @@ export interface FileRoutesByTo {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRouteWithChildren
+  '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -257,7 +257,7 @@ export interface FileRoutesById {
   '/lookup': typeof LookupRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
-  '/quote': typeof QuoteRouteWithChildren
+  '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
@@ -275,7 +275,7 @@ export interface FileRoutesById {
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
-  '/quote/ai': typeof QuoteAiRoute
+  '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -369,7 +369,7 @@ export interface FileRouteTypes {
     | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
-    | '/quote/ai'
+    | '/quote_/ai'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -383,10 +383,11 @@ export interface RootRouteChildren {
   LookupRoute: typeof LookupRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
-  QuoteRoute: typeof QuoteRouteWithChildren
+  QuoteRoute: typeof QuoteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   EventReferenceRoute: typeof EventReferenceRoute
+  QuoteAiRoute: typeof QuoteAiRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -482,12 +483,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/quote/ai': {
-      id: '/quote/ai'
-      path: '/ai'
+    '/quote_/ai': {
+      id: '/quote_/ai'
+      path: '/quote/ai'
       fullPath: '/quote/ai'
       preLoaderRoute: typeof QuoteAiRouteImport
-      parentRoute: typeof QuoteRoute
+      parentRoute: typeof rootRouteImport
     }
     '/event/$reference': {
       id: '/event/$reference'
@@ -635,16 +636,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface QuoteRouteChildren {
-  QuoteAiRoute: typeof QuoteAiRoute
-}
-
-const QuoteRouteChildren: QuoteRouteChildren = {
-  QuoteAiRoute: QuoteAiRoute,
-}
-
-const QuoteRouteWithChildren = QuoteRoute._addFileChildren(QuoteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -655,10 +646,11 @@ const rootRouteChildren: RootRouteChildren = {
   LookupRoute: LookupRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
-  QuoteRoute: QuoteRouteWithChildren,
+  QuoteRoute: QuoteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   EventReferenceRoute: EventReferenceRoute,
+  QuoteAiRoute: QuoteAiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

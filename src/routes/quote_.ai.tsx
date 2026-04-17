@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Send, ArrowLeftRight, Loader2 } from "lucide-react";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
 
-export const Route = createFileRoute("/quote/ai")({
+export const Route = createFileRoute("/quote_/ai")({
   head: () => ({
     meta: [
       { title: "Advanced AI Quote Builder — TasteQuote" },
