@@ -48,6 +48,7 @@ function QuotePage() {
   const [submitting, setSubmitting] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState("");
   const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
+  const [aiTranscript, setAiTranscript] = useState<{ role: string; content: string }[] | null>(null);
 
   // Hydrate from AI handoff
   useEffect(() => {
@@ -57,6 +58,13 @@ function QuotePage() {
       const data = JSON.parse(raw);
       sessionStorage.removeItem("quote_handoff");
       setSelections((s) => ({ ...s, ...data }));
+      try {
+        const t = sessionStorage.getItem("quote_handoff_transcript");
+        if (t) {
+          setAiTranscript(JSON.parse(t));
+          sessionStorage.removeItem("quote_handoff_transcript");
+        }
+      } catch {}
       const jumpReview = sessionStorage.getItem("quote_handoff_jump_review");
       if (jumpReview) {
         sessionStorage.removeItem("quote_handoff_jump_review");
@@ -153,6 +161,7 @@ function QuotePage() {
         total: totalAmount * 1.08,
         status: "draft",
         user_id: user?.id || null,
+        conversation: aiTranscript ? { source: "ai_builder", messages: aiTranscript } : null,
       }).select("id, reference_number").single();
       if (data?.reference_number) setReferenceNumber(data.reference_number);
       if (data?.id) {
