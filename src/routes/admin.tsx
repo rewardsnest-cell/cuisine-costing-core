@@ -55,9 +55,12 @@ function AdminLayout() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center max-w-sm">
           <Shield className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-          <h1 className="font-display text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-          <p className="text-muted-foreground text-sm mb-6">You don't have admin privileges. Contact an administrator to get access.</p>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-2">Admin Access Required</h1>
+          <p className="text-muted-foreground text-sm mb-6">
+            Your account doesn't have admin access. You can request approval from an existing administrator.
+          </p>
           <div className="flex gap-3 justify-center">
+            <Link to="/admin/register"><Button className="bg-gradient-warm text-primary-foreground">Request Access</Button></Link>
             <Link to="/"><Button variant="outline">Go Home</Button></Link>
             <Button variant="ghost" onClick={() => signOut()}>Sign Out</Button>
           </div>
