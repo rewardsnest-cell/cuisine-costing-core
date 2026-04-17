@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search } from "lucide-react";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
@@ -23,6 +23,15 @@ type AdminRequest = {
   created_at: string;
 };
 
+type EventLite = {
+  id: string;
+  reference_number: string | null;
+  event_type: string | null;
+  event_date: string | null;
+  status: string;
+  total: number | null;
+};
+
 function UserManagementPage() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -30,6 +39,7 @@ function UserManagementPage() {
   const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, EventLite[] | "loading" | undefined>>({});
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
@@ -44,6 +54,20 @@ function UserManagementPage() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const toggleEvents = async (userId: string) => {
+    if (expanded[userId] && expanded[userId] !== "loading") {
+      setExpanded((p) => ({ ...p, [userId]: undefined }));
+      return;
+    }
+    setExpanded((p) => ({ ...p, [userId]: "loading" }));
+    const { data } = await (supabase as any)
+      .from("quotes")
+      .select("id, reference_number, event_type, event_date, status, total")
+      .eq("user_id", userId)
+      .order("event_date", { ascending: false, nullsFirst: false });
+    setExpanded((p) => ({ ...p, [userId]: (data ?? []) as EventLite[] }));
+  };
 
   const getUserRoles = (userId: string) => roles.filter((r) => r.user_id === userId);
 
