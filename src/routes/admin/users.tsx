@@ -29,6 +29,7 @@ function UserManagementPage() {
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
