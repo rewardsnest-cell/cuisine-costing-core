@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Send, ArrowLeftRight, Loader2 } from "lucide-react";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
 
-export const Route = createFileRoute("/quote/ai")({
+export const Route = createFileRoute("/quote_/ai")({
   head: () => ({
     meta: [
       { title: "Advanced AI Quote Builder — TasteQuote" },
@@ -151,16 +151,21 @@ function AIQuotePage() {
           if (tc.name === "update_quote_draft" && tc.args) {
             try {
               const parsed = JSON.parse(tc.args);
+              console.log("[quote-ai] tool call parsed:", parsed);
               setSelections((prev) => {
                 const next: QuoteSelections = { ...prev };
                 for (const [k, v] of Object.entries(parsed)) {
                   if (v === null || v === undefined) continue;
+                  // Skip empty strings/arrays so the model can't accidentally clear prior values
+                  if (typeof v === "string" && v.trim() === "") continue;
+                  if (Array.isArray(v) && v.length === 0) continue;
                   if (k === "preferences" && typeof v === "object") {
                     next.preferences = deepMergePreferences(prev.preferences, v as QuotePreferences);
                   } else {
                     (next as any)[k] = v;
                   }
                 }
+                console.log("[quote-ai] selections after merge:", next);
                 return next;
               });
             } catch (e) {
