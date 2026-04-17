@@ -50,6 +50,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          id: number
+          revision_lock_days: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          revision_lock_days?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          revision_lock_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_profiles: {
         Row: {
           active: boolean
@@ -400,6 +418,8 @@ export type Database = {
           event_type: string | null
           guest_count: number
           id: string
+          location_address: string | null
+          location_name: string | null
           notes: string | null
           reference_number: string | null
           status: string
@@ -421,6 +441,8 @@ export type Database = {
           event_type?: string | null
           guest_count?: number
           id?: string
+          location_address?: string | null
+          location_name?: string | null
           notes?: string | null
           reference_number?: string | null
           status?: string
@@ -442,6 +464,8 @@ export type Database = {
           event_type?: string | null
           guest_count?: number
           id?: string
+          location_address?: string | null
+          location_name?: string | null
           notes?: string | null
           reference_number?: string | null
           status?: string
