@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
 
@@ -29,6 +30,7 @@ type Recipe = {
   is_gluten_free: boolean;
   allergens: string[] | null;
   instructions: string | null;
+  active: boolean;
 };
 
 type Ingredient = {
@@ -44,6 +46,7 @@ type Ingredient = {
 function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "off">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", category: "", cuisine: "", servings: "4" });
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
