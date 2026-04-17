@@ -291,9 +291,14 @@ function InventoryPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <button onClick={() => handleDelete(item.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => openAdjust(item)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Adjust stock">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {isOpen && (
