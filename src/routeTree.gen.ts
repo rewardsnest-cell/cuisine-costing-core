@@ -24,6 +24,7 @@ import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
+import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
 import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
@@ -108,6 +109,11 @@ const AdminSetPasswordRoute = AdminSetPasswordRouteImport.update({
   path: '/set-password',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminScheduleRoute = AdminScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRegisterRoute = AdminRegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
   '/admin/users': typeof AdminUsersRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/users'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/users'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/users'
@@ -422,6 +434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSetPasswordRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/schedule': {
+      id: '/admin/schedule'
+      path: '/schedule'
+      fullPath: '/admin/schedule'
+      preLoaderRoute: typeof AdminScheduleRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/register': {
       id: '/admin/register'
       path: '/register'
@@ -490,6 +509,7 @@ interface AdminRouteChildren {
   AdminReceiptsRoute: typeof AdminReceiptsRoute
   AdminRecipesRoute: typeof AdminRecipesRoute
   AdminRegisterRoute: typeof AdminRegisterRoute
+  AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -505,6 +525,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReceiptsRoute: AdminReceiptsRoute,
   AdminRecipesRoute: AdminRecipesRoute,
   AdminRegisterRoute: AdminRegisterRoute,
+  AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRoute,
   AdminUsersRoute: AdminUsersRoute,
