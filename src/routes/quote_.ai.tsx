@@ -478,7 +478,18 @@ function AIQuotePage() {
             {/* Live summary */}
             <Card className="h-fit lg:sticky lg:top-24">
               <CardContent className="p-5 space-y-3">
-                <h3 className="font-display text-lg font-semibold">Event Summary</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg font-semibold">Event Summary</h3>
+                  <span
+                    aria-live="polite"
+                    className={cn(
+                      "text-xs font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary transition-all duration-300",
+                      showSaved ? "opacity-100 scale-100 animate-fade-in" : "opacity-0 scale-95 pointer-events-none",
+                    )}
+                  >
+                    ● Saved
+                  </span>
+                </div>
                 <SummaryRow label="Style" value={selections.style} />
                 <SummaryRow label="Proteins" value={selections.proteins.join(", ")} />
                 <SummaryRow label="Service" value={selections.serviceStyle} />
