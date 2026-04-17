@@ -66,6 +66,24 @@ function SchedulePage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [allEmployees, setAllEmployees] = useState<ProfileLite[]>([]);
+
+  // Load all employees once for the filter dropdown
+  useEffect(() => {
+    (async () => {
+      const { data: roles } = await (supabase as any)
+        .from("user_roles").select("user_id").in("role", ["employee", "admin"]);
+      const userIds = Array.from(new Set(((roles ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+      if (userIds.length === 0) { setAllEmployees([]); return; }
+      const { data: pr } = await supabase
+        .from("profiles").select("user_id, full_name, email").in("user_id", userIds);
+      const list = ((pr ?? []) as ProfileLite[]).sort((a, b) =>
+        (a.full_name || a.email || "").localeCompare(b.full_name || b.email || "")
+      );
+      setAllEmployees(list);
+    })();
+  }, []);
 
   const range = useMemo(() => {
     if (view === "month") {
@@ -103,14 +121,25 @@ function SchedulePage() {
     })();
   }, [range.start, range.end]);
 
+  // Quote IDs the selected employee is on (for filtering)
+  const filteredQuoteIds = useMemo(() => {
+    if (employeeFilter === "all") return null;
+    return new Set(assignments.filter((a) => a.employee_user_id === employeeFilter).map((a) => a.quote_id));
+  }, [employeeFilter, assignments]);
+
+  const visibleEvents = useMemo(() => {
+    if (!filteredQuoteIds) return events;
+    return events.filter((e) => filteredQuoteIds.has(e.id));
+  }, [events, filteredQuoteIds]);
+
   const eventsByDate = useMemo(() => {
     const map: Record<string, EventRow[]> = {};
-    for (const e of events) {
+    for (const e of visibleEvents) {
       if (!e.event_date) continue;
       (map[e.event_date] ??= []).push(e);
     }
     return map;
-  }, [events]);
+  }, [visibleEvents]);
 
   const assignmentsByQuote = useMemo(() => {
     const map: Record<string, Assignment[]> = {};
