@@ -180,7 +180,7 @@ function TimesheetPage() {
 
   const exportCsv = () => {
     const rows = [
-      ["Employee", "Email", "Event", "Event Date", "Quote Ref", "Clock In", "Clock Out", "Hours", "Hourly Rate", "Pay"],
+      ["Employee", "Email", "Event", "Event Date", "Quote Ref", "Clock In", "Clock Out", "Hours", "Hourly Rate", "Pay", "Status"],
     ];
     for (const g of grouped) {
       for (const r of g.rows) {
@@ -196,6 +196,7 @@ function TimesheetPage() {
           hrs.toFixed(2),
           g.rate.toFixed(2),
           (hrs * g.rate).toFixed(2),
+          r.entry.approval_status,
         ]);
       }
       rows.push([
@@ -209,6 +210,7 @@ function TimesheetPage() {
         hoursDecimal(g.totalMs).toFixed(2),
         g.rate.toFixed(2),
         (hoursDecimal(g.totalMs) * g.rate).toFixed(2),
+        "",
       ]);
     }
     const csv = rows
