@@ -62,10 +62,21 @@ const CHIP_GROUPS: ChipGroup[] = [
     chips: ["Yes", "No", "Not sure"] },
 ];
 
+// Extract just the last question from the assistant message so chips reflect
+// what's actively being ASKED, not topics merely mentioned in a recap or confirmation.
+function lastQuestion(text: string): string | null {
+  if (!text || !text.includes("?")) return null;
+  // Split into sentences, keep ones ending with "?"
+  const sentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().endsWith("?"));
+  if (sentences.length === 0) return null;
+  return sentences[sentences.length - 1];
+}
+
 function suggestChipGroup(text: string): ChipGroup | null {
-  if (!text) return null;
+  const question = lastQuestion(text);
+  if (!question) return null;
   for (const group of CHIP_GROUPS) {
-    if (group.match.test(text)) return group;
+    if (group.match.test(question)) return group;
   }
   return null;
 }
