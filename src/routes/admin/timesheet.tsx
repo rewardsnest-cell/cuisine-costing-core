@@ -154,6 +154,7 @@ function TimesheetPage() {
     const map = new Map<string, EmpRow>();
     for (const e of entries) {
       if (!e.clock_out_at) continue; // only completed shifts count
+      if (onlyApproved && e.approval_status !== "approved") continue;
       const ms = new Date(e.clock_out_at).getTime() - new Date(e.clock_in_at).getTime();
       const p = profiles.get(e.employee_user_id);
       const existing = map.get(e.employee_user_id) || {
@@ -169,7 +170,10 @@ function TimesheetPage() {
       map.set(e.employee_user_id, existing);
     }
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [entries, profiles, quotes, rates]);
+  }, [entries, profiles, quotes, rates, onlyApproved]);
+
+  const pendingCount = entries.filter((e) => e.clock_out_at && e.approval_status === "pending").length;
+  const allPendingIds = entries.filter((e) => e.clock_out_at && e.approval_status === "pending").map((e) => e.id);
 
   const grandMs = grouped.reduce((s, g) => s + g.totalMs, 0);
   const grandPay = grouped.reduce((s, g) => s + hoursDecimal(g.totalMs) * g.rate, 0);
