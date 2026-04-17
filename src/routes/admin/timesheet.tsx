@@ -63,6 +63,8 @@ function TimesheetPage() {
   const [quotes, setQuotes] = useState<Map<string, Quote>>(new Map());
   const [rates, setRates] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [onlyApproved, setOnlyApproved] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +73,7 @@ function TimesheetPage() {
       const endIso = new Date(end + "T23:59:59").toISOString();
       const { data: ents } = await (supabase as any)
         .from("event_time_entries")
-        .select("id, employee_user_id, quote_id, clock_in_at, clock_out_at")
+        .select("id, employee_user_id, quote_id, clock_in_at, clock_out_at, approval_status")
         .gte("clock_in_at", startIso)
         .lte("clock_in_at", endIso)
         .order("clock_in_at", { ascending: true });
@@ -107,7 +109,37 @@ function TimesheetPage() {
 
       setLoading(false);
     })();
-  }, [start, end]);
+  }, [start, end, refreshTick]);
+
+  const setApproval = async (id: string, status: ApprovalStatus) => {
+    const { error } = await (supabase as any)
+      .from("event_time_entries")
+      .update({
+        approval_status: status,
+        approved_at: status === "pending" ? null : new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Marked ${status}`);
+    setRefreshTick((t) => t + 1);
+  };
+
+  const bulkApprovePending = async (entryIds: string[]) => {
+    if (entryIds.length === 0) return;
+    const { error } = await (supabase as any)
+      .from("event_time_entries")
+      .update({ approval_status: "approved", approved_at: new Date().toISOString() })
+      .in("id", entryIds);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Approved ${entryIds.length} shift${entryIds.length === 1 ? "" : "s"}`);
+    setRefreshTick((t) => t + 1);
+  };
 
   type EmpRow = {
     userId: string;
