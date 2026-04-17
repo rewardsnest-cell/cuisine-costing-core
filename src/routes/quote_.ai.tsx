@@ -79,6 +79,7 @@ function deepMergePreferences(base: QuotePreferences | undefined, incoming: Quot
 
 function AIQuotePage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selections, setSelections] = useState<QuoteSelections>({ ...INITIAL_SELECTIONS });
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
