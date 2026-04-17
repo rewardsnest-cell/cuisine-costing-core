@@ -13,12 +13,14 @@ export const Route = createFileRoute("/admin/timesheet")({
   component: TimesheetPage,
 });
 
+type ApprovalStatus = "pending" | "approved" | "disputed";
 type Entry = {
   id: string;
   employee_user_id: string;
   quote_id: string;
   clock_in_at: string;
   clock_out_at: string | null;
+  approval_status: ApprovalStatus;
 };
 
 type Profile = { user_id: string; full_name: string | null; email: string | null };
