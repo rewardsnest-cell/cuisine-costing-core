@@ -1,12 +1,50 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
+
+function SettingsCard() {
+  const [days, setDays] = useState<number>(7);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    (supabase as any).from("app_settings").select("revision_lock_days").eq("id", 1).maybeSingle()
+      .then(({ data }: any) => { if (data) setDays(data.revision_lock_days); });
+  }, []);
+  const save = async () => {
+    setSaving(true);
+    const { error } = await (supabase as any).from("app_settings").update({ revision_lock_days: days }).eq("id", 1);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Settings saved");
+  };
+  return (
+    <Card className="shadow-warm border-border/50">
+      <CardContent className="p-5 flex items-end gap-4 flex-wrap">
+        <div className="flex items-center gap-3 mr-auto">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-accent/20 text-accent-foreground"><Settings className="w-5 h-5" /></div>
+          <div>
+            <p className="font-semibold">Revision Lock</p>
+            <p className="text-xs text-muted-foreground">Days before an event when customers can no longer revise their quote.</p>
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Lock days</Label>
+          <Input type="number" min={0} max={365} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 0)} className="w-24" />
+        </div>
+        <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Stat {
   label: string;
