@@ -7,6 +7,10 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PrepChecklist } from "@/components/employee/PrepChecklist";
+import { TimeClock } from "@/components/employee/TimeClock";
+import { ShoppingList } from "@/components/employee/ShoppingList";
 import {
   Briefcase,
   CalendarDays,
@@ -16,6 +20,8 @@ import {
   Users,
   Package,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 export const Route = createFileRoute("/employee")({
@@ -198,9 +204,9 @@ function EmployeeDashboardPage() {
                     No upcoming events assigned to you.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {upcoming.map((a) => (
-                      <AssignmentRow key={a.id} a={a} />
+                      <ExpandableAssignment key={a.id} a={a} userId={user.id} />
                     ))}
                   </div>
                 )}
@@ -256,6 +262,74 @@ function StatCard({
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+function ExpandableAssignment({ a, userId }: { a: any; userId: string }) {
+  const [open, setOpen] = useState(false);
+  const quoteId = a.quote?.id;
+  return (
+    <div className="border border-border/60 rounded-lg bg-card overflow-hidden">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full text-left p-3 hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">
+              {a.quote?.event_type || "Event"}
+              {a.quote?.client_name ? ` — ${a.quote.client_name}` : ""}
+            </p>
+            <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1 flex-wrap">
+              <span className="flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
+                {a.quote?.event_date || "No date"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                {a.quote?.guest_count}
+              </span>
+              {a.quote?.location_name && (
+                <span className="truncate">📍 {a.quote.location_name}</span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              {a.role}
+            </span>
+            {open ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+        {a.notes && (
+          <p className="text-xs text-muted-foreground mt-2 italic">{a.notes}</p>
+        )}
+      </button>
+      {open && quoteId && (
+        <div className="border-t border-border/60 p-3 bg-background/40">
+          <Tabs defaultValue="prep">
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="prep">Prep</TabsTrigger>
+              <TabsTrigger value="clock">Time</TabsTrigger>
+              <TabsTrigger value="shopping">Shopping</TabsTrigger>
+            </TabsList>
+            <TabsContent value="prep" className="mt-3">
+              <PrepChecklist quoteId={quoteId} userId={userId} />
+            </TabsContent>
+            <TabsContent value="clock" className="mt-3">
+              <TimeClock quoteId={quoteId} userId={userId} />
+            </TabsContent>
+            <TabsContent value="shopping" className="mt-3">
+              <ShoppingList quoteId={quoteId} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
     </div>
   );
 }
