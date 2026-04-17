@@ -12,8 +12,6 @@ import { Menu } from "lucide-react";
 
 export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
-  const location = useLocation();
-  const inAdmin = location.pathname.startsWith("/admin");
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -26,23 +24,6 @@ export function PublicHeader() {
         </Link>
 
         <div className="flex items-center gap-3">
-          {!loading && user && isAdmin && (
-            <div className="hidden sm:inline-flex items-center rounded-md border border-border p-0.5 bg-muted/40">
-              <Link
-                to="/dashboard"
-                className={`text-xs font-medium px-2.5 py-1 rounded ${!inAdmin ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                User
-              </Link>
-              <Link
-                to="/admin"
-                className={`text-xs font-semibold px-2.5 py-1 rounded ${inAdmin ? "bg-primary text-primary-foreground shadow-sm" : "text-primary hover:text-primary/80"}`}
-              >
-                Admin
-              </Link>
-            </div>
-          )}
-
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center gap-2 text-sm font-medium text-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
               <Menu className="w-4 h-4" />
