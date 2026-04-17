@@ -129,6 +129,7 @@ function QuotePage() {
       proteins: selections.proteins,
       allergies: selections.allergies,
       pricePerDish: PRICE_PER_DISH,
+      preferences: selections.preferences,
     });
     doc.save(`TasteQuote-${selections.clientName || "Proposal"}.pdf`);
   };
