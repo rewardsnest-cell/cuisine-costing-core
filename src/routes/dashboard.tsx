@@ -158,79 +158,85 @@ function DashboardPage() {
             </CardContent>
           </Card>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* My Quotes summary */}
-            <Card>
-              <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Recent Quotes
-                </CardTitle>
-                <Link to="/my-quotes" className="text-xs text-primary font-medium hover:underline">
-                  View all
-                </Link>
-              </CardHeader>
-              <CardContent>
-                {quotes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No quotes yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {quotes.map((q) => (
-                      <div
-                        key={q.id}
-                        className="flex items-center justify-between border border-border/60 rounded-lg p-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs text-primary">{q.reference_number || "—"}</p>
-                          <p className="text-sm font-medium truncate">{q.event_type || "Event"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {q.guest_count} guests · {q.event_date || "No date"}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className="font-display font-bold">${(q.total || 0).toLocaleString()}</p>
-                          <p className="text-xs capitalize text-muted-foreground">{q.status}</p>
-                        </div>
+          {(access.quotes || access.hosting_events) && (
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* My Quotes summary */}
+              {access.quotes && (
+                <Card>
+                  <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="w-4 h-4" /> Recent Quotes
+                    </CardTitle>
+                    <Link to="/my-quotes" className="text-xs text-primary font-medium hover:underline">
+                      View all
+                    </Link>
+                  </CardHeader>
+                  <CardContent>
+                    {quotes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No quotes yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {quotes.map((q) => (
+                          <div
+                            key={q.id}
+                            className="flex items-center justify-between border border-border/60 rounded-lg p-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-mono text-xs text-primary">{q.reference_number || "—"}</p>
+                              <p className="text-sm font-medium truncate">{q.event_type || "Event"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {q.guest_count} guests · {q.event_date || "No date"}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0 ml-3">
+                              <p className="font-display font-bold">${(q.total || 0).toLocaleString()}</p>
+                              <p className="text-xs capitalize text-muted-foreground">{q.status}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Upcoming events I'm hosting */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" /> My Upcoming Events
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {upcomingQuotes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No upcoming events. Book one with a new quote.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {upcomingQuotes.map((q) => (
-                      <div key={q.id} className="border border-border/60 rounded-lg p-3">
-                        <p className="text-sm font-medium">{q.event_type || "Event"}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-                          <span className="flex items-center gap-1">
-                            <CalendarDays className="w-3 h-3" />
-                            {q.event_date}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            {q.guest_count}
-                          </span>
-                        </p>
+              {/* Upcoming events I'm hosting */}
+              {access.hosting_events && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" /> My Upcoming Events
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {upcomingQuotes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No upcoming events. Book one with a new quote.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {upcomingQuotes.map((q) => (
+                          <div key={q.id} className="border border-border/60 rounded-lg p-3">
+                            <p className="text-sm font-medium">{q.event_type || "Event"}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="w-3 h-3" />
+                                {q.event_date}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Users className="w-3 h-3" />
+                                {q.guest_count}
+                              </span>
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Staff workspace — employees & admins only */}
           {isEmployee && (
