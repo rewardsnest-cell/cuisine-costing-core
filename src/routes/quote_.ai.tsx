@@ -155,6 +155,9 @@ function AIQuotePage() {
                 const next: QuoteSelections = { ...prev };
                 for (const [k, v] of Object.entries(parsed)) {
                   if (v === null || v === undefined) continue;
+                  // Skip empty strings/arrays so the model can't accidentally clear prior values
+                  if (typeof v === "string" && v.trim() === "") continue;
+                  if (Array.isArray(v) && v.length === 0) continue;
                   if (k === "preferences" && typeof v === "object") {
                     next.preferences = deepMergePreferences(prev.preferences, v as QuotePreferences);
                   } else {
