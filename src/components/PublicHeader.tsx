@@ -1,9 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
 
 export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
+  const location = useLocation();
+  const inAdmin = location.pathname.startsWith("/admin");
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -25,7 +26,20 @@ export function PublicHeader() {
                 <Link to="/my-events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Events</Link>
               )}
               {isAdmin && (
-                <Link to="/admin" className="text-xs font-semibold text-primary hover:text-primary/80 border border-primary/40 rounded-md px-3 py-1.5">Admin</Link>
+                <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-muted/40">
+                  <Link
+                    to="/dashboard"
+                    className={`text-xs font-medium px-2.5 py-1 rounded ${!inAdmin ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    User
+                  </Link>
+                  <Link
+                    to="/admin"
+                    className={`text-xs font-semibold px-2.5 py-1 rounded ${inAdmin ? "bg-primary text-primary-foreground shadow-sm" : "text-primary hover:text-primary/80"}`}
+                  >
+                    Admin
+                  </Link>
+                </div>
               )}
               <button onClick={() => signOut()} className="text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-1.5">
                 Sign Out
