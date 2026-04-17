@@ -107,6 +107,8 @@ export interface QuoteSelections {
   eventType: string;
   clientName: string;
   clientEmail: string;
+  locationName: string;
+  locationAddress: string;
 }
 
 export const INITIAL_SELECTIONS: QuoteSelections = {
@@ -122,4 +124,6 @@ export const INITIAL_SELECTIONS: QuoteSelections = {
   eventType: "",
   clientName: "",
   clientEmail: "",
+  locationName: "",
+  locationAddress: "",
 };

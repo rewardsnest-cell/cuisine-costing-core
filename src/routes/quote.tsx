@@ -102,12 +102,14 @@ function QuotePage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const { data } = await supabase.from("quotes").insert({
+      const { data } = await (supabase as any).from("quotes").insert({
         client_name: selections.clientName,
         client_email: selections.clientEmail,
         event_type: selections.eventType,
         event_date: selections.eventDate || null,
         guest_count: selections.guestCount,
+        location_name: selections.locationName || null,
+        location_address: selections.locationAddress || null,
         dietary_preferences: {
           allergies: selections.allergies,
           style: selections.style,
@@ -299,6 +301,8 @@ function QuotePage() {
                 <div><Label>Your Name</Label><Input value={selections.clientName} onChange={(e) => setSelections((s) => ({ ...s, clientName: e.target.value }))} placeholder="Jane Smith" /></div>
                 <div><Label>Email</Label><Input type="email" value={selections.clientEmail} onChange={(e) => setSelections((s) => ({ ...s, clientEmail: e.target.value }))} placeholder="jane@company.com" /></div>
                 <div><Label>Event Type</Label><Input value={selections.eventType} onChange={(e) => setSelections((s) => ({ ...s, eventType: e.target.value }))} placeholder="Corporate Gala, Wedding, etc." /></div>
+                <div><Label>Venue / Location Name</Label><Input value={selections.locationName} onChange={(e) => setSelections((s) => ({ ...s, locationName: e.target.value }))} placeholder="The Grand Ballroom" /></div>
+                <div><Label>Venue Address</Label><Input value={selections.locationAddress} onChange={(e) => setSelections((s) => ({ ...s, locationAddress: e.target.value }))} placeholder="123 Main St, City, State" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label>Guest Count</Label><Input type="number" value={selections.guestCount} onChange={(e) => setSelections((s) => ({ ...s, guestCount: parseInt(e.target.value) || 0 }))} /></div>
                   <div><Label>Event Date</Label><Input type="date" value={selections.eventDate} onChange={(e) => setSelections((s) => ({ ...s, eventDate: e.target.value }))} /></div>
