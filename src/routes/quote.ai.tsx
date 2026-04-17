@@ -204,6 +204,9 @@ function AIQuotePage() {
   const reviewAndSubmit = () => {
     sessionStorage.setItem("quote_handoff", JSON.stringify(selections));
     sessionStorage.setItem("quote_handoff_jump_review", "1");
+    try {
+      sessionStorage.setItem("quote_handoff_transcript", JSON.stringify(messages));
+    } catch {}
     navigate({ to: "/quote" });
   };
 

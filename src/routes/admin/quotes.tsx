@@ -11,13 +11,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2 } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
 });
 
+type TranscriptMsg = { role: string; content: string };
 type Quote = {
   id: string;
   client_name: string | null;
@@ -28,6 +29,7 @@ type Quote = {
   total: number;
   status: string;
   created_at: string;
+  conversation: { source?: string; messages?: TranscriptMsg[] } | null;
 };
 
 type Employee = {
@@ -57,6 +59,8 @@ function QuotesPage() {
   const [pickEmp, setPickEmp] = useState("");
   const [pickRole, setPickRole] = useState("Lead");
   const [pickNotes, setPickNotes] = useState("");
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [transcriptQuote, setTranscriptQuote] = useState<Quote | null>(null);
 
   const loadQuotes = async () => {
     const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
@@ -163,6 +167,11 @@ function QuotesPage() {
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(q.status)}`}>{q.status}</span>
                 <p className="font-display text-lg font-bold">${Number(q.total).toFixed(2)}</p>
+                {q.conversation?.messages?.length ? (
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => { setTranscriptQuote(q); setTranscriptOpen(true); }}>
+                    <MessageSquare className="w-3.5 h-3.5" /> Transcript
+                  </Button>
+                ) : null}
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => openAssign(q)}>
                   <Users className="w-3.5 h-3.5" /> Staff
                 </Button>
@@ -171,6 +180,29 @@ function QuotesPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={transcriptOpen} onOpenChange={setTranscriptOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>AI Conversation — {transcriptQuote?.client_name || "Quote"}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-2">
+            {(transcriptQuote?.conversation?.messages ?? []).map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {!transcriptQuote?.conversation?.messages?.length && (
+              <p className="text-sm text-muted-foreground text-center py-8">No transcript saved.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTranscriptOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent className="max-w-lg">
