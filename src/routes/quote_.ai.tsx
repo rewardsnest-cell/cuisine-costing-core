@@ -83,6 +83,14 @@ function AIQuotePage() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [savedPulse, setSavedPulse] = useState(0);
+  const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    if (savedPulse === 0) return;
+    setShowSaved(true);
+    const t = setTimeout(() => setShowSaved(false), 1600);
+    return () => clearTimeout(t);
+  }, [savedPulse]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
