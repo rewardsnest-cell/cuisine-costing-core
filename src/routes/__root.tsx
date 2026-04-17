@@ -28,6 +28,12 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "TasteQuote — Premium Catering Quote Generator" },
       { name: "description", content: "Professional catering quote builder with inventory management, supplier tracking, receipt OCR, and accurate costing." },
+      { property: "og:title", content: "TasteQuote — Premium Catering Quote Generator" },
+      { name: "twitter:title", content: "TasteQuote — Premium Catering Quote Generator" },
+      { property: "og:description", content: "Professional catering quote builder with inventory management, supplier tracking, receipt OCR, and accurate costing." },
+      { name: "twitter:description", content: "Professional catering quote builder with inventory management, supplier tracking, receipt OCR, and accurate costing." },
+      { name: "twitter:card", content: "summary" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
