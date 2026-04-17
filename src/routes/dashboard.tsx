@@ -18,6 +18,9 @@ import {
   User as UserIcon,
   Mail,
   KeyRound,
+  ChefHat,
+  Receipt,
+  Briefcase,
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
