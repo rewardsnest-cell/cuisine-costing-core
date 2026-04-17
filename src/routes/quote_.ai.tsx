@@ -353,11 +353,31 @@ function AIQuotePage() {
                     </div>
                   </div>
                 ))}
-                {loading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
-                  </div>
-                )}
+                {loading && (() => {
+                  const last = messages[messages.length - 1];
+                  const showThinking =
+                    !last ||
+                    last.role === "user" ||
+                    (last.role === "assistant" && !last.content);
+                  if (!showThinking) return null;
+                  return (
+                    <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {slow ? "Still thinking… this is taking a while" : "Thinking…"}
+                      </span>
+                      {slow && (
+                        <button
+                          type="button"
+                          onClick={stop}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" /> Stop
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Quick reply chips for the most recent assistant question */}
                 {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
                   const chips = suggestChips(messages[messages.length - 1].content);
