@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/admin/schedule")({
   head: () => ({ meta: [{ title: "Schedule — TasteQuote Admin" }] }),
