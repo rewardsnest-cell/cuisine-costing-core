@@ -416,6 +416,46 @@ function InventoryPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!historyItem} onOpenChange={(o) => !o && setHistoryItem(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Adjustment History — {historyItem?.name}</DialogTitle>
+          </DialogHeader>
+          {adjustments.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">No adjustments recorded yet.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-background border-b">
+                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2">Date</th>
+                    <th className="py-2">User</th>
+                    <th className="py-2">Source</th>
+                    <th className="py-2 text-right">Change</th>
+                    <th className="py-2 text-right">From → To</th>
+                    <th className="py-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adjustments.map((a) => (
+                    <tr key={a.id} className="border-b last:border-0">
+                      <td className="py-2 pr-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(a.created_at).toLocaleString()}</td>
+                      <td className="py-2 pr-2 text-xs">{a.user_id ? (userMap[a.user_id] || a.user_id.slice(0, 8)) : "—"}</td>
+                      <td className="py-2 pr-2 text-xs"><span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{a.source}</span></td>
+                      <td className={`py-2 pr-2 text-right font-medium ${a.change_amount >= 0 ? "text-success" : "text-destructive"}`}>
+                        {a.change_amount >= 0 ? "+" : ""}{a.change_amount}
+                      </td>
+                      <td className="py-2 pr-2 text-right text-xs text-muted-foreground whitespace-nowrap">{a.previous_stock} → {a.new_stock}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{a.reason || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
