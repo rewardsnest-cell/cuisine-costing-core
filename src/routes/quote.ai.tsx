@@ -311,6 +311,25 @@ function AIQuotePage() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
                   </div>
                 )}
+                {/* Quick reply chips for the most recent assistant question */}
+                {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
+                  const chips = suggestChips(messages[messages.length - 1].content);
+                  if (chips.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {chips.map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => void sendChip(chip)}
+                          className="text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
               <div className="border-t p-3 flex gap-2">
