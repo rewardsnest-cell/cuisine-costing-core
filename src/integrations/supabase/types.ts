@@ -652,36 +652,45 @@ export type Database = {
       suppliers: {
         Row: {
           address: string | null
+          cellphone: string | null
           contact_name: string | null
           created_at: string
           email: string | null
           id: string
           name: string
           notes: string | null
+          office_phone: string | null
           phone: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
+          cellphone?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
           notes?: string | null
+          office_phone?: string | null
           phone?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
+          cellphone?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
+          office_phone?: string | null
           phone?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }

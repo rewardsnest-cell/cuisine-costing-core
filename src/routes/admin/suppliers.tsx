@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Truck } from "lucide-react";
+import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone } from "lucide-react";
 
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
@@ -19,16 +19,21 @@ type Supplier = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  website: string | null;
+  office_phone: string | null;
+  cellphone: string | null;
 };
+
+const EMPTY_FORM = { name: "", contact_name: "", email: "", phone: "", address: "", website: "", office_phone: "", cellphone: "" };
 
 function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", contact_name: "", email: "", phone: "", address: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const load = async () => {
-    const { data } = await supabase.from("suppliers").select("*").order("name");
+    const { data } = await (supabase as any).from("suppliers").select("*").order("name");
     if (data) setSuppliers(data as Supplier[]);
   };
 
@@ -37,15 +42,18 @@ function SuppliersPage() {
   const filtered = suppliers.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleAdd = async () => {
-    await supabase.from("suppliers").insert({
+    await (supabase as any).from("suppliers").insert({
       name: form.name,
       contact_name: form.contact_name || null,
       email: form.email || null,
       phone: form.phone || null,
       address: form.address || null,
+      website: form.website || null,
+      office_phone: form.office_phone || null,
+      cellphone: form.cellphone || null,
     });
     setDialogOpen(false);
-    setForm({ name: "", contact_name: "", email: "", phone: "", address: "" });
+    setForm(EMPTY_FORM);
     load();
   };
 
@@ -53,6 +61,8 @@ function SuppliersPage() {
     await supabase.from("suppliers").delete().eq("id", id);
     load();
   };
+
+  const normalizeUrl = (u: string) => (u.startsWith("http://") || u.startsWith("https://") ? u : `https://${u}`);
 
   return (
     <div className="space-y-6">
@@ -65,14 +75,19 @@ function SuppliersPage() {
           <DialogTrigger asChild>
             <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Supplier</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">Add Supplier</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Company Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>Contact Person</Label><Input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} /></div>
+              <div><Label>Website</Label><Input type="url" placeholder="https://example.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <div><Label>Office Phone</Label><Input type="tel" value={form.office_phone} onChange={(e) => setForm({ ...form, office_phone: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Cellphone</Label><Input type="tel" value={form.cellphone} onChange={(e) => setForm({ ...form, cellphone: e.target.value })} /></div>
+                <div><Label>Other Phone</Label><Input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               </div>
               <div><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
               <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground" disabled={!form.name}>Add Supplier</Button>
@@ -92,16 +107,33 @@ function SuppliersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
             <Card key={s.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
-              <CardContent className="p-5">
+              <CardContent className="p-5 space-y-1">
                 <div className="flex justify-between items-start">
                   <h3 className="font-display text-lg font-semibold">{s.name}</h3>
                   <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                {s.contact_name && <p className="text-sm text-muted-foreground mt-1">{s.contact_name}</p>}
+                {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
                 {s.email && <p className="text-sm text-muted-foreground">{s.email}</p>}
-                {s.phone && <p className="text-sm text-muted-foreground">{s.phone}</p>}
+                {s.website && (
+                  <a href={normalizeUrl(s.website)} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" />{s.website.replace(/^https?:\/\//, "")}
+                  </a>
+                )}
+                {s.office_phone && (
+                  <a href={`tel:${s.office_phone}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
+                  </a>
+                )}
+                {s.cellphone && (
+                  <a href={`tel:${s.cellphone}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
+                  </a>
+                )}
+                {s.phone && !s.office_phone && !s.cellphone && (
+                  <p className="text-sm text-muted-foreground">{s.phone}</p>
+                )}
               </CardContent>
             </Card>
           ))}
