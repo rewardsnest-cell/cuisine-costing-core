@@ -118,9 +118,15 @@ function AIQuotePage() {
     setHydrated(true);
 
     const hasPrefill = !!prefilled && Object.values(prefilled).some((v) => v && (Array.isArray(v) ? v.length : true));
+    const fullName = (user?.user_metadata?.full_name as string | undefined) || (user?.email ?? "");
+    const firstName = fullName.trim().split(/[\s@]/)[0];
+    const cleanFirst = firstName && /^[A-Za-z'-]+$/.test(firstName)
+      ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+      : "";
+    const greeting = cleanFirst ? `Hi ${cleanFirst}!` : "Hi!";
     const opener = hasPrefill
-      ? "Hi! I've got your draft from the basic builder. To pick up where you left off — what's the event date?"
-      : "Hi! I'm your catering concierge. To get started, what kind of event are we celebrating?";
+      ? `${greeting} I've got your draft from the basic builder. To pick up where you left off — what's the event date?`
+      : `${greeting} I'm your catering concierge. To get started, what kind of event are we celebrating?`;
     setMessages([{ role: "assistant", content: opener }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
