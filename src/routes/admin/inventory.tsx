@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload } from "lucide-react";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History } from "lucide-react";
 import { toast } from "sonner";
+
+type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
 export const Route = createFileRoute("/admin/inventory")({
   component: InventoryPage,
