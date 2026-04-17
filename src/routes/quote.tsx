@@ -209,7 +209,7 @@ function QuotePage() {
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
-      <div className="pt-24 pb-16 px-4">
+      <div className="pt-24 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Progress bar */}
           <div className="mb-8">
@@ -383,6 +383,24 @@ function QuotePage() {
           )}
         </div>
       </div>
+      {step !== "review" && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">Estimated · {selections.guestCount} guests · {selectedTier.icon} {selectedTier.label}</p>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
+                {selections.guestCount > 0 && totalAmount > 0 && (
+                  <span className="text-xs text-muted-foreground">~${Math.round(totalAmount / selections.guestCount)}/guest</span>
+                )}
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setStep("review")} disabled={totalAmount === 0} className="shrink-0">
+              Review
+            </Button>
+          </div>
+        </div>
+      )}
       <PublicFooter />
     </div>
   );
