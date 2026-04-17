@@ -600,6 +600,7 @@ export type Database = {
           client_email: string | null
           client_name: string | null
           client_phone: string | null
+          conversation: Json | null
           created_at: string
           dietary_preferences: Json | null
           event_date: string | null
@@ -623,6 +624,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_phone?: string | null
+          conversation?: Json | null
           created_at?: string
           dietary_preferences?: Json | null
           event_date?: string | null
@@ -646,6 +648,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_phone?: string | null
+          conversation?: Json | null
           created_at?: string
           dietary_preferences?: Json | null
           event_date?: string | null
