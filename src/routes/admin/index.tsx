@@ -147,6 +147,7 @@ function AdminDashboard() {
     { label: "Pending Receipts", value: loading ? "…" : counts.pendingReceipts, icon: Receipt, color: "bg-warning/20 text-warning", to: "/admin/receipts" },
     { label: "Suppliers", value: loading ? "…" : counts.suppliers, icon: Truck, color: "bg-accent/20 text-accent-foreground", to: "/admin/suppliers" },
     { label: "Purchase Orders", value: loading ? "…" : counts.purchaseOrders, icon: ShoppingCart, color: "bg-primary/10 text-primary", to: "/admin/purchase-orders" },
+    { label: "All Events", value: loading ? "…" : counts.quotes, icon: CalendarDays, color: "bg-primary/10 text-primary", to: "/admin/events" },
   ];
 
   return (
@@ -155,6 +156,8 @@ function AdminDashboard() {
         <h2 className="font-display text-2xl font-bold text-foreground">Welcome back</h2>
         <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your catering operations today.</p>
       </div>
+
+      <SettingsCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((s) => <StatCard key={s.label} stat={s} />)}
