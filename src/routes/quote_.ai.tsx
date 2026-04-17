@@ -72,7 +72,12 @@ function AIQuotePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [slow, setSlow] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSentRef = useRef<ChatMsg[] | null>(null);
+  const lastPrefilledRef = useRef<Partial<QuoteSelections> | null | undefined>(undefined);
 
   // Hydrate from handoff (basic -> AI) and trigger first AI message
   useEffect(() => {
@@ -97,8 +102,18 @@ function AIQuotePage() {
   }, [messages, loading]);
 
   async function sendToAI(currentMessages: ChatMsg[], prefilled?: Partial<QuoteSelections> | null) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    lastSentRef.current = currentMessages;
+    lastPrefilledRef.current = prefilled;
+
     setLoading(true);
+    setSlow(false);
     setError(null);
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    slowTimerRef.current = setTimeout(() => setSlow(true), 10000);
+
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quote-assistant`;
       const apiMessages =
@@ -120,18 +135,17 @@ function AIQuotePage() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ messages: apiMessages, prefilled: prefilled ?? selections }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
         if (resp.status === 429) setError("Too many requests. Please wait a moment.");
         else if (resp.status === 402) setError("AI credits exhausted. Please add credits in your workspace.");
         else setError("Something went wrong with the assistant.");
-        setLoading(false);
         return;
       }
       if (!resp.body) {
         setError("No response stream.");
-        setLoading(false);
         return;
       }
 
