@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/inventory")({
   component: InventoryPage,
@@ -45,6 +46,9 @@ function InventoryPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, PurchaseRow[]>>({});
   const [form, setForm] = useState({ name: "", unit: "each", par_level: "0", category: "", current_stock: "0", average_cost_per_unit: "0", supplier_id: "" });
+  const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
+  const [adjustForm, setAdjustForm] = useState({ mode: "set", value: "0", reason: "" });
+  const [importing, setImporting] = useState(false);
 
   const loadItems = async () => {
     const [invRes, supRes] = await Promise.all([
@@ -81,6 +85,92 @@ function InventoryPage() {
 
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "—";
 
+  const openAdjust = (item: InventoryItem) => {
+    setAdjustItem(item);
+    setAdjustForm({ mode: "set", value: String(item.current_stock), reason: "" });
+  };
+
+  const submitAdjust = async () => {
+    if (!adjustItem) return;
+    const v = parseFloat(adjustForm.value) || 0;
+    let newStock = adjustItem.current_stock;
+    if (adjustForm.mode === "set") newStock = v;
+    else if (adjustForm.mode === "add") newStock = adjustItem.current_stock + v;
+    else if (adjustForm.mode === "subtract") newStock = adjustItem.current_stock - v;
+    await supabase.from("inventory_items").update({ current_stock: newStock }).eq("id", adjustItem.id);
+    toast.success(`Updated ${adjustItem.name} → ${newStock} ${adjustItem.unit}`);
+    setAdjustItem(null);
+    loadItems();
+  };
+
+  const downloadTemplate = () => {
+    const header = "name,unit,category,vendor,current_stock,par_level,average_cost_per_unit";
+    const example = [
+      "Olive Oil,bottle,Pantry,Sysco,12,5,8.50",
+      "Chicken Breast,lb,Protein,US Foods,40,20,4.25",
+      "Tomato,each,Produce,,30,15,0.65",
+    ].join("\n");
+    const csv = header + "\n" + example + "\n";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "inventory-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+    return lines.slice(1).map((line) => {
+      // simple CSV split (no quoted commas)
+      const cells = line.split(",").map((c) => c.trim());
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => { row[h] = cells[i] || ""; });
+      return row;
+    });
+  };
+
+  const handleImport = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (rows.length === 0) { toast.error("CSV is empty"); return; }
+      let created = 0, updated = 0;
+      for (const row of rows) {
+        if (!row.name) continue;
+        const supplierId = row.vendor ? (suppliers.find((s) => s.name.toLowerCase() === row.vendor.toLowerCase())?.id || null) : null;
+        const payload = {
+          name: row.name,
+          unit: row.unit || "each",
+          category: row.category || null,
+          supplier_id: supplierId,
+          current_stock: parseFloat(row.current_stock) || 0,
+          par_level: parseFloat(row.par_level) || 0,
+          average_cost_per_unit: parseFloat(row.average_cost_per_unit) || 0,
+        };
+        const existing = items.find((i) => i.name.toLowerCase() === row.name.toLowerCase());
+        if (existing) {
+          await supabase.from("inventory_items").update(payload).eq("id", existing.id);
+          updated++;
+        } else {
+          await supabase.from("inventory_items").insert(payload);
+          created++;
+        }
+      }
+      toast.success(`Imported: ${created} created, ${updated} updated`);
+      loadItems();
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const loadHistory = async (itemId: string) => {
     const { data } = await supabase
       .from("purchase_order_items")
@@ -105,36 +195,50 @@ function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search inventory..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Item</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">Add Inventory Item</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></div>
-                <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 mr-1" /> Template</Button>
+          <label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImport(f); e.target.value = ""; }}
+            />
+            <Button asChild variant="outline" disabled={importing}>
+              <span className="cursor-pointer"><Upload className="w-4 h-4 mr-1" /> {importing ? "Importing..." : "Bulk Upload"}</span>
+            </Button>
+          </label>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Item</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle className="font-display">Add Inventory Item</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></div>
+                  <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+                </div>
+                <div>
+                  <Label>Vendor</Label>
+                  <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Stock</Label><Input type="number" value={form.current_stock} onChange={(e) => setForm({ ...form, current_stock: e.target.value })} /></div>
+                  <div><Label>Par Level</Label><Input type="number" value={form.par_level} onChange={(e) => setForm({ ...form, par_level: e.target.value })} /></div>
+                  <div><Label>Avg Cost</Label><Input type="number" step="0.01" value={form.average_cost_per_unit} onChange={(e) => setForm({ ...form, average_cost_per_unit: e.target.value })} /></div>
+                </div>
+                <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground" disabled={!form.name}>Add Item</Button>
               </div>
-              <div>
-                <Label>Vendor</Label>
-                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><Label>Stock</Label><Input type="number" value={form.current_stock} onChange={(e) => setForm({ ...form, current_stock: e.target.value })} /></div>
-                <div><Label>Par Level</Label><Input type="number" value={form.par_level} onChange={(e) => setForm({ ...form, par_level: e.target.value })} /></div>
-                <div><Label>Avg Cost</Label><Input type="number" step="0.01" value={form.average_cost_per_unit} onChange={(e) => setForm({ ...form, average_cost_per_unit: e.target.value })} /></div>
-              </div>
-              <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground" disabled={!form.name}>Add Item</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
