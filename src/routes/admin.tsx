@@ -122,9 +122,17 @@ function AdminLayout() {
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-foreground">
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-lg font-semibold text-foreground truncate">
+          <h1 className="font-display text-lg font-semibold text-foreground truncate flex-1">
             {NAV_ITEMS.find((i) => isActive(i.to, i.exact))?.label || "Admin"}
           </h1>
+          <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-muted/40">
+            <Link to="/dashboard" className="text-xs font-medium px-2.5 py-1 rounded text-muted-foreground hover:text-foreground">
+              User
+            </Link>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-primary text-primary-foreground shadow-sm">
+              Admin
+            </span>
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
           <Outlet />
