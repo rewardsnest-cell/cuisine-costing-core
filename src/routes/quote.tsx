@@ -278,9 +278,17 @@ function QuotePage() {
             </div>
           </div>
 
-          {step === "style" && (
+          {step === "style" && (() => {
+            const fullName = (user?.user_metadata?.full_name as string | undefined) || (user?.email ?? "");
+            const firstName = fullName.trim().split(/[\s@]/)[0];
+            const cleanFirst = firstName && /^[A-Za-z'-]+$/.test(firstName)
+              ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+              : "";
+            return (
             <div>
-              <h1 className="font-display text-3xl font-bold text-foreground mb-2">Choose Your Menu Style</h1>
+              <h1 className="font-display text-3xl font-bold text-foreground mb-2">
+                {cleanFirst ? `Hi ${cleanFirst}! Choose Your Menu Style` : "Choose Your Menu Style"}
+              </h1>
               <p className="text-muted-foreground mb-8">Select the cuisine direction for your event</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {MENU_STYLES.map((s) => (
