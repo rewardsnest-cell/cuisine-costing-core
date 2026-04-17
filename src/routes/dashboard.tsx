@@ -132,7 +132,7 @@ function DashboardPage() {
             <p className="text-muted-foreground text-sm mt-1">{user.email}</p>
           </div>
 
-          {/* Quick actions */}
+          {/* Quick actions — customer */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Quick actions</CardTitle>
@@ -153,13 +153,6 @@ function DashboardPage() {
                   <FileText className="w-4 h-4" /> All My Quotes
                 </Button>
               </Link>
-              {isEmployee && (
-                <Link to="/my-events">
-                  <Button variant="outline" className="gap-2">
-                    <ClipboardList className="w-4 h-4" /> My Assigned Events
-                  </Button>
-                </Link>
-              )}
             </CardContent>
           </Card>
 
@@ -202,33 +195,94 @@ function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Upcoming events */}
+            {/* Upcoming events I'm hosting */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" /> Upcoming Events
+                  <CalendarDays className="w-4 h-4" /> My Upcoming Events
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
+                {upcomingQuotes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No upcoming events. Book one with a new quote.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {upcomingQuotes.map((q) => (
+                      <div key={q.id} className="border border-border/60 rounded-lg p-3">
+                        <p className="text-sm font-medium">{q.event_type || "Event"}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
+                          <span className="flex items-center gap-1">
+                            <CalendarDays className="w-3 h-3" />
+                            {q.event_date}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {q.guest_count}
+                          </span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Staff workspace — employees & admins only */}
+          {isEmployee && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" /> Staff Workspace
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap gap-3">
+                  <Link to="/my-events">
+                    <Button variant="outline" className="gap-2">
+                      <ClipboardList className="w-4 h-4" /> My Assigned Events
+                    </Button>
+                  </Link>
+                  <Link to="/admin/recipes">
+                    <Button variant="outline" className="gap-2">
+                      <ChefHat className="w-4 h-4" /> Recipes
+                    </Button>
+                  </Link>
+                  <Link to="/admin/receipts">
+                    <Button variant="outline" className="gap-2">
+                      <Receipt className="w-4 h-4" /> Scan Receipts
+                    </Button>
+                  </Link>
+                </div>
+
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    Hosting
+                    Upcoming events I'm working
                   </p>
-                  {upcomingQuotes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No upcoming events.</p>
+                  {upcomingAssignments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No assigned events.</p>
                   ) : (
                     <div className="space-y-2">
-                      {upcomingQuotes.map((q) => (
-                        <div key={q.id} className="border border-border/60 rounded-lg p-3">
-                          <p className="text-sm font-medium">{q.event_type || "Event"}</p>
+                      {upcomingAssignments.map((a) => (
+                        <div key={a.id} className="border border-border/60 rounded-lg p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium truncate">
+                              {a.quote?.event_type || "Event"}
+                            </p>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
+                              {a.role}
+                            </span>
+                          </div>
                           <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="w-3 h-3" />
-                              {q.event_date}
+                              {a.quote?.event_date}
                             </span>
                             <span className="flex items-center gap-1">
                               <Users className="w-3 h-3" />
-                              {q.guest_count}
+                              {a.quote?.guest_count}
                             </span>
                           </p>
                         </div>
@@ -236,45 +290,9 @@ function DashboardPage() {
                     </div>
                   )}
                 </div>
-
-                {isEmployee && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                      Working
-                    </p>
-                    {upcomingAssignments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No assigned events.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {upcomingAssignments.map((a) => (
-                          <div key={a.id} className="border border-border/60 rounded-lg p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium truncate">
-                                {a.quote?.event_type || "Event"}
-                              </p>
-                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">
-                                {a.role}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-                              <span className="flex items-center gap-1">
-                                <CalendarDays className="w-3 h-3" />
-                                {a.quote?.event_date}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" />
-                                {a.quote?.guest_count}
-                              </span>
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </CardContent>
             </Card>
-          </div>
+          )}
 
           {/* Profile / account */}
           <Card>
