@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, ArrowLeftRight, Loader2 } from "lucide-react";
+import { Sparkles, Send, ArrowLeftRight, Loader2, X, RotateCcw } from "lucide-react";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
 
 export const Route = createFileRoute("/quote_/ai")({
@@ -72,7 +72,12 @@ function AIQuotePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [slow, setSlow] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSentRef = useRef<ChatMsg[] | null>(null);
+  const lastPrefilledRef = useRef<Partial<QuoteSelections> | null | undefined>(undefined);
 
   // Hydrate from handoff (basic -> AI) and trigger first AI message
   useEffect(() => {
@@ -97,8 +102,18 @@ function AIQuotePage() {
   }, [messages, loading]);
 
   async function sendToAI(currentMessages: ChatMsg[], prefilled?: Partial<QuoteSelections> | null) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    lastSentRef.current = currentMessages;
+    lastPrefilledRef.current = prefilled;
+
     setLoading(true);
+    setSlow(false);
     setError(null);
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    slowTimerRef.current = setTimeout(() => setSlow(true), 10000);
+
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quote-assistant`;
       const apiMessages =
@@ -120,18 +135,17 @@ function AIQuotePage() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ messages: apiMessages, prefilled: prefilled ?? selections }),
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
         if (resp.status === 429) setError("Too many requests. Please wait a moment.");
         else if (resp.status === 402) setError("AI credits exhausted. Please add credits in your workspace.");
         else setError("Something went wrong with the assistant.");
-        setLoading(false);
         return;
       }
       if (!resp.body) {
         setError("No response stream.");
-        setLoading(false);
         return;
       }
 
@@ -218,13 +232,41 @@ function AIQuotePage() {
       }
 
       flushToolCalls();
-    } catch (e) {
-      console.error(e);
-      setError("Network error. Please try again.");
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        // user cancelled — drop the empty assistant placeholder if present
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+          return prev;
+        });
+      } else {
+        console.error(e);
+        setError("Network error. Please try again.");
+      }
     } finally {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setSlow(false);
       setLoading(false);
+      abortRef.current = null;
     }
   }
+
+  const stop = () => {
+    abortRef.current?.abort();
+  };
+
+  const retry = () => {
+    if (lastSentRef.current) {
+      // remove any trailing empty assistant placeholder before retrying
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+        return prev;
+      });
+      void sendToAI(lastSentRef.current, lastPrefilledRef.current);
+    }
+  };
 
   const send = async () => {
     const text = input.trim();
@@ -311,11 +353,31 @@ function AIQuotePage() {
                     </div>
                   </div>
                 ))}
-                {loading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Thinking…
-                  </div>
-                )}
+                {loading && (() => {
+                  const last = messages[messages.length - 1];
+                  const showThinking =
+                    !last ||
+                    last.role === "user" ||
+                    (last.role === "assistant" && !last.content);
+                  if (!showThinking) return null;
+                  return (
+                    <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {slow ? "Still thinking… this is taking a while" : "Thinking…"}
+                      </span>
+                      {slow && (
+                        <button
+                          type="button"
+                          onClick={stop}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" /> Stop
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Quick reply chips for the most recent assistant question */}
                 {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
                   const chips = suggestChips(messages[messages.length - 1].content);
@@ -335,7 +397,20 @@ function AIQuotePage() {
                     </div>
                   );
                 })()}
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-destructive">{error}</p>
+                    {lastSentRef.current && (
+                      <button
+                        type="button"
+                        onClick={retry}
+                        className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Retry
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="border-t p-3 flex gap-2">
                 <Input
