@@ -60,7 +60,17 @@ function RecipesPage() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = recipes.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = recipes.filter((r) => {
+    if (!r.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filter === "active" && r.active === false) return false;
+    if (filter === "off" && r.active !== false) return false;
+    return true;
+  });
+
+  const toggleActive = async (r: Recipe) => {
+    await (supabase as any).from("recipes").update({ active: !r.active }).eq("id", r.id);
+    load();
+  };
 
   const handleAdd = async () => {
     await supabase.from("recipes").insert({
@@ -267,9 +277,22 @@ function RecipesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search recipes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex gap-2 flex-1 max-w-xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search recipes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <div className="flex rounded-md border border-border overflow-hidden text-xs">
+            {(["all", "active", "off"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-2 transition-colors ${filter === f ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
+              >
+                {f === "all" ? "All" : f === "active" ? "On menu" : "Off menu"}
+              </button>
+            ))}
+          </div>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -303,7 +326,7 @@ function RecipesPage() {
           {filtered.map((r) => (
             <Card
               key={r.id}
-              className="shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer"
+              className={`shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer ${r.active === false ? "opacity-60" : ""}`}
               onClick={() => openDetail(r)}
             >
               <CardContent className="p-5">
@@ -328,6 +351,15 @@ function RecipesPage() {
                   {r.is_vegetarian && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegetarian</span>}
                   {r.is_vegan && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegan</span>}
                   {r.is_gluten_free && <span className="px-2 py-0.5 bg-gold/20 text-warm text-xs rounded-full">GF</span>}
+                </div>
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-between mt-4 pt-3 border-t border-border/40"
+                >
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {r.active === false ? "Off menu" : "On menu"}
+                  </span>
+                  <Switch checked={r.active !== false} onCheckedChange={() => toggleActive(r)} />
                 </div>
               </CardContent>
             </Card>
