@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
@@ -112,6 +113,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminTimesheetRoute = AdminTimesheetRouteImport.update({
+  id: '/timesheet',
+  path: '/timesheet',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSuppliersRoute = AdminSuppliersRouteImport.update({
   id: '/suppliers',
   path: '/suppliers',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/admin/': typeof AdminIndexRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/admin': typeof AdminIndexRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/admin/': typeof AdminIndexRoute
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
     | '/admin/'
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
     | '/admin'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/timesheet'
     | '/admin/users'
     | '/event/$reference'
     | '/admin/'
@@ -472,6 +484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/timesheet': {
+      id: '/admin/timesheet'
+      path: '/timesheet'
+      fullPath: '/admin/timesheet'
+      preLoaderRoute: typeof AdminTimesheetRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/suppliers': {
       id: '/admin/suppliers'
       path: '/suppliers'
@@ -572,6 +591,7 @@ interface AdminRouteChildren {
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRoute
+  AdminTimesheetRoute: typeof AdminTimesheetRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -589,6 +609,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRoute,
+  AdminTimesheetRoute: AdminTimesheetRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
