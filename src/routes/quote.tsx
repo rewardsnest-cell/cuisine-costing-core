@@ -129,6 +129,7 @@ function QuotePage() {
       proteins: selections.proteins,
       allergies: selections.allergies,
       pricePerDish: PRICE_PER_DISH,
+      preferences: selections.preferences,
     });
     doc.save(`TasteQuote-${selections.clientName || "Proposal"}.pdf`);
   };
@@ -156,7 +157,9 @@ function QuotePage() {
           extras: selections.extras,
           addons: selections.addons,
           tier: selections.tier,
+          preferences: selections.preferences || null,
         },
+        notes: selections.preferences?.notes || null,
         subtotal: totalAmount,
         total: totalAmount * 1.08,
         status: "draft",
@@ -404,6 +407,27 @@ function QuotePage() {
                       <div className="flex flex-wrap gap-2">{selections.allergies.map((a) => (<span key={a} className="px-2 py-0.5 bg-destructive/10 text-destructive text-xs rounded-full font-medium">{a}</span>))}</div>
                     </div>
                   )}
+                  {selections.preferences && Object.values(selections.preferences).some((v) => v && (typeof v === "string" ? v : Object.values(v).some(Boolean))) && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <p className="text-sm font-semibold">Chef Preferences</p>
+                        <Badge variant="secondary" className="text-[10px]">From AI</Badge>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        {selections.preferences.proteinDetails && <PrefRow label="Protein notes" value={selections.preferences.proteinDetails} />}
+                        {selections.preferences.vegetableNotes && <PrefRow label="Veggies" value={selections.preferences.vegetableNotes} />}
+                        {selections.preferences.cuisineLean && <PrefRow label="Cuisine lean" value={selections.preferences.cuisineLean} />}
+                        {selections.preferences.spiceLevel && <PrefRow label="Spice level" value={selections.preferences.spiceLevel} />}
+                        {selections.preferences.vibe && <PrefRow label="Event vibe" value={selections.preferences.vibe} />}
+                        {selections.preferences.alcohol?.beer && <PrefRow label="Beer" value={selections.preferences.alcohol.beer} />}
+                        {selections.preferences.alcohol?.wine && <PrefRow label="Wine" value={selections.preferences.alcohol.wine} />}
+                        {selections.preferences.alcohol?.spirits && <PrefRow label="Spirits" value={selections.preferences.alcohol.spirits} />}
+                        {selections.preferences.alcohol?.signatureCocktail && <PrefRow label="Signature cocktail" value={selections.preferences.alcohol.signatureCocktail} />}
+                        {selections.preferences.notes && <PrefRow label="Additional notes" value={selections.preferences.notes} full />}
+                      </div>
+                    </div>
+                  )}
                   <div className="border-t pt-4 grid grid-cols-2 gap-4">
                     <div><p className="text-sm text-muted-foreground mb-1">Event</p><p className="text-sm">{selections.eventType || "—"} · {selections.eventDate || "TBD"}</p></div>
                     <div><p className="text-sm text-muted-foreground mb-1">Tier</p><p className="text-sm font-semibold">{selectedTier.icon} {selectedTier.label}</p></div>
@@ -453,6 +477,15 @@ function QuotePage() {
         </div>
       )}
       <PublicFooter />
+    </div>
+  );
+}
+
+function PrefRow({ label, value, full }: { label: string; value: string; full?: boolean }) {
+  return (
+    <div className={full ? "sm:col-span-2" : ""}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium capitalize">{value}</p>
     </div>
   );
 }
