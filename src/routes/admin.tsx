@@ -20,22 +20,42 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const NAV_ITEMS = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/recipes", label: "All Recipes", icon: ChefHat },
-  { to: "/admin/inventory", label: "Inventory", icon: Package },
-  { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
-  { to: "/admin/receipts", label: "Receipts & Costing", icon: Receipt },
-  { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
-  { to: "/admin/events", label: "Events", icon: CalendarDays },
-  { to: "/admin/schedule", label: "Schedule", icon: Calendar },
-  { to: "/admin/timesheet", label: "Timesheet", icon: Clock },
-  { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
-  { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/employees", label: "Employees", icon: UserCog },
-  { to: "/admin/access", label: "Access Control", icon: ShieldCheck },
-  { to: "/admin/set-password", label: "Set Password", icon: KeyRound },
+const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any; exact?: boolean }[] }[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true }],
+  },
+  {
+    label: "Operations",
+    items: [
+      { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
+      { to: "/admin/events", label: "Events", icon: CalendarDays },
+      { to: "/admin/schedule", label: "Schedule", icon: Calendar },
+      { to: "/admin/timesheet", label: "Timesheet", icon: Clock },
+    ],
+  },
+  {
+    label: "Catalog & Inventory",
+    items: [
+      { to: "/admin/recipes", label: "All Recipes", icon: ChefHat },
+      { to: "/admin/inventory", label: "Inventory", icon: Package },
+      { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
+      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
+      { to: "/admin/receipts", label: "Receipts & Costing", icon: Receipt },
+    ],
+  },
+  {
+    label: "People & Access",
+    items: [
+      { to: "/admin/users", label: "User Management", icon: Users },
+      { to: "/admin/employees", label: "Employees", icon: UserCog },
+      { to: "/admin/access", label: "Access Control", icon: ShieldCheck },
+      { to: "/admin/set-password", label: "Set Password", icon: KeyRound },
+    ],
+  },
 ];
+
+const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 function AdminLayout() {
   const { user, loading, isAdmin, signIn, signOut } = useAuth();
@@ -94,17 +114,26 @@ function AdminLayout() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-            {NAV_ITEMS.map((item) => {
-              const active = isActive(item.to, item.exact);
-              return (
-                <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
-                  <item.icon className="w-4.5 h-4.5" />
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="flex-1 py-4 px-3 overflow-y-auto">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="mb-4 last:mb-0">
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const active = isActive(item.to, item.exact);
+                    return (
+                      <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
+                        <item.icon className="w-4.5 h-4.5" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
           <div className="p-3 border-t border-sidebar-border space-y-1">
             <div className="px-3 py-1.5 text-xs text-sidebar-foreground/50 truncate">{user.email}</div>

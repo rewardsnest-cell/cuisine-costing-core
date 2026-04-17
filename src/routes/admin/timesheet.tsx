@@ -5,18 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Clock, Download, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Download, Users, Check, AlertTriangle, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/timesheet")({
   component: TimesheetPage,
 });
 
+type ApprovalStatus = "pending" | "approved" | "disputed";
 type Entry = {
   id: string;
   employee_user_id: string;
   quote_id: string;
   clock_in_at: string;
   clock_out_at: string | null;
+  approval_status: ApprovalStatus;
 };
 
 type Profile = { user_id: string; full_name: string | null; email: string | null };
@@ -59,6 +63,8 @@ function TimesheetPage() {
   const [quotes, setQuotes] = useState<Map<string, Quote>>(new Map());
   const [rates, setRates] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [onlyApproved, setOnlyApproved] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -67,7 +73,7 @@ function TimesheetPage() {
       const endIso = new Date(end + "T23:59:59").toISOString();
       const { data: ents } = await (supabase as any)
         .from("event_time_entries")
-        .select("id, employee_user_id, quote_id, clock_in_at, clock_out_at")
+        .select("id, employee_user_id, quote_id, clock_in_at, clock_out_at, approval_status")
         .gte("clock_in_at", startIso)
         .lte("clock_in_at", endIso)
         .order("clock_in_at", { ascending: true });
@@ -103,7 +109,37 @@ function TimesheetPage() {
 
       setLoading(false);
     })();
-  }, [start, end]);
+  }, [start, end, refreshTick]);
+
+  const setApproval = async (id: string, status: ApprovalStatus) => {
+    const { error } = await (supabase as any)
+      .from("event_time_entries")
+      .update({
+        approval_status: status,
+        approved_at: status === "pending" ? null : new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Marked ${status}`);
+    setRefreshTick((t) => t + 1);
+  };
+
+  const bulkApprovePending = async (entryIds: string[]) => {
+    if (entryIds.length === 0) return;
+    const { error } = await (supabase as any)
+      .from("event_time_entries")
+      .update({ approval_status: "approved", approved_at: new Date().toISOString() })
+      .in("id", entryIds);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Approved ${entryIds.length} shift${entryIds.length === 1 ? "" : "s"}`);
+    setRefreshTick((t) => t + 1);
+  };
 
   type EmpRow = {
     userId: string;
@@ -118,6 +154,7 @@ function TimesheetPage() {
     const map = new Map<string, EmpRow>();
     for (const e of entries) {
       if (!e.clock_out_at) continue; // only completed shifts count
+      if (onlyApproved && e.approval_status !== "approved") continue;
       const ms = new Date(e.clock_out_at).getTime() - new Date(e.clock_in_at).getTime();
       const p = profiles.get(e.employee_user_id);
       const existing = map.get(e.employee_user_id) || {
@@ -133,14 +170,17 @@ function TimesheetPage() {
       map.set(e.employee_user_id, existing);
     }
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [entries, profiles, quotes, rates]);
+  }, [entries, profiles, quotes, rates, onlyApproved]);
+
+  const pendingCount = entries.filter((e) => e.clock_out_at && e.approval_status === "pending").length;
+  const allPendingIds = entries.filter((e) => e.clock_out_at && e.approval_status === "pending").map((e) => e.id);
 
   const grandMs = grouped.reduce((s, g) => s + g.totalMs, 0);
   const grandPay = grouped.reduce((s, g) => s + hoursDecimal(g.totalMs) * g.rate, 0);
 
   const exportCsv = () => {
     const rows = [
-      ["Employee", "Email", "Event", "Event Date", "Quote Ref", "Clock In", "Clock Out", "Hours", "Hourly Rate", "Pay"],
+      ["Employee", "Email", "Event", "Event Date", "Quote Ref", "Clock In", "Clock Out", "Hours", "Hourly Rate", "Pay", "Status"],
     ];
     for (const g of grouped) {
       for (const r of g.rows) {
@@ -156,6 +196,7 @@ function TimesheetPage() {
           hrs.toFixed(2),
           g.rate.toFixed(2),
           (hrs * g.rate).toFixed(2),
+          r.entry.approval_status,
         ]);
       }
       rows.push([
@@ -169,6 +210,7 @@ function TimesheetPage() {
         hoursDecimal(g.totalMs).toFixed(2),
         g.rate.toFixed(2),
         (hoursDecimal(g.totalMs) * g.rate).toFixed(2),
+        "",
       ]);
     }
     const csv = rows
@@ -204,7 +246,16 @@ function TimesheetPage() {
             <Label className="text-xs">End</Label>
             <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
           </div>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={onlyApproved}
+                onChange={(e) => setOnlyApproved(e.target.checked)}
+                className="rounded"
+              />
+              Approved only
+            </label>
             <Button
               variant="outline"
               size="sm"
@@ -231,6 +282,16 @@ function TimesheetPage() {
             >
               2 weeks
             </Button>
+            {pendingCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => bulkApprovePending(allPendingIds)}
+                className="gap-2"
+              >
+                <Check className="w-4 h-4" /> Approve {pendingCount} pending
+              </Button>
+            )}
             <Button onClick={exportCsv} className="gap-2" disabled={grouped.length === 0}>
               <Download className="w-4 h-4" /> Export CSV
             </Button>
@@ -297,36 +358,92 @@ function TimesheetPage() {
                         <th className="py-2 px-3 font-medium">In</th>
                         <th className="py-2 px-3 font-medium">Out</th>
                         <th className="py-2 px-3 font-medium text-right">Hours</th>
+                        <th className="py-2 px-3 font-medium">Status</th>
+                        <th className="py-2 px-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {g.rows.map((r) => (
-                        <tr key={r.entry.id} className="border-t border-border/40">
-                          <td className="py-1.5 px-3">
-                            {r.quote?.event_type || "—"}
-                            {r.quote?.client_name ? ` · ${r.quote.client_name}` : ""}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {r.quote?.event_date || ""}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {new Date(r.entry.clock_in_at).toLocaleString([], {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
-                          </td>
-                          <td className="py-1.5 px-3 text-muted-foreground">
-                            {r.entry.clock_out_at
-                              ? new Date(r.entry.clock_out_at).toLocaleTimeString([], {
-                                  timeStyle: "short",
-                                })
-                              : "—"}
-                          </td>
-                          <td className="py-1.5 px-3 text-right font-mono">
-                            {hoursDecimal(r.ms).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
+                      {g.rows.map((r) => {
+                        const status = r.entry.approval_status;
+                        return (
+                          <tr key={r.entry.id} className="border-t border-border/40">
+                            <td className="py-1.5 px-3">
+                              {r.quote?.event_type || "—"}
+                              {r.quote?.client_name ? ` · ${r.quote.client_name}` : ""}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {r.quote?.event_date || ""}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {new Date(r.entry.clock_in_at).toLocaleString([], {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </td>
+                            <td className="py-1.5 px-3 text-muted-foreground">
+                              {r.entry.clock_out_at
+                                ? new Date(r.entry.clock_out_at).toLocaleTimeString([], {
+                                    timeStyle: "short",
+                                  })
+                                : "—"}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono">
+                              {hoursDecimal(r.ms).toFixed(2)}
+                            </td>
+                            <td className="py-1.5 px-3">
+                              <Badge
+                                variant={
+                                  status === "approved"
+                                    ? "default"
+                                    : status === "disputed"
+                                      ? "destructive"
+                                      : "secondary"
+                                }
+                                className="capitalize text-[10px]"
+                              >
+                                {status}
+                              </Badge>
+                            </td>
+                            <td className="py-1.5 px-3 text-right">
+                              <div className="inline-flex gap-1">
+                                {status !== "approved" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Approve"
+                                    onClick={() => setApproval(r.entry.id, "approved")}
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-success" />
+                                  </Button>
+                                )}
+                                {status !== "disputed" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Dispute"
+                                    onClick={() => setApproval(r.entry.id, "disputed")}
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                                  </Button>
+                                )}
+                                {status !== "pending" && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0"
+                                    title="Reset to pending"
+                                    onClick={() => setApproval(r.entry.id, "pending")}
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
