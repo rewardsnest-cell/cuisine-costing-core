@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, ArrowLeftRight, Loader2, X, RotateCcw } from "lucide-react";
+import { Sparkles, Send, ArrowLeftRight, Loader2, X, RotateCcw, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { INITIAL_SELECTIONS, type QuoteSelections, type QuotePreferences } from "@/components/quote/types";
 
 export const Route = createFileRoute("/quote_/ai")({
@@ -22,38 +26,47 @@ export const Route = createFileRoute("/quote_/ai")({
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
-const CHIP_GROUPS: { match: RegExp; chips: string[] }[] = [
-  { match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
+type ChipGroup =
+  | { kind: "text"; match: RegExp; chips: string[] }
+  | { kind: "date"; match: RegExp }
+  | { kind: "guests"; match: RegExp };
+
+// Order matters — date/guests must run BEFORE the generic "event type" group.
+const CHIP_GROUPS: ChipGroup[] = [
+  { kind: "date",
+    match: /\b(date of (the )?(event|party|wedding|celebration)|what(?:'s| is) the date|event date|when (?:is|will|are)|pick a date|date you('re| are) planning|the date)\b/i },
+  { kind: "guests",
+    match: /\b(how many (guests|people|attendees)|guest count|number of (guests|people)|approximate (guest|head) count)\b/i },
+  { kind: "text", match: /\b(service style|buffet|plated|family[- ]style|cocktail reception|how.*served|style of service)\b/i,
     chips: ["Buffet", "Plated", "Family Style", "Cocktail Reception"] },
-  { match: /\b(menu style|meat|seafood|vegetarian|mixed menu|what kind of (food|menu)|cuisine direction)\b/i,
+  { kind: "text", match: /\b(menu style|meat|seafood|vegetarian|mixed menu|what kind of (food|menu)|cuisine direction)\b/i,
     chips: ["Meat & Poultry", "Seafood", "Vegetarian", "Mixed Menu"] },
-  { match: /\b(tier|silver|gold|platinum|package|budget level)\b/i,
+  { kind: "text", match: /\b(tier|silver|gold|platinum|package|budget level)\b/i,
     chips: ["Silver", "Gold", "Platinum"] },
-  { match: /\b(allerg|dietary|restriction|intoleran)/i,
+  { kind: "text", match: /\b(allerg|dietary|restriction|intoleran)/i,
     chips: ["None", "Gluten", "Dairy", "Nuts", "Shellfish", "Soy", "Eggs"] },
-  { match: /\b(spice|spicy|heat level|how spicy)\b/i,
+  { kind: "text", match: /\b(spice|spicy|heat level|how spicy)\b/i,
     chips: ["Mild", "Medium", "Spicy", "Extra spicy"] },
-  { match: /\b(vibe|mood|atmosphere|formal|casual|elegant|rustic)\b/i,
+  { kind: "text", match: /\b(vibe|mood|atmosphere|formal|casual|elegant|rustic)\b/i,
     chips: ["Casual", "Elegant", "Rustic", "Formal", "Festive"] },
-  { match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
+  { kind: "text", match: /\b(alcohol|bar|drinks|beer|wine|cocktail|liquor)\b/i,
     chips: ["No alcohol", "Beer & wine only", "Full bar", "Signature cocktail"] },
-  { match: /\b(event type|occasion|wedding|birthday|corporate|anniversary)\b/i,
+  { kind: "text", match: /\b(event type|occasion|wedding|birthday|corporate|anniversary|kind of event|type of (event|celebration))\b/i,
     chips: ["Wedding", "Birthday", "Corporate", "Anniversary", "Holiday party"] },
-  { match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
+  { kind: "text", match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
     chips: ["Chicken", "Beef", "Pork", "Lamb", "Ribeye", "Filet", "Brisket"] },
-  { match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
+  { kind: "text", match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
     chips: ["Fish", "Shrimp", "Crab", "Lobster", "Salmon", "Tuna"] },
-  { match: /\b(sound good|sound right|confirm|correct\?|ready to|shall we|would you like)\b/i,
+  { kind: "text", match: /\b(sound good|sound right|confirm|correct\?|ready to|shall we|would you like)\b/i,
     chips: ["Yes", "No", "Not sure"] },
 ];
 
-function suggestChips(text: string): string[] {
-  if (!text) return [];
-  const tail = text.split(/(?<=[.?!])\s+/).slice(-2).join(" ");
+function suggestChipGroup(text: string): ChipGroup | null {
+  if (!text) return null;
   for (const group of CHIP_GROUPS) {
-    if (group.match.test(tail)) return group.chips;
+    if (group.match.test(text)) return group;
   }
-  return [];
+  return null;
 }
 
 function deepMergePreferences(base: QuotePreferences | undefined, incoming: QuotePreferences): QuotePreferences {
@@ -378,13 +391,27 @@ function AIQuotePage() {
                     </div>
                   );
                 })()}
-                {/* Quick reply chips for the most recent assistant question */}
+                {/* Quick replies for the most recent assistant question */}
                 {!loading && messages.length > 0 && messages[messages.length - 1]?.role === "assistant" && (() => {
-                  const chips = suggestChips(messages[messages.length - 1].content);
-                  if (chips.length === 0) return null;
+                  const group = suggestChipGroup(messages[messages.length - 1].content);
+                  if (!group) return null;
+                  if (group.kind === "date") {
+                    return (
+                      <div className="pt-1">
+                        <DateChip onPick={(iso) => void sendChip(iso)} />
+                      </div>
+                    );
+                  }
+                  if (group.kind === "guests") {
+                    return (
+                      <div className="pt-1">
+                        <GuestsChip onSubmit={(n) => void sendChip(String(n))} />
+                      </div>
+                    );
+                  }
                   return (
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {chips.map((chip) => (
+                      {group.chips.map((chip) => (
                         <button
                           key={chip}
                           type="button"
@@ -500,6 +527,81 @@ function SummaryRow({ label, value }: { label: string; value?: string }) {
     <div className="flex justify-between gap-3 text-sm">
       <span className="text-muted-foreground shrink-0">{label}</span>
       <span className="font-medium text-right capitalize">{value}</span>
+    </div>
+  );
+}
+
+function DateChip({ onPick }: { onPick: (iso: string) => void }) {
+  const [date, setDate] = useState<Date | undefined>();
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+        >
+          <CalendarIcon className="w-3.5 h-3.5" />
+          {date ? format(date, "PPP") : "Pick a date"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => {
+            if (!d) return;
+            setDate(d);
+            setOpen(false);
+            const iso = format(d, "yyyy-MM-dd");
+            onPick(iso);
+          }}
+          disabled={(d) => d < new Date(new Date().toDateString())}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function GuestsChip({ onSubmit }: { onSubmit: (n: number) => void }) {
+  const [val, setVal] = useState("");
+  const presets = [25, 50, 75, 100, 150, 200];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {presets.map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onSubmit(n)}
+          className="text-xs font-medium px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-colors active:scale-95"
+        >
+          {n}
+        </button>
+      ))}
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="Custom"
+          className="w-20 text-xs px-2 py-1.5 rounded-full border border-primary/30 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+        <button
+          type="button"
+          disabled={!val || Number(val) < 1}
+          onClick={() => {
+            const n = Number(val);
+            if (n >= 1) onSubmit(n);
+          }}
+          className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }
