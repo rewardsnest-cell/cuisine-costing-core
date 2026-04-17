@@ -50,6 +50,83 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          hire_date: string | null
+          hourly_rate: number | null
+          id: string
+          notes: string | null
+          phone: string | null
+          position: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      event_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          employee_user_id: string
+          id: string
+          notes: string | null
+          quote_id: string
+          role: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          employee_user_id: string
+          id?: string
+          notes?: string | null
+          quote_id: string
+          role?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          employee_user_id?: string
+          id?: string
+          notes?: string | null
+          quote_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_assignments_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_adjustments: {
         Row: {
           change_amount: number
@@ -620,7 +697,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -748,7 +825,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "employee"],
     },
   },
 } as const

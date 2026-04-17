@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
+import { Route as MyEventsRouteImport } from './routes/my-events'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -28,6 +29,7 @@ import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
+import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -47,6 +49,11 @@ const QuoteRoute = QuoteRouteImport.update({
 const MyQuotesRoute = MyQuotesRouteImport.update({
   id: '/my-quotes',
   path: '/my-quotes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyEventsRoute = MyEventsRouteImport.update({
+  id: '/my-events',
+  path: '/my-events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LookupRoute = LookupRouteImport.update({
@@ -124,6 +131,11 @@ const AdminInventoryRoute = AdminInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,10 +143,12 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -151,10 +165,12 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -173,10 +189,12 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/admin/employees': typeof AdminEmployeesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -196,10 +214,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/my-events'
     | '/my-quotes'
     | '/quote'
     | '/reset-password'
     | '/signup'
+    | '/admin/employees'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -216,10 +236,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/my-events'
     | '/my-quotes'
     | '/quote'
     | '/reset-password'
     | '/signup'
+    | '/admin/employees'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -237,10 +259,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/my-events'
     | '/my-quotes'
     | '/quote'
     | '/reset-password'
     | '/signup'
+    | '/admin/employees'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -259,6 +283,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
+  MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -293,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/my-quotes'
       fullPath: '/my-quotes'
       preLoaderRoute: typeof MyQuotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-events': {
+      id: '/my-events'
+      path: '/my-events'
+      fullPath: '/my-events'
+      preLoaderRoute: typeof MyEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lookup': {
@@ -400,10 +432,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/employees': {
+      id: '/admin/employees'
+      path: '/employees'
+      fullPath: '/admin/employees'
+      preLoaderRoute: typeof AdminEmployeesRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
@@ -417,6 +457,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminEmployeesRoute: AdminEmployeesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuotesRoute: AdminQuotesRoute,
@@ -437,6 +478,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
+  MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
