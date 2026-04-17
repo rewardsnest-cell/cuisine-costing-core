@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_email: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_email?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_email?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_requests: {
         Row: {
           created_at: string
@@ -64,6 +97,48 @@ export type Database = {
         Update: {
           id?: number
           revision_lock_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      employee_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          invited_by: string | null
+          invited_user_id: string | null
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -649,6 +724,30 @@ export type Database = {
         }
         Relationships: []
       }
+      role_section_permissions: {
+        Row: {
+          enabled: boolean
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          section?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -711,6 +810,33 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_section_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          section: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          id?: string
+          section: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          section?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
