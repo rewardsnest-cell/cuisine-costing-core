@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { useAuth } from "@/hooks/use-auth";
-import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn } from "lucide-react";
+import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn, Sparkles, ArrowLeftRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import {
   type Step,
@@ -41,11 +42,40 @@ export const Route = createFileRoute("/quote")({
 
 function QuotePage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("style");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState("");
   const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
+
+  // Hydrate from AI handoff
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("quote_handoff");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      sessionStorage.removeItem("quote_handoff");
+      setSelections((s) => ({ ...s, ...data }));
+      const jumpReview = sessionStorage.getItem("quote_handoff_jump_review");
+      if (jumpReview) {
+        sessionStorage.removeItem("quote_handoff_jump_review");
+        setStep("review");
+        return;
+      }
+      if (!data.style) setStep("style");
+      else if (!data.proteins?.length) setStep("protein");
+      else if (!data.serviceStyle) setStep("service");
+      else if (!data.tier) setStep("tier");
+      else if (!data.clientName || !data.clientEmail || !data.eventDate) setStep("details");
+      else setStep("review");
+    } catch {}
+  }, []);
+
+  const switchToAI = () => {
+    sessionStorage.setItem("quote_handoff", JSON.stringify(selections));
+    navigate({ to: "/quote/ai" });
+  };
 
   const toggleProtein = (p: string) => {
     setSelections((s) => ({
@@ -213,6 +243,14 @@ function QuotePage() {
       <PublicHeader />
       <div className="pt-24 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
+          {/* Mode header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <Badge variant="secondary" className="gap-1">Basic Builder</Badge>
+            <button onClick={switchToAI} className="text-xs text-primary hover:underline flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Switch to Advanced AI <ArrowLeftRight className="w-3 h-3" />
+            </button>
+          </div>
+
           {/* Progress bar */}
           <div className="mb-8">
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
