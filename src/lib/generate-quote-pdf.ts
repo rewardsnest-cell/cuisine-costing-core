@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { QuotePreferences } from "@/components/quote/types";
 
 type QuoteData = {
   clientName: string;
@@ -11,6 +12,7 @@ type QuoteData = {
   proteins: string[];
   allergies: string[];
   pricePerDish: number;
+  preferences?: QuotePreferences;
 };
 
 export function generateQuotePDF(data: QuoteData): jsPDF {
@@ -156,6 +158,54 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
     doc.setTextColor(180, 50, 50);
     doc.text(data.allergies.join("  •  "), margin, y);
     y += 12;
+  }
+
+  // Chef Preferences (from AI builder)
+  const p = data.preferences || {};
+  const prefRows: [string, string][] = [];
+  if (p.proteinDetails) prefRows.push(["Protein notes", p.proteinDetails]);
+  if (p.vegetableNotes) prefRows.push(["Vegetable notes", p.vegetableNotes]);
+  if (p.cuisineLean) prefRows.push(["Cuisine direction", p.cuisineLean]);
+  if (p.spiceLevel) prefRows.push(["Spice level", p.spiceLevel]);
+  if (p.vibe) prefRows.push(["Event vibe", p.vibe]);
+  if (p.alcohol?.beer) prefRows.push(["Beer", p.alcohol.beer]);
+  if (p.alcohol?.wine) prefRows.push(["Wine", p.alcohol.wine]);
+  if (p.alcohol?.spirits) prefRows.push(["Spirits", p.alcohol.spirits]);
+  if (p.alcohol?.signatureCocktail) prefRows.push(["Signature cocktail", p.alcohol.signatureCocktail]);
+  if (p.notes) prefRows.push(["Additional notes", p.notes]);
+
+  if (prefRows.length > 0) {
+    // New page if low on room
+    const pageHeight = doc.internal.pageSize.getHeight();
+    if (y > pageHeight - 80) {
+      doc.addPage();
+      y = 25;
+    }
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(45, 27, 10);
+    doc.text("Chef Preferences", margin, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Detail", "Value"]],
+      body: prefRows,
+      theme: "grid",
+      headStyles: {
+        fillColor: [45, 27, 10],
+        textColor: [196, 155, 70],
+        fontStyle: "bold",
+        fontSize: 10,
+      },
+      bodyStyles: { fontSize: 10, textColor: [50, 50, 50], cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 45, fontStyle: "bold", textColor: [100, 100, 100] },
+        1: { cellWidth: "auto" },
+      },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 12;
   }
 
   // Footer
