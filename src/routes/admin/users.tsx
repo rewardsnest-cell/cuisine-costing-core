@@ -139,8 +139,25 @@ function UserManagementPage() {
       )}
 
       <div className="space-y-3">
-        <h3 className="font-display text-lg font-semibold text-foreground">All Users</h3>
-        {profiles.map((profile) => {
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h3 className="font-display text-lg font-semibold text-foreground">All Users</h3>
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        {profiles
+          .filter((p) => {
+            const q = search.trim().toLowerCase();
+            if (!q) return true;
+            return (p.full_name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q);
+          })
+          .map((profile) => {
           const userRoles = getUserRoles(profile.user_id);
           const hasAdmin = userRoles.some((r) => r.role === "admin");
           return (
