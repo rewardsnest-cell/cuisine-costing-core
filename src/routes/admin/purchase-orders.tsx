@@ -271,6 +271,21 @@ function PurchaseOrdersPage() {
                       {po.notes && <p className="text-sm text-muted-foreground mt-1">{po.notes}</p>}
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(po.status)}`}>{po.status}</span>
+                    <Select
+                      value={po.status}
+                      onValueChange={async (v) => {
+                        await supabase.from("purchase_orders").update({ status: v }).eq("id", po.id);
+                        if (v === "received") toast.success("PO received — inventory updated");
+                        load();
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="ordered">Ordered</SelectItem>
+                        <SelectItem value="received">Received</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <p className="font-display text-lg font-bold">${Number(po.total_amount).toFixed(2)}</p>
                     <button onClick={() => handleDelete(po.id)} className="text-muted-foreground hover:text-destructive">
                       <Trash2 className="w-4 h-4" />
