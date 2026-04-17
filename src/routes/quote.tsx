@@ -303,7 +303,8 @@ function QuotePage() {
                 ))}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {step === "protein" && (
             <div>
