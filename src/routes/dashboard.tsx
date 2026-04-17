@@ -36,6 +36,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const { user, loading, isEmployee, signOut } = useAuth();
+  const { access } = useSectionAccess();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [fullName, setFullName] = useState("");
