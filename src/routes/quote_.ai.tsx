@@ -82,6 +82,15 @@ function AIQuotePage() {
   const [selections, setSelections] = useState<QuoteSelections>({ ...INITIAL_SELECTIONS });
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
+  const [savedPulse, setSavedPulse] = useState(0);
+  const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    if (savedPulse === 0) return;
+    setShowSaved(true);
+    const t = setTimeout(() => setShowSaved(false), 1600);
+    return () => clearTimeout(t);
+  }, [savedPulse]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -185,6 +194,7 @@ function AIQuotePage() {
               console.log("[quote-ai] tool call parsed:", parsed);
               setSelections((prev) => {
                 const next: QuoteSelections = { ...prev };
+                let changed = false;
                 for (const [k, v] of Object.entries(parsed)) {
                   if (v === null || v === undefined) continue;
                   // Skip empty strings/arrays so the model can't accidentally clear prior values
@@ -192,11 +202,14 @@ function AIQuotePage() {
                   if (Array.isArray(v) && v.length === 0) continue;
                   if (k === "preferences" && typeof v === "object") {
                     next.preferences = deepMergePreferences(prev.preferences, v as QuotePreferences);
+                    changed = true;
                   } else {
                     (next as any)[k] = v;
+                    changed = true;
                   }
                 }
                 console.log("[quote-ai] selections after merge:", next);
+                if (changed) setSavedPulse((n) => n + 1);
                 return next;
               });
             } catch (e) {
@@ -465,7 +478,18 @@ function AIQuotePage() {
             {/* Live summary */}
             <Card className="h-fit lg:sticky lg:top-24">
               <CardContent className="p-5 space-y-3">
-                <h3 className="font-display text-lg font-semibold">Event Summary</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg font-semibold">Event Summary</h3>
+                  <span
+                    aria-live="polite"
+                    className={cn(
+                      "text-xs font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary transition-all duration-300",
+                      showSaved ? "opacity-100 scale-100 animate-fade-in" : "opacity-0 scale-95 pointer-events-none",
+                    )}
+                  >
+                    ● Saved
+                  </span>
+                </div>
                 <SummaryRow label="Style" value={selections.style} />
                 <SummaryRow label="Proteins" value={selections.proteins.join(", ")} />
                 <SummaryRow label="Service" value={selections.serviceStyle} />
