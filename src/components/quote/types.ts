@@ -45,9 +45,51 @@ export const ADDONS = [
 ];
 
 export const TIERS = [
-  { id: "silver", label: "Silver", multiplier: 1, icon: "🥈", desc: "Quality catering at a great value", color: "border-muted-foreground" },
-  { id: "gold", label: "Gold", multiplier: 1.35, icon: "🥇", desc: "Premium ingredients and elevated presentation", color: "border-primary" },
-  { id: "platinum", label: "Platinum", multiplier: 1.75, icon: "💎", desc: "Luxury experience with top-tier everything", color: "border-accent" },
+  {
+    id: "silver",
+    label: "Silver",
+    multiplier: 1,
+    icon: "🥈",
+    desc: "Quality catering at a great value — perfect for casual gatherings and corporate lunches.",
+    color: "border-muted-foreground",
+    features: [
+      "Standard, fresh seasonal ingredients",
+      "Disposable serviceware (eco-friendly)",
+      "1 server per 30 guests",
+      "Standard buffet setup & cleanup",
+    ],
+  },
+  {
+    id: "gold",
+    label: "Gold",
+    multiplier: 1.35,
+    icon: "🥇",
+    desc: "Premium ingredients and elevated presentation — ideal for weddings, galas, and milestone events.",
+    color: "border-primary",
+    features: [
+      "Premium proteins & artisan sides",
+      "China plates, glassware & linen napkins",
+      "1 server per 20 guests",
+      "Chef-attended stations & full setup/cleanup",
+      "Complimentary tasting for 4",
+    ],
+  },
+  {
+    id: "platinum",
+    label: "Platinum",
+    multiplier: 1.75,
+    icon: "💎",
+    desc: "Luxury, white-glove experience with top-tier everything — for unforgettable signature events.",
+    color: "border-accent",
+    features: [
+      "Luxury & specialty ingredients (truffle, wagyu, lobster, etc.)",
+      "Bespoke menu design with our executive chef",
+      "Premium china, crystal & custom linens",
+      "1 server per 10 guests + dedicated event captain",
+      "Full-service: setup, butler-passed service, cleanup",
+      "Complimentary tasting for 6 + menu customization",
+    ],
+  },
 ];
 
 export const PRICE_PER_DISH = 35;
