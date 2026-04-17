@@ -174,11 +174,12 @@ function QuotePage() {
             <p className="text-muted-foreground mb-6">We'll review your request and get back to you within 24 hours.</p>
             {!linked && !user && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
-                <p className="text-sm font-medium text-foreground mb-2">Want to track this quote?</p>
-                <p className="text-xs text-muted-foreground mb-3">Create an account or sign in to link this quote to your profile for easy access later.</p>
+                <p className="text-sm font-medium text-foreground mb-2">Save this quote to an account?</p>
+                <p className="text-xs text-muted-foreground mb-3">Create an account or sign in — your quote will be automatically linked so you can manage it later.</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   <Link to="/signup"><Button size="sm" className="bg-gradient-warm text-primary-foreground gap-1"><LogIn className="w-3 h-3" /> Sign Up</Button></Link>
                   <Link to="/login"><Button size="sm" variant="outline" className="gap-1"><LogIn className="w-3 h-3" /> Sign In</Button></Link>
+                  <Button size="sm" variant="ghost" onClick={() => setLinked(true)}>Continue as Guest</Button>
                 </div>
               </div>
             )}
