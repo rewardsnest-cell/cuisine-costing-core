@@ -239,7 +239,7 @@ function DashboardPage() {
           )}
 
           {/* Staff workspace — employees & admins only */}
-          {isEmployee && (
+          {isEmployee && (access.assigned_events || access.recipes || access.receipts) && (
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -248,23 +248,30 @@ function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="flex flex-wrap gap-3">
-                  <Link to="/my-events">
-                    <Button variant="outline" className="gap-2">
-                      <ClipboardList className="w-4 h-4" /> My Assigned Events
-                    </Button>
-                  </Link>
-                  <Link to="/admin/recipes">
-                    <Button variant="outline" className="gap-2">
-                      <ChefHat className="w-4 h-4" /> Recipes
-                    </Button>
-                  </Link>
-                  <Link to="/admin/receipts">
-                    <Button variant="outline" className="gap-2">
-                      <Receipt className="w-4 h-4" /> Scan Receipts
-                    </Button>
-                  </Link>
+                  {access.assigned_events && (
+                    <Link to="/my-events">
+                      <Button variant="outline" className="gap-2">
+                        <ClipboardList className="w-4 h-4" /> My Assigned Events
+                      </Button>
+                    </Link>
+                  )}
+                  {access.recipes && (
+                    <Link to="/admin/recipes">
+                      <Button variant="outline" className="gap-2">
+                        <ChefHat className="w-4 h-4" /> Recipes
+                      </Button>
+                    </Link>
+                  )}
+                  {access.receipts && (
+                    <Link to="/admin/receipts">
+                      <Button variant="outline" className="gap-2">
+                        <Receipt className="w-4 h-4" /> Scan Receipts
+                      </Button>
+                    </Link>
+                  )}
                 </div>
 
+                {access.assigned_events && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                     Upcoming events I'm working
