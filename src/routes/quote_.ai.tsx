@@ -186,6 +186,7 @@ function AIQuotePage() {
               console.log("[quote-ai] tool call parsed:", parsed);
               setSelections((prev) => {
                 const next: QuoteSelections = { ...prev };
+                let changed = false;
                 for (const [k, v] of Object.entries(parsed)) {
                   if (v === null || v === undefined) continue;
                   // Skip empty strings/arrays so the model can't accidentally clear prior values
@@ -193,11 +194,14 @@ function AIQuotePage() {
                   if (Array.isArray(v) && v.length === 0) continue;
                   if (k === "preferences" && typeof v === "object") {
                     next.preferences = deepMergePreferences(prev.preferences, v as QuotePreferences);
+                    changed = true;
                   } else {
                     (next as any)[k] = v;
+                    changed = true;
                   }
                 }
                 console.log("[quote-ai] selections after merge:", next);
+                if (changed) setSavedPulse((n) => n + 1);
                 return next;
               });
             } catch (e) {
