@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 export function PublicHeader() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, isAdmin } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
@@ -21,6 +21,9 @@ export function PublicHeader() {
           {!loading && user ? (
             <>
               <Link to="/my-quotes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">My Quotes</Link>
+              {isAdmin && (
+                <Link to="/admin" className="text-xs font-semibold text-primary hover:text-primary/80 border border-primary/40 rounded-md px-3 py-1.5">Admin</Link>
+              )}
               <button onClick={() => signOut()} className="text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-md px-3 py-1.5">
                 Sign Out
               </button>
