@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
@@ -45,6 +46,70 @@ function PurchaseOrdersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ notes: "", expected_delivery: "", supplier_id: "" });
   const [itemForm, setItemForm] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+  const [scanning, setScanning] = useState(false);
+
+  const handleScan = async (file: File) => {
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke("process-purchase-order", {
+        body: { imageBase64: dataUrl },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Scan failed");
+
+      // Try to match vendor by name
+      let supplierId: string | null = null;
+      if (data.vendor_name) {
+        const match = suppliers.find((s) => s.name.toLowerCase().includes(String(data.vendor_name).toLowerCase()) || String(data.vendor_name).toLowerCase().includes(s.name.toLowerCase()));
+        supplierId = match?.id || null;
+      }
+
+      // Create the PO
+      const { data: poRow, error: poErr } = await supabase
+        .from("purchase_orders")
+        .insert({ supplier_id: supplierId, notes: data.vendor_name ? `Scanned PO from ${data.vendor_name}` : "Scanned PO" })
+        .select()
+        .single();
+      if (poErr || !poRow) throw poErr || new Error("Failed to create PO");
+
+      // Insert line items, matching to inventory by name
+      const items = (data.line_items || []).map((it: { name: string; quantity: number; unit: string; unit_price: number; total_price: number }) => {
+        const nameLower = it.name.toLowerCase();
+        const inv = inventory.find((i) => i.name.toLowerCase().includes(nameLower) || nameLower.includes(i.name.toLowerCase()));
+        return {
+          purchase_order_id: poRow.id,
+          inventory_item_id: inv?.id || null,
+          name: it.name,
+          quantity: Number(it.quantity) || 0,
+          unit: it.unit || inv?.unit || "each",
+          unit_price: Number(it.unit_price) || 0,
+          total_price: Number(it.total_price) || (Number(it.quantity) * Number(it.unit_price)) || 0,
+        };
+      });
+      if (items.length > 0) {
+        await supabase.from("purchase_order_items").insert(items);
+        const total = items.reduce((s: number, r: { total_price: number }) => s + r.total_price, 0);
+        await supabase.from("purchase_orders").update({ total_amount: total }).eq("id", poRow.id);
+      }
+
+      toast.success(`Scanned ${items.length} item${items.length === 1 ? "" : "s"}`);
+      await load();
+      setExpanded(poRow.id);
+      await loadItems(poRow.id);
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Failed to scan PO");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const load = async () => {
     const [ordersRes, supRes, invRes] = await Promise.all([
@@ -139,7 +204,22 @@ function PurchaseOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <label>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleScan(f); e.target.value = ""; }}
+          />
+          <Button asChild variant="outline" disabled={scanning}>
+            <span className="cursor-pointer">
+              {scanning ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Camera className="w-4 h-4 mr-1" />}
+              {scanning ? "Scanning..." : "Scan PO"}
+            </span>
+          </Button>
+        </label>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> New PO</Button>
