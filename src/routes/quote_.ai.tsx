@@ -92,7 +92,7 @@ function AIQuotePage() {
   const lastSentRef = useRef<ChatMsg[] | null>(null);
   const lastPrefilledRef = useRef<Partial<QuoteSelections> | null | undefined>(undefined);
 
-  // Hydrate from handoff (basic -> AI) and trigger first AI message
+  // Hydrate from handoff (basic -> AI) and seed a single concise opener
   useEffect(() => {
     if (hydrated) return;
     let prefilled: Partial<QuoteSelections> | null = null;
@@ -105,8 +105,12 @@ function AIQuotePage() {
       }
     } catch {}
     setHydrated(true);
-    // Kick off greeting
-    void sendToAI([], prefilled);
+
+    const hasPrefill = !!prefilled && Object.values(prefilled).some((v) => v && (Array.isArray(v) ? v.length : true));
+    const opener = hasPrefill
+      ? "Hi! I've got your draft from the basic builder. To pick up where you left off — what's the event date?"
+      : "Hi! I'm your catering concierge. To get started, what kind of event are we celebrating?";
+    setMessages([{ role: "assistant", content: opener }]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
