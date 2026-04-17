@@ -184,31 +184,60 @@ function UserManagementPage() {
           .map((profile) => {
           const userRoles = getUserRoles(profile.user_id);
           const hasAdmin = userRoles.some((r) => r.role === "admin");
+          const isOpen = expanded[profile.user_id] !== undefined;
+          const events = expanded[profile.user_id];
           return (
             <Card key={profile.user_id}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{profile.full_name || "Unnamed User"}</p>
-                  {profile.email && <p className="text-xs text-muted-foreground">{profile.email}</p>}
-                  <p className="text-xs text-muted-foreground">Joined {new Date(profile.created_at).toLocaleDateString()}</p>
-                  <div className="flex gap-1 mt-1">
-                    {userRoles.map((r) => (
-                      <Badge key={r.role} variant={r.role === "admin" ? "default" : "secondary"} className="text-xs">{r.role}</Badge>
-                    ))}
-                    {userRoles.length === 0 && <Badge variant="outline" className="text-xs">customer</Badge>}
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <p className="font-semibold">{profile.full_name || "Unnamed User"}</p>
+                    {profile.email && <p className="text-xs text-muted-foreground">{profile.email}</p>}
+                    <p className="text-xs text-muted-foreground">Joined {new Date(profile.created_at).toLocaleDateString()}</p>
+                    <div className="flex gap-1 mt-1">
+                      {userRoles.map((r) => (
+                        <Badge key={r.role} variant={r.role === "admin" ? "default" : "secondary"} className="text-xs">{r.role}</Badge>
+                      ))}
+                      {userRoles.length === 0 && <Badge variant="outline" className="text-xs">customer</Badge>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => toggleEvents(profile.user_id)} className="gap-1">
+                      {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <CalendarDays className="w-3 h-3" /> Events
+                    </Button>
+                    {hasAdmin ? (
+                      <Button variant="outline" size="sm" onClick={() => revokeAdmin(profile.user_id)} className="gap-1 text-destructive hover:text-destructive">
+                        <Trash2 className="w-3 h-3" /> Revoke Admin
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => grantAdmin(profile.user_id)} className="gap-1">
+                        <UserPlus className="w-3 h-3" /> Grant Admin
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div>
-                  {hasAdmin ? (
-                    <Button variant="outline" size="sm" onClick={() => revokeAdmin(profile.user_id)} className="gap-1 text-destructive hover:text-destructive">
-                      <Trash2 className="w-3 h-3" /> Revoke Admin
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => grantAdmin(profile.user_id)} className="gap-1">
-                      <UserPlus className="w-3 h-3" /> Grant Admin
-                    </Button>
-                  )}
-                </div>
+                {isOpen && (
+                  <div className="pl-2 border-l-2 border-border space-y-1">
+                    {events === "loading" ? (
+                      <p className="text-xs text-muted-foreground">Loading events...</p>
+                    ) : !events || events.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No events for this user.</p>
+                    ) : (
+                      events.map((ev) => (
+                        <div key={ev.id} className="flex items-center justify-between text-xs py-1">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{ev.event_type || "Event"} <span className="font-mono text-muted-foreground">· {ev.reference_number || ev.id.slice(0, 8)}</span></p>
+                            <p className="text-muted-foreground">{ev.event_date || "TBD"} · {ev.status} · ${Number(ev.total ?? 0).toFixed(2)}</p>
+                          </div>
+                          {ev.reference_number && (
+                            <Link to="/event/$reference" params={{ reference: ev.reference_number }} className="text-primary hover:underline">View</Link>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
