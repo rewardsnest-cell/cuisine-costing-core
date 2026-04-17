@@ -5,7 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
