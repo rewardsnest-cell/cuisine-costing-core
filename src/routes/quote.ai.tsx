@@ -196,6 +196,13 @@ function AIQuotePage() {
     await sendToAI(next);
   };
 
+  const sendChip = async (text: string) => {
+    if (loading) return;
+    const next = [...messages, { role: "user" as const, content: text }];
+    setMessages(next);
+    await sendToAI(next);
+  };
+
   const switchToBasic = () => {
     sessionStorage.setItem("quote_handoff", JSON.stringify(selections));
     navigate({ to: "/quote" });
