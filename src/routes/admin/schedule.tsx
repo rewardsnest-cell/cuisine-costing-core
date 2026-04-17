@@ -214,6 +214,26 @@ function SchedulePage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+          <SelectTrigger className="w-[240px] h-9">
+            <SelectValue placeholder="Filter by employee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All employees</SelectItem>
+            {allEmployees.map((e) => (
+              <SelectItem key={e.user_id} value={e.user_id}>
+                {e.full_name || e.email || e.user_id.slice(0, 8)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {employeeFilter !== "all" && (
+          <Button variant="ghost" size="sm" onClick={() => setEmployeeFilter("all")}>Clear</Button>
+        )}
+      </div>
+
       {view === "month" ? (
         <Card>
           <CardContent className="p-2 sm:p-4">
