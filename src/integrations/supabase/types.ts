@@ -282,6 +282,10 @@ export type Database = {
       }
       event_time_entries: {
         Row: {
+          approval_notes: string | null
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           clock_in_at: string
           clock_out_at: string | null
           created_at: string
@@ -292,6 +296,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_notes?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           clock_in_at?: string
           clock_out_at?: string | null
           created_at?: string
@@ -302,6 +310,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_notes?: string | null
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           clock_in_at?: string
           clock_out_at?: string | null
           created_at?: string
