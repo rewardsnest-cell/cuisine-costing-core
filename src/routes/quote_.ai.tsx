@@ -232,13 +232,41 @@ function AIQuotePage() {
       }
 
       flushToolCalls();
-    } catch (e) {
-      console.error(e);
-      setError("Network error. Please try again.");
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        // user cancelled — drop the empty assistant placeholder if present
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+          return prev;
+        });
+      } else {
+        console.error(e);
+        setError("Network error. Please try again.");
+      }
     } finally {
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setSlow(false);
       setLoading(false);
+      abortRef.current = null;
     }
   }
+
+  const stop = () => {
+    abortRef.current?.abort();
+  };
+
+  const retry = () => {
+    if (lastSentRef.current) {
+      // remove any trailing empty assistant placeholder before retrying
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+        return prev;
+      });
+      void sendToAI(lastSentRef.current, lastPrefilledRef.current);
+    }
+  };
 
   const send = async () => {
     const text = input.trim();
