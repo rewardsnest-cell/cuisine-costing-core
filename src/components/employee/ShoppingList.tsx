@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Printer, Truck } from "lucide-react";
+import { Printer, Truck, ShoppingCart, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 
 type Row = {
   name: string;
@@ -25,6 +27,54 @@ type Group = {
 export function ShoppingList({ quoteId }: { quoteId: string }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingPOs, setCreatingPOs] = useState(false);
+  const navigate = useNavigate();
+
+  const createPurchaseOrders = async () => {
+    const eligible = groups.filter((g) => g.supplierId && g.rows.some((r) => r.toBuy > 0 && r.inventoryItemId));
+    if (eligible.length === 0) {
+      toast.error("No items with linked suppliers and inventory to order.");
+      return;
+    }
+    setCreatingPOs(true);
+    try {
+      let createdCount = 0;
+      for (const g of eligible) {
+        const items = g.rows.filter((r) => r.toBuy > 0 && r.inventoryItemId);
+        if (items.length === 0) continue;
+        const total = items.reduce((s, r) => s + r.toBuy * r.unitCost, 0);
+        const { data: po, error: poErr } = await (supabase as any)
+          .from("purchase_orders")
+          .insert({
+            supplier_id: g.supplierId,
+            status: "draft",
+            total_amount: total,
+            notes: `Generated from shopping list for quote ${quoteId.slice(0, 8)}`,
+          })
+          .select("id")
+          .single();
+        if (poErr || !po) throw poErr || new Error("Failed to create PO");
+        const poItems = items.map((r) => ({
+          purchase_order_id: po.id,
+          inventory_item_id: r.inventoryItemId,
+          name: r.name,
+          quantity: r.toBuy,
+          unit: r.unit,
+          unit_price: r.unitCost,
+          total_price: r.toBuy * r.unitCost,
+        }));
+        const { error: itemsErr } = await (supabase as any).from("purchase_order_items").insert(poItems);
+        if (itemsErr) throw itemsErr;
+        createdCount++;
+      }
+      toast.success(`Created ${createdCount} draft purchase order${createdCount === 1 ? "" : "s"}.`);
+      navigate({ to: "/admin/purchase-orders" });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to create purchase orders");
+    } finally {
+      setCreatingPOs(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -157,6 +207,15 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
           </span>
           <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
             <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+          <Button
+            size="sm"
+            onClick={createPurchaseOrders}
+            disabled={creatingPOs || groups.length === 0}
+            className="gap-2"
+          >
+            {creatingPOs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />}
+            Create POs
           </Button>
         </div>
       </div>
