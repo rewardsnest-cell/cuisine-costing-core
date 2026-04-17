@@ -94,6 +94,21 @@ export const TIERS = [
 
 export const PRICE_PER_DISH = 35;
 
+export interface QuotePreferences {
+  proteinDetails?: string;
+  vegetableNotes?: string;
+  cuisineLean?: string;
+  spiceLevel?: string;
+  alcohol?: {
+    beer?: string;
+    wine?: string;
+    spirits?: string;
+    signatureCocktail?: string;
+  };
+  vibe?: string;
+  notes?: string;
+}
+
 export interface QuoteSelections {
   style: string;
   proteins: string[];
@@ -109,6 +124,7 @@ export interface QuoteSelections {
   clientEmail: string;
   locationName: string;
   locationAddress: string;
+  preferences?: QuotePreferences;
 }
 
 export const INITIAL_SELECTIONS: QuoteSelections = {
