@@ -123,6 +123,12 @@ function EventsPage() {
   const [newAssignUser, setNewAssignUser] = useState("");
   const [newAssignRole, setNewAssignRole] = useState("Lead");
 
+  // Recipe picker
+  const [recipes, setRecipes] = useState<RecipeOpt[]>([]);
+  const [markup, setMarkup] = useState(3.0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [recipeSearch, setRecipeSearch] = useState("");
+
   const load = async () => {
     const [{ data: ev }, { data: settings }] = await Promise.all([
       (supabase as any).from("quotes").select("*").order("event_date", { ascending: true, nullsFirst: false }),
