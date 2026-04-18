@@ -41,6 +41,7 @@ import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
+import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
@@ -213,6 +214,11 @@ const AdminInventoryRoute = AdminInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminImportRecipesRoute = AdminImportRecipesRouteImport.update({
+  id: '/import-recipes',
+  path: '/import-recipes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminExportsRoute = AdminExportsRouteImport.update({
   id: '/exports',
   path: '/exports',
@@ -289,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -333,6 +340,7 @@ export interface FileRoutesByTo {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -379,6 +387,7 @@ export interface FileRoutesById {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -426,6 +435,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/import-recipes'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -470,6 +480,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/import-recipes'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -515,6 +526,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/import-recipes'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -785,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/import-recipes': {
+      id: '/admin/import-recipes'
+      path: '/import-recipes'
+      fullPath: '/admin/import-recipes'
+      preLoaderRoute: typeof AdminImportRecipesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/exports': {
       id: '/admin/exports'
       path: '/exports'
@@ -898,6 +917,7 @@ interface AdminRouteChildren {
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
+  AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
@@ -927,6 +947,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
+  AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
