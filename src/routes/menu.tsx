@@ -187,14 +187,24 @@ function PublicMenuPage() {
           </div>
         </div>
 
-        <div className="max-w-xl mx-auto mb-5 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search dishes, ingredients, descriptions…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-card"
-          />
+        <div className="max-w-xl mx-auto mb-5 flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search dishes, ingredients, descriptions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-card"
+            />
+          </div>
+          <button
+            onClick={resetFilters}
+            className={`text-sm whitespace-nowrap transition-colors ${
+              activeFiltersCount > 0 ? "text-destructive hover:text-destructive/80" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Clear all
+          </button>
         </div>
 
         <div className="max-w-xl mx-auto mb-5 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center">
