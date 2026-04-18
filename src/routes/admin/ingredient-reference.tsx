@@ -254,7 +254,7 @@ function IngredientReferencePage() {
     if (!opts?.force) {
       const cached = suggestionCache.get(refId);
       if (cached) {
-        setSuggestions(cached.map((s) => ({ ...s })));
+        setSuggestions(cached.suggestions.map((s) => ({ ...s })));
         setSuggestFromCache(true);
         setSuggestLoading(false);
         return;
