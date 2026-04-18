@@ -236,77 +236,112 @@ function SalesDashboard() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-warm border-border/50 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-left text-xs">
-                  <th className="py-3 px-4 font-semibold text-muted-foreground">Item</th>
-                  <SortHeader label="Supplier" active={sortKey === "supplier_name"} dir={sortDir} onClick={() => toggleSort("supplier_name")} />
-                  <th className="py-3 px-4 font-semibold text-muted-foreground text-right">Regular</th>
-                  <SortHeader label="Sale" active={sortKey === "sale_price"} dir={sortDir} onClick={() => toggleSort("sale_price")} align="right" />
-                  <SortHeader label="Savings" active={sortKey === "savings_pct"} dir={sortDir} onClick={() => toggleSort("savings_pct")} align="right" />
-                  <SortHeader label="Ends" active={sortKey === "sale_end_date"} dir={sortDir} onClick={() => toggleSort("sale_end_date")} />
-                  <th className="py-3 px-4 font-semibold text-muted-foreground">Inventory</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => {
-                  const belowPar = r.current_stock != null && r.par_level != null && r.current_stock < r.par_level;
-                  return (
-                    <tr key={r.id} className="border-b border-border/50 hover:bg-muted/20">
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{r.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {[r.brand, r.pack_size, r.unit].filter(Boolean).join(" · ") || "—"}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">{r.supplier_name}</td>
-                      <td className="py-3 px-4 text-right text-muted-foreground">
-                        {r.regular_price != null ? `$${r.regular_price.toFixed(2)}` : "—"}
-                      </td>
-                      <td className="py-3 px-4 text-right font-semibold text-warm">
+        <div className="space-y-3">
+          {filtered.map((r) => {
+            const belowPar = r.current_stock != null && r.par_level != null && r.current_stock < r.par_level;
+            const beatsAvg = r.avg_cost != null && r.price_per_unit != null && r.price_per_unit < r.avg_cost;
+            const avgDiffPct = beatsAvg && r.avg_cost
+              ? Math.round(((r.avg_cost - (r.price_per_unit as number)) / r.avg_cost) * 100)
+              : null;
+            return (
+              <Card key={r.id} className="shadow-warm border-border/50">
+                <CardContent className="p-4 space-y-3">
+                  {/* Header: name + savings */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold leading-tight">{r.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {[r.brand, r.supplier_name].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    {r.savings_pct != null && (
+                      <span className="shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-success/10 text-success">
+                        −{r.savings_pct.toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pricing grid */}
+                  <div className="grid grid-cols-3 gap-2 text-center bg-muted/30 rounded-md p-2">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Sale</div>
+                      <div className="text-base font-bold text-warm">
                         {r.sale_price != null ? `$${r.sale_price.toFixed(2)}` : "—"}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        {r.savings_pct != null ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success">
-                            −{r.savings_pct.toFixed(0)}%
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                        {r.savings_amt != null && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5">save ${r.savings_amt.toFixed(2)}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {r.sale_end_date || "—"}
+                      </div>
+                      {r.regular_price != null && (
+                        <div className="text-[10px] text-muted-foreground line-through">
+                          ${r.regular_price.toFixed(2)}
                         </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        {r.inventory_item_id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs">{r.inventory_name}</span>
-                            {belowPar && (
-                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/10 text-destructive">
-                                {r.current_stock}/{r.par_level} low
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Unlinked</span>
+                      )}
+                    </div>
+                    <div className="border-x border-border/50">
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pack</div>
+                      <div className="text-sm font-semibold">
+                        {r.pack_qty != null ? `${r.pack_qty} ${r.pack_unit || ""}` : (r.pack_size || "—")}
+                      </div>
+                      {r.pack_size && r.pack_qty != null && (
+                        <div className="text-[10px] text-muted-foreground truncate" title={r.pack_size}>
+                          {r.pack_size}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Per {r.pack_unit || "unit"}</div>
+                      <div className="text-base font-bold">
+                        {r.price_per_unit != null ? `$${r.price_per_unit.toFixed(3)}` : "—"}
+                      </div>
+                      {avgDiffPct != null && (
+                        <div className="text-[10px] text-success font-semibold">
+                          beats avg −{avgDiffPct}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Meta row */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Ends {r.sale_end_date || "—"}
+                    </span>
+                    {r.savings_amt != null && (
+                      <span>Save ${r.savings_amt.toFixed(2)}/pack</span>
+                    )}
+                    {r.recipe_usage > 0 && (
+                      <span className="inline-flex items-center gap-1 text-foreground">
+                        Used in {r.recipe_usage} recipe{r.recipe_usage === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Inventory linkage */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
+                    {r.inventory_item_id ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Package className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="truncate">{r.inventory_name}</span>
+                        {r.current_stock != null && (
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${belowPar ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"}`}>
+                            {r.current_stock}{r.inventory_unit ? ` ${r.inventory_unit}` : ""}{r.par_level ? ` / par ${r.par_level}` : ""}
+                          </span>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                      </div>
+                    ) : (
+                      <span className="italic text-muted-foreground">Not linked to inventory</span>
+                    )}
+                    <Link
+                      to="/admin/suppliers/$id"
+                      params={{ id: r.supplier_id || "" }}
+                      className="text-primary font-medium hover:underline inline-flex items-center gap-1 shrink-0"
+                    >
+                      Flyer <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {belowParCount > 0 && (
