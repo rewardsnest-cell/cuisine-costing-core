@@ -741,6 +741,20 @@ function IngredientReferencePage() {
             <Plus className="w-4 h-4 mr-1.5" />
             {createOpen ? "Cancel" : "New reference"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const count = suggestionCache.size;
+              setSuggestionCache(new Map());
+              toast.success(count > 0 ? `Cleared ${count} cached scan${count === 1 ? "" : "s"}` : "Cache already empty");
+            }}
+            disabled={suggestionCache.size === 0}
+            title="Clear the per-session synonym suggestion cache"
+          >
+            <X className="w-4 h-4 mr-1.5" />
+            Clear cache{suggestionCache.size > 0 ? ` (${suggestionCache.size})` : ""}
+          </Button>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
