@@ -208,7 +208,10 @@ function CompetitorQuotesPage() {
         />
       </div>
 
-      <PriceGapChart rows={filtered} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PriceGapChart rows={filtered} />
+        <WinRateChart rows={filtered} />
+      </div>
 
       <Card>
         <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
@@ -375,6 +378,58 @@ function PriceGapChart({ rows }: { rows: Row[] }) {
               <ChartLegend content={<ChartLegendContent />} />
               <Line type="monotone" dataKey="competitor" stroke="var(--color-competitor)" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="counter" stroke="var(--color-counter)" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const winRateChartConfig = {
+  winRate: { label: "Win rate %", color: "hsl(var(--chart-2, 173 58% 39%))" },
+} satisfies ChartConfig;
+
+function WinRateChart({ rows }: { rows: Row[] }) {
+  const data = useMemo(() => {
+    const buckets = new Map<string, { won: number; lost: number }>();
+    for (const r of rows) {
+      if (r.outcome !== "won" && r.outcome !== "lost") continue;
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const b = buckets.get(key) ?? { won: 0, lost: 0 };
+      b[r.outcome]++;
+      buckets.set(key, b);
+    }
+    return Array.from(buckets.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, b]) => {
+        const decided = b.won + b.lost;
+        const [y, m] = key.split("-");
+        const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+        return { label, winRate: decided > 0 ? Math.round((b.won / decided) * 100) : 0, decided };
+      });
+  }, [rows]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Win rate over time</CardTitle>
+        <p className="text-xs text-muted-foreground">Monthly win rate from decided analyses ({data.length} month{data.length === 1 ? "" : "s"})</p>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            Mark analyses as Won or Lost to see your monthly win rate here.
+          </div>
+        ) : (
+          <ChartContainer config={winRateChartConfig} className="h-[280px] w-full">
+            <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
+              <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tickMargin={8} fontSize={11} tickFormatter={(v) => `${v}%`} />
+              <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+              <Line type="monotone" dataKey="winRate" stroke="var(--color-winRate)" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ChartContainer>
         )}
