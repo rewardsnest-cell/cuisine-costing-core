@@ -34,6 +34,7 @@ import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
+import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
@@ -195,6 +196,11 @@ const CateringQuoteRoute = CateringQuoteRouteImport.update({
   id: '/quote',
   path: '/quote',
   getParentRoute: () => CateringRoute,
+} as any)
+const ApiContactRoute = ApiContactRouteImport.update({
+  id: '/api/contact',
+  path: '/api/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -429,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
@@ -491,6 +498,7 @@ export interface FileRoutesByTo {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
@@ -555,6 +563,7 @@ export interface FileRoutesById {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
@@ -620,6 +629,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
@@ -745,6 +756,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
@@ -782,6 +794,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WeddingsRoute: typeof WeddingsRoute
+  ApiContactRoute: typeof ApiContactRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
@@ -967,6 +980,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/catering/quote'
       preLoaderRoute: typeof CateringQuoteRouteImport
       parentRoute: typeof CateringRoute
+    }
+    '/api/contact': {
+      id: '/api/contact'
+      path: '/api/contact'
+      fullPath: '/api/contact'
+      preLoaderRoute: typeof ApiContactRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
       id: '/admin/users'
@@ -1360,6 +1380,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WeddingsRoute: WeddingsRoute,
+  ApiContactRoute: ApiContactRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
