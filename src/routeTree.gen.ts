@@ -33,6 +33,7 @@ import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
+import { Route as AdminScanAssetsRouteImport } from './routes/admin/scan-assets'
 import { Route as AdminSalesRouteImport } from './routes/admin/sales'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
@@ -174,6 +175,11 @@ const AdminScanFlyerRoute = AdminScanFlyerRouteImport.update({
   path: '/scan-flyer',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminScanAssetsRoute = AdminScanAssetsRouteImport.update({
+  id: '/scan-assets',
+  path: '/scan-assets',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSalesRoute = AdminSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
@@ -349,6 +356,7 @@ export interface FileRoutesByTo {
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
@@ -444,6 +453,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
@@ -535,6 +546,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
@@ -741,6 +753,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScanFlyerRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/scan-assets': {
+      id: '/admin/scan-assets'
+      path: '/scan-assets'
+      fullPath: '/admin/scan-assets'
+      preLoaderRoute: typeof AdminScanAssetsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sales': {
       id: '/admin/sales'
       path: '/sales'
@@ -926,6 +945,7 @@ interface AdminRouteChildren {
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
   AdminRegisterRoute: typeof AdminRegisterRoute
   AdminSalesRoute: typeof AdminSalesRoute
+  AdminScanAssetsRoute: typeof AdminScanAssetsRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
@@ -956,6 +976,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
   AdminRegisterRoute: AdminRegisterRoute,
   AdminSalesRoute: AdminSalesRoute,
+  AdminScanAssetsRoute: AdminScanAssetsRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
