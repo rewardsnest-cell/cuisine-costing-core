@@ -1,12 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone, Pencil, Tag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone, Pencil, Tag, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
@@ -27,6 +27,7 @@ type Supplier = {
 const EMPTY_FORM = { name: "", contact_name: "", email: "", phone: "", address: "", website: "", office_phone: "", cellphone: "" };
 
 function SuppliersPage() {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,23 +43,14 @@ function SuppliersPage() {
 
   const filtered = suppliers.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
-  const openAdd = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
-  };
+  const openAdd = () => { setEditingId(null); setForm(EMPTY_FORM); setDialogOpen(true); };
 
   const openEdit = (s: Supplier) => {
     setEditingId(s.id);
     setForm({
-      name: s.name ?? "",
-      contact_name: s.contact_name ?? "",
-      email: s.email ?? "",
-      phone: s.phone ?? "",
-      address: s.address ?? "",
-      website: s.website ?? "",
-      office_phone: s.office_phone ?? "",
-      cellphone: s.cellphone ?? "",
+      name: s.name ?? "", contact_name: s.contact_name ?? "", email: s.email ?? "",
+      phone: s.phone ?? "", address: s.address ?? "", website: s.website ?? "",
+      office_phone: s.office_phone ?? "", cellphone: s.cellphone ?? "",
     });
     setDialogOpen(true);
   };
@@ -85,17 +77,26 @@ function SuppliersPage() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Delete this supplier?")) return;
     await supabase.from("suppliers").delete().eq("id", id);
     load();
   };
 
-  const normalizeUrl = (u: string) => (u.startsWith("http://") || u.startsWith("https://") ? u : `https://${u}`);
+  const handleEditClick = (e: React.MouseEvent, s: Supplier) => {
+    e.stopPropagation();
+    openEdit(s);
+  };
+
+  const openSupplier = (id: string) => {
+    navigate({ to: "/admin/suppliers/$id", params: { id } });
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search suppliers..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
@@ -104,7 +105,10 @@ function SuppliersPage() {
             <Button onClick={openAdd} className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Supplier</Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="font-display">{editingId ? "Edit Supplier" : "Add Supplier"}</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle className="font-display">{editingId ? "Edit Supplier" : "Add Supplier"}</DialogTitle>
+              <DialogDescription>Basic contact info. API & integration settings are on the supplier detail page.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3">
               <div><Label>Company Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>Contact Person</Label><Input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} /></div>
@@ -134,76 +138,64 @@ function SuppliersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
-            <Card
+            <div
               key={s.id}
-              className="relative shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all cursor-pointer h-full overflow-hidden"
+              role="button"
+              tabIndex={0}
+              onClick={() => openSupplier(s.id)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSupplier(s.id); } }}
+              className="text-left rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+              aria-label={`Open ${s.name}`}
             >
-              <Link
-                to="/admin/suppliers/$id"
-                params={{ id: s.id }}
-                aria-label={`Open ${s.name} supplier details`}
-                className="absolute inset-0 z-10 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <span className="sr-only">Open supplier details</span>
-              </Link>
-              <CardContent className="p-5 space-y-1 relative">
-                <div className="flex justify-between items-start gap-3">
-                  <h3 className="font-display text-lg font-semibold transition-colors">
-                    {s.name}
-                  </h3>
-                  <div className="relative z-20 flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => openEdit(s)}
-                      className="text-muted-foreground hover:text-primary transition-colors p-1"
-                      aria-label="Edit supplier"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                      aria-label="Delete supplier"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              <Card className="shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all h-full">
+                <CardContent className="p-5 space-y-1">
+                  <div className="flex justify-between items-start gap-3">
+                    <h3 className="font-display text-lg font-semibold">{s.name}</h3>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => handleEditClick(e, s)}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1"
+                        aria-label="Edit supplier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, s.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                        aria-label="Delete supplier"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
-                {s.email && <p className="text-sm text-muted-foreground">{s.email}</p>}
-                {s.website && (
-                  <a
-                    href={normalizeUrl(s.website)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative z-20 text-sm text-primary hover:underline flex items-center gap-1.5"
-                  >
-                    <Globe className="w-3.5 h-3.5" />{s.website.replace(/^https?:\/\//, "")}
-                  </a>
-                )}
-                {s.office_phone && (
-                  <a
-                    href={`tel:${s.office_phone}`}
-                    className="relative z-20 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-                  >
-                    <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
-                  </a>
-                )}
-                {s.cellphone && (
-                  <a
-                    href={`tel:${s.cellphone}`}
-                    className="relative z-20 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-                  >
-                    <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
-                  </a>
-                )}
-                {s.phone && !s.office_phone && !s.cellphone && (
-                  <p className="text-sm text-muted-foreground">{s.phone}</p>
-                )}
-                <div className="pt-2 text-xs text-primary font-medium inline-flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5" /> View details & sale flyers →
-                </div>
-              </CardContent>
-            </Card>
+                  {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
+                  {s.email && <p className="text-sm text-muted-foreground truncate">{s.email}</p>}
+                  {s.website && (
+                    <p className="text-sm text-primary flex items-center gap-1.5 truncate">
+                      <Globe className="w-3.5 h-3.5 shrink-0" />{s.website.replace(/^https?:\/\//, "")}
+                    </p>
+                  )}
+                  {s.office_phone && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
+                    </p>
+                  )}
+                  {s.cellphone && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
+                    </p>
+                  )}
+                  {s.phone && !s.office_phone && !s.cellphone && (
+                    <p className="text-sm text-muted-foreground">{s.phone}</p>
+                  )}
+                  <div className="pt-2 text-xs text-primary font-medium inline-flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" /> View details & sale flyers <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
       )}
