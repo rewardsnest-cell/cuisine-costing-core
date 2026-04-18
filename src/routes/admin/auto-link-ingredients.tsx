@@ -14,7 +14,7 @@ const COMMON_UNITS = ["each", "lb", "oz", "g", "kg", "ml", "l", "cup", "tbsp", "
 export const Route = createFileRoute("/admin/auto-link-ingredients")({
   head: () => ({
     meta: [
-      { title: "Auto-Link Ingredients — TasteQuote" },
+      { title: "Auto-Link Ingredients — VPS Finest" },
       { name: "description", content: "Suggest inventory matches for unlinked recipe ingredients using fuzzy matching." },
     ],
   }),

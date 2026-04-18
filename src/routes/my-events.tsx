@@ -14,7 +14,7 @@ function startOfToday(): Date {
   return d;
 }
 export const Route = createFileRoute("/my-events")({
-  head: () => ({ meta: [{ title: "My Events — TasteQuote" }] }),
+  head: () => ({ meta: [{ title: "My Events — VPS Finest" }] }),
   component: MyEventsPage,
 });
 

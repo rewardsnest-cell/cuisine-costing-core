@@ -22,7 +22,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/admin/ingredient-reference")({
   head: () => ({
     meta: [
-      { title: "Ingredient Reference — TasteQuote" },
+      { title: "Ingredient Reference — VPS Finest" },
       { name: "description", content: "Manage canonical ingredient definitions, units, density, waste, and inventory links." },
     ],
   }),

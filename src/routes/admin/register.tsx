@@ -12,7 +12,7 @@ import { Clock, CheckCircle2, XCircle } from "lucide-react";
 export const Route = createFileRoute("/admin/register")({
   head: () => ({
     meta: [
-      { title: "Request Admin Access — TasteQuote" },
+      { title: "Request Admin Access — VPS Finest" },
       { name: "description", content: "Request access to the admin dashboard." },
     ],
   }),

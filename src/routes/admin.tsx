@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin Dashboard — TasteQuote" },
+      { title: "Admin Dashboard — VPS Finest" },
       { name: "description", content: "Manage recipes, inventory, suppliers, and receipts." },
     ],
   }),
@@ -132,7 +132,7 @@ function AdminLayout() {
               <div className="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center">
                 <span className="text-gold-foreground font-bold text-xs">TQ</span>
               </div>
-              <span className="font-display text-lg font-semibold text-sidebar-foreground">TasteQuote</span>
+              <span className="font-display text-lg font-semibold text-sidebar-foreground">VPS Finest</span>
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground">
               <X className="w-5 h-5" />

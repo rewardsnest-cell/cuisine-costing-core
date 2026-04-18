@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/event/$reference")({
   head: ({ params }) => ({
     meta: [
-      { title: `Event ${params.reference} — TasteQuote` },
+      { title: `Event ${params.reference} — VPS Finest` },
       { name: "description", content: "View and manage your catering event." },
     ],
   }),

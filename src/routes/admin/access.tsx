@@ -28,7 +28,7 @@ import {
 } from "@/lib/admin/access-control.functions";
 
 export const Route = createFileRoute("/admin/access")({
-  head: () => ({ meta: [{ title: "Access Control — TasteQuote Admin" }] }),
+  head: () => ({ meta: [{ title: "Access Control — VPS Finest Admin" }] }),
   component: AccessControlPage,
 });
 

@@ -30,7 +30,7 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
   doc.setTextColor(196, 155, 70);
-  doc.text("TasteQuote", margin, 30);
+  doc.text("VPS Finest", margin, 30);
 
   doc.setFontSize(10);
   doc.setTextColor(200, 200, 200);
@@ -214,7 +214,7 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
   doc.rect(0, footerY - 10, pageWidth, 30, "F");
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
-  doc.text("TasteQuote — Premium Catering Solutions", pageWidth / 2, footerY, { align: "center" });
+  doc.text("VPS Finest — Premium Catering Solutions", pageWidth / 2, footerY, { align: "center" });
   doc.text("This proposal is valid for 30 days from the date of issue.", pageWidth / 2, footerY + 5, { align: "center" });
 
   return doc;
