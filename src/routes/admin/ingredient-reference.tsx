@@ -131,6 +131,8 @@ function IngredientReferencePage() {
   type CacheEntry = { savedAt: number; suggestions: Suggestion[] };
   const [suggestionCache, setSuggestionCache] = useState<Map<string, CacheEntry>>(new Map());
   const [suggestFromCache, setSuggestFromCache] = useState(false);
+  const [bulkScanning, setBulkScanning] = useState(false);
+  const [bulkScanProgress, setBulkScanProgress] = useState({ done: 0, total: 0, withSuggestions: 0 });
 
   // Hydrate cache from localStorage on mount, pruning anything past the TTL.
   useEffect(() => {
