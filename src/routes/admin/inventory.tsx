@@ -123,7 +123,20 @@ function InventoryPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  const filteredBase = items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+  const categories = Array.from(
+    new Set(items.map((i) => (i.category || "").trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredBase = items.filter((i) => {
+    const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all"
+        ? true
+        : categoryFilter === "__uncategorized__"
+        ? !i.category || !i.category.trim()
+        : (i.category || "").trim().toLowerCase() === categoryFilter.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
   const filtered = [...filteredBase].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     const get = (it: InventoryItem): string | number => {
