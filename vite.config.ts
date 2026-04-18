@@ -7,13 +7,10 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Vite plugin that regenerates src/lib/admin/project-audit.ts from
-// the live filesystem (routes, migrations, edge functions, package.json)
-// before the build starts and on dev server startup.
 function regenerateProjectAudit() {
   const run = (label: string) => {
     const script = join(__dirname, "scripts", "generate-project-audit.mjs");
@@ -36,6 +33,12 @@ function regenerateProjectAudit() {
 
 export default defineConfig({
   vite: {
+    resolve: {
+      alias: {
+        htmlparser2: resolve(__dirname, "node_modules/htmlparser2/lib/esm/index.js"),
+        "htmlparser2/dist/esm/index.js": resolve(__dirname, "node_modules/htmlparser2/lib/esm/index.js"),
+      },
+    },
     plugins: [regenerateProjectAudit()],
   },
 });

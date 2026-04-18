@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { render as renderAsync } from '@react-email/components'
 import { parseEmailWebhookPayload } from '@lovable.dev/email-js'
 import { WebhookError, verifyWebhookRequest } from '@lovable.dev/webhooks-js'
 import { createClient } from '@supabase/supabase-js'
@@ -20,7 +19,6 @@ const EMAIL_SUBJECTS: Record<string, string> = {
   reauthentication: 'Your verification code',
 }
 
-// Template mapping
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   signup: SignupEmail,
   invite: InviteEmail,
@@ -30,7 +28,6 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration
 const SITE_NAME = "cuisine-costing-core"
 const SENDER_DOMAIN = "notify.vpfinest.com"
 const ROOT_DOMAIN = "vpfinest.com"
@@ -57,7 +54,6 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
           )
         }
 
-        // Verify signature + timestamp, then parse payload.
         let payload: any
         let run_id = ''
         try {
@@ -113,8 +109,6 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
           )
         }
 
-        // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
-        // payload.type is the hook event type ("auth")
         const emailType = payload.data.action_type
         console.log('Received auth event', {
           emailType,
@@ -131,7 +125,6 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
           )
         }
 
-        // Build template props from payload.data (HookData structure)
         const templateProps = {
           siteName: SITE_NAME,
           siteUrl: `https://${ROOT_DOMAIN}`,
@@ -142,12 +135,11 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
           newEmail: payload.data.new_email,
         }
 
-        // Render React Email to HTML and plain text
+        const { render: renderAsync } = await import('@react-email/components')
         const element = React.createElement(EmailTemplate, templateProps)
         const html = await renderAsync(element)
         const text = await renderAsync(element, { plainText: true })
 
-        // Enqueue email for async processing by the dispatcher (process-email-queue).
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -162,7 +154,6 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
         const messageId = crypto.randomUUID()
 
-        // Log pending BEFORE enqueue so we have a record even if enqueue crashes
         await supabase.from('email_send_log').insert({
           message_id: messageId,
           template_name: emailType,
