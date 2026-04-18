@@ -149,6 +149,7 @@ function InventoryCombobox({
 }
 
 function SynonymsPage() {
+  const askConfirm = useConfirm();
   const [rows, setRows] = useState<SynonymRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -363,7 +364,11 @@ function SynonymsPage() {
   };
 
   const deleteRow = async (row: SynonymRow) => {
-    if (!confirm(`Delete synonym "${row.alias}" → "${row.canonical}"?`)) return;
+    const ok = await askConfirm({
+      title: "Delete this synonym?",
+      description: `"${row.alias}" → "${row.canonical}" will be removed. This cannot be undone.`,
+    });
+    if (!ok) return;
     const { error } = await (supabase as any).from("ingredient_synonyms").delete().eq("id", row.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted");
