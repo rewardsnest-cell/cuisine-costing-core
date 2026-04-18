@@ -12,6 +12,7 @@ import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -99,7 +100,15 @@ function RecipesPage() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
+  const askConfirm = useConfirm();
+  const handleDelete = async (id: string, name?: string) => {
+    const ok = await askConfirm({
+      title: "Delete this recipe?",
+      description: name
+        ? `"${name}" will be permanently removed along with its ingredients. This cannot be undone.`
+        : "This recipe will be permanently removed along with its ingredients. This cannot be undone.",
+    });
+    if (!ok) return;
     await supabase.from("recipes").delete().eq("id", id);
     load();
   };
@@ -490,7 +499,7 @@ function RecipesPage() {
                     <p className="text-sm text-muted-foreground mt-1">{r.category} · {r.cuisine}</p>
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id, r.name); }}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />

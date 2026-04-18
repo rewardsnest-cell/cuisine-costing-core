@@ -11,6 +11,7 @@ import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
@@ -106,7 +107,15 @@ function InventoryPage() {
     loadItems();
   };
 
-  const handleDelete = async (id: string) => {
+  const askConfirm = useConfirm();
+  const handleDelete = async (id: string, name?: string) => {
+    const ok = await askConfirm({
+      title: "Delete this inventory item?",
+      description: name
+        ? `"${name}" will be permanently removed. Purchase history and adjustments referencing it may be affected. This cannot be undone.`
+        : "This item will be permanently removed. This cannot be undone.",
+    });
+    if (!ok) return;
     await supabase.from("inventory_items").delete().eq("id", id);
     loadItems();
   };
@@ -390,7 +399,7 @@ function InventoryPage() {
                           <button onClick={() => openHistory(item)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Adjustment history">
                             <History className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Delete">
+                          <button onClick={() => handleDelete(item.id, item.name)} className="text-muted-foreground hover:text-destructive transition-colors p-1" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>

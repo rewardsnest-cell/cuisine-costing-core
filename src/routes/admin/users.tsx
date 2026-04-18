@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
@@ -34,6 +35,7 @@ type EventLite = {
 
 function UserManagementPage() {
   const { user } = useAuth();
+  const askConfirm = useConfirm();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [requests, setRequests] = useState<AdminRequest[]>([]);
@@ -77,6 +79,15 @@ function UserManagementPage() {
   };
 
   const revokeAdmin = async (userId: string) => {
+    const profile = profiles.find((p) => p.user_id === userId);
+    const ok = await askConfirm({
+      title: "Revoke admin access?",
+      description: profile?.email
+        ? `${profile.full_name || profile.email} will lose admin privileges immediately.`
+        : "This user will lose admin privileges immediately.",
+      confirmText: "Revoke",
+    });
+    if (!ok) return;
     await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
     fetchData();
   };

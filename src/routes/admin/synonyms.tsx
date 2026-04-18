@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getIngredientCostMetrics } from "@/lib/recipe-costing";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/synonyms")({
   head: () => ({
@@ -148,6 +149,7 @@ function InventoryCombobox({
 }
 
 function SynonymsPage() {
+  const askConfirm = useConfirm();
   const [rows, setRows] = useState<SynonymRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -362,7 +364,11 @@ function SynonymsPage() {
   };
 
   const deleteRow = async (row: SynonymRow) => {
-    if (!confirm(`Delete synonym "${row.alias}" → "${row.canonical}"?`)) return;
+    const ok = await askConfirm({
+      title: "Delete this synonym?",
+      description: `"${row.alias}" → "${row.canonical}" will be removed. This cannot be undone.`,
+    });
+    if (!ok) return;
     const { error } = await (supabase as any).from("ingredient_synonyms").delete().eq("id", row.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted");
