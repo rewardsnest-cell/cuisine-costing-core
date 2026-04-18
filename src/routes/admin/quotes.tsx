@@ -75,6 +75,8 @@ function QuotesPage() {
   const [pickNotes, setPickNotes] = useState("");
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [transcriptQuote, setTranscriptQuote] = useState<Quote | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsQuote, setDetailsQuote] = useState<Quote | null>(null);
 
   const loadQuotes = async () => {
     const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
