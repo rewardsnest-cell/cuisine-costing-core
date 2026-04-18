@@ -112,6 +112,7 @@ export function convertQty(qty: number, fromUnit: string, toUnit: string): numbe
   if (from in WEIGHT_TO_LB && to in WEIGHT_TO_LB) return (qty * WEIGHT_TO_LB[from]) / WEIGHT_TO_LB[to];
   if (from in VOLUME_TO_QT && to in VOLUME_TO_QT) return (qty * VOLUME_TO_QT[from]) / VOLUME_TO_QT[to];
   if (from in VOLUME_TO_LITER && to in VOLUME_TO_LITER) return (qty * VOLUME_TO_LITER[from]) / VOLUME_TO_LITER[to];
+  if (from in COUNT_TO_EACH && to in COUNT_TO_EACH) return (qty * COUNT_TO_EACH[from]) / COUNT_TO_EACH[to];
 
   return null;
 }
