@@ -89,6 +89,12 @@ function IngredientReferencePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "linked" | "unlinked">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchRecomputing, setBatchRecomputing] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
+  const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
 
   const load = async () => {
     setLoading(true);
