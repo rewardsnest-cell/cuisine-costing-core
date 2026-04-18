@@ -33,7 +33,7 @@ async function fileToImageBlobs(file: File, opts: { maxPages?: number } = {}): P
   throw new Error("Unsupported file type — upload PDFs or images");
 }
 
-async function uploadToReceipts(blob: Blob): Promise<string> {
+async function uploadToReceipts(blob: Blob): Promise<{ url: string; path: string }> {
   const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
   const path = `competitor/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("receipts").upload(path, blob, {
@@ -41,7 +41,7 @@ async function uploadToReceipts(blob: Blob): Promise<string> {
     upsert: false,
   });
   if (error) throw error;
-  return supabase.storage.from("receipts").getPublicUrl(path).data.publicUrl;
+  return { url: supabase.storage.from("receipts").getPublicUrl(path).data.publicUrl, path };
 }
 
 async function analyzeBlob(blob: Blob) {
@@ -55,7 +55,11 @@ async function analyzeBlob(blob: Blob) {
   return result;
 }
 
-async function saveCompetitorRow(analysis: any, imageUrl: string) {
+async function saveCompetitorRow(
+  analysis: any,
+  imageUrl: string,
+  pages?: { image_url: string; storage_path?: string | null }[],
+): Promise<string | null> {
   const insert: any = {
     analysis,
     source_image_url: imageUrl,
@@ -72,9 +76,15 @@ async function saveCompetitorRow(analysis: any, imageUrl: string) {
     service_style: analysis.serviceStyle ?? null,
     outcome: "pending",
   };
-  const { error } = await (supabase as any).from("competitor_quotes").insert(insert);
+  const { data: inserted, error } = await (supabase as any)
+    .from("competitor_quotes")
+    .insert(insert)
+    .select("id")
+    .single();
   if (error) throw error;
-  // Also create a receipts row mirroring the existing single-file flow
+  const competitorQuoteId = inserted?.id ?? null;
+
+  // Mirror to receipts (existing flow)
   await supabase.from("receipts").insert({
     image_url: imageUrl,
     total_amount: analysis.total ?? null,
@@ -82,6 +92,34 @@ async function saveCompetitorRow(analysis: any, imageUrl: string) {
     receipt_date: analysis.eventDate || new Date().toISOString().slice(0, 10),
     extracted_line_items: (analysis.lineItems ?? []) as any,
   });
+
+  // Save individual pages (packet mode)
+  if (competitorQuoteId && pages && pages.length > 0) {
+    const rows = pages.map((p, i) => ({
+      competitor_quote_id: competitorQuoteId,
+      page_number: i + 1,
+      image_url: p.image_url,
+      storage_path: p.storage_path ?? null,
+    }));
+    await (supabase as any).from("competitor_quote_pages").insert(rows);
+  }
+  return competitorQuoteId;
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      await worker(items[i], i);
+    }
+  });
+  await Promise.all(runners);
 }
 
 function mergeAnalyses(parts: any[]) {
@@ -143,14 +181,15 @@ export function BulkCompetitorUpload({
 
   const runPerFile = async () => {
     let done = 0; let created = 0; let failed = 0;
-    for (const it of items) {
+    const total = items.length;
+    await runWithConcurrency(items, 3, async (it) => {
       updateItem(it.id, { status: "processing" });
       try {
         const blobs = await fileToImageBlobs(it.file, { maxPages: 1 });
         const blob = blobs[0];
-        const imageUrl = await uploadToReceipts(blob);
+        const uploaded = await uploadToReceipts(blob);
         const analysis = await analyzeBlob(blob);
-        await saveCompetitorRow(analysis, imageUrl);
+        await saveCompetitorRow(analysis, uploaded.url);
         updateItem(it.id, { status: "done" });
         created++;
       } catch (e) {
@@ -158,27 +197,32 @@ export function BulkCompetitorUpload({
         failed++;
       } finally {
         done++;
-        setProgress(Math.round((done / items.length) * 100));
+        setProgress(Math.round((done / total) * 100));
       }
-    }
+    });
     if (created) toast.success(`Created ${created} competitor quote${created === 1 ? "" : "s"}`);
     if (failed) toast.error(`${failed} file${failed === 1 ? "" : "s"} failed`);
   };
 
   const runPacket = async () => {
     let done = 0; const total = items.length;
-    const pageAnalyses: any[] = [];
-    let firstImageUrl: string | null = null;
-    for (const it of items) {
+    const perFileResults: Array<
+      { analyses: any[]; pages: { image_url: string; storage_path: string }[] } | null
+    > = new Array(items.length).fill(null);
+
+    await runWithConcurrency(items, 3, async (it, idx) => {
       updateItem(it.id, { status: "processing" });
       try {
         const blobs = await fileToImageBlobs(it.file, { maxPages: 6 });
+        const analyses: any[] = [];
+        const pages: { image_url: string; storage_path: string }[] = [];
         for (const blob of blobs) {
-          const imageUrl = await uploadToReceipts(blob);
-          if (!firstImageUrl) firstImageUrl = imageUrl;
+          const uploaded = await uploadToReceipts(blob);
           const analysis = await analyzeBlob(blob);
-          pageAnalyses.push(analysis);
+          analyses.push(analysis);
+          pages.push({ image_url: uploaded.url, storage_path: uploaded.path });
         }
+        perFileResults[idx] = { analyses, pages };
         updateItem(it.id, { status: "done" });
       } catch (e) {
         updateItem(it.id, { status: "error", message: e instanceof Error ? e.message : "Failed" });
@@ -186,15 +230,23 @@ export function BulkCompetitorUpload({
         done++;
         setProgress(Math.round((done / total) * 100));
       }
+    });
+
+    const allAnalyses: any[] = [];
+    const allPages: { image_url: string; storage_path: string }[] = [];
+    for (const r of perFileResults) {
+      if (!r) continue;
+      allAnalyses.push(...r.analyses);
+      allPages.push(...r.pages);
     }
-    if (pageAnalyses.length === 0) {
+    if (allAnalyses.length === 0) {
       toast.error("No pages could be analyzed");
       return;
     }
-    const merged = mergeAnalyses(pageAnalyses);
+    const merged = mergeAnalyses(allAnalyses);
     try {
-      await saveCompetitorRow(merged, firstImageUrl ?? "");
-      toast.success(`Created 1 competitor quote from ${pageAnalyses.length} page${pageAnalyses.length === 1 ? "" : "s"}`);
+      await saveCompetitorRow(merged, allPages[0]?.image_url ?? "", allPages);
+      toast.success(`Created 1 competitor quote from ${allPages.length} page${allPages.length === 1 ? "" : "s"}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save merged analysis");
     }

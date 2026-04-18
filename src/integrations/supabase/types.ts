@@ -101,6 +101,41 @@ export type Database = {
         }
         Relationships: []
       }
+      competitor_quote_pages: {
+        Row: {
+          competitor_quote_id: string
+          created_at: string
+          id: string
+          image_url: string
+          page_number: number
+          storage_path: string | null
+        }
+        Insert: {
+          competitor_quote_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          page_number?: number
+          storage_path?: string | null
+        }
+        Update: {
+          competitor_quote_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          page_number?: number
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_quote_pages_competitor_quote_id_fkey"
+            columns: ["competitor_quote_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_quotes: {
         Row: {
           analysis: Json
