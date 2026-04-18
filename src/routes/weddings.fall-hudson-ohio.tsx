@@ -3,6 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
+import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 
 export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
   head: () => ({
@@ -11,6 +12,13 @@ export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
       { name: "description", content: "Fall wedding catering in Hudson, Ohio. Seasonal menus built around Northeast Ohio's harvest, with calm planning and itemized quotes." },
       { property: "og:title", content: "Fall Wedding Catering in Hudson, Ohio — VPS Finest" },
       { property: "og:description", content: "Seasonal fall wedding catering in Hudson, Ohio and across Northeast Ohio. Tastings included." },
+    ],
+    scripts: [
+      localBusinessJsonLd({
+        url: `${SITE_URL}/weddings/fall-hudson-ohio`,
+        description: "Fall wedding catering in Hudson, Ohio and Northeast Ohio.",
+        primaryCity: "Hudson, Ohio",
+      }),
     ],
   }),
   component: FallHudsonPage,

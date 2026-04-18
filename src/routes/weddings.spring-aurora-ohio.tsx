@@ -3,6 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
+import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 
 export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
   head: () => ({
@@ -11,6 +12,13 @@ export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
       { name: "description", content: "Spring wedding catering in Aurora, Ohio. Seasonal menus, calm planning, and itemized quotes for couples planning a March, April, or May wedding in Northeast Ohio." },
       { property: "og:title", content: "Spring Wedding Catering in Aurora, Ohio — VPS Finest" },
       { property: "og:description", content: "Seasonal spring wedding catering in Aurora, Ohio and Northeast Ohio. Tastings included." },
+    ],
+    scripts: [
+      localBusinessJsonLd({
+        url: `${SITE_URL}/weddings/spring-aurora-ohio`,
+        description: "Spring wedding catering in Aurora, Ohio and Northeast Ohio.",
+        primaryCity: "Aurora, Ohio",
+      }),
     ],
   }),
   component: SpringAuroraPage,
