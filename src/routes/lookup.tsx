@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +62,6 @@ function LookupPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-8">
@@ -137,7 +134,6 @@ function LookupPage() {
           </p>
         </div>
       </div>
-      <PublicFooter />
     </div>
   );
 }

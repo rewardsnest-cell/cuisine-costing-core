@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -233,7 +231,6 @@ export function QuotePage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="pt-24 pb-16 px-4">
           <div className="max-w-lg mx-auto text-center">
             <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
@@ -275,14 +272,12 @@ export function QuotePage() {
             </div>
           </div>
         </div>
-        <PublicFooter />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Mode header */}
@@ -532,7 +527,6 @@ export function QuotePage() {
           </div>
         </div>
       )}
-      <PublicFooter />
     </div>
   );
 }

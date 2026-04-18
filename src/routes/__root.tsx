@@ -1,7 +1,27 @@
-import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
+import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import "@/styles.css";
+
+// Routes that manage their own chrome — no global PublicHeader/Footer
+const NO_PUBLIC_CHROME_PREFIXES = [
+  "/admin",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/set-password",
+  "/lovable",
+  "/api",
+];
+
+function shouldShowPublicChrome(pathname: string): boolean {
+  return !NO_PUBLIC_CHROME_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
 
 function NotFoundComponent() {
   return (
@@ -64,10 +84,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const showChrome = shouldShowPublicChrome(pathname);
   return (
     <AuthProvider>
       <ConfirmProvider>
-        <Outlet />
+        {showChrome ? (
+          <div className="min-h-screen bg-background flex flex-col">
+            <PublicHeader />
+            <div className="flex-1">
+              <Outlet />
+            </div>
+            <PublicFooter />
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </ConfirmProvider>
     </AuthProvider>
   );

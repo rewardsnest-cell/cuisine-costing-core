@@ -1,7 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { supabase } from "@/integrations/supabase/client";
 
 type Recipe = {
@@ -43,8 +41,6 @@ function RecipesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       {/* Page heading */}
       <section className="pt-32 pb-16 text-center">
         <div className="max-w-3xl mx-auto px-6">
@@ -101,8 +97,6 @@ function RecipesPage() {
           </div>
         )}
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

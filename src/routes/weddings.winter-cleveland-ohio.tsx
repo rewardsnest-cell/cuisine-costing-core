@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
@@ -38,8 +36,6 @@ export const Route = createFileRoute("/weddings/winter-cleveland-ohio")({
 function WinterClevelandPage() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
         <div className="absolute inset-0">
           <img src={heroWinter} alt="Winter wedding catering in the Cleveland area" width={1920} height={1280} className="w-full h-full object-cover" />
@@ -111,8 +107,6 @@ function WinterClevelandPage() {
         heading="Tell us about your winter wedding."
         subhead="Winter dates often have more flexibility. Share a few details and we'll come back with a clear, itemized quote."
       />
-
-      <PublicFooter />
     </div>
   );
 }

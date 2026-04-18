@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -54,8 +52,6 @@ function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="pt-32 pb-12 text-center">
         <div className="max-w-3xl mx-auto px-6">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Contact</p>
@@ -117,8 +113,6 @@ function ContactPage() {
           ))}
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

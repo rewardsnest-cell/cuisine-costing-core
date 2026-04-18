@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 import heroFall from "@/assets/hero-fall-wedding.jpg";
@@ -41,8 +39,6 @@ export const Route = createFileRoute("/blog/fall-wedding-catering-guide")({
 function FallGuide() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <article className="pt-32 pb-20">
         <div className="max-w-2xl mx-auto px-6">
           <p className="text-xs tracking-[0.25em] uppercase text-accent mb-5">Fall · Guide</p>
@@ -115,8 +111,6 @@ function FallGuide() {
         heading="Planning a fall wedding?"
         subhead="Fall weekends fill quickly across Northeast Ohio. Share your date and a few details, and we'll reply with a clear next step."
       />
-
-      <PublicFooter />
     </div>
   );
 }

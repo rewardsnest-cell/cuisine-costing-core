@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -51,8 +49,6 @@ function FollowPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       {/* Heading */}
       <section className="pt-32 pb-12 text-center">
         <div className="max-w-3xl mx-auto px-6">
@@ -146,8 +142,6 @@ function FollowPage() {
           </div>
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

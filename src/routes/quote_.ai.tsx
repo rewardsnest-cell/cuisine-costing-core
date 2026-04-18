@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -135,7 +133,6 @@ function QuoteAiPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicHeader />
       <main className="flex-1 pt-28 md:pt-32 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -202,7 +199,6 @@ function QuoteAiPage() {
           </div>
         </div>
       </main>
-      <PublicFooter />
     </div>
   );
 }

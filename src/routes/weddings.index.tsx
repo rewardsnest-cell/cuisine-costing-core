@@ -1,7 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
@@ -63,8 +61,6 @@ function WeddingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       {/* Hero */}
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
         <div className="absolute inset-0">
@@ -223,8 +219,6 @@ function WeddingsPage() {
           </div>
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

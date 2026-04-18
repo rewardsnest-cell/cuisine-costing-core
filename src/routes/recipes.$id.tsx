@@ -1,7 +1,5 @@
 import { createFileRoute, Link, useRouter, notFound } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Button } from "@/components/ui/button";
 
 const SITE = "https://www.vpsfinest.com";
@@ -96,7 +94,6 @@ export const Route = createFileRoute("/recipes/$id")({
     const router = useRouter();
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="max-w-3xl mx-auto px-4 py-24 space-y-4">
           <h1 className="font-display text-3xl text-primary">Something went wrong</h1>
           <p className="text-muted-foreground">{error.message}</p>
@@ -105,19 +102,16 @@ export const Route = createFileRoute("/recipes/$id")({
             <Link to="/recipes"><Button>Back to recipes</Button></Link>
           </div>
         </div>
-        <PublicFooter />
       </div>
     );
   },
   notFoundComponent: () => (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="max-w-3xl mx-auto px-4 py-24 space-y-4">
         <h1 className="font-display text-3xl text-primary">Recipe not found</h1>
         <p className="text-muted-foreground">It may have been removed or unpublished.</p>
         <Link to="/recipes"><Button>Back to recipes</Button></Link>
       </div>
-      <PublicFooter />
     </div>
   ),
 });
@@ -138,7 +132,6 @@ function RecipeDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <article className="pt-24 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav className="text-sm text-muted-foreground mb-6">
           <Link to="/recipes" className="hover:text-primary">Recipes</Link>
@@ -256,7 +249,6 @@ function RecipeDetailPage() {
           <Link to="/recipes" className="text-primary hover:underline text-sm">← Back to all recipes</Link>
         </div>
       </article>
-      <PublicFooter />
     </div>
   );
 }

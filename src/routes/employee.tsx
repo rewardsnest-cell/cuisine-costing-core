@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useSectionAccess } from "@/lib/access/use-section-access";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,7 +76,6 @@ function EmployeeDashboardPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="pt-24 pb-16 px-4 text-center">
           <h1 className="font-display text-3xl font-bold text-foreground mb-4">
             Employee Dashboard
@@ -88,7 +85,6 @@ function EmployeeDashboardPage() {
             <Button className="bg-gradient-warm text-primary-foreground">Sign In</Button>
           </Link>
         </div>
-        <PublicFooter />
       </div>
     );
   }
@@ -106,7 +102,6 @@ function EmployeeDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Header */}
@@ -234,7 +229,6 @@ function EmployeeDashboardPage() {
           )}
         </div>
       </div>
-      <PublicFooter />
     </div>
   );
 }

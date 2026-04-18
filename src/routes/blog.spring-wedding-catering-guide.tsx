@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 import heroSpring from "@/assets/hero-spring-wedding.jpg";
@@ -41,8 +39,6 @@ export const Route = createFileRoute("/blog/spring-wedding-catering-guide")({
 function SpringGuide() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <article className="pt-32 pb-20">
         <div className="max-w-2xl mx-auto px-6">
           <p className="text-xs tracking-[0.25em] uppercase text-accent mb-5">Spring · Guide</p>
@@ -115,8 +111,6 @@ function SpringGuide() {
         heading="Planning a spring wedding?"
         subhead="Tell us a bit about your day and we'll come back with a clear, itemized quote."
       />
-
-      <PublicFooter />
     </div>
   );
 }
