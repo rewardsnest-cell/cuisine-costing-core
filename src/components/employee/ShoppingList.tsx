@@ -259,13 +259,18 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-2">
         <p className="text-xs text-muted-foreground">
-          Grouped by supplier. Costs use the linked inventory item's average cost.
+          Grouped by supplier. Items on active sale are switched to the cheapest supplier.
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm">
             Estimated total:{" "}
             <span className="font-display font-bold text-primary">${grandTotal.toFixed(2)}</span>
           </span>
+          {grandSavings > 0 && (
+            <span className="text-sm text-success">
+              Saving <span className="font-display font-bold">${grandSavings.toFixed(2)}</span> from sales
+            </span>
+          )}
           <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
             <Printer className="w-3.5 h-3.5" /> Print
           </Button>
