@@ -100,7 +100,15 @@ function RecipesPage() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
+  const confirm = useConfirm();
+  const handleDelete = async (id: string, name?: string) => {
+    const ok = await confirm({
+      title: "Delete this recipe?",
+      description: name
+        ? `"${name}" will be permanently removed along with its ingredients. This cannot be undone.`
+        : "This recipe will be permanently removed along with its ingredients. This cannot be undone.",
+    });
+    if (!ok) return;
     await supabase.from("recipes").delete().eq("id", id);
     load();
   };
@@ -491,7 +499,7 @@ function RecipesPage() {
                     <p className="text-sm text-muted-foreground mt-1">{r.category} · {r.cuisine}</p>
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id, r.name); }}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
