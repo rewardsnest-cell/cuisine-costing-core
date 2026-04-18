@@ -29,6 +29,8 @@ import { QuoteStepService } from "@/components/quote/QuoteStepService";
 import { QuoteStepExtras } from "@/components/quote/QuoteStepExtras";
 import { QuoteStepAddons } from "@/components/quote/QuoteStepAddons";
 import { QuoteStepTier } from "@/components/quote/QuoteStepTier";
+import { QuoteStepRecipes } from "@/components/quote/QuoteStepRecipes";
+import { totalForRecipes } from "@/lib/quote-recipes";
 
 export const Route = createFileRoute("/quote")({
   head: () => ({
