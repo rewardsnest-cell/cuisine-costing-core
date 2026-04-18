@@ -333,9 +333,22 @@ function CompetitorQuotesPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
-                          <Eye className="w-3.5 h-3.5" /> View
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 h-7 text-xs"
+                            onClick={() => rebuildCounter(r.id)}
+                            disabled={rebuilding === r.id}
+                            title={r.counter_quote_id ? "Rebuild counter quote" : "Build counter quote"}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${rebuilding === r.id ? "animate-spin" : ""}`} />
+                            {r.counter_quote_id ? "Rebuild" : "Build"}
+                          </Button>
+                          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
+                            <Eye className="w-3.5 h-3.5" /> View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
