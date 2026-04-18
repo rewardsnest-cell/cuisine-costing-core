@@ -51,6 +51,7 @@ function QuoteCompareView() {
   const [rebuilding, setRebuilding] = useState(false);
   const [cq, setCq] = useState<any>(null);
   const [ourItems, setOurItems] = useState<OurItem[]>([]);
+  const [sourcedRecipes, setSourcedRecipes] = useState<{ id: string; name: string; category: string | null; cost_per_serving: number | null; created_at: string }[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -292,6 +293,45 @@ function QuoteCompareView() {
           )}
         </CardContent>
       </Card>
+
+      {sourcedRecipes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Recipes created from this quote
+              <Badge variant="outline" className="ml-2 text-[10px]">{sourcedRecipes.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recipe</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="text-right">Cost / serving</TableHead>
+                  <TableHead className="w-32" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sourcedRecipes.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{r.category ?? "—"}</TableCell>
+                    <TableCell className="text-right text-sm">{fmtMoney(r.cost_per_serving)}</TableCell>
+                    <TableCell className="text-right">
+                      <Link to="/admin/recipes" search={{ recipe: r.id } as any}>
+                        <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+                          Review <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {cq.notes && (
         <Card>
