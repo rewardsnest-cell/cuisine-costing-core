@@ -43,6 +43,7 @@ type Quote = {
   event_type: string | null;
   event_date: string | null;
   guest_count: number;
+  subtotal: number | null;
   total: number;
   status: string;
   created_at: string;
@@ -516,7 +517,14 @@ function QuotesPage() {
                   <p className="text-sm text-muted-foreground">{q.event_type || "Event"} · {q.guest_count} guests · {q.event_date || "TBD"}</p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(q.status)}`}>{q.status}</span>
-                <p className="font-display text-lg font-bold">${Number(q.total).toFixed(2)}</p>
+                <div className="text-right">
+                  <p className="font-display text-lg font-bold leading-tight">${Number(q.total).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {q.guest_count > 0 && q.subtotal != null
+                      ? `${fmt(Number(q.subtotal) / q.guest_count)} / guest`
+                      : "—"}
+                  </p>
+                </div>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => { setDetailsQuote(q); setDetailsOpen(true); }}>
                   <Eye className="w-3.5 h-3.5" /> Details
                 </Button>
