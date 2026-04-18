@@ -289,7 +289,7 @@ export function SupplierFlyersDialog({
             <div className="text-sm text-muted-foreground space-y-0.5">
               <p>Upload one or more sale flyer pages (images or PDFs).</p>
               <p className="text-xs flex items-center gap-1">
-                <FileText className="w-3 h-3" /> PDFs are split into pages automatically.
+                <FileText className="w-3 h-3" /> PDFs are split into pages automatically. On mobile, tap-and-hold or use "Select" to pick multiple photos — or use <strong>Add Pages</strong> on an existing flyer to append more.
               </p>
               {uploadStatus && (
                 <p className="text-xs text-primary font-medium">{uploadStatus}</p>
