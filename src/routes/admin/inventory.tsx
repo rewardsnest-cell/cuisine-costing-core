@@ -353,7 +353,7 @@ function InventoryPage() {
                     {isOpen && (
                       <tr className="bg-muted/20">
                         <td></td>
-                        <td colSpan={9} className="py-4 px-4">
+                        <td colSpan={10} className="py-4 px-4">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Purchase History</p>
                           {rows.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No purchases recorded for this item yet.</p>
