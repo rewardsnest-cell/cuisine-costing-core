@@ -252,6 +252,11 @@ function CompetitorQuotesPage() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
+                          <Eye className="w-3.5 h-3.5" /> View
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -260,6 +265,8 @@ function CompetitorQuotesPage() {
           )}
         </CardContent>
       </Card>
+
+      <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
     </div>
   );
 }
