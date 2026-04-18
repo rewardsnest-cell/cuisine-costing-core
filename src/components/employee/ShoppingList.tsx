@@ -303,6 +303,11 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                 <span className="text-xs text-muted-foreground shrink-0">
                   ({g.rows.length} item{g.rows.length === 1 ? "" : "s"})
                 </span>
+                {g.rows.some((r) => r.onSale) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/15 text-success border border-success/30 shrink-0">
+                    <Tag className="w-3 h-3" /> Sale
+                  </span>
+                )}
               </div>
               <span className="text-sm font-display font-bold shrink-0">
                 ${g.estCost.toFixed(2)}
