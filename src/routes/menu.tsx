@@ -77,6 +77,8 @@ function PublicMenuPage() {
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
   const [meat, setMeat] = useState<MeatKey>("all");
+  const [category, setCategory] = useState<string>("all");
+  const [dietary, setDietary] = useState<"all" | "vegetarian" | "vegan" | "gluten-free">("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"price-asc" | "price-desc" | "name-asc">("name-asc");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
@@ -110,6 +112,25 @@ function PublicMenuPage() {
     return counts;
   }, [recipes]);
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: recipes.length };
+    for (const r of recipes) {
+      const cat = r.category?.trim() || "Other";
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [recipes]);
+
+  const dietaryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: recipes.length, vegetarian: 0, vegan: 0, "gluten-free": 0 };
+    for (const r of recipes) {
+      if (r.is_vegetarian) counts["vegetarian"]++;
+      if (r.is_vegan) counts["vegan"]++;
+      if (r.is_gluten_free) counts["gluten-free"]++;
+    }
+    return counts;
+  }, [recipes]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = recipes.filter((r) => {
@@ -118,6 +139,15 @@ function PublicMenuPage() {
       if (meat !== "all") {
         const k = detectMeat(r);
         if (k !== meat) return false;
+      }
+      if (category !== "all") {
+        const cat = r.category?.trim() || "Other";
+        if (cat !== category) return false;
+      }
+      if (dietary !== "all") {
+        if (dietary === "vegetarian" && !r.is_vegetarian) return false;
+        if (dietary === "vegan" && !r.is_vegan) return false;
+        if (dietary === "gluten-free" && !r.is_gluten_free) return false;
       }
       const p = resolvedPrice(r);
       if (p < priceRange[0] || p > priceRange[1]) return false;
@@ -132,7 +162,7 @@ function PublicMenuPage() {
     else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [recipes, tier, meat, search, priceRange, sort]);
+  }, [recipes, tier, meat, category, dietary, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
@@ -148,15 +178,19 @@ function PublicMenuPage() {
     let count = 0;
     if (tier !== "all") count++;
     if (meat !== "all") count++;
+    if (category !== "all") count++;
+    if (dietary !== "all") count++;
     if (search.trim()) count++;
     if (sort !== "name-asc") count++;
     if (priceRange[0] > 0 || priceRange[1] < priceMax) count++;
     return count;
-  }, [tier, meat, search, sort, priceRange, priceMax]);
+  }, [tier, meat, category, dietary, search, sort, priceRange, priceMax]);
 
   function resetFilters() {
     setTier("all");
     setMeat("all");
+    setCategory("all");
+    setDietary("all");
     setSearch("");
     setSort("name-asc");
     setPriceRange([0, priceMax]);
@@ -235,7 +269,94 @@ function PublicMenuPage() {
           </Select>
         </div>
 
+        {/* Category filters */}
+        <div className="flex flex-wrap justify-center gap-2 mb-3">
+          <span className="text-xs text-muted-foreground self-center mr-1">Category:</span>
+          <button
+            onClick={() => setCategory("all")}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+              category === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            All ({categoryCounts.all || 0})
+          </button>
+          {Object.entries(categoryCounts)
+            .filter(([key]) => key !== "all")
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([cat, count]) => {
+              if (count === 0) return null;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                    category === cat
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:text-foreground"
+                  }`}
+                >
+                  {cat} ({count})
+                </button>
+              );
+            })}
+        </div>
+
+        {/* Dietary filters */}
+        <div className="flex flex-wrap justify-center gap-2 mb-3">
+          <span className="text-xs text-muted-foreground self-center mr-1">Dietary:</span>
+          <button
+            onClick={() => setDietary("all")}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+              dietary === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            All ({dietaryCounts.all || 0})
+          </button>
+          {dietaryCounts["vegetarian"] > 0 && (
+            <button
+              onClick={() => setDietary("vegetarian")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                dietary === "vegetarian"
+                  ? "bg-success text-success-foreground border-success"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              Vegetarian ({dietaryCounts["vegetarian"]})
+            </button>
+          )}
+          {dietaryCounts["vegan"] > 0 && (
+            <button
+              onClick={() => setDietary("vegan")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                dietary === "vegan"
+                  ? "bg-success text-success-foreground border-success"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              Vegan ({dietaryCounts["vegan"]})
+            </button>
+          )}
+          {dietaryCounts["gluten-free"] > 0 && (
+            <button
+              onClick={() => setDietary("gluten-free")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                dietary === "gluten-free"
+                  ? "bg-warning text-warning-foreground border-warning"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              Gluten-Free ({dietaryCounts["gluten-free"]})
+            </button>
+          )}
+        </div>
+
+        {/* Meat type filters */}
         <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <span className="text-xs text-muted-foreground self-center mr-1">Protein:</span>
           <button
             onClick={() => setMeat("all")}
             className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
