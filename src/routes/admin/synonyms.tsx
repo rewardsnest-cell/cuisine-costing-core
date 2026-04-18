@@ -4,9 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Save, Search, Download, Upload, Sparkles, X, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Save, Search, Download, Upload, Sparkles, X, RefreshCw, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 
 export const Route = createFileRoute("/admin/synonyms")({
   head: () => ({
@@ -31,6 +35,13 @@ interface Suggestion {
   count: number;
 }
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  unit: string;
+  average_cost_per_unit: number;
+}
+
 function normalize(s: string) {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -43,7 +54,6 @@ function toTitleCase(s: string) {
     .join(" ");
 }
 
-// Minimal CSV helpers (handles quoted fields + escaped quotes)
 function csvEscape(v: string) {
   if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
   return v;
@@ -72,6 +82,69 @@ function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
+// --- Inventory autocomplete combobox ---
+function InventoryCombobox({
+  inventory,
+  value,
+  onChange,
+  placeholder,
+}: {
+  inventory: InventoryItem[];
+  value: string;
+  onChange: (canonical: string, item?: InventoryItem) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal h-9"
+        >
+          <span className={cn("truncate", !value && "text-muted-foreground")}>
+            {value || placeholder || "Pick inventory item…"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search inventory or type custom…" />
+          <CommandList>
+            <CommandEmpty>
+              <button
+                className="text-xs text-muted-foreground px-2 py-1"
+                onClick={() => setOpen(false)}
+              >
+                No matches — keep typed value
+              </button>
+            </CommandEmpty>
+            <CommandGroup>
+              {inventory.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  value={item.name}
+                  onSelect={() => {
+                    onChange(item.name, item);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === item.name ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{item.name}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{item.unit}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function SynonymsPage() {
   const [rows, setRows] = useState<SynonymRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,9 +155,15 @@ function SynonymsPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggLoading, setSuggLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const aliasIndex = useMemo(() => new Set(rows.map((r) => r.alias_normalized)), [rows]);
+  const inventoryByNormName = useMemo(() => {
+    const m = new Map<string, InventoryItem>();
+    for (const it of inventory) m.set(normalize(it.name), it);
+    return m;
+  }, [inventory]);
 
   const load = async () => {
     setLoading(true);
@@ -97,9 +176,16 @@ function SynonymsPage() {
     setLoading(false);
   };
 
+  const loadInventory = async () => {
+    const { data, error } = await (supabase as any)
+      .from("inventory_items")
+      .select("id, name, unit, average_cost_per_unit")
+      .order("name");
+    if (!error) setInventory(data || []);
+  };
+
   const loadSuggestions = async () => {
     setSuggLoading(true);
-    // Pull recent unlinked ingredient names from AI-created recipes
     const [{ data: ing, error: ingErr }, { data: dismissed }] = await Promise.all([
       (supabase as any)
         .from("recipe_ingredients")
@@ -137,13 +223,80 @@ function SynonymsPage() {
 
   useEffect(() => {
     load();
+    loadInventory();
   }, []);
 
-  // Recompute suggestions whenever the synonyms list changes (e.g. after add)
   useEffect(() => {
     if (!loading) loadSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, rows.length]);
+
+  // ---------- Auto-relink + recompute when a synonym is added ----------
+  // Finds recipe_ingredients whose normalized name matches `aliasNormalized`,
+  // links them to the inventory item matching `canonical`, then recomputes
+  // total_cost + cost_per_serving for affected recipes.
+  const relinkAndRecompute = async (aliasNormalized: string, canonical: string) => {
+    const invItem = inventoryByNormName.get(normalize(canonical));
+    if (!invItem) {
+      // Canonical doesn't match any inventory item — nothing to relink
+      return { linked: 0, recipesUpdated: 0 };
+    }
+
+    // Pull unmatched ingredients (limit large but bounded)
+    const { data: ings, error: ingsErr } = await (supabase as any)
+      .from("recipe_ingredients")
+      .select("id, recipe_id, name, quantity, unit, cost_per_unit")
+      .is("inventory_item_id", null)
+      .limit(5000);
+    if (ingsErr) return { linked: 0, recipesUpdated: 0 };
+
+    const matching = (ings || []).filter((r: any) => normalize(r.name) === aliasNormalized);
+    if (matching.length === 0) return { linked: 0, recipesUpdated: 0 };
+
+    const ids = matching.map((m: any) => m.id);
+    const recipeIds = Array.from(new Set(matching.map((m: any) => m.recipe_id)));
+
+    const { error: updErr } = await (supabase as any)
+      .from("recipe_ingredients")
+      .update({ inventory_item_id: invItem.id })
+      .in("id", ids);
+    if (updErr) return { linked: 0, recipesUpdated: 0 };
+
+    // Recompute affected recipes' costs
+    const { data: recipesData } = await (supabase as any)
+      .from("recipes")
+      .select("id, servings, recipe_ingredients(id, quantity, unit, cost_per_unit, inventory_item:inventory_items(average_cost_per_unit, unit))")
+      .in("id", recipeIds);
+
+    let updated = 0;
+    for (const r of (recipesData || []) as any[]) {
+      const total = (r.recipe_ingredients || []).reduce(
+        (sum: number, ing: any) =>
+          sum +
+          getIngredientCostMetrics({
+            quantity: Number(ing.quantity) || 0,
+            unit: ing.unit,
+            fallbackCostPerUnit: ing.cost_per_unit,
+            inventoryItem: ing.inventory_item,
+          }).lineTotal,
+        0,
+      );
+      const servings = Number(r.servings) || 1;
+      const { error: rErr } = await (supabase as any)
+        .from("recipes")
+        .update({ total_cost: total, cost_per_serving: total / servings })
+        .eq("id", r.id);
+      if (!rErr) updated++;
+    }
+
+    return { linked: matching.length, recipesUpdated: updated };
+  };
+
+  const announceRelink = (res: { linked: number; recipesUpdated: number }) => {
+    if (res.linked > 0) {
+      toast.success(`Re-linked ${res.linked} ingredient${res.linked === 1 ? "" : "s"} · recomputed ${res.recipesUpdated} recipe${res.recipesUpdated === 1 ? "" : "s"}`);
+    }
+  };
 
   const addRow = async () => {
     const aliasTrim = newAlias.trim();
@@ -153,19 +306,23 @@ function SynonymsPage() {
       return;
     }
     setAdding(true);
+    const aliasNorm = normalize(aliasTrim);
     const { error } = await (supabase as any).from("ingredient_synonyms").insert({
       alias: aliasTrim,
       canonical: canonTrim,
-      alias_normalized: normalize(aliasTrim),
+      alias_normalized: aliasNorm,
     });
-    setAdding(false);
     if (error) {
+      setAdding(false);
       toast.error(error.message);
       return;
     }
+    toast.success("Synonym added");
+    const res = await relinkAndRecompute(aliasNorm, canonTrim);
+    announceRelink(res);
+    setAdding(false);
     setNewAlias("");
     setNewCanonical("");
-    toast.success("Synonym added");
     load();
   };
 
@@ -177,12 +334,15 @@ function SynonymsPage() {
     const aliasTrim = row.alias.trim();
     const canonTrim = row.canonical.trim();
     if (!aliasTrim || !canonTrim) { toast.error("Both fields are required"); return; }
+    const aliasNorm = normalize(aliasTrim);
     const { error } = await (supabase as any)
       .from("ingredient_synonyms")
-      .update({ alias: aliasTrim, canonical: canonTrim, alias_normalized: normalize(aliasTrim) })
+      .update({ alias: aliasTrim, canonical: canonTrim, alias_normalized: aliasNorm })
       .eq("id", row.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Saved");
+    const res = await relinkAndRecompute(aliasNorm, canonTrim);
+    announceRelink(res);
     load();
   };
 
@@ -194,12 +354,11 @@ function SynonymsPage() {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 
-  // ---------- Suggested synonyms actions ----------
   const [draftCanonical, setDraftCanonical] = useState<Record<string, string>>({});
 
   const acceptSuggestion = async (s: Suggestion) => {
     const canonical = (draftCanonical[s.alias_normalized] || toTitleCase(s.alias_normalized)).trim();
-    if (!canonical) { toast.error("Enter a canonical name"); return; }
+    if (!canonical) { toast.error("Pick or enter a canonical name"); return; }
     if (aliasIndex.has(s.alias_normalized)) { toast.error("Alias already exists"); return; }
     const { error } = await (supabase as any).from("ingredient_synonyms").insert({
       alias: s.display,
@@ -208,6 +367,8 @@ function SynonymsPage() {
     });
     if (error) { toast.error(error.message); return; }
     toast.success(`Added: ${s.display} → ${canonical}`);
+    const res = await relinkAndRecompute(s.alias_normalized, canonical);
+    announceRelink(res);
     setSuggestions((prev) => prev.filter((x) => x.alias_normalized !== s.alias_normalized));
     load();
   };
@@ -241,7 +402,6 @@ function SynonymsPage() {
       const text = await file.text();
       const parsed = parseCsv(text);
       if (parsed.length === 0) { toast.error("CSV is empty"); return; }
-      // Drop header row if it looks like one
       const first = parsed[0].map((c) => c.trim().toLowerCase());
       const dataRows = first.includes("alias") && first.includes("canonical") ? parsed.slice(1) : parsed;
 
@@ -256,9 +416,10 @@ function SynonymsPage() {
       }
       if (upserts.length === 0) { toast.error("No valid rows in CSV"); return; }
 
-      // Upsert by alias_normalized: update existing, insert new
       let added = 0;
       let updated = 0;
+      let totalLinked = 0;
+      let totalRecipes = 0;
       for (const u of upserts) {
         const ex = existing.get(u.alias_normalized);
         if (ex) {
@@ -271,8 +432,14 @@ function SynonymsPage() {
           const { error } = await (supabase as any).from("ingredient_synonyms").insert(u);
           if (!error) added++;
         }
+        const res = await relinkAndRecompute(u.alias_normalized, u.canonical);
+        totalLinked += res.linked;
+        totalRecipes += res.recipesUpdated;
       }
-      toast.success(`Imported: ${added} added, ${updated} updated${skipped.length ? `, ${skipped.length} skipped` : ""}`);
+      toast.success(
+        `Imported: ${added} added, ${updated} updated${skipped.length ? `, ${skipped.length} skipped` : ""}` +
+          (totalLinked ? ` · re-linked ${totalLinked} ingredients in ${totalRecipes} recipes` : ""),
+      );
       load();
     } catch (e: any) {
       toast.error(e?.message || "Failed to import CSV");
@@ -295,6 +462,7 @@ function SynonymsPage() {
         <p className="text-muted-foreground text-sm mt-1">
           Map common ingredient aliases to canonical inventory names. Used by the AI counter-quote builder to match ingredients
           (e.g. <span className="font-medium">EVOO → Extra Virgin Olive Oil</span>, <span className="font-medium">salt → Kosher Salt</span>).
+          Adding a synonym auto-relinks matching recipe ingredients and recomputes costs.
         </p>
       </div>
 
@@ -331,12 +499,13 @@ function SynonymsPage() {
                     <p className="text-sm font-medium truncate">{s.display}</p>
                     <p className="text-xs text-muted-foreground">used {s.count}×</p>
                   </div>
-                  <Input
-                    placeholder={`Map to canonical (e.g. ${toTitleCase(s.alias_normalized)})`}
+                  <InventoryCombobox
+                    inventory={inventory}
                     value={draftCanonical[s.alias_normalized] ?? ""}
-                    onChange={(e) =>
-                      setDraftCanonical((prev) => ({ ...prev, [s.alias_normalized]: e.target.value }))
+                    onChange={(canonical) =>
+                      setDraftCanonical((prev) => ({ ...prev, [s.alias_normalized]: canonical }))
                     }
+                    placeholder={`Pick inventory (e.g. ${toTitleCase(s.alias_normalized)})`}
                   />
                   <Button size="sm" className="bg-gradient-warm text-primary-foreground gap-1.5" onClick={() => acceptSuggestion(s)}>
                     <Plus className="w-3.5 h-3.5" />
@@ -364,7 +533,12 @@ function SynonymsPage() {
               </div>
               <div>
                 <Label className="text-xs">Canonical (inventory name)</Label>
-                <Input value={newCanonical} placeholder="e.g. Extra Virgin Olive Oil" onChange={(e) => setNewCanonical(e.target.value)} />
+                <InventoryCombobox
+                  inventory={inventory}
+                  value={newCanonical}
+                  onChange={(c) => setNewCanonical(c)}
+                  placeholder="Pick from inventory…"
+                />
               </div>
               <Button onClick={addRow} disabled={adding} className="bg-gradient-warm text-primary-foreground gap-1.5">
                 <Plus className="w-4 h-4" />
