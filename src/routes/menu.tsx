@@ -90,7 +90,11 @@ function PublicMenuPage() {
         )
         .eq("active", true)
         .order("name");
-      setRecipes((data || []) as MenuRecipe[]);
+      const list = (data || []) as MenuRecipe[];
+      setRecipes(list);
+      const maxP = Math.max(10, Math.ceil(list.reduce((m, r) => Math.max(m, resolvedPrice(r)), 0)));
+      setPriceMax(maxP);
+      setPriceRange([0, maxP]);
       setLoading(false);
     })();
   }, []);
