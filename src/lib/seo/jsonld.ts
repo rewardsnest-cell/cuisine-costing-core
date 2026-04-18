@@ -6,7 +6,14 @@ export function articleJsonLd(opts: {
   description: string;
   url: string;
   datePublished?: string;
+  dateModified?: string;
+  image?: string | string[];
 }) {
+  const image = opts.image
+    ? Array.isArray(opts.image)
+      ? opts.image
+      : [opts.image]
+    : undefined;
   return {
     type: "application/ld+json" as const,
     children: JSON.stringify({
@@ -14,14 +21,20 @@ export function articleJsonLd(opts: {
       "@type": "Article",
       headline: opts.title,
       description: opts.description,
+      ...(image ? { image } : {}),
       author: { "@type": "Organization", name: BRAND, url: SITE_URL },
       publisher: {
         "@type": "Organization",
         name: BRAND,
         url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/favicon.png`,
+        },
       },
       mainEntityOfPage: { "@type": "WebPage", "@id": opts.url },
       datePublished: opts.datePublished ?? "2025-01-01",
+      dateModified: opts.dateModified ?? opts.datePublished ?? "2025-01-01",
       inLanguage: "en-US",
     }),
   };
