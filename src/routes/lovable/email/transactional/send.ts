@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 
-const SITE_NAME = "cuisine-costing-core"
+const SITE_NAME = "VPS Finest"
 const SENDER_DOMAIN = "notify.vpfinest.com"
 const FROM_DOMAIN = "notify.vpfinest.com"
 

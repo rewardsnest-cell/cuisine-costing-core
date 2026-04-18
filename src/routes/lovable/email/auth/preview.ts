@@ -16,10 +16,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-const SITE_NAME = "cuisine-costing-core"
-const ROOT_DOMAIN = "vpfinest.com"
+const SITE_NAME = "VPS Finest"
+const ROOT_DOMAIN = "vpsfinest.com"
 
-const SAMPLE_PROJECT_URL = "https://cuisine-costing-core.lovable.app"
+const SAMPLE_PROJECT_URL = "https://www.vpsfinest.com"
 const SAMPLE_EMAIL = "user@example.test"
 const SAMPLE_DATA: Record<string, object> = {
   signup: {

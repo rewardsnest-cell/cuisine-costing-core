@@ -1,4 +1,4 @@
-export const SITE_URL = "https://www.vpfinest.com";
+export const SITE_URL = "https://www.vpsfinest.com";
 export const BRAND = "VPS Finest";
 
 export function articleJsonLd(opts: {
