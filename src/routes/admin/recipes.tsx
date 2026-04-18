@@ -152,6 +152,17 @@ function RecipesPage() {
               ))}
             </div>
           )}
+          {selectedRecipe.source_competitor_quote_id && (
+            <div className="mt-3">
+              <Link
+                to="/admin/competitor-quotes/$id"
+                params={{ id: selectedRecipe.source_competitor_quote_id }}
+                className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-accent/40 text-accent-foreground hover:bg-accent transition-colors"
+              >
+                ✨ AI-generated from a competitor quote — view source
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Cost Summary Cards */}
