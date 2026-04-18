@@ -11,8 +11,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2, MessageSquare, Eye } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
+import { compressImageBlob } from "@/lib/compress-image";
 
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
@@ -64,6 +66,40 @@ type Assignment = {
 
 const ROLES = ["Lead", "Cook", "Server", "Driver", "Other"];
 
+type CompetitorLineItem = {
+  name: string; qty: number | null; unitPrice: number | null;
+  total: number | null; category: string | null;
+};
+type CompetitorAnalysis = {
+  competitorName: string | null;
+  clientName: string | null;
+  eventType: string | null;
+  eventDate: string | null;
+  guestCount: number | null;
+  perGuestPrice: number | null;
+  subtotal: number | null;
+  taxes: number | null;
+  gratuity: number | null;
+  total: number | null;
+  lineItems: CompetitorLineItem[];
+  menuHighlights: string[];
+  serviceStyle: string | null;
+  addons: string[];
+  notes: string;
+  ourSuggestedPrice: { perGuest: number; total: number; rationale: string } | null;
+};
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  let bin = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+const fmt = (n: number | null | undefined) =>
+  n == null || isNaN(Number(n)) ? "—" : `$${Number(n).toFixed(2)}`;
+
 function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -77,6 +113,45 @@ function QuotesPage() {
   const [transcriptQuote, setTranscriptQuote] = useState<Quote | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsQuote, setDetailsQuote] = useState<Quote | null>(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
+  const [analysisFileName, setAnalysisFileName] = useState<string>("");
+
+  const onAnalyzeFile = async (file: File) => {
+    setAnalyzing(true);
+    setAnalysis(null);
+    setAnalysisFileName(file.name);
+    setAnalyzeOpen(true);
+    try {
+      // Convert PDF to first page image, or compress an image directly
+      let blob: Blob;
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        const pages = await pdfFileToImageBlobs(file, { scale: 1.8, maxPages: 1 });
+        if (!pages.length) throw new Error("Could not render PDF");
+        blob = pages[0];
+      } else if (file.type.startsWith("image/")) {
+        const c = await compressImageBlob(file, { maxEdge: 1800, quality: 0.85 });
+        blob = c.blob;
+      } else {
+        throw new Error("Upload a PDF or image file");
+      }
+
+      const base64 = await blobToBase64(blob);
+      const { data, error } = await supabase.functions.invoke("analyze-competitor-quote", {
+        body: { imageBase64: base64, mimeType: blob.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      const result = (data as { result?: CompetitorAnalysis })?.result ?? null;
+      if (!result) throw new Error("No analysis returned");
+      setAnalysis(result);
+      toast.success("Competitor quote analyzed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const loadQuotes = async () => {
     const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
@@ -165,6 +240,35 @@ function QuotesPage() {
 
   return (
     <div className="space-y-6">
+      <Card className="shadow-warm border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Analyze a competitor quote
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Upload a competitor's PDF or photo. We'll extract pricing and suggest a winning counter-offer.
+            </p>
+          </div>
+          <label className="inline-flex">
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) onAnalyzeFile(f);
+              }}
+            />
+            <Button asChild variant="default" size="sm" className="gap-2 cursor-pointer">
+              <span><Upload className="w-3.5 h-3.5" /> Upload competitor quote</span>
+            </Button>
+          </label>
+        </CardContent>
+      </Card>
+
       {quotes.length === 0 ? (
         <Card className="shadow-warm border-border/50">
           <CardContent className="p-12 text-center">
@@ -300,6 +404,124 @@ function QuotesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={analyzeOpen} onOpenChange={setAnalyzeOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Competitor Quote Analysis
+            </DialogTitle>
+          </DialogHeader>
+          {analysisFileName && (
+            <p className="text-xs text-muted-foreground -mt-2">{analysisFileName}</p>
+          )}
+          {analyzing && (
+            <div className="py-12 flex flex-col items-center gap-3 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm">Reading the quote and crunching numbers…</p>
+            </div>
+          )}
+          {!analyzing && analysis && <CompetitorAnalysisBody a={analysis} />}
+          {!analyzing && !analysis && (
+            <p className="text-sm text-muted-foreground py-6 text-center">No analysis to show.</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAnalyzeOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function CompetitorAnalysisBody({ a }: { a: CompetitorAnalysis }) {
+  const ours = a.ourSuggestedPrice;
+  const beat =
+    ours && a.total != null && a.total > 0
+      ? Math.round(((a.total - ours.total) / a.total) * 100)
+      : null;
+  return (
+    <div className="space-y-5">
+      <section className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Competitor</p>
+          <p className="font-semibold">{a.competitorName || "Unknown"}</p>
+          <p className="text-xs text-muted-foreground">{a.eventType || "—"} · {a.guestCount ?? "?"} guests</p>
+        </div>
+        <div className="rounded-lg border p-3 bg-muted/30">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Their total</p>
+          <p className="font-display text-2xl font-bold">{fmt(a.total)}</p>
+          <p className="text-xs text-muted-foreground">{fmt(a.perGuestPrice)}/guest</p>
+        </div>
+      </section>
+
+      {ours && (
+        <section className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4">
+          <p className="text-xs uppercase tracking-wide text-primary font-semibold">Our suggested counter</p>
+          <div className="flex items-baseline gap-3 mt-1">
+            <p className="font-display text-3xl font-bold text-primary">{fmt(ours.total)}</p>
+            <p className="text-sm text-muted-foreground">{fmt(ours.perGuest)}/guest</p>
+            {beat != null && beat > 0 && (
+              <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+                Beats by {beat}%
+              </span>
+            )}
+          </div>
+          {ours.rationale && <p className="text-sm mt-2 text-muted-foreground">{ours.rationale}</p>}
+        </section>
+      )}
+
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Subtotal</p><p className="font-medium">{fmt(a.subtotal)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Tax</p><p className="font-medium">{fmt(a.taxes)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Gratuity</p><p className="font-medium">{fmt(a.gratuity)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Service</p><p className="font-medium capitalize">{a.serviceStyle || "—"}</p></div>
+      </section>
+
+      {a.lineItems?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Line items</h3>
+          <div className="rounded-lg border divide-y">
+            {a.lineItems.map((li, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{li.name}</p>
+                  {li.category && <p className="text-xs text-muted-foreground">{li.category}</p>}
+                </div>
+                {li.qty != null && <span className="text-xs text-muted-foreground">×{li.qty}</span>}
+                {li.unitPrice != null && <span className="text-xs text-muted-foreground">{fmt(li.unitPrice)}</span>}
+                <span className="font-medium w-20 text-right">{fmt(li.total)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {a.menuHighlights?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Menu highlights</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {a.menuHighlights.map((m, i) => (
+              <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-muted">{m}</span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {a.addons?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Add-ons</h3>
+          <p className="text-sm">{a.addons.join(", ")}</p>
+        </section>
+      )}
+
+      {a.notes && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h3>
+          <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-md p-3">{a.notes}</p>
+        </section>
+      )}
     </div>
   );
 }
