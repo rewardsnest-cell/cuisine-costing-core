@@ -148,6 +148,8 @@ function CompetitorQuotesPage() {
         />
       </div>
 
+      <PriceGapChart rows={filtered} />
+
       <Card>
         <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
