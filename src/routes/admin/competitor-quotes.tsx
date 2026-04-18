@@ -11,8 +11,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw } from "lucide-react";
+import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
@@ -68,6 +78,28 @@ function CompetitorQuotesPage() {
   const [toDate, setToDate] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
+
+  const deleteQuote = async (row: Row) => {
+    setDeleting(row.id);
+    try {
+      if (row.counter_quote_id) {
+        await supabase.from("competitor_quotes").update({ counter_quote_id: null }).eq("id", row.id);
+        await supabase.from("quote_items").delete().eq("quote_id", row.counter_quote_id);
+        await supabase.from("quotes").delete().eq("id", row.counter_quote_id);
+      }
+      const { error } = await supabase.from("competitor_quotes").delete().eq("id", row.id);
+      if (error) throw error;
+      toast.success("Competitor quote deleted");
+      setRows((rs) => rs.filter((r) => r.id !== row.id));
+      setConfirmDelete(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const rebuildCounter = async (id: string) => {
     setRebuilding(id);
@@ -348,6 +380,15 @@ function CompetitorQuotesPage() {
                           <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
                             <Eye className="w-3.5 h-3.5" /> View
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 h-7 text-xs text-destructive hover:text-destructive"
+                            onClick={() => setConfirmDelete(r)}
+                            title="Delete competitor quote"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -361,6 +402,29 @@ function CompetitorQuotesPage() {
 
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
       <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete competitor quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the analysis
+              {confirmDelete?.competitor_name ? ` from ${confirmDelete.competitor_name}` : ""}
+              {confirmDelete?.counter_quote_id ? " and its linked counter draft quote" : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (confirmDelete) deleteQuote(confirmDelete); }}
+              disabled={!!deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
