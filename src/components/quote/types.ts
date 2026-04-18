@@ -1,6 +1,14 @@
-export type Step = "style" | "protein" | "dietary" | "service" | "extras" | "addons" | "tier" | "details" | "review";
+export type Step = "style" | "protein" | "dietary" | "service" | "recipes" | "extras" | "addons" | "tier" | "details" | "review";
 
-export const STEPS: Step[] = ["style", "protein", "dietary", "service", "extras", "addons", "tier", "details", "review"];
+export const STEPS: Step[] = ["style", "protein", "dietary", "service", "recipes", "extras", "addons", "tier", "details", "review"];
+
+export interface SelectedRecipe {
+  id: string;
+  name: string;
+  category: string | null;
+  cost_per_serving: number;
+  servings_per_guest: number; // usually 1; allows half-portion sides
+}
 
 export const MENU_STYLES = [
   { id: "meat", label: "Meat & Poultry", icon: "🥩", desc: "Prime cuts, poultry, and charcuterie" },
@@ -125,6 +133,7 @@ export interface QuoteSelections {
   locationName: string;
   locationAddress: string;
   preferences?: QuotePreferences;
+  recipes?: SelectedRecipe[];
 }
 
 export const INITIAL_SELECTIONS: QuoteSelections = {
@@ -142,4 +151,5 @@ export const INITIAL_SELECTIONS: QuoteSelections = {
   clientEmail: "",
   locationName: "",
   locationAddress: "",
+  recipes: [],
 };
