@@ -121,6 +121,46 @@ function RecipesPage() {
     setLoadingDetail(false);
   };
 
+  const [recomputing, setRecomputing] = useState(false);
+  const recomputeCost = async () => {
+    if (!selectedRecipe) return;
+    setRecomputing(true);
+    try {
+      const newTotal = ingredients.reduce(
+        (sum, ing) =>
+          sum +
+          getIngredientCostMetrics({
+            quantity: ing.quantity,
+            unit: ing.unit,
+            fallbackCostPerUnit: ing.cost_per_unit,
+            inventoryItem: ing.inventory_item,
+          }).lineTotal,
+        0,
+      );
+      const servings = Math.max(1, selectedRecipe.servings || 1);
+      const newPerServing = newTotal / servings;
+      const { error } = await (supabase as any)
+        .from("recipes")
+        .update({
+          total_cost: Math.round(newTotal * 10000) / 10000,
+          cost_per_serving: Math.round(newPerServing * 10000) / 10000,
+        })
+        .eq("id", selectedRecipe.id);
+      if (error) throw error;
+      setSelectedRecipe({
+        ...selectedRecipe,
+        total_cost: newTotal,
+        cost_per_serving: newPerServing,
+      });
+      load();
+      toast.success(`Recomputed: $${newPerServing.toFixed(2)}/serving`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to recompute cost");
+    } finally {
+      setRecomputing(false);
+    }
+  };
+
   // Detail view
   if (selectedRecipe) {
     const calcCost = (ing: Ingredient) => {
@@ -142,9 +182,21 @@ function RecipesPage() {
           <Button variant="ghost" onClick={() => setSelectedRecipe(null)} className="gap-2 -ml-2">
             <ArrowLeft className="w-4 h-4" /> Back to Recipes
           </Button>
-          <Link to="/admin/recipes/$id/edit" params={{ id: selectedRecipe.id }}>
-            <Button variant="outline" size="sm">Edit recipe</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={recomputeCost}
+              disabled={recomputing || loadingDetail || ingredients.length === 0}
+              className="gap-1.5"
+            >
+              <RefreshCw className={`w-4 h-4 ${recomputing ? "animate-spin" : ""}`} />
+              {recomputing ? "Recomputing…" : "Recompute cost"}
+            </Button>
+            <Link to="/admin/recipes/$id/edit" params={{ id: selectedRecipe.id }}>
+              <Button variant="outline" size="sm">Edit recipe</Button>
+            </Link>
+          </div>
         </div>
 
         {/* Header */}
