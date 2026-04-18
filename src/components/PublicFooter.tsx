@@ -5,11 +5,13 @@ export function PublicFooter() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-              <span className="text-accent-foreground font-bold text-xs">TQ</span>
+              <span className="text-accent-foreground font-bold text-xs">VF</span>
             </div>
-            <span className="font-display text-lg font-semibold">TasteQuote</span>
+            <span className="font-display text-lg font-semibold">VPS Finest</span>
           </div>
-          <p className="text-sm text-background/60">© {new Date().getFullYear()} TasteQuote. Premium catering solutions.</p>
+          <p className="text-sm text-background/60">
+            © {new Date().getFullYear()} VPS Finest Catering. Crafted with care for unforgettable events.
+          </p>
         </div>
       </div>
     </footer>
