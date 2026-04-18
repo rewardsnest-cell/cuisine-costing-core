@@ -64,6 +64,7 @@ import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/c
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const WeddingsRoute = WeddingsRouteImport.update({
@@ -343,6 +344,12 @@ const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   path: '/competitor-quotes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -406,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -463,6 +471,7 @@ export interface FileRoutesByTo {
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -522,6 +531,7 @@ export interface FileRoutesById {
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -639,6 +650,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -697,6 +709,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -721,6 +734,7 @@ export interface RootRouteChildren {
   WeddingsRoute: typeof WeddingsRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1110,6 +1124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCompetitorQuotesIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recipes/$id/edit': {
       id: '/admin/recipes/$id/edit'
       path: '/$id/edit'
@@ -1259,6 +1280,7 @@ const rootRouteChildren: RootRouteChildren = {
   WeddingsRoute: WeddingsRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
