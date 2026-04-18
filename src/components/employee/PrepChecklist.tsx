@@ -92,7 +92,7 @@ export function PrepChecklist({ quoteId, userId }: { quoteId: string; userId: st
             </span>
             {t.source === "manual" && (
               <button
-                onClick={() => remove(t.id)}
+                onClick={() => remove(t.id, t.title)}
                 className="text-muted-foreground hover:text-destructive"
                 aria-label="Delete task"
               >
