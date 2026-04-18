@@ -846,6 +846,10 @@ function EventsPage() {
                 <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{fmtMoney(subtotal)}</span></div>
                 <div className="flex justify-between text-xs text-muted-foreground"><span>Tax ({((taxRate ?? 0) * 100).toFixed(1)}%)</span><span className="font-mono">{fmtMoney(subtotal * Number(taxRate || 0))}</span></div>
                 <div className="flex justify-between font-semibold border-t border-border/60 pt-1 mt-1"><span>Total</span><span className="font-mono">{fmtMoney(total)}</span></div>
+                <div className="flex justify-between text-xs text-muted-foreground border-t border-border/60 pt-1 mt-1">
+                  <span>Theoretical food cost (from linked recipes)</span>
+                  <span className="font-mono">{fmtMoney(theoreticalCost)}</span>
+                </div>
               </div>
             </section>
 
