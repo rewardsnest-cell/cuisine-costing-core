@@ -51,8 +51,17 @@ type QuoteItem = {
   quantity: number;
   unit_price: number;
   total_price: number;
+  recipe_id?: string | null;
   _new?: boolean;
   _deleted?: boolean;
+};
+
+type RecipeOpt = {
+  id: string;
+  name: string;
+  category: string | null;
+  cuisine: string | null;
+  cost_per_serving: number | null;
 };
 
 type Assignment = {
@@ -114,13 +123,23 @@ function EventsPage() {
   const [newAssignUser, setNewAssignUser] = useState("");
   const [newAssignRole, setNewAssignRole] = useState("Lead");
 
+  // Recipe picker
+  const [recipes, setRecipes] = useState<RecipeOpt[]>([]);
+  const [markup, setMarkup] = useState(3.0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [recipeSearch, setRecipeSearch] = useState("");
+
   const load = async () => {
-    const [{ data: ev }, { data: settings }] = await Promise.all([
+    const [{ data: ev }, { data: settings }, { data: recs }, { data: appS }] = await Promise.all([
       (supabase as any).from("quotes").select("*").order("event_date", { ascending: true, nullsFirst: false }),
       (supabase as any).from("app_settings").select("revision_lock_days").eq("id", 1).maybeSingle(),
+      (supabase as any).from("recipes").select("id, name, category, cuisine, cost_per_serving").eq("active", true).order("name"),
+      (supabase as any).from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle(),
     ]);
     setEvents((ev ?? []) as Event[]);
     setLockDays(settings?.revision_lock_days ?? 7);
+    setRecipes((recs ?? []) as RecipeOpt[]);
+    if (appS?.markup_multiplier) setMarkup(Number(appS.markup_multiplier));
   };
 
   const loadEmployees = async () => {
@@ -143,7 +162,7 @@ function EventsPage() {
   const loadDetails = async (eventId: string) => {
     setDetailsLoading(true);
     const [{ data: it }, { data: as }] = await Promise.all([
-      (supabase as any).from("quote_items").select("id, name, quantity, unit_price, total_price").eq("quote_id", eventId),
+      (supabase as any).from("quote_items").select("id, name, quantity, unit_price, total_price, recipe_id").eq("quote_id", eventId),
       (supabase as any).from("event_assignments").select("id, role, employee_user_id, notes").eq("quote_id", eventId),
     ]);
     setItems((it ?? []) as QuoteItem[]);
@@ -223,10 +242,40 @@ function EventsPage() {
         quantity: 1,
         unit_price: 0,
         total_price: 0,
+        recipe_id: null,
         _new: true,
       },
     ]);
   };
+
+  const addItemFromRecipe = (r: RecipeOpt) => {
+    const cost = Number(r.cost_per_serving) || 0;
+    const unitPrice = +(cost * markup).toFixed(2);
+    const guests = Number(form.guest_count) || 1;
+    setItems((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: r.name,
+        quantity: guests,
+        unit_price: unitPrice,
+        total_price: +(unitPrice * guests).toFixed(2),
+        recipe_id: r.id,
+        _new: true,
+      },
+    ]);
+    toast.success(`Added "${r.name}" — $${unitPrice.toFixed(2)}/guest`);
+  };
+
+  // Theoretical cost = Σ recipe.cost_per_serving × quantity for items linked to a recipe
+  const theoreticalCost = useMemo(() => {
+    return liveItems.reduce((sum, it) => {
+      if (!it.recipe_id) return sum;
+      const r = recipes.find((x) => x.id === it.recipe_id);
+      if (!r) return sum;
+      return sum + (Number(r.cost_per_serving) || 0) * (Number(it.quantity) || 0);
+    }, 0);
+  }, [liveItems, recipes]);
 
   const removeItem = (id: string) => {
     setItems((prev) =>
@@ -303,6 +352,7 @@ function EventsPage() {
           quantity: Number(it.quantity) || 0,
           unit_price: Number(it.unit_price) || 0,
           total_price: Number(it.total_price) || 0,
+          recipe_id: it.recipe_id ?? null,
         })
         .eq("id", it.id);
       if (error) itemErrors.push(`update ${it.name}: ${error.message}`);
@@ -315,6 +365,7 @@ function EventsPage() {
           quantity: Number(it.quantity) || 0,
           unit_price: Number(it.unit_price) || 0,
           total_price: Number(it.total_price) || 0,
+          recipe_id: it.recipe_id ?? null,
         })),
       );
       if (error) itemErrors.push(`add items: ${error.message}`);
@@ -362,6 +413,7 @@ function EventsPage() {
       dietary_preferences: dietaryArr.length ? dietaryArr : [],
       subtotal: +subtotal.toFixed(2),
       total: +total.toFixed(2),
+      theoretical_cost: +theoreticalCost.toFixed(2),
     }).eq("id", editing.id);
 
     setSaving(false);
@@ -724,9 +776,14 @@ function EventsPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h4 className="font-semibold text-sm flex items-center gap-1.5"><ClipboardList className="w-4 h-4" />Menu items</h4>
-                <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
-                  <Plus className="w-3.5 h-3.5" />Add item
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setRecipeSearch(""); setPickerOpen(true); }} className="gap-1">
+                    <Utensils className="w-3.5 h-3.5" />Pick from recipes
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
+                    <Plus className="w-3.5 h-3.5" />Add item
+                  </Button>
+                </div>
               </div>
               {detailsLoading ? (
                 <p className="text-xs text-muted-foreground">Loading items…</p>
@@ -743,12 +800,19 @@ function EventsPage() {
                   </div>
                   {liveItems.map((it) => (
                     <div key={it.id} className="grid grid-cols-[1fr_70px_90px_90px_auto] gap-2 items-center">
-                      <Input
-                        value={it.name}
-                        placeholder="Item name"
-                        onChange={(e) => updateItem(it.id, { name: e.target.value })}
-                        className="h-8 text-sm"
-                      />
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Input
+                          value={it.name}
+                          placeholder="Item name"
+                          onChange={(e) => updateItem(it.id, { name: e.target.value })}
+                          className="h-8 text-sm"
+                        />
+                        {it.recipe_id && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5 shrink-0" title="Linked to recipe">
+                            <Utensils className="w-2.5 h-2.5" />
+                          </Badge>
+                        )}
+                      </div>
                       <Input
                         type="number"
                         min={0}
@@ -782,6 +846,10 @@ function EventsPage() {
                 <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{fmtMoney(subtotal)}</span></div>
                 <div className="flex justify-between text-xs text-muted-foreground"><span>Tax ({((taxRate ?? 0) * 100).toFixed(1)}%)</span><span className="font-mono">{fmtMoney(subtotal * Number(taxRate || 0))}</span></div>
                 <div className="flex justify-between font-semibold border-t border-border/60 pt-1 mt-1"><span>Total</span><span className="font-mono">{fmtMoney(total)}</span></div>
+                <div className="flex justify-between text-xs text-muted-foreground border-t border-border/60 pt-1 mt-1">
+                  <span>Theoretical food cost (from linked recipes)</span>
+                  <span className="font-mono">{fmtMoney(theoreticalCost)}</span>
+                </div>
               </div>
             </section>
 
@@ -865,6 +933,73 @@ function EventsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recipe Picker Dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Pick from recipes</DialogTitle>
+            <DialogDescription>
+              Adds a menu item with name and unit price prefilled from <span className="font-mono">cost_per_serving × {markup.toFixed(2)}</span> markup. Quantity defaults to current guest count ({form.guest_count}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              placeholder="Search recipes by name, category, or cuisine..."
+              className="pl-9"
+              value={recipeSearch}
+              onChange={(e) => setRecipeSearch(e.target.value)}
+            />
+          </div>
+          <div className="overflow-y-auto flex-1 -mx-2 px-2">
+            {recipes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No active recipes.</p>
+            ) : (
+              <div className="divide-y border rounded-lg">
+                {recipes
+                  .filter((r) => {
+                    const q = recipeSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      r.name.toLowerCase().includes(q) ||
+                      (r.category || "").toLowerCase().includes(q) ||
+                      (r.cuisine || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .slice(0, 200)
+                  .map((r) => {
+                    const cost = Number(r.cost_per_serving) || 0;
+                    const unit = +(cost * markup).toFixed(2);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => addItemFromRecipe(r)}
+                        className="w-full text-left p-3 hover:bg-accent/60 flex items-center gap-3 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{r.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.category || "—"}{r.cuisine ? ` · ${r.cuisine}` : ""} · cost {fmtMoney(cost)}/serving
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-mono text-sm font-semibold">{fmtMoney(unit)}<span className="text-[10px] font-normal text-muted-foreground">/guest</span></p>
+                        </div>
+                        <Plus className="w-4 h-4 text-primary shrink-0" />
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
