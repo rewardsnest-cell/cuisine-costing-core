@@ -41,6 +41,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
+import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminCompetitorQuotesRouteImport } from './routes/admin/competitor-quotes'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
@@ -207,6 +208,11 @@ const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCompetitorsRoute = AdminCompetitorsRouteImport.update({
+  id: '/competitors',
+  path: '/competitors',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorTrendsRoute = AdminCompetitorTrendsRouteImport.update({
   id: '/competitor-trends',
   path: '/competitor-trends',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
+  '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
+  '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -327,6 +335,7 @@ export interface FileRoutesById {
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
+  '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/competitor-quotes'
     | '/admin/competitor-trends'
+    | '/admin/competitors'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/competitor-quotes'
     | '/admin/competitor-trends'
+    | '/admin/competitors'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -445,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/competitor-quotes'
     | '/admin/competitor-trends'
+    | '/admin/competitors'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -712,6 +724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmployeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/competitors': {
+      id: '/admin/competitors'
+      path: '/competitors'
+      fullPath: '/admin/competitors'
+      preLoaderRoute: typeof AdminCompetitorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitor-trends': {
       id: '/admin/competitor-trends'
       path: '/competitor-trends'
@@ -779,6 +798,7 @@ interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
   AdminCompetitorQuotesRoute: typeof AdminCompetitorQuotesRouteWithChildren
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
+  AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
@@ -803,6 +823,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
   AdminCompetitorQuotesRoute: AdminCompetitorQuotesRouteWithChildren,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
+  AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
