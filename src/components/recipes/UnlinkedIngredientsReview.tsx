@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Link2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertCircle, Link2, Check, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -120,6 +120,38 @@ export function UnlinkedIngredientsReview() {
     setUnlinked((rows) => rows.filter((r) => r.id !== ingId));
   };
 
+  const addToInventory = async (ing: Unlinked) => {
+    setBusy(ing.id);
+    const { data: newItem, error: invErr } = await (supabase as any)
+      .from("inventory_items")
+      .insert({
+        name: ing.name,
+        unit: ing.unit || "each",
+        current_stock: 0,
+        par_level: 0,
+        average_cost_per_unit: 0,
+      })
+      .select("id,name,unit,average_cost_per_unit")
+      .single();
+    if (invErr || !newItem) {
+      setBusy(null);
+      toast.error(invErr?.message || "Failed to create inventory item");
+      return;
+    }
+    const { error: linkErr } = await (supabase as any)
+      .from("recipe_ingredients")
+      .update({ inventory_item_id: newItem.id })
+      .eq("id", ing.id);
+    setBusy(null);
+    if (linkErr) {
+      toast.error(linkErr.message);
+      return;
+    }
+    toast.success(`Added "${ing.name}" to inventory`);
+    setInventory((prev) => [...prev, newItem as InvItem].sort((a, b) => a.name.localeCompare(b.name)));
+    setUnlinked((rows) => rows.filter((r) => r.id !== ing.id));
+  };
+
   if (!loading && unlinked.length === 0) return null;
 
   return (
@@ -198,6 +230,17 @@ export function UnlinkedIngredientsReview() {
                   >
                     {busy === ing.id ? <Link2 className="w-3.5 h-3.5 animate-pulse" /> : <Check className="w-3.5 h-3.5" />}
                     Link
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5"
+                    onClick={() => addToInventory(ing)}
+                    disabled={busy === ing.id}
+                    title="Create a new inventory item from this ingredient and link it"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add to inventory
                   </Button>
                 </div>
               );
