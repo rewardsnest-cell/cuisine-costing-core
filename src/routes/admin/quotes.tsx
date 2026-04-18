@@ -260,14 +260,18 @@ function QuotesPage() {
           .map((li) => {
             const match = recipeMap.get(norm(li.name));
             const qty = Math.max(1, Math.round(Number(li.qty ?? guests) || guests));
-            const unit = Number(li.unitPrice ?? 0) || 0;
+            const competitorUnit = Number(li.unitPrice ?? 0) || 0;
+            // If matched to a recipe, use OUR cost_per_serving as the unit price
+            // so the counter reflects our actual costing instead of the competitor's price.
+            const ourUnit = match && match.cost_per_serving != null ? Number(match.cost_per_serving) : null;
+            const unit = ourUnit ?? competitorUnit;
             return {
               quote_id: q.id,
               recipe_id: match?.id ?? null,
               name: match?.name ?? li.name,
               quantity: qty,
               unit_price: unit,
-              total_price: Number(li.total ?? unit * qty) || unit * qty,
+              total_price: ourUnit != null ? unit * qty : (Number(li.total ?? unit * qty) || unit * qty),
             };
           });
         if (itemsToInsert.length > 0) {
