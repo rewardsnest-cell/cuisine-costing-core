@@ -29,6 +29,7 @@ import { Route as CateringRouteImport } from './routes/catering'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WeddingsIndexRouteImport } from './routes/weddings.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddings.winter-cleveland-ohio'
@@ -182,6 +183,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const WeddingsIndexRoute = WeddingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WeddingsRoute,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
@@ -522,6 +528,7 @@ export interface FileRoutesByFullPath {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -553,7 +560,6 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -596,6 +602,7 @@ export interface FileRoutesByTo {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -672,6 +679,7 @@ export interface FileRoutesById {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -749,6 +757,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin/'
     | '/blog/'
+    | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -780,7 +789,6 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
-    | '/weddings'
     | '/admin/access'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -823,6 +831,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin'
     | '/blog'
+    | '/weddings'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -898,6 +907,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin/'
     | '/blog/'
+    | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -1090,6 +1100,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/weddings/': {
+      id: '/weddings/'
+      path: '/'
+      fullPath: '/weddings/'
+      preLoaderRoute: typeof WeddingsIndexRouteImport
+      parentRoute: typeof WeddingsRoute
     }
     '/blog/': {
       id: '/blog/'
@@ -1575,6 +1592,7 @@ interface WeddingsRouteChildren {
   WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
   WeddingsSpringAuroraOhioRoute: typeof WeddingsSpringAuroraOhioRoute
   WeddingsWinterClevelandOhioRoute: typeof WeddingsWinterClevelandOhioRoute
+  WeddingsIndexRoute: typeof WeddingsIndexRoute
 }
 
 const WeddingsRouteChildren: WeddingsRouteChildren = {
@@ -1582,6 +1600,7 @@ const WeddingsRouteChildren: WeddingsRouteChildren = {
   WeddingsFallHudsonOhioRoute: WeddingsFallHudsonOhioRoute,
   WeddingsSpringAuroraOhioRoute: WeddingsSpringAuroraOhioRoute,
   WeddingsWinterClevelandOhioRoute: WeddingsWinterClevelandOhioRoute,
+  WeddingsIndexRoute: WeddingsIndexRoute,
 }
 
 const WeddingsRouteWithChildren = WeddingsRoute._addFileChildren(
