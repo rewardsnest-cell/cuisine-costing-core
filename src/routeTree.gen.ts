@@ -29,7 +29,12 @@ import { Route as CateringRouteImport } from './routes/catering'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddings.winter-cleveland-ohio'
+import { Route as WeddingsSpringAuroraOhioRouteImport } from './routes/weddings.spring-aurora-ohio'
+import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fall-hudson-ohio'
+import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
 import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
@@ -175,10 +180,37 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const WeddingsWinterClevelandOhioRoute =
+  WeddingsWinterClevelandOhioRouteImport.update({
+    id: '/winter-cleveland-ohio',
+    path: '/winter-cleveland-ohio',
+    getParentRoute: () => WeddingsRoute,
+  } as any)
+const WeddingsSpringAuroraOhioRoute =
+  WeddingsSpringAuroraOhioRouteImport.update({
+    id: '/spring-aurora-ohio',
+    path: '/spring-aurora-ohio',
+    getParentRoute: () => WeddingsRoute,
+  } as any)
+const WeddingsFallHudsonOhioRoute = WeddingsFallHudsonOhioRouteImport.update({
+  id: '/fall-hudson-ohio',
+  path: '/fall-hudson-ohio',
+  getParentRoute: () => WeddingsRoute,
+} as any)
+const WeddingsBookingTimelineRoute = WeddingsBookingTimelineRouteImport.update({
+  id: '/booking-timeline',
+  path: '/booking-timeline',
+  getParentRoute: () => WeddingsRoute,
 } as any)
 const RecipesIdRoute = RecipesIdRouteImport.update({
   id: '/$id',
@@ -426,7 +458,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/weddings': typeof WeddingsRoute
+  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -460,7 +492,12 @@ export interface FileRoutesByFullPath {
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
+  '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
+  '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
+  '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -492,7 +529,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/weddings': typeof WeddingsRoute
+  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -526,7 +563,12 @@ export interface FileRoutesByTo {
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
+  '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
+  '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
+  '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -560,7 +602,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/weddings': typeof WeddingsRoute
+  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -594,7 +636,12 @@ export interface FileRoutesById {
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
+  '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
+  '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
+  '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -663,7 +710,12 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/weddings/booking-timeline'
+    | '/weddings/fall-hudson-ohio'
+    | '/weddings/spring-aurora-ohio'
+    | '/weddings/winter-cleveland-ohio'
     | '/admin/'
+    | '/blog/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -729,7 +781,12 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/weddings/booking-timeline'
+    | '/weddings/fall-hudson-ohio'
+    | '/weddings/spring-aurora-ohio'
+    | '/weddings/winter-cleveland-ohio'
     | '/admin'
+    | '/blog'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -796,7 +853,12 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote_/ai'
     | '/recipes/$id'
+    | '/weddings/booking-timeline'
+    | '/weddings/fall-hudson-ohio'
+    | '/weddings/spring-aurora-ohio'
+    | '/weddings/winter-cleveland-ohio'
     | '/admin/'
+    | '/blog/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
@@ -830,12 +892,13 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  WeddingsRoute: typeof WeddingsRoute
+  WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
   CateringQuoteRoute: typeof CateringQuoteRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -986,12 +1049,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/weddings/winter-cleveland-ohio': {
+      id: '/weddings/winter-cleveland-ohio'
+      path: '/winter-cleveland-ohio'
+      fullPath: '/weddings/winter-cleveland-ohio'
+      preLoaderRoute: typeof WeddingsWinterClevelandOhioRouteImport
+      parentRoute: typeof WeddingsRoute
+    }
+    '/weddings/spring-aurora-ohio': {
+      id: '/weddings/spring-aurora-ohio'
+      path: '/spring-aurora-ohio'
+      fullPath: '/weddings/spring-aurora-ohio'
+      preLoaderRoute: typeof WeddingsSpringAuroraOhioRouteImport
+      parentRoute: typeof WeddingsRoute
+    }
+    '/weddings/fall-hudson-ohio': {
+      id: '/weddings/fall-hudson-ohio'
+      path: '/fall-hudson-ohio'
+      fullPath: '/weddings/fall-hudson-ohio'
+      preLoaderRoute: typeof WeddingsFallHudsonOhioRouteImport
+      parentRoute: typeof WeddingsRoute
+    }
+    '/weddings/booking-timeline': {
+      id: '/weddings/booking-timeline'
+      path: '/booking-timeline'
+      fullPath: '/weddings/booking-timeline'
+      preLoaderRoute: typeof WeddingsBookingTimelineRouteImport
+      parentRoute: typeof WeddingsRoute
     }
     '/recipes/$id': {
       id: '/recipes/$id'
@@ -1409,6 +1507,24 @@ const RecipesRouteChildren: RecipesRouteChildren = {
 const RecipesRouteWithChildren =
   RecipesRoute._addFileChildren(RecipesRouteChildren)
 
+interface WeddingsRouteChildren {
+  WeddingsBookingTimelineRoute: typeof WeddingsBookingTimelineRoute
+  WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
+  WeddingsSpringAuroraOhioRoute: typeof WeddingsSpringAuroraOhioRoute
+  WeddingsWinterClevelandOhioRoute: typeof WeddingsWinterClevelandOhioRoute
+}
+
+const WeddingsRouteChildren: WeddingsRouteChildren = {
+  WeddingsBookingTimelineRoute: WeddingsBookingTimelineRoute,
+  WeddingsFallHudsonOhioRoute: WeddingsFallHudsonOhioRoute,
+  WeddingsSpringAuroraOhioRoute: WeddingsSpringAuroraOhioRoute,
+  WeddingsWinterClevelandOhioRoute: WeddingsWinterClevelandOhioRoute,
+}
+
+const WeddingsRouteWithChildren = WeddingsRoute._addFileChildren(
+  WeddingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1429,12 +1545,13 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  WeddingsRoute: WeddingsRoute,
+  WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
   CateringQuoteRoute: CateringQuoteRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
+  BlogIndexRoute: BlogIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
