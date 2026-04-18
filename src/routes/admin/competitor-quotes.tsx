@@ -39,6 +39,7 @@ type Row = {
   outcome: Outcome;
   counter_quote_id: string | null;
   notes: string | null;
+  counter_total: number | null;
 };
 
 const OUTCOME_META: Record<Outcome, { label: string; className: string; icon: any }> = {
@@ -59,12 +60,16 @@ function CompetitorQuotesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("competitor_quotes")
-      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,service_style,outcome,counter_quote_id,notes")
+      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,service_style,outcome,counter_quote_id,notes,counter:quotes!competitor_quotes_counter_quote_id_fkey(total)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
     } else {
-      setRows((data ?? []) as Row[]);
+      const mapped: Row[] = (data ?? []).map((d: any) => ({
+        ...d,
+        counter_total: d.counter?.total ?? null,
+      }));
+      setRows(mapped);
     }
     setLoading(false);
   };
@@ -93,7 +98,11 @@ function CompetitorQuotesPage() {
     const winRate = decided > 0 ? Math.round((won / decided) * 100) : 0;
     const totals = filtered.map((r) => Number(r.total ?? 0)).filter((n) => n > 0);
     const avgTotal = totals.length ? totals.reduce((s, n) => s + n, 0) / totals.length : 0;
-    return { total: filtered.length, won, lost, pending, winRate, avgTotal };
+    const gaps = filtered
+      .filter((r) => Number(r.total ?? 0) > 0 && Number(r.counter_total ?? 0) > 0)
+      .map((r) => Number(r.counter_total) - Number(r.total));
+    const avgGap = gaps.length ? gaps.reduce((s, n) => s + n, 0) / gaps.length : 0;
+    return { total: filtered.length, won, lost, pending, winRate, avgTotal, avgGap, gapCount: gaps.length };
   }, [filtered]);
 
   const setOutcome = async (id: string, outcome: Outcome) => {
