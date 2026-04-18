@@ -53,6 +53,7 @@ import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSynonymsRouteImport } from './routes/admin/synonyms'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
+import { Route as AdminServingsReviewRouteImport } from './routes/admin/servings-review'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
 import { Route as AdminScanAssetsRouteImport } from './routes/admin/scan-assets'
@@ -311,6 +312,11 @@ const AdminSetPasswordRoute = AdminSetPasswordRouteImport.update({
   path: '/set-password',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminServingsReviewRoute = AdminServingsReviewRouteImport.update({
+  id: '/servings-review',
+  path: '/servings-review',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminScheduleRoute = AdminScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -520,6 +526,7 @@ export interface FileRoutesByFullPath {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -675,6 +683,7 @@ export interface FileRoutesById {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -755,6 +764,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -831,6 +841,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -909,6 +920,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -1294,6 +1306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSetPasswordRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/servings-review': {
+      id: '/admin/servings-review'
+      path: '/servings-review'
+      fullPath: '/admin/servings-review'
+      preLoaderRoute: typeof AdminServingsReviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/schedule': {
       id: '/admin/schedule'
       path: '/schedule'
@@ -1569,6 +1588,7 @@ interface AdminRouteChildren {
   AdminScanAssetsRoute: typeof AdminScanAssetsRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
+  AdminServingsReviewRoute: typeof AdminServingsReviewRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminSynonymsRoute: typeof AdminSynonymsRoute
@@ -1603,6 +1623,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScanAssetsRoute: AdminScanAssetsRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
+  AdminServingsReviewRoute: AdminServingsReviewRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminSynonymsRoute: AdminSynonymsRoute,
