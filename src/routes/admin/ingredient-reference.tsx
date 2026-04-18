@@ -241,57 +241,177 @@ function IngredientReferencePage() {
     updateRow(row.id, { linkQuery: q, linkResults: results });
   };
 
-  const handleRecompute = async (row: RowState) => {
-    updateRow(row.id, { recomputing: true });
-    // Find affected recipes: any recipe with an ingredient referencing this id, or matching by normalized name (fallback), or linked via the same inventory_item_id
-    const conditions: string[] = [`reference_id.eq.${row.id}`];
-    if (row.inventory_item_id) conditions.push(`inventory_item_id.eq.${row.inventory_item_id}`);
+  // Find recipe ids that depend on a reference (by reference_id, linked inventory_item_id, or normalized name fallback)
+  const collectAffectedRecipeIds = async (refs: RowState[]): Promise<Set<string>> => {
+    const ids = new Set<string>();
+    if (refs.length === 0) return ids;
+
+    const refIds = refs.map((r) => r.id);
+    const invIds = refs.map((r) => r.inventory_item_id).filter((x): x is string => !!x);
+    const conditions: string[] = [`reference_id.in.(${refIds.join(",")})`];
+    if (invIds.length > 0) conditions.push(`inventory_item_id.in.(${invIds.join(",")})`);
+
     const { data: ings, error } = await supabase
       .from("recipe_ingredients")
       .select("recipe_id,name")
       .or(conditions.join(","));
     if (error) {
       toast.error(error.message);
-      updateRow(row.id, { recomputing: false });
-      return;
+      return ids;
     }
-    const ids = new Set<string>();
     for (const ing of ings ?? []) {
       if ((ing as any).recipe_id) ids.add((ing as any).recipe_id);
     }
-    // Also include name-based matches (normalized)
-    const { data: byName } = await supabase
-      .from("recipe_ingredients")
-      .select("recipe_id,name");
+
+    // Name-based fallback for ingredients that have neither reference_id nor inventory link
+    const normSet = new Set(refs.map((r) => r.canonical_normalized));
+    const { data: byName } = await supabase.from("recipe_ingredients").select("recipe_id,name");
     for (const ing of byName ?? []) {
       const n = (ing as any).name as string;
       if (!n) continue;
       const norm = n.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-      if (norm === row.canonical_normalized) ids.add((ing as any).recipe_id);
+      if (normSet.has(norm)) ids.add((ing as any).recipe_id);
     }
-    if (ids.size === 0) {
-      toast.info("No recipes use this ingredient");
-      updateRow(row.id, { recomputing: false });
-      return;
-    }
+    return ids;
+  };
+
+  const recomputeRecipes = async (recipeIds: Set<string>): Promise<{ ok: number; fail: number }> => {
     let ok = 0;
     let fail = 0;
     await Promise.all(
-      Array.from(ids).map(async (rid) => {
+      Array.from(recipeIds).map(async (rid) => {
         const { error: rpcErr } = await supabase.rpc("recompute_recipe_cost", { _recipe_id: rid });
         if (rpcErr) fail++;
         else ok++;
       }),
     );
+    return { ok, fail };
+  };
+
+  const handleRecompute = async (row: RowState) => {
+    updateRow(row.id, { recomputing: true });
+    const ids = await collectAffectedRecipeIds([row]);
+    if (ids.size === 0) {
+      toast.info("No recipes use this ingredient");
+      updateRow(row.id, { recomputing: false });
+      return;
+    }
+    const { ok, fail } = await recomputeRecipes(ids);
     updateRow(row.id, { recomputing: false });
     if (fail) toast.warning(`Recomputed ${ok}, ${fail} failed`);
     else toast.success(`Recomputed ${ok} recipe${ok === 1 ? "" : "s"}`);
+  };
+
+  const handleBatchRecompute = async () => {
+    const targets = rows.filter((r) => selected.has(r.id));
+    if (targets.length === 0) return;
+    setBatchRecomputing(true);
+    try {
+      const ids = await collectAffectedRecipeIds(targets);
+      if (ids.size === 0) {
+        toast.info("No recipes use the selected ingredients");
+        return;
+      }
+      const { ok, fail } = await recomputeRecipes(ids);
+      if (fail) toast.warning(`Recomputed ${ok} of ${ids.size} recipes (${fail} failed) across ${targets.length} ingredients`);
+      else toast.success(`Recomputed ${ok} recipe${ok === 1 ? "" : "s"} across ${targets.length} ingredient${targets.length === 1 ? "" : "s"}`);
+    } finally {
+      setBatchRecomputing(false);
+    }
+  };
+
+  const openMergeDialog = () => {
+    if (selected.size !== 2) return;
+    const [a, b] = Array.from(selected);
+    // Default: keep the linked one (or the first)
+    const rowA = rows.find((r) => r.id === a);
+    const rowB = rows.find((r) => r.id === b);
+    const keep = rowA?.inventory_item_id && !rowB?.inventory_item_id ? a : b && !rowA?.inventory_item_id && rowB?.inventory_item_id ? b : a;
+    setMergeKeepId(keep);
+    setMergeRemoveId(keep === a ? b : a);
+    setMergeOpen(true);
+  };
+
+  const handleMerge = async () => {
+    if (!mergeKeepId || !mergeRemoveId || mergeKeepId === mergeRemoveId) return;
+    const keep = rows.find((r) => r.id === mergeKeepId);
+    const remove = rows.find((r) => r.id === mergeRemoveId);
+    if (!keep || !remove) return;
+    setMerging(true);
+    try {
+      // 1. Rewrite recipe_ingredients.reference_id from remove → keep
+      const { error: riErr, count: riCount } = await supabase
+        .from("recipe_ingredients")
+        .update({ reference_id: keep.id }, { count: "exact" })
+        .eq("reference_id", remove.id);
+      if (riErr) throw riErr;
+
+      // 2. Repoint synonyms from remove → keep, and add the removed canonical name as a synonym
+      await supabase
+        .from("ingredient_synonyms")
+        .update({ reference_id: keep.id, canonical: keep.canonical_name })
+        .eq("reference_id", remove.id);
+
+      await supabase
+        .from("ingredient_synonyms")
+        .upsert(
+          {
+            alias: remove.canonical_name,
+            alias_normalized: remove.canonical_normalized,
+            canonical: keep.canonical_name,
+            reference_id: keep.id,
+          },
+          { onConflict: "alias_normalized" },
+        );
+
+      // 3. If keep has no inventory link but remove does, inherit it
+      if (!keep.inventory_item_id && remove.inventory_item_id) {
+        await supabase
+          .from("ingredient_reference")
+          .update({ inventory_item_id: remove.inventory_item_id })
+          .eq("id", keep.id);
+      }
+
+      // 4. Delete the removed reference (FK on recipe_ingredients was nulled by the update above)
+      const { error: delErr } = await supabase.from("ingredient_reference").delete().eq("id", remove.id);
+      if (delErr) throw delErr;
+
+      toast.success(`Merged "${remove.canonical_name}" → "${keep.canonical_name}" (${riCount ?? 0} recipe ingredient${riCount === 1 ? "" : "s"} repointed)`);
+
+      // 5. Recompute affected recipes
+      const ids = await collectAffectedRecipeIds([keep]);
+      if (ids.size > 0) {
+        const { ok, fail } = await recomputeRecipes(ids);
+        if (fail) toast.warning(`Recomputed ${ok} of ${ids.size} recipes (${fail} failed)`);
+        else if (ok > 0) toast.success(`Recomputed ${ok} affected recipe${ok === 1 ? "" : "s"}`);
+      }
+
+      setMergeOpen(false);
+      setSelected(new Set());
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Merge failed");
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const counts = useMemo(() => {
     const linked = rows.filter((r) => r.inventory_item_id).length;
     return { total: rows.length, linked, unlinked: rows.length - linked };
   }, [rows]);
+
+  const mergeKeepRow = mergeKeepId ? rows.find((r) => r.id === mergeKeepId) ?? null : null;
+  const mergeRemoveRow = mergeRemoveId ? rows.find((r) => r.id === mergeRemoveId) ?? null : null;
 
   return (
     <div className="space-y-6 max-w-7xl">
