@@ -343,7 +343,7 @@ function IngredientReferencePage() {
     // Cache a deep-ish copy so user toggling `selected` doesn't mutate the cache.
     setSuggestionCache((prev) => {
       const next = new Map(prev);
-      next.set(refId, trimmed.map((s) => ({ ...s })));
+      next.set(refId, { savedAt: Date.now(), suggestions: trimmed.map((s) => ({ ...s })) });
       return next;
     });
     setSuggestLoading(false);
