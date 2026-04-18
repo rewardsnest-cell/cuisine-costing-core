@@ -1,16 +1,10 @@
 import * as React from 'react'
-import { render as renderAsync } from '@react-email/components'
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 
-// Configuration baked in at scaffold time
 const SITE_NAME = "cuisine-costing-core"
-// SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
-// It MUST match the subdomain delegated to Lovable's nameservers. NEVER use the root domain.
 const SENDER_DOMAIN = "notify.vpfinest.com"
-// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
-// Can be the root domain when display_from_root is enabled — this is cosmetic only.
 const FROM_DOMAIN = "notify.vpfinest.com"
 
 function redactEmail(email: string | null | undefined): string {
@@ -20,7 +14,6 @@ function redactEmail(email: string | null | undefined): string {
   return `${localPart[0]}***@${domain}`
 }
 
-// Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
   const bytes = new Uint8Array(32)
   crypto.getRandomValues(bytes)
@@ -44,8 +37,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        // Verify the caller has a valid Supabase auth token.
-        // In TanStack, there is no Supabase gateway — we validate the JWT ourselves.
         const authHeader = request.headers.get('Authorization')
         if (!authHeader?.startsWith('Bearer ')) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -59,7 +50,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Parse request body
         let templateName: string
         let recipientEmail: string
         let idempotencyKey: string
@@ -88,9 +78,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        // 1. Look up template from registry (early — needed to resolve recipient)
         const template = TEMPLATES[templateName]
-
         if (!template) {
           console.error('Template not found in registry', { templateName })
           return Response.json(
@@ -101,11 +89,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        // Resolve effective recipient: template-level `to` takes precedence over
-        // the caller-provided recipientEmail. This allows notification templates
-        // to always send to a fixed address (e.g., site owner from env var).
         const effectiveRecipient = template.to || recipientEmail
-
         if (!effectiveRecipient) {
           return Response.json(
             {
@@ -115,7 +99,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        // 2. Check suppression list (fail-closed: if we can't verify, don't send)
         const { data: suppressed, error: suppressionError } = await supabase
           .from('suppressed_emails')
           .select('id')
@@ -134,7 +117,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         }
 
         if (suppressed) {
-          // Log the suppressed attempt
           await supabase.from('email_send_log').insert({
             message_id: messageId,
             template_name: templateName,
@@ -149,11 +131,9 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           return Response.json({ success: false, reason: 'email_suppressed' })
         }
 
-        // 3. Get or create unsubscribe token (one token per email address)
         const normalizedEmail = effectiveRecipient.toLowerCase()
         let unsubscribeToken: string
 
-        // Check for existing token for this email
         const { data: existingToken, error: tokenLookupError } = await supabase
           .from('email_unsubscribe_tokens')
           .select('token, used_at')
@@ -179,10 +159,8 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         }
 
         if (existingToken && !existingToken.used_at) {
-          // Reuse existing unused token
           unsubscribeToken = existingToken.token
         } else if (!existingToken) {
-          // Create new token — upsert handles concurrent inserts gracefully
           unsubscribeToken = generateToken()
           const { error: tokenError } = await supabase
             .from('email_unsubscribe_tokens')
@@ -208,8 +186,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             )
           }
 
-          // If another request raced us, our upsert was silently ignored.
-          // Re-read to get the actual stored token.
           const { data: storedToken, error: reReadError } = await supabase
             .from('email_unsubscribe_tokens')
             .select('token')
@@ -235,8 +211,6 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           }
           unsubscribeToken = storedToken.token
         } else {
-          // Token exists but is already used — email should have been caught by suppression check above.
-          // This is a safety fallback; log and skip sending.
           console.warn('Unsubscribe token already used but email not suppressed', {
             email_redacted: redactEmail(normalizedEmail),
           })
@@ -251,21 +225,16 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           return Response.json({ success: false, reason: 'email_suppressed' })
         }
 
-        // 4. Render React Email template to HTML and plain text
+        const { render: renderAsync } = await import('@react-email/components')
         const element = React.createElement(template.component, templateData)
         const html = await renderAsync(element)
         const plainText = await renderAsync(element, { plainText: true })
 
-        // Resolve subject — supports static string or dynamic function
         const resolvedSubject =
           typeof template.subject === 'function'
             ? template.subject(templateData)
             : template.subject
 
-        // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
-        // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
-
-        // Log pending BEFORE enqueue so we have a record even if enqueue crashes
         await supabase.from('email_send_log').insert({
           message_id: messageId,
           template_name: templateName,

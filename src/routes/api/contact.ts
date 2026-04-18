@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { createClient } from "@supabase/supabase-js"
-import { render } from "@react-email/components"
 import * as React from "react"
 import { z } from "zod"
 import { TEMPLATES } from "@/lib/email-templates/registry"
@@ -35,7 +34,7 @@ export const Route = createFileRoute("/api/contact")({
         try {
           const body = await request.json()
           parsed = contactSchema.parse(body)
-        } catch (err) {
+        } catch {
           return Response.json({ error: "Invalid input" }, { status: 400 })
         }
 
@@ -48,7 +47,6 @@ export const Route = createFileRoute("/api/contact")({
         const recipient = template.to || "hello@vpsfinest.com"
         const messageId = crypto.randomUUID()
 
-        // Suppression check
         const { data: suppressed } = await supabase
           .from("suppressed_emails")
           .select("id")
@@ -58,7 +56,6 @@ export const Route = createFileRoute("/api/contact")({
           return Response.json({ success: true })
         }
 
-        // Unsubscribe token (one per email)
         const normalized = recipient.toLowerCase()
         let unsubscribeToken: string
         const { data: existing } = await supabase
@@ -81,6 +78,7 @@ export const Route = createFileRoute("/api/contact")({
           if (stored) unsubscribeToken = stored.token
         }
 
+        const { render } = await import("@react-email/components")
         const element = React.createElement(template.component, parsed)
         const html = await render(element)
         const plainText = await render(element, { plainText: true })
@@ -104,7 +102,7 @@ export const Route = createFileRoute("/api/contact")({
             subject,
             html,
             text: plainText,
-            purpose: 'transactional',
+            purpose: "transactional",
             label: "contact-form-notification",
             idempotency_key: messageId,
             unsubscribe_token: unsubscribeToken,
