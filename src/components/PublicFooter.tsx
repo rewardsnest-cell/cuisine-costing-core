@@ -55,6 +55,7 @@ export function PublicFooter() {
               <li><Link to="/catering" className="text-background/70 hover:text-background transition-colors">Catering</Link></li>
               <li><Link to="/weddings" className="text-background/70 hover:text-background transition-colors">Weddings</Link></li>
               <li><Link to="/recipes" className="text-background/70 hover:text-background transition-colors">Recipes</Link></li>
+              <li><Link to="/blog" className="text-background/70 hover:text-background transition-colors">Guides</Link></li>
               <li><Link to="/contact" className="text-background/70 hover:text-background transition-colors">Contact</Link></li>
             </ul>
           </div>
