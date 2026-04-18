@@ -24,12 +24,13 @@ const inventorySearchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
+  category: fallback(z.string(), "all").default("all"),
 });
 
 export const Route = createFileRoute("/admin/inventory")({
   validateSearch: zodValidator(inventorySearchSchema),
   search: {
-    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc" })],
+    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", category: "all" })],
   },
   component: InventoryPage,
 });
