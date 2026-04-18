@@ -31,6 +31,8 @@ serve(async (req) => {
     if (!receipts.length) throw new Error("Receipt not found");
 
     const receipt = receipts[0];
+    const supplierId = receipt.supplier_id || null;
+    const observedAt = receipt.receipt_date ? new Date(receipt.receipt_date).toISOString() : new Date().toISOString();
     const lineItems = receipt.extracted_line_items || [];
     const updates: { name: string; oldCost: number; newCost: number }[] = [];
 
@@ -65,6 +67,21 @@ serve(async (req) => {
           current_stock: oldStock + newQty,
           average_cost_per_unit: Math.round(newAvgCost * 100) / 100,
           last_receipt_cost: newUnitPrice,
+        }),
+      });
+
+      // Log price point for trend tracking
+      await fetch(`${SUPABASE_URL}/rest/v1/price_history`, {
+        method: "POST",
+        headers: { ...headers, Prefer: "return=minimal" },
+        body: JSON.stringify({
+          inventory_item_id: item.matched_inventory_id,
+          source: "receipt",
+          source_id: receiptId,
+          supplier_id: supplierId,
+          unit_price: newUnitPrice,
+          unit: item.unit || null,
+          observed_at: observedAt,
         }),
       });
 
