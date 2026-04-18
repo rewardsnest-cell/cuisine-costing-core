@@ -363,6 +363,32 @@ function CompetitorQuotesPage() {
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2 bg-accent/40 border-b border-border">
+              <div className="text-sm font-medium">
+                {selected.size} selected
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={bulkBusy}>
+                  Clear
+                </Button>
+                {showArchived && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => runBulk(false)} disabled={bulkBusy}>
+                    <ArchiveRestore className="w-3.5 h-3.5" /> Restore selected
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive"
+                  onClick={() => setConfirmBulkArchive(true)}
+                  disabled={bulkBusy}
+                >
+                  <Archive className="w-3.5 h-3.5" /> Archive selected
+                </Button>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Loading…</div>
           ) : filtered.length === 0 ? (
