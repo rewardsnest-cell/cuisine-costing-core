@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw, ExternalLink } from "lucide-react";
+import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw, ExternalLink, Link2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
@@ -51,6 +51,7 @@ function AdminMenuPage() {
     current: "",
   });
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const genPhoto = useServerFn(generateRecipePhoto);
 
   const load = async () => {
@@ -272,16 +273,42 @@ function AdminMenuPage() {
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
                     )}
-                    <a
-                      href={`/menu#recipe-${r.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      title="Open this recipe on the public menu in a new tab"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      Preview on /menu
-                    </a>
+                    <div className="flex items-center gap-2 mt-2">
+                      <a
+                        href={`/menu#recipe-${r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        title="Open this recipe on the public menu in a new tab"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Preview on /menu
+                      </a>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs gap-1.5"
+                        onClick={() => {
+                          const url = `${window.location.origin}/menu#recipe-${r.id}`;
+                          navigator.clipboard.writeText(url);
+                          setCopiedId(r.id);
+                          toast.success("Link copied to clipboard");
+                          setTimeout(() => setCopiedId((cur) => (cur === r.id ? null : cur)), 1500);
+                        }}
+                      >
+                        {copiedId === r.id ? (
+                          <>
+                            <Check className="w-3 h-3 text-green-500" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="w-3 h-3" />
+                            Copy link
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   <div>
