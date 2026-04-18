@@ -45,6 +45,7 @@ export function SupplierFlyersDialog({
   const [flyers, setFlyers] = useState<Flyer[]>([]);
   const [itemsByFlyer, setItemsByFlyer] = useState<Record<string, FlyerItem[]>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
