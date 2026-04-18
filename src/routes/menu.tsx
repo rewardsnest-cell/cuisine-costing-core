@@ -74,6 +74,7 @@ function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving">) {
 }
 
 function PublicMenuPage() {
+  const { add, setQty, qtyOf, has } = useMenuSelections();
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
