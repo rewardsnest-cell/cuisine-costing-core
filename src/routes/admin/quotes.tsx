@@ -404,6 +404,124 @@ function QuotesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={analyzeOpen} onOpenChange={setAnalyzeOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Competitor Quote Analysis
+            </DialogTitle>
+          </DialogHeader>
+          {analysisFileName && (
+            <p className="text-xs text-muted-foreground -mt-2">{analysisFileName}</p>
+          )}
+          {analyzing && (
+            <div className="py-12 flex flex-col items-center gap-3 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm">Reading the quote and crunching numbers…</p>
+            </div>
+          )}
+          {!analyzing && analysis && <CompetitorAnalysisBody a={analysis} />}
+          {!analyzing && !analysis && (
+            <p className="text-sm text-muted-foreground py-6 text-center">No analysis to show.</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAnalyzeOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function CompetitorAnalysisBody({ a }: { a: CompetitorAnalysis }) {
+  const ours = a.ourSuggestedPrice;
+  const beat =
+    ours && a.total != null && a.total > 0
+      ? Math.round(((a.total - ours.total) / a.total) * 100)
+      : null;
+  return (
+    <div className="space-y-5">
+      <section className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border p-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Competitor</p>
+          <p className="font-semibold">{a.competitorName || "Unknown"}</p>
+          <p className="text-xs text-muted-foreground">{a.eventType || "—"} · {a.guestCount ?? "?"} guests</p>
+        </div>
+        <div className="rounded-lg border p-3 bg-muted/30">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Their total</p>
+          <p className="font-display text-2xl font-bold">{fmt(a.total)}</p>
+          <p className="text-xs text-muted-foreground">{fmt(a.perGuestPrice)}/guest</p>
+        </div>
+      </section>
+
+      {ours && (
+        <section className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4">
+          <p className="text-xs uppercase tracking-wide text-primary font-semibold">Our suggested counter</p>
+          <div className="flex items-baseline gap-3 mt-1">
+            <p className="font-display text-3xl font-bold text-primary">{fmt(ours.total)}</p>
+            <p className="text-sm text-muted-foreground">{fmt(ours.perGuest)}/guest</p>
+            {beat != null && beat > 0 && (
+              <span className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+                Beats by {beat}%
+              </span>
+            )}
+          </div>
+          {ours.rationale && <p className="text-sm mt-2 text-muted-foreground">{ours.rationale}</p>}
+        </section>
+      )}
+
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Subtotal</p><p className="font-medium">{fmt(a.subtotal)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Tax</p><p className="font-medium">{fmt(a.taxes)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Gratuity</p><p className="font-medium">{fmt(a.gratuity)}</p></div>
+        <div className="rounded border p-2"><p className="text-xs text-muted-foreground">Service</p><p className="font-medium capitalize">{a.serviceStyle || "—"}</p></div>
+      </section>
+
+      {a.lineItems?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Line items</h3>
+          <div className="rounded-lg border divide-y">
+            {a.lineItems.map((li, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{li.name}</p>
+                  {li.category && <p className="text-xs text-muted-foreground">{li.category}</p>}
+                </div>
+                {li.qty != null && <span className="text-xs text-muted-foreground">×{li.qty}</span>}
+                {li.unitPrice != null && <span className="text-xs text-muted-foreground">{fmt(li.unitPrice)}</span>}
+                <span className="font-medium w-20 text-right">{fmt(li.total)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {a.menuHighlights?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Menu highlights</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {a.menuHighlights.map((m, i) => (
+              <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-muted">{m}</span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {a.addons?.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Add-ons</h3>
+          <p className="text-sm">{a.addons.join(", ")}</p>
+        </section>
+      )}
+
+      {a.notes && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h3>
+          <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-md p-3">{a.notes}</p>
+        </section>
+      )}
     </div>
   );
 }
