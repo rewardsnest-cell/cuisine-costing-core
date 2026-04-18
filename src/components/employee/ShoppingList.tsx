@@ -244,7 +244,7 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
       setGroups(out);
       setLoading(false);
     })();
-  }, [quoteId]);
+  }, [quoteId, activeSales]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
