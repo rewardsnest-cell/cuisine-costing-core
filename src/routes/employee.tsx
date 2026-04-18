@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PrepChecklist } from "@/components/employee/PrepChecklist";
 import { TimeClock } from "@/components/employee/TimeClock";
 import { ShoppingList } from "@/components/employee/ShoppingList";
+import { RecipeBreakdown } from "@/components/employee/RecipeBreakdown";
 import {
   Briefcase,
   CalendarDays,
