@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
+import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
@@ -129,6 +130,11 @@ const QuoteAiRoute = QuoteAiRouteImport.update({
 const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
   path: '/event/$reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CateringQuoteRoute = CateringQuoteRouteImport.update({
+  id: '/catering/quote',
+  path: '/catering/quote',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -328,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
@@ -375,6 +382,7 @@ export interface FileRoutesByTo {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
@@ -424,6 +432,7 @@ export interface FileRoutesById {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
@@ -474,6 +483,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
     | '/admin/'
@@ -521,6 +531,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
     | '/admin'
@@ -569,6 +580,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote_/ai'
     | '/admin/'
@@ -592,6 +604,7 @@ export interface RootRouteChildren {
   QuoteRoute: typeof QuoteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  CateringQuoteRoute: typeof CateringQuoteRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
 }
@@ -701,6 +714,13 @@ declare module '@tanstack/react-router' {
       path: '/event/$reference'
       fullPath: '/event/$reference'
       preLoaderRoute: typeof EventReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catering/quote': {
+      id: '/catering/quote'
+      path: '/catering/quote'
+      fullPath: '/catering/quote'
+      preLoaderRoute: typeof CateringQuoteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
@@ -1028,6 +1048,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuoteRoute: QuoteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  CateringQuoteRoute: CateringQuoteRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
 }
