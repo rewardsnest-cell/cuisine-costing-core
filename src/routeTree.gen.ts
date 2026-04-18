@@ -29,6 +29,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
@@ -163,6 +164,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const RecipesIdRoute = RecipesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => RecipesRoute,
 } as any)
 const QuoteAiRoute = QuoteAiRouteImport.update({
   id: '/quote_/ai',
@@ -351,7 +357,7 @@ export interface FileRoutesByFullPath {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRoute
+  '/recipes': typeof RecipesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
+  '/recipes/$id': typeof RecipesIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -406,7 +413,7 @@ export interface FileRoutesByTo {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRoute
+  '/recipes': typeof RecipesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
+  '/recipes/$id': typeof RecipesIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -463,7 +471,7 @@ export interface FileRoutesById {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRoute
+  '/recipes': typeof RecipesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -498,6 +506,7 @@ export interface FileRoutesById {
   '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
+  '/recipes/$id': typeof RecipesIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -556,6 +565,7 @@ export interface FileRouteTypes {
     | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
+    | '/recipes/$id'
     | '/admin/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
+    | '/recipes/$id'
     | '/admin'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
@@ -667,6 +678,7 @@ export interface FileRouteTypes {
     | '/catering/quote'
     | '/event/$reference'
     | '/quote_/ai'
+    | '/recipes/$id'
     | '/admin/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
@@ -689,7 +701,7 @@ export interface RootRouteChildren {
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
-  RecipesRoute: typeof RecipesRoute
+  RecipesRoute: typeof RecipesRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
@@ -840,6 +852,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/recipes/$id': {
+      id: '/recipes/$id'
+      path: '/$id'
+      fullPath: '/recipes/$id'
+      preLoaderRoute: typeof RecipesIdRouteImport
+      parentRoute: typeof RecipesRoute
     }
     '/quote_/ai': {
       id: '/quote_/ai'
@@ -1186,6 +1205,17 @@ const CateringRouteWithChildren = CateringRoute._addFileChildren(
   CateringRouteChildren,
 )
 
+interface RecipesRouteChildren {
+  RecipesIdRoute: typeof RecipesIdRoute
+}
+
+const RecipesRouteChildren: RecipesRouteChildren = {
+  RecipesIdRoute: RecipesIdRoute,
+}
+
+const RecipesRouteWithChildren =
+  RecipesRoute._addFileChildren(RecipesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1200,7 +1230,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
-  RecipesRoute: RecipesRoute,
+  RecipesRoute: RecipesRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
