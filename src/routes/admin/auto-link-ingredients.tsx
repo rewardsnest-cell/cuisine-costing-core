@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ArrowLeft, Link2, Plus, X, RefreshCw, CheckCircle2, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sparkles, ArrowLeft, Link2, Plus, X, RefreshCw, CheckCircle2, Loader2, PackagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const COMMON_UNITS = ["each", "lb", "oz", "g", "kg", "ml", "l", "cup", "tbsp", "tsp", "clove", "bunch", "head", "slice", "piece"];
 
 export const Route = createFileRoute("/admin/auto-link-ingredients")({
   head: () => ({
