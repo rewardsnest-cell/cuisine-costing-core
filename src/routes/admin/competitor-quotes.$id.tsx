@@ -166,10 +166,9 @@ function QuoteCompareView() {
   const rebuild = async () => {
     setRebuilding(true);
     try {
-      const { error } = await supabase.functions.invoke("build-counter-quote", {
-        body: { competitorQuoteId: id },
-      });
-      if (error) throw error;
+      const { buildCounterQuote } = await import("@/lib/server-fns/build-counter-quote.functions");
+      const result = await buildCounterQuote({ data: { competitorQuoteId: id } });
+      if ((result as any).error) throw new Error((result as any).error);
       toast.success("Counter rebuilt");
       await load();
     } catch (e) {

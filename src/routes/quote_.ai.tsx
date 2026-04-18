@@ -55,13 +55,10 @@ function QuoteAiPage() {
     setLoading(true);
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quote-assistant`;
+      const url = `/api/quote-assistant`;
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next, prefilled: draft, context: isWedding ? "wedding" : undefined }),
       });
       if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);

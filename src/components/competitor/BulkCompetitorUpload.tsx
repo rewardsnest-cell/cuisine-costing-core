@@ -46,10 +46,9 @@ async function uploadToReceipts(blob: Blob): Promise<{ url: string; path: string
 
 async function analyzeBlob(blob: Blob) {
   const base64 = await blobToBase64(blob);
-  const { data, error } = await supabase.functions.invoke("analyze-competitor-quote", {
-    body: { imageBase64: base64, mimeType: blob.type || "image/jpeg" },
-  });
-  if (error) throw error;
+  const { analyzeCompetitorQuote } = await import("@/lib/server-fns/analyze-competitor-quote.functions");
+  const data = await analyzeCompetitorQuote({ data: { imageBase64: base64, mimeType: blob.type || "image/jpeg" } });
+  if ((data as any).error) throw new Error((data as any).error);
   const result = (data as { result?: any })?.result ?? null;
   if (!result) throw new Error("No analysis returned");
   return result;
@@ -108,11 +107,10 @@ async function saveCompetitorRow(
 
 async function autoBuildCounter(competitorQuoteId: string): Promise<{ ok: boolean; aiCreated?: number } | null> {
   try {
-    const { data, error } = await supabase.functions.invoke("build-counter-quote", {
-      body: { competitorQuoteId },
-    });
-    if (error) {
-      console.warn("build-counter-quote failed:", error.message);
+    const { buildCounterQuote } = await import("@/lib/server-fns/build-counter-quote.functions");
+    const data = await buildCounterQuote({ data: { competitorQuoteId } });
+    if ((data as any).error) {
+      console.warn("build-counter-quote failed:", (data as any).error);
       return { ok: false };
     }
     return { ok: true, aiCreated: (data as any)?.stats?.aiCreated ?? 0 };

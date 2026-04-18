@@ -68,10 +68,8 @@ function PurchaseOrdersPage() {
         reader.readAsDataURL(file);
       });
 
-      const { data, error } = await supabase.functions.invoke("process-purchase-order", {
-        body: { imageBase64: dataUrl },
-      });
-      if (error) throw error;
+      const { processPurchaseOrder } = await import("@/lib/server-fns/process-purchase-order.functions");
+      const data = await processPurchaseOrder({ data: { imageBase64: dataUrl } });
       if (!data?.success) throw new Error(data?.error || "Scan failed");
 
       // Try to match vendor by name

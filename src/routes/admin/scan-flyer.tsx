@@ -203,12 +203,12 @@ function ScanFlyerPage() {
 
       if (extractAfterSave) {
         setStatus("Extracting items with AI…");
-        const { error: fnErr } = await supabase.functions.invoke("process-sale-flyer", {
-          body: { flyerId: inserted.id },
-        });
-        if (fnErr) {
-          // Don't block navigation on extract failure
-          setError(`Saved, but AI extract failed: ${fnErr.message}`);
+        try {
+          const { processSaleFlyer } = await import("@/lib/server-fns/process-sale-flyer.functions");
+          const result = await processSaleFlyer({ data: { flyerId: inserted.id } });
+          if (!result.success) setError(`Saved, but AI extract failed: ${result.error || "unknown error"}`);
+        } catch (fnErr: any) {
+          setError(`Saved, but AI extract failed: ${fnErr?.message || fnErr}`);
         }
       }
 
