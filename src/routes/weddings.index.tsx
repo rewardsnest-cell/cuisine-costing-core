@@ -20,7 +20,7 @@ function useAsset(slug: string): string | null {
   return url;
 }
 
-export const Route = createFileRoute("/weddings")({
+export const Route = createFileRoute("/weddings/")({
   head: () => ({
     meta: [
       { title: "Wedding Catering in Aurora, Ohio — VPS Finest" },
