@@ -584,6 +584,12 @@ function IngredientReferencePage() {
           {filtered.map((row) => {
             const linkedItem = row.inventory_item_id ? inventoryById.get(row.inventory_item_id) : null;
             const dirty = isDirty(row);
+            const usages = usageByRef.get(row.id) ?? [];
+            const usageCount = usages.length;
+            const costs = usages.map((u) => u.cost_per_serving).filter((c): c is number => typeof c === "number" && c > 0);
+            const median = costs.length
+              ? [...costs].sort((a, b) => a - b)[Math.floor(costs.length / 2)]
+              : null;
             return (
               <Card key={row.id} className={selected.has(row.id) ? "border-primary/50 ring-1 ring-primary/30" : undefined}>
                 <CardContent className="p-4 space-y-3">
