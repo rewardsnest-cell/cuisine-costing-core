@@ -7,15 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2 } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2, Sparkles, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveSales, type ActiveSale } from "@/lib/use-active-sales";
 
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
 });
 
 type Supplier = { id: string; name: string };
-type InventoryItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+type InventoryItem = { id: string; name: string; unit: string; average_cost_per_unit: number; current_stock: number; par_level: number; supplier_id: string | null };
 
 type POItem = {
   id: string;
@@ -47,6 +48,8 @@ function PurchaseOrdersPage() {
   const [form, setForm] = useState({ notes: "", expected_delivery: "", supplier_id: "" });
   const [itemForm, setItemForm] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
   const [scanning, setScanning] = useState(false);
+  const [creatingSuggested, setCreatingSuggested] = useState(false);
+  const { byItemId: activeSales } = useActiveSales();
 
   const handleScan = async (file: File) => {
     setScanning(true);
@@ -115,7 +118,7 @@ function PurchaseOrdersPage() {
     const [ordersRes, supRes, invRes] = await Promise.all([
       supabase.from("purchase_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, name").order("name"),
-      supabase.from("inventory_items").select("id, name, unit, average_cost_per_unit").order("name"),
+      supabase.from("inventory_items").select("id, name, unit, average_cost_per_unit, current_stock, par_level, supplier_id").order("name"),
     ]);
     if (ordersRes.data) setOrders(ordersRes.data as PO[]);
     if (supRes.data) setSuppliers(supRes.data as Supplier[]);
@@ -202,6 +205,78 @@ function PurchaseOrdersPage() {
 
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "No vendor";
 
+  // Build suggestions: inventory items below par WITH an active sale flyer match.
+  // Group by the SALE flyer's supplier (so we order from whoever has it on sale).
+  type Suggestion = {
+    inventory_item_id: string;
+    name: string;
+    unit: string;
+    current_stock: number;
+    par_level: number;
+    suggested_qty: number;
+    sale: ActiveSale;
+  };
+  const suggestionsBySupplier = (() => {
+    const groups = new Map<string, { supplierName: string; supplierId: string | null; items: Suggestion[] }>();
+    for (const inv of inventory) {
+      if (!(inv.current_stock < inv.par_level)) continue;
+      const sale = activeSales[inv.id];
+      if (!sale) continue;
+      const need = Math.max(1, Math.ceil(inv.par_level - inv.current_stock));
+      const key = sale.supplier_name || "Unknown supplier";
+      const supId = suppliers.find((s) => s.name === sale.supplier_name)?.id || null;
+      if (!groups.has(key)) groups.set(key, { supplierName: key, supplierId: supId, items: [] });
+      groups.get(key)!.items.push({
+        inventory_item_id: inv.id,
+        name: inv.name,
+        unit: inv.unit,
+        current_stock: inv.current_stock,
+        par_level: inv.par_level,
+        suggested_qty: need,
+        sale,
+      });
+    }
+    return Array.from(groups.values());
+  })();
+
+  const createSuggestedPO = async (group: { supplierName: string; supplierId: string | null; items: Suggestion[] }) => {
+    setCreatingSuggested(true);
+    try {
+      const { data: poRow, error: poErr } = await supabase
+        .from("purchase_orders")
+        .insert({
+          supplier_id: group.supplierId,
+          notes: `Auto-suggested from active sale flyer (${group.supplierName})`,
+        })
+        .select()
+        .single();
+      if (poErr || !poRow) throw poErr || new Error("Failed to create PO");
+
+      const lineItems = group.items.map((s) => ({
+        purchase_order_id: poRow.id,
+        inventory_item_id: s.inventory_item_id,
+        name: s.name,
+        quantity: s.suggested_qty,
+        unit: s.unit,
+        unit_price: s.sale.sale_price ?? 0,
+        total_price: (s.sale.sale_price ?? 0) * s.suggested_qty,
+      }));
+      await supabase.from("purchase_order_items").insert(lineItems);
+      const total = lineItems.reduce((sum, r) => sum + r.total_price, 0);
+      await supabase.from("purchase_orders").update({ total_amount: total }).eq("id", poRow.id);
+
+      toast.success(`Draft PO created with ${lineItems.length} item${lineItems.length === 1 ? "" : "s"}`);
+      await load();
+      setExpanded(poRow.id);
+      await loadItems(poRow.id);
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Failed to create suggested PO");
+    } finally {
+      setCreatingSuggested(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end gap-2">
@@ -243,6 +318,86 @@ function PurchaseOrdersPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Suggested POs from active sale flyers */}
+      {suggestionsBySupplier.length > 0 && (
+        <Card className="shadow-warm border-gold/40 bg-gradient-to-br from-gold/5 to-transparent">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-5 h-5 text-warm mt-0.5" />
+                <div>
+                  <h2 className="font-display text-lg font-semibold">Suggested Purchase Orders</h2>
+                  <p className="text-xs text-muted-foreground">Items below par level that are currently on sale — order now while prices are low.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {suggestionsBySupplier.map((group) => {
+                const groupTotal = group.items.reduce((s, it) => s + (it.sale.sale_price ?? 0) * it.suggested_qty, 0);
+                return (
+                  <div key={group.supplierName} className="rounded-lg border border-border/60 bg-background/60 p-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-muted-foreground" />
+                        <p className="font-medium text-sm">{group.supplierName}</p>
+                        <span className="text-xs text-muted-foreground">· {group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="font-display font-bold">${groupTotal.toFixed(2)}</p>
+                        <Button
+                          size="sm"
+                          className="bg-gradient-warm text-primary-foreground"
+                          onClick={() => createSuggestedPO(group)}
+                          disabled={creatingSuggested}
+                        >
+                          {creatingSuggested ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
+                          Create draft PO
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th className="py-1">Item</th>
+                            <th className="py-1 text-right">Stock / Par</th>
+                            <th className="py-1 text-right">Suggested Qty</th>
+                            <th className="py-1 text-right">Sale Price</th>
+                            <th className="py-1 text-right">Line Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((it) => (
+                            <tr key={it.inventory_item_id} className="border-t border-border/30">
+                              <td className="py-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium">{it.name}</span>
+                                  <span className="inline-flex items-center gap-0.5 text-warm">
+                                    <Tag className="w-3 h-3" />
+                                  </span>
+                                  {it.sale.regular_price != null && it.sale.sale_price != null && it.sale.regular_price > it.sale.sale_price && (
+                                    <span className="text-muted-foreground line-through">${it.sale.regular_price.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-1.5 text-right text-muted-foreground">{it.current_stock} / {it.par_level} {it.unit}</td>
+                              <td className="py-1.5 text-right font-medium">{it.suggested_qty} {it.unit}</td>
+                              <td className="py-1.5 text-right">${(it.sale.sale_price ?? 0).toFixed(2)}</td>
+                              <td className="py-1.5 text-right font-medium">${((it.sale.sale_price ?? 0) * it.suggested_qty).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {orders.length === 0 ? (
         <Card className="shadow-warm border-border/50">
