@@ -1,6 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { z } from "zod";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const emailSchema = z.string().trim().email().max(255);
 
 export const Route = createFileRoute("/follow")({
   head: () => ({
@@ -15,6 +21,34 @@ export const Route = createFileRoute("/follow")({
 });
 
 function FollowPage() {
+  const [submitting, setSubmitting] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const raw = String(data.get("email") || "");
+    const parsed = emailSchema.safeParse(raw);
+    if (!parsed.success) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .insert({ email: parsed.data.toLowerCase(), source: "follow_page" });
+      if (error && error.code !== "23505") throw error;
+      setSubscribed(true);
+      toast.success("You're subscribed — thank you!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
@@ -34,45 +68,44 @@ function FollowPage() {
         </div>
       </section>
 
-      {/* Newsletter form (visual placeholder — submission to be wired up) */}
+      {/* Newsletter form */}
       <section className="pb-24">
         <div className="max-w-xl mx-auto px-6">
-          <form
-            className="border-t border-border pt-10 space-y-6"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const data = new FormData(e.currentTarget);
-              const email = String(data.get("email") || "").trim();
-              if (!email) return;
-              // For now, route to contact with prefilled note
-              window.location.href = `/contact?subject=newsletter&email=${encodeURIComponent(email)}`;
-            }}
-          >
-            <div>
-              <label htmlFor="email" className="block text-xs tracking-[0.25em] uppercase text-muted-foreground mb-3">
-                Your email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                className="w-full bg-transparent border-0 border-b border-border rounded-none px-0 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
-              />
+          {subscribed ? (
+            <div className="border-t border-border pt-10 text-center">
+              <p className="font-display text-2xl text-foreground mb-3">Thank you.</p>
+              <p className="text-muted-foreground">You'll hear from us soon — no more than once or twice a month.</p>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              No more than once or twice a month. Unsubscribe anytime.
-            </p>
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-sm bg-primary px-8 py-3 text-sm font-semibold tracking-wide text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                Subscribe
-              </button>
-            </div>
-          </form>
+          ) : (
+            <form className="border-t border-border pt-10 space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="email" className="block text-xs tracking-[0.25em] uppercase text-muted-foreground mb-3">
+                  Your email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  maxLength={255}
+                  placeholder="you@example.com"
+                  className="w-full bg-transparent border-0 border-b border-border rounded-none px-0 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                No more than once or twice a month. Unsubscribe anytime.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center rounded-sm bg-primary px-8 py-3 text-sm font-semibold tracking-wide text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
+                >
+                  {submitting ? "Subscribing…" : "Subscribe"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </section>
 
