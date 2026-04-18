@@ -7,15 +7,14 @@ export type ActiveSale = {
   sale_price: number | null;
   regular_price: number | null;
   pack_size: string | null;
+  supplier_id: string | null;
   supplier_name: string | null;
   sale_end_date: string | null;
 };
 
 /**
- * Returns a map of inventory_item_id → active sale (cheapest sale_price wins
- * if multiple flyers cover the same item). A flyer is "active" when:
- *  - status = 'processed'
- *  - today is between sale_start_date (or null) and sale_end_date (or null)
+ * Returns a map of inventory_item_id → cheapest active sale across all
+ * processed, in-date sale flyers.
  */
 export function useActiveSales() {
   const [byItemId, setByItemId] = useState<Record<string, ActiveSale>>({});
@@ -28,7 +27,7 @@ export function useActiveSales() {
       const { data } = await (supabase as any)
         .from("sale_flyer_items")
         .select(
-          "inventory_item_id, sale_price, regular_price, pack_size, sale_flyers!inner(status, sale_start_date, sale_end_date, suppliers(name))"
+          "inventory_item_id, sale_price, regular_price, pack_size, sale_flyers!inner(status, sale_start_date, sale_end_date, supplier_id, suppliers(name))"
         )
         .not("inventory_item_id", "is", null);
 
@@ -49,6 +48,7 @@ export function useActiveSales() {
             sale_price: price,
             regular_price: row.regular_price != null ? Number(row.regular_price) : null,
             pack_size: row.pack_size ?? null,
+            supplier_id: flyer.supplier_id ?? null,
             supplier_name: flyer.suppliers?.name ?? null,
             sale_end_date: flyer.sale_end_date ?? null,
           };
