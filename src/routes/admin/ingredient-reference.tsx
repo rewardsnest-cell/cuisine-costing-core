@@ -122,9 +122,12 @@ function IngredientReferencePage() {
   const [suggestRefName, setSuggestRefName] = useState<string>("");
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestAttaching, setSuggestAttaching] = useState(false);
-  const [suggestions, setSuggestions] = useState<
-    Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }>
-  >([]);
+  type Suggestion = { alias: string; alias_normalized: string; score: number; usage: number; selected: boolean };
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // Per-session cache of scan results, keyed by reference id.
+  // Survives dialog close/reopen; cleared on full page reload.
+  const [suggestionCache, setSuggestionCache] = useState<Map<string, Suggestion[]>>(new Map());
+  const [suggestFromCache, setSuggestFromCache] = useState(false);
 
   const resetCreateDraft = () => {
     setCreateDraft({
@@ -196,10 +199,24 @@ function IngredientReferencePage() {
     refId: string,
     refName: string,
     refNormalized: string,
+    opts?: { force?: boolean },
   ) => {
     setSuggestRefId(refId);
     setSuggestRefName(refName);
     setSuggestOpen(true);
+
+    // Serve from session cache when available unless caller forces a rescan.
+    if (!opts?.force) {
+      const cached = suggestionCache.get(refId);
+      if (cached) {
+        setSuggestions(cached.map((s) => ({ ...s })));
+        setSuggestFromCache(true);
+        setSuggestLoading(false);
+        return;
+      }
+    }
+
+    setSuggestFromCache(false);
     setSuggestLoading(true);
     setSuggestions([]);
 
@@ -240,13 +257,7 @@ function IngredientReferencePage() {
     // Score each candidate via Postgres pg_trgm by calling find_ingredient_matches.
     // A candidate maps to THIS reference when the RPC returns a row with reference_id === refId.
     const CONCURRENCY = 6;
-    const scored: Array<{
-      alias: string;
-      alias_normalized: string;
-      score: number;
-      usage: number;
-      selected: boolean;
-    }> = [];
+    const scored: Suggestion[] = [];
 
     let cursor = 0;
     const worker = async () => {
@@ -282,7 +293,14 @@ function IngredientReferencePage() {
     );
 
     scored.sort((a, b) => b.score - a.score || b.usage - a.usage);
-    setSuggestions(scored.slice(0, 25));
+    const trimmed = scored.slice(0, 25);
+    setSuggestions(trimmed);
+    // Cache a deep-ish copy so user toggling `selected` doesn't mutate the cache.
+    setSuggestionCache((prev) => {
+      const next = new Map(prev);
+      next.set(refId, trimmed.map((s) => ({ ...s })));
+      return next;
+    });
     setSuggestLoading(false);
   };
 
@@ -310,11 +328,21 @@ function IngredientReferencePage() {
     toast.success(`Attached ${picks.length} synonym${picks.length === 1 ? "" : "s"}`);
     setSuggestOpen(false);
     setSuggestions([]);
+    // Attached aliases are now linked, so any cached candidate sets are stale.
+    setSuggestionCache(new Map());
     await load();
   };
 
   const handleDismissSuggestion = async (aliasNorm: string) => {
     setSuggestions((prev) => prev.filter((s) => s.alias_normalized !== aliasNorm));
+    // Remove this alias from every cached entry so it doesn't reappear from cache.
+    setSuggestionCache((prev) => {
+      const next = new Map<string, Suggestion[]>();
+      for (const [k, list] of prev) {
+        next.set(k, list.filter((s) => s.alias_normalized !== aliasNorm));
+      }
+      return next;
+    });
     await supabase
       .from("ingredient_synonym_dismissed")
       .insert({ alias_normalized: aliasNorm });
@@ -1144,7 +1172,12 @@ function IngredientReferencePage() {
       <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Suggested synonyms for "{suggestRefName}"</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Suggested synonyms for "{suggestRefName}"
+              {suggestFromCache && !suggestLoading && (
+                <Badge variant="outline" className="text-[10px] font-normal">cached</Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>
               Unlinked ingredient names from your recipes that look similar. Check the ones you want to attach as synonyms — future imports will auto-resolve them to this reference.
             </DialogDescription>
@@ -1224,6 +1257,20 @@ function IngredientReferencePage() {
           )}
 
           <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (suggestRefId) {
+                  const ref = rows.find((r) => r.id === suggestRefId);
+                  if (ref) scanSynonymSuggestions(ref.id, ref.canonical_name, ref.canonical_normalized, { force: true });
+                }
+              }}
+              disabled={suggestLoading || suggestAttaching || !suggestRefId}
+              title="Re-run the pg_trgm scan, ignoring the cached results"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${suggestLoading ? "animate-spin" : ""}`} />
+              Rescan
+            </Button>
             <Button variant="outline" onClick={() => setSuggestOpen(false)} disabled={suggestAttaching}>
               Skip
             </Button>
