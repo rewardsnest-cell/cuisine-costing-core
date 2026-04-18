@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
@@ -38,8 +36,6 @@ export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
 function SpringAuroraPage() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
         <div className="absolute inset-0">
           <img src={heroSpring} alt="Spring wedding catering in Aurora, Ohio" width={1920} height={1280} className="w-full h-full object-cover" />
@@ -111,8 +107,6 @@ function SpringAuroraPage() {
         heading="Tell us about your spring wedding."
         subhead="Share your date, venue, and a few details. We'll come back with a clear, itemized quote — no pressure, no hard sell."
       />
-
-      <PublicFooter />
     </div>
   );
 }

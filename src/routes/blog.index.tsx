@@ -1,7 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-
 export const Route = createFileRoute("/blog/")({
   head: () => ({
     meta: [
@@ -38,8 +35,6 @@ const POSTS = [
 function BlogIndex() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="pt-32 pb-16 bg-background">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Guides</p>
@@ -64,8 +59,6 @@ function BlogIndex() {
           ))}
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

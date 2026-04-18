@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,20 +136,17 @@ function EventPage() {
   if (!quote) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="pt-24 pb-16 px-4 text-center">
           <AlertTriangle className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
           <p className="text-muted-foreground">No event found for reference <span className="font-mono">{reference}</span></p>
           <Link to="/lookup" className="text-primary underline text-sm mt-3 inline-block">Try a different reference</Link>
         </div>
-        <PublicFooter />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -266,7 +261,6 @@ function EventPage() {
           </Card>
         </div>
       </div>
-      <PublicFooter />
     </div>
   );
 }

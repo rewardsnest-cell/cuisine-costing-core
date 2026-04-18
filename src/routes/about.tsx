@@ -1,7 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
@@ -17,8 +14,6 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       {/* Heading */}
       <section className="pt-32 pb-12 text-center">
         <div className="max-w-3xl mx-auto px-6">
@@ -97,8 +92,6 @@ function AboutPage() {
           </div>
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

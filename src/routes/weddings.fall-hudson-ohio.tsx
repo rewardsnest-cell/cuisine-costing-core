@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
@@ -38,8 +36,6 @@ export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
 function FallHudsonPage() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
         <div className="absolute inset-0">
           <img src={heroFall} alt="Fall wedding catering in Hudson, Ohio" width={1920} height={1280} className="w-full h-full object-cover" />
@@ -111,8 +107,6 @@ function FallHudsonPage() {
         heading="Tell us about your fall wedding."
         subhead="Fall weekends fill quickly across Northeast Ohio. Share a few details and we'll reply with a clear next step."
       />
-
-      <PublicFooter />
     </div>
   );
 }

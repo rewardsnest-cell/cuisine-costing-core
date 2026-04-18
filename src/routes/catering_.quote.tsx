@@ -1,7 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
@@ -27,7 +25,6 @@ function CateringQuoteChooser() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicHeader />
       <main className="flex-1 pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
@@ -86,7 +83,6 @@ function CateringQuoteChooser() {
           </p>
         </div>
       </main>
-      <PublicFooter />
     </div>
   );
 }

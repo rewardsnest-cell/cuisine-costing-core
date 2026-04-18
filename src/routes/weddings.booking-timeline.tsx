@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
@@ -27,8 +25,6 @@ export const Route = createFileRoute("/weddings/booking-timeline")({
 function BookingTimelinePage() {
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       <section className="pt-32 pb-16 bg-background">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Booking timeline</p>
@@ -64,8 +60,6 @@ function BookingTimelinePage() {
         heading="Wherever you are in planning, you're welcome to reach out."
         subhead="A few details about your day is all we need to start. We'll come back with a clear next step — never a hard sell."
       />
-
-      <PublicFooter />
     </div>
   );
 }

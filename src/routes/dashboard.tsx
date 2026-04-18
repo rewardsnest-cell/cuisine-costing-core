@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useSectionAccess } from "@/lib/access/use-section-access";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,7 +107,6 @@ function DashboardPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="pt-24 pb-16 px-4 text-center">
           <h1 className="font-display text-3xl font-bold text-foreground mb-4">Dashboard</h1>
           <p className="text-muted-foreground mb-6">Sign in to access your dashboard.</p>
@@ -117,14 +114,12 @@ function DashboardPage() {
             <Button className="bg-gradient-warm text-primary-foreground">Sign In</Button>
           </Link>
         </div>
-        <PublicFooter />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-5xl mx-auto space-y-6">
           <div>
@@ -374,7 +369,6 @@ function DashboardPage() {
           )}
         </div>
       </div>
-      <PublicFooter />
     </div>
   );
 }

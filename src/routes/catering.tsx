@@ -1,7 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { supabase } from "@/integrations/supabase/client";
 
 function useAsset(slug: string): string | null {
@@ -53,8 +51,6 @@ function CateringPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
-
       {/* Hero */}
       <section className="relative pt-16 min-h-[60vh] flex items-center justify-center text-center">
         <div className="absolute inset-0">
@@ -148,8 +144,6 @@ function CateringPage() {
           </Link>
         </div>
       </section>
-
-      <PublicFooter />
     </div>
   );
 }

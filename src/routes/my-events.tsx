@@ -4,9 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
-
 export const Route = createFileRoute("/my-events")({
   head: () => ({ meta: [{ title: "My Events — TasteQuote" }] }),
   component: MyEventsPage,
@@ -47,21 +44,18 @@ function MyEventsPage() {
   if (!user) {
     return (
       <>
-        <PublicHeader />
         <div className="min-h-screen flex items-center justify-center px-4 pt-16">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Sign in to see your assigned events.</p>
             <Link to="/login" className="text-primary font-medium underline">Sign in</Link>
           </div>
         </div>
-        <PublicFooter />
       </>
     );
   }
 
   return (
     <>
-      <PublicHeader />
       <div className="min-h-screen bg-background py-10 px-4 pt-24">
         <div className="max-w-3xl mx-auto space-y-6">
           <div>
@@ -98,7 +92,6 @@ function MyEventsPage() {
           )}
         </div>
       </div>
-      <PublicFooter />
     </>
   );
 }

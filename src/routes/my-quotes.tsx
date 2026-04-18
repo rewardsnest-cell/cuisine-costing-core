@@ -2,8 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { PublicHeader } from "@/components/PublicHeader";
-import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,20 +110,17 @@ function MyQuotesPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <PublicHeader />
         <div className="pt-24 pb-16 px-4 text-center">
           <h1 className="font-display text-3xl font-bold text-foreground mb-4">My Quotes</h1>
           <p className="text-muted-foreground mb-6">Sign in to view and manage your saved quotes.</p>
           <Link to="/login"><Button className="bg-gradient-warm text-primary-foreground">Sign In</Button></Link>
         </div>
-        <PublicFooter />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
       <div className="pt-24 pb-16 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -201,7 +196,6 @@ function MyQuotesPage() {
           )}
         </div>
       </div>
-      <PublicFooter />
     </div>
   );
 }
