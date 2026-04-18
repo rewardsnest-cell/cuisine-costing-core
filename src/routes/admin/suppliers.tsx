@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,11 +27,16 @@ type Supplier = {
 const EMPTY_FORM = { name: "", contact_name: "", email: "", phone: "", address: "", website: "", office_phone: "", cellphone: "" };
 
 function SuppliersPage() {
+  const location = useLocation();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  if (location.pathname !== "/admin/suppliers") {
+    return <Outlet />;
+  }
 
   const load = async () => {
     const { data } = await (supabase as any).from("suppliers").select("*").order("name");
