@@ -2,16 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
+import { articleJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+
+const TITLE = "Winter Wedding Catering Guide — Cleveland Area | VPS Finest";
+const DESC = "A calm guide to planning winter wedding catering across the Cleveland area. Intimate menus, off-season timing, and what to expect.";
+const URL = `${SITE_URL}/blog/winter-wedding-catering-guide`;
 
 export const Route = createFileRoute("/blog/winter-wedding-catering-guide")({
   head: () => ({
     meta: [
-      { title: "Winter Wedding Catering Guide — Cleveland Area | VPS Finest" },
-      { name: "description", content: "A calm guide to planning winter wedding catering across the Cleveland area. Intimate menus, off-season timing, and what to expect." },
+      { title: TITLE },
+      { name: "description", content: DESC },
       { property: "og:title", content: "Winter Wedding Catering Guide — Cleveland Area" },
       { property: "og:description", content: "Planning, menus, and timing for a winter wedding in the Cleveland area." },
       { property: "og:type", content: "article" },
     ],
+    scripts: [articleJsonLd({ title: TITLE, description: DESC, url: URL })],
   }),
   component: WinterGuide,
 });
