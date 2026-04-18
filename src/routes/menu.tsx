@@ -74,6 +74,8 @@ function PublicMenuPage() {
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
+  const [meat, setMeat] = useState<MeatKey>("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -89,11 +91,32 @@ function PublicMenuPage() {
     })();
   }, []);
 
+  const meatCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: recipes.length };
+    for (const m of MEAT_TYPES) counts[m.key] = 0;
+    for (const r of recipes) {
+      const k = detectMeat(r);
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    }
+    return counts;
+  }, [recipes]);
+
   const filtered = useMemo(() => {
-    if (tier === "standard") return recipes.filter((r) => r.is_standard);
-    if (tier === "premium") return recipes.filter((r) => r.is_premium);
-    return recipes;
-  }, [recipes, tier]);
+    const q = search.trim().toLowerCase();
+    return recipes.filter((r) => {
+      if (tier === "standard" && !r.is_standard) return false;
+      if (tier === "premium" && !r.is_premium) return false;
+      if (meat !== "all") {
+        const k = detectMeat(r);
+        if (k !== meat) return false;
+      }
+      if (q) {
+        const hay = `${r.name} ${r.description || ""} ${r.category || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [recipes, tier, meat, search]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
@@ -108,7 +131,7 @@ function PublicMenuPage() {
   return (
     <div className="pt-24 pb-20 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground">Our Menu</h1>
           <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
             Chef-crafted dishes for weddings, corporate events, and private gatherings. Every price is per person —
@@ -128,6 +151,47 @@ function PublicMenuPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="max-w-xl mx-auto mb-5 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search dishes, ingredients, descriptions…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-card"
+          />
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <button
+            onClick={() => setMeat("all")}
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+              meat === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            All ({meatCounts.all || 0})
+          </button>
+          {MEAT_TYPES.map((m) => {
+            const c = meatCounts[m.key] || 0;
+            if (c === 0) return null;
+            return (
+              <button
+                key={m.key}
+                onClick={() => setMeat(m.key)}
+                className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                  meat === m.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {m.label} ({c})
+              </button>
+            );
+          })}
+        </div>
         </div>
 
         {loading ? (
