@@ -429,6 +429,13 @@ function CompetitorQuotesPage() {
                   const Icon = meta.icon;
                   return (
                     <TableRow key={r.id} className={r.archived ? "opacity-60" : ""}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.has(r.id)}
+                          onCheckedChange={() => toggleOne(r.id)}
+                          aria-label="Select row"
+                        />
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.created_at)}</TableCell>
                       <TableCell className="text-sm">
                         <div className="font-medium">{r.client_name || "Guest"}</div>
