@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package } from "lucide-react";
+import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package, FileText } from "lucide-react";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 
 type Flyer = {
   id: string;
@@ -44,6 +45,7 @@ export function SupplierFlyersDialog({
   const [flyers, setFlyers] = useState<Flyer[]>([]);
   const [itemsByFlyer, setItemsByFlyer] = useState<Record<string, FlyerItem[]>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -78,41 +80,74 @@ export function SupplierFlyersDialog({
     if (open && supplierId) load();
   }, [open, supplierId]);
 
-  const handleUpload = async (file: File) => {
-    if (!supplierId) return;
+  const uploadOneBlob = async (blob: Blob, ext: string) => {
+    if (!supplierId) throw new Error("No supplier");
+    const path = `${supplierId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("sale-flyers")
+      .upload(path, blob, { contentType: blob.type || `image/${ext}` });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage.from("sale-flyers").getPublicUrl(path);
+    return pub.publicUrl;
+  };
+
+  const handleUpload = async (files: File[]) => {
+    if (!supplierId || files.length === 0) return;
     setError(null);
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${supplierId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("sale-flyers").upload(path, file);
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("sale-flyers").getPublicUrl(path);
-      const imageUrl = pub.publicUrl;
+      // Expand: PDFs become one image per page; images stay as-is
+      const allBlobs: { blob: Blob; ext: string }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isPdf =
+          file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+          setUploadStatus(`Rendering PDF ${i + 1}/${files.length}…`);
+          const pageBlobs = await pdfFileToImageBlobs(file);
+          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+        } else {
+          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+          allBlobs.push({ blob: file, ext });
+        }
+      }
 
+      if (allBlobs.length === 0) throw new Error("No pages to upload");
+
+      // Upload all pages in parallel
+      setUploadStatus(`Uploading ${allBlobs.length} page${allBlobs.length === 1 ? "" : "s"}…`);
+      const imageUrls = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
+
+      // Create flyer record (cover = first page)
       const { data: inserted, error: insErr } = await (supabase as any)
         .from("sale_flyers")
-        .insert({ supplier_id: supplierId, image_url: imageUrl, status: "pending" })
+        .insert({
+          supplier_id: supplierId,
+          image_url: imageUrls[0],
+          status: "pending",
+          notes: imageUrls.length > 1 ? `${imageUrls.length} pages` : null,
+        })
         .select()
         .single();
       if (insErr) throw insErr;
 
       await load();
-      // Auto-process with AI
-      processFlyer(inserted.id, imageUrl);
+      setUploadStatus("Extracting with AI…");
+      await processFlyer(inserted.id, imageUrls);
     } catch (e: any) {
       setError(e.message || "Upload failed");
     } finally {
       setUploading(false);
+      setUploadStatus("");
     }
   };
 
-  const processFlyer = async (flyerId: string, imageUrl: string) => {
+  const processFlyer = async (flyerId: string, imageUrls: string[]) => {
     setProcessingId(flyerId);
     setError(null);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("process-sale-flyer", {
-        body: { flyerId, imageUrl },
+        body: { flyerId, imageUrls },
       });
       if (fnErr) throw fnErr;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -141,18 +176,24 @@ export function SupplierFlyersDialog({
 
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border border-dashed border-border/60 rounded-lg p-4">
-            <div className="text-sm text-muted-foreground">
-              Upload a sale flyer image. AI will extract items, prices, and link to inventory.
+            <div className="text-sm text-muted-foreground space-y-0.5">
+              <p>Upload one or more sale flyer pages (images or PDFs).</p>
+              <p className="text-xs flex items-center gap-1">
+                <FileText className="w-3 h-3" /> PDFs are split into pages automatically.
+              </p>
+              {uploadStatus && (
+                <p className="text-xs text-primary font-medium">{uploadStatus}</p>
+              )}
             </div>
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/*,application/pdf"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f);
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) handleUpload(files);
                 if (fileRef.current) fileRef.current.value = "";
               }}
             />
@@ -162,7 +203,7 @@ export function SupplierFlyersDialog({
               className="bg-gradient-warm text-primary-foreground gap-2 shrink-0"
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? "Uploading..." : "Scan Flyer"}
+              {uploading ? "Working..." : "Scan Flyer"}
             </Button>
           </div>
 
@@ -232,7 +273,7 @@ export function SupplierFlyersDialog({
                                 size="sm"
                                 variant="outline"
                                 disabled={isProcessing}
-                                onClick={() => processFlyer(fl.id, fl.image_url!)}
+                                onClick={() => processFlyer(fl.id, [fl.image_url!])}
                                 className="gap-1.5"
                               >
                                 {isProcessing ? (
@@ -248,7 +289,7 @@ export function SupplierFlyersDialog({
                                 size="sm"
                                 variant="ghost"
                                 disabled={isProcessing}
-                                onClick={() => processFlyer(fl.id, fl.image_url!)}
+                                onClick={() => processFlyer(fl.id, [fl.image_url!])}
                                 className="gap-1.5"
                               >
                                 {isProcessing ? (
