@@ -2,12 +2,13 @@ import * as React from 'react'
 import { Body } from '@react-email/body'
 import { Button } from '@react-email/button'
 import { Container } from '@react-email/container'
+import { Img } from '@react-email/img'
 import { Head } from '@react-email/head'
 import { Heading } from '@react-email/heading'
 import { Html } from '@react-email/html'
 import { Preview } from '@react-email/preview'
 import { Text } from '@react-email/text'
-import { main, container, eyebrow, h1, text, button, divider, footer } from './_brand'
+import { main, container, eyebrow, h1, text, button, divider, footer, LOGO_URL, logoImg } from './_brand'
 
 interface RecoveryEmailProps {
   siteName: string
@@ -20,6 +21,7 @@ export const RecoveryEmail = ({ siteName, confirmationUrl }: RecoveryEmailProps)
     <Preview>Reset your password for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Img src={LOGO_URL} alt="VPS Finest" style={logoImg} />
         <Text style={eyebrow}>{siteName}</Text>
         <Heading style={h1}>Reset your password.</Heading>
         <Text style={text}>
