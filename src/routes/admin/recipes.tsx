@@ -452,9 +452,20 @@ function RecipesPage() {
             ))}
           </div>
         </div>
-        <Link to="/admin/recipes/new">
-          <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={recomputeAllCosts}
+            disabled={recomputingAll || recipes.length === 0}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-4 h-4 ${recomputingAll ? "animate-spin" : ""}`} />
+            {recomputingAll ? "Recomputing…" : "Recompute all costs"}
+          </Button>
+          <Link to="/admin/recipes/new">
+            <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
+          </Link>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
