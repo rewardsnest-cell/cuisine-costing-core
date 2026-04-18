@@ -43,6 +43,28 @@ type MenuRecipe = {
 
 const MARKUP = 3.5;
 
+const MEAT_TYPES = [
+  { key: "beef", label: "Beef", patterns: ["beef", "steak", "brisket", "ribeye", "sirloin", "filet", "prime rib", "burger", "meatball", "short rib"] },
+  { key: "chicken", label: "Chicken", patterns: ["chicken", "poultry", "wing", "drumstick", "thigh"] },
+  { key: "pork", label: "Pork", patterns: ["pork", "bacon", "ham", "sausage", "prosciutto", "pancetta", "chorizo"] },
+  { key: "seafood", label: "Seafood", patterns: ["fish", "salmon", "shrimp", "crab", "lobster", "tuna", "scallop", "cod", "tilapia", "mussel", "clam", "oyster", "calamari", "squid"] },
+  { key: "lamb", label: "Lamb", patterns: ["lamb", "mutton"] },
+  { key: "turkey", label: "Turkey", patterns: ["turkey"] },
+  { key: "vegetarian", label: "Vegetarian", patterns: [] },
+] as const;
+
+type MeatKey = (typeof MEAT_TYPES)[number]["key"] | "all";
+
+function detectMeat(r: Pick<MenuRecipe, "name" | "description" | "is_vegetarian" | "is_vegan">): MeatKey | null {
+  const hay = `${r.name} ${r.description || ""}`.toLowerCase();
+  for (const m of MEAT_TYPES) {
+    if (m.key === "vegetarian") continue;
+    if (m.patterns.some((p) => hay.includes(p))) return m.key;
+  }
+  if (r.is_vegetarian || r.is_vegan) return "vegetarian";
+  return null;
+}
+
 function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving">) {
   if (r.menu_price != null && Number(r.menu_price) > 0) return Number(r.menu_price);
   return Number(r.cost_per_serving || 0) * MARKUP;
