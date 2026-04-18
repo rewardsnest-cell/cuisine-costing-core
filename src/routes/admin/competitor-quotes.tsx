@@ -207,6 +207,7 @@ function CompetitorQuotesPage() {
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Outcome</TableHead>
                   <TableHead>Counter</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
