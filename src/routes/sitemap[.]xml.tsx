@@ -2,7 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SITE = "https://www.vpsfinest.com";
-const STATIC = ["/", "/catering", "/weddings", "/recipes", "/about", "/contact", "/catering/quote"];
+const STATIC = [
+  "/",
+  "/catering",
+  "/weddings",
+  "/recipes",
+  "/about",
+  "/contact",
+  "/catering/quote",
+  "/weddings/booking-timeline",
+  "/weddings/spring-aurora-ohio",
+  "/weddings/fall-hudson-ohio",
+  "/weddings/winter-cleveland-ohio",
+  "/blog",
+  "/blog/spring-wedding-catering-guide",
+  "/blog/fall-wedding-catering-guide",
+  "/blog/winter-wedding-catering-guide",
+];
 
 function escapeXml(str: string): string {
   return str
