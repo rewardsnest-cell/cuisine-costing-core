@@ -35,6 +35,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
+        htmlparser2: resolve(__dirname, "node_modules/htmlparser2/lib/esm/index.js"),
         "htmlparser2/dist/esm/index.js": resolve(__dirname, "node_modules/htmlparser2/lib/esm/index.js"),
       },
     },
