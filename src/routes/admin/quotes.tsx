@@ -563,6 +563,102 @@ function QuotesPage() {
             </div>
           )}
           {!analyzing && analysis && <CompetitorAnalysisBody a={analysis} />}
+          {!analyzing && analysis && (
+            <section className="space-y-3 rounded-lg border p-3 mt-2">
+              <p className="text-sm font-semibold">Save & link this quote</p>
+              <div className="flex gap-2">
+                <Button
+                  variant={linkMode === "guest" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => { setLinkMode("guest"); setLinkedClient(null); }}
+                  disabled={!!savedCompetitorId}
+                >
+                  Guest
+                </Button>
+                <Button
+                  variant={linkMode === "account" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setLinkMode("account")}
+                  disabled={!!savedCompetitorId}
+                >
+                  Link to account
+                </Button>
+              </div>
+
+              {linkMode === "guest" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Client name</Label>
+                    <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Optional" disabled={!!savedCompetitorId} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="Optional" disabled={!!savedCompetitorId} />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {linkedClient ? (
+                    <div className="flex items-center gap-2 p-2 rounded border bg-muted/40">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{linkedClient.full_name || linkedClient.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{linkedClient.email}</p>
+                      </div>
+                      {!savedCompetitorId && (
+                        <Button variant="ghost" size="sm" onClick={() => setLinkedClient(null)}>Change</Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="Search by name or email…"
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                      />
+                      {clientResults.length > 0 && (
+                        <div className="border rounded divide-y max-h-44 overflow-y-auto">
+                          {clientResults.map((c) => (
+                            <button
+                              key={c.user_id}
+                              type="button"
+                              onClick={() => { setLinkedClient(c); setClientSearch(""); setClientResults([]); }}
+                              className="w-full text-left p-2 text-sm hover:bg-muted"
+                            >
+                              <p className="font-medium">{c.full_name || c.email}</p>
+                              {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={saveCompetitorAnalysis}
+                  disabled={saving || !!savedCompetitorId || (linkMode === "account" && !linkedClient)}
+                >
+                  {saving ? "Saving…" : savedCompetitorId ? "Saved" : "Save analysis"}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={createDraftCounter}
+                  disabled={creatingDraft || !!draftQuoteId || (linkMode === "account" && !linkedClient)}
+                >
+                  {creatingDraft ? "Creating…" : draftQuoteId ? "Draft created ✓" : "Create draft counter-quote"}
+                </Button>
+              </div>
+              {savedCompetitorId && (
+                <p className="text-xs text-muted-foreground">
+                  Saved as {linkMode === "account" ? "linked to account" : "guest"}.
+                </p>
+              )}
+            </section>
+          )}
           {!analyzing && !analysis && (
             <p className="text-sm text-muted-foreground py-6 text-center">No analysis to show.</p>
           )}
