@@ -52,6 +52,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
       { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
       { to: "/admin/import-recipes", label: "Import from vpsfinest.com", icon: Globe },
+      { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
     ],
   },
   {
