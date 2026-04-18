@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
@@ -345,6 +345,21 @@ function QuotesPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Quote | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [recalcingId, setRecalcingId] = useState<string | null>(null);
+
+  const handleRecalc = async (q: Quote) => {
+    setRecalcingId(q.id);
+    try {
+      const { recalcQuotePricing } = await import("@/lib/server-fns/recalc-quote-pricing.functions");
+      const res = await recalcQuotePricing({ data: { quoteId: q.id } }) as { updatedItems: number; subtotal: number; total: number; markup: number };
+      toast.success(`Recalculated ${res.updatedItems} item${res.updatedItems === 1 ? "" : "s"} · total $${res.total.toFixed(2)}`);
+      loadQuotes();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to recalculate");
+    } finally {
+      setRecalcingId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -510,6 +525,10 @@ function QuotesPage() {
                     <MessageSquare className="w-3.5 h-3.5" /> Transcript
                   </Button>
                 ) : null}
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleRecalc(q)} disabled={recalcingId === q.id}>
+                  {recalcingId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {recalcingId === q.id ? "Recalculating…" : "Recalculate pricing"}
+                </Button>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => openAssign(q)}>
                   <Users className="w-3.5 h-3.5" /> Staff
                 </Button>
