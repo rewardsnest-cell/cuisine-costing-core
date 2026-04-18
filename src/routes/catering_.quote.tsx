@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
 import { QuotePage } from "./quote";
 
-export const Route = createFileRoute("/catering/quote")({
+export const Route = createFileRoute("/catering_/quote")({
   head: () => ({
     meta: [
       { title: "Build Your Catering Quote — VPS Finest" },
