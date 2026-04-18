@@ -330,3 +330,121 @@ function PriceGapChart({ rows }: { rows: Row[] }) {
     </Card>
   );
 }
+
+function AnalysisDialog({ row, onOpenChange }: { row: Row | null; onOpenChange: (open: boolean) => void }) {
+  const fmtMoney = (n: number | null | undefined) =>
+    n == null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n));
+
+  const lineItems = useMemo<any[]>(() => {
+    if (!row?.analysis) return [];
+    const a = row.analysis as any;
+    const candidates = [a.lineItems, a.line_items, a.items, a.menu, a.menuItems];
+    for (const c of candidates) if (Array.isArray(c) && c.length) return c;
+    return [];
+  }, [row]);
+
+  return (
+    <Dialog open={!!row} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Competitor analysis</DialogTitle>
+          <DialogDescription>
+            {row?.competitor_name || "Unknown competitor"} · {row?.client_name || "Guest"}
+            {row?.event_date ? ` · ${new Date(row.event_date).toLocaleDateString()}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+
+        {row && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <Field label="Guests" value={row.guest_count?.toString() ?? "—"} />
+              <Field label="Per guest" value={fmtMoney(row.per_guest_price)} />
+              <Field label="Subtotal" value={fmtMoney(row.subtotal)} />
+              <Field label="Taxes" value={fmtMoney(row.taxes)} />
+              <Field label="Gratuity" value={fmtMoney(row.gratuity)} />
+              <Field label="Total" value={fmtMoney(row.total)} />
+              <Field label="Style" value={row.service_style || "—"} />
+              <Field label="Event type" value={row.event_type || "—"} />
+            </div>
+
+            <Tabs defaultValue="items">
+              <TabsList>
+                <TabsTrigger value="items">Line items ({lineItems.length})</TabsTrigger>
+                <TabsTrigger value="image">Source image</TabsTrigger>
+                <TabsTrigger value="json">Raw JSON</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="items" className="mt-3">
+                {lineItems.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4 text-center border rounded-md">
+                    No structured line items in analysis.
+                  </div>
+                ) : (
+                  <div className="border rounded-md overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Item</TableHead>
+                          <TableHead className="text-right">Qty</TableHead>
+                          <TableHead className="text-right">Unit</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lineItems.map((li, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-sm">
+                              <div className="font-medium">{li.name ?? li.item ?? li.title ?? "Item"}</div>
+                              {li.description && <div className="text-xs text-muted-foreground">{li.description}</div>}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">{li.qty ?? li.quantity ?? "—"}</TableCell>
+                            <TableCell className="text-right text-sm">{fmtMoney(li.unitPrice ?? li.unit_price ?? li.price)}</TableCell>
+                            <TableCell className="text-right text-sm font-medium">{fmtMoney(li.total ?? li.totalPrice ?? li.total_price)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="image" className="mt-3">
+                {row.source_image_url ? (
+                  <a href={row.source_image_url} target="_blank" rel="noreferrer" className="block">
+                    <img src={row.source_image_url} alt="Source competitor quote" className="max-h-[60vh] w-auto mx-auto rounded-md border" />
+                  </a>
+                ) : (
+                  <div className="text-sm text-muted-foreground p-4 text-center border rounded-md">
+                    No source image saved with this analysis.
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="json" className="mt-3">
+                <pre className="text-xs bg-muted/40 p-3 rounded-md overflow-x-auto max-h-[60vh]">
+                  {JSON.stringify(row.analysis ?? {}, null, 2)}
+                </pre>
+              </TabsContent>
+            </Tabs>
+
+            {row.notes && (
+              <div className="text-sm">
+                <div className="text-xs text-muted-foreground mb-1">Notes</div>
+                <div className="p-3 border rounded-md whitespace-pre-wrap">{row.notes}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border rounded-md p-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-sm font-medium mt-0.5">{value}</div>
+    </div>
+  );
+}
