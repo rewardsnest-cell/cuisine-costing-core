@@ -421,7 +421,8 @@ function PublicMenuPage() {
                     return (
                       <Card
                         key={r.id}
-                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all ${
+                        id={`recipe-${r.id}`}
+                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 ${
                           inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
                         }`}
                       >

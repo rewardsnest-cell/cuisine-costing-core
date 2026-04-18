@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
@@ -272,6 +272,16 @@ function AdminMenuPage() {
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
                     )}
+                    <a
+                      href={`/menu#recipe-${r.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      title="Open this recipe on the public menu in a new tab"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Preview on /menu
+                    </a>
                   </div>
 
                   <div>
