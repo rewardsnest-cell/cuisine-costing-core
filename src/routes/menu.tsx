@@ -144,6 +144,14 @@ function PublicMenuPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
+  function resetFilters() {
+    setTier("all");
+    setMeat("all");
+    setSearch("");
+    setSort("name-asc");
+    setPriceRange([0, priceMax]);
+  }
+
   return (
     <div className="pt-24 pb-20 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
