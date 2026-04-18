@@ -675,6 +675,21 @@ function IngredientReferencePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => updateRow(row.id, { expanded: !row.expanded })}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-accent"
+                      title={usageCount === 0 ? "Not used by any active recipe" : "Show recipes using this ingredient"}
+                      disabled={usageCount === 0}
+                    >
+                      {row.expanded ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                      <ChefHat className="w-3 h-3" />
+                      Used in {usageCount} recipe{usageCount === 1 ? "" : "s"}
+                    </button>
                     <span className="text-xs text-muted-foreground">Inventory link:</span>
                     {linkedItem ? (
                       <>
@@ -703,6 +718,43 @@ function IngredientReferencePage() {
                       {row.showLinker ? "Cancel" : linkedItem ? "Change link" : "Link inventory"}
                     </Button>
                   </div>
+
+                  {row.expanded && usageCount > 0 && (
+                    <div className="rounded-md border bg-muted/30 divide-y">
+                      <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground flex items-center justify-between">
+                        <span>Recipes using this ingredient (sorted by cost/serving, outliers first)</span>
+                        {median != null && (
+                          <span>median: ${median.toFixed(2)}</span>
+                        )}
+                      </div>
+                      {usages.map((u) => {
+                        const cost = u.cost_per_serving;
+                        const isOutlier =
+                          median != null && cost != null && cost > 0 && (cost > median * 2 || cost < median / 2);
+                        return (
+                          <Link
+                            key={u.recipe_id}
+                            to="/admin/recipes/$id/edit"
+                            params={{ id: u.recipe_id }}
+                            className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-medium">{u.recipe_name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                as "{u.ingredient_name}" · {u.servings} serving{u.servings === 1 ? "" : "s"} · match: {u.match}
+                              </div>
+                            </div>
+                            <Badge
+                              variant={isOutlier ? "destructive" : cost == null || cost === 0 ? "outline" : "secondary"}
+                              className="font-mono shrink-0"
+                            >
+                              {cost == null || cost === 0 ? "—" : `$${cost.toFixed(2)}/serv`}
+                            </Badge>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {row.showLinker && (
                     <div className="space-y-2 pt-1">
