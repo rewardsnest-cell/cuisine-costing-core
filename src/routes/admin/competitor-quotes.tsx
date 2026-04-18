@@ -108,11 +108,14 @@ function CompetitorQuotesPage() {
     const winRate = decided > 0 ? Math.round((won / decided) * 100) : 0;
     const totals = filtered.map((r) => Number(r.total ?? 0)).filter((n) => n > 0);
     const avgTotal = totals.length ? totals.reduce((s, n) => s + n, 0) / totals.length : 0;
-    const gaps = filtered
-      .filter((r) => Number(r.total ?? 0) > 0 && Number(r.counter_total ?? 0) > 0)
-      .map((r) => Number(r.counter_total) - Number(r.total));
+    const paired = filtered.filter((r) => Number(r.total ?? 0) > 0 && Number(r.counter_total ?? 0) > 0);
+    const gaps = paired.map((r) => Number(r.counter_total) - Number(r.total));
     const avgGap = gaps.length ? gaps.reduce((s, n) => s + n, 0) / gaps.length : 0;
-    return { total: filtered.length, won, lost, pending, winRate, avgTotal, avgGap, gapCount: gaps.length };
+    const perGuestGaps = paired
+      .filter((r) => Number(r.guest_count ?? 0) > 0)
+      .map((r) => (Number(r.counter_total) - Number(r.total)) / Number(r.guest_count));
+    const avgGapPerGuest = perGuestGaps.length ? perGuestGaps.reduce((s, n) => s + n, 0) / perGuestGaps.length : 0;
+    return { total: filtered.length, won, lost, pending, winRate, avgTotal, avgGap, gapCount: gaps.length, avgGapPerGuest, perGuestGapCount: perGuestGaps.length };
   }, [filtered]);
 
   const setOutcome = async (id: string, outcome: Outcome) => {
