@@ -56,8 +56,11 @@ export function SupplierFlyersDialog({
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [addingPagesId, setAddingPagesId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const addPagesRef = useRef<HTMLInputElement>(null);
+  const addPagesFlyerIdRef = useRef<string | null>(null);
 
   const load = async () => {
     if (!supplierId) return;
