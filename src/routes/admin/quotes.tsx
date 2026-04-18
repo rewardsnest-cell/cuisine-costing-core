@@ -11,8 +11,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2, MessageSquare, Eye } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
+import { compressImage } from "@/lib/compress-image";
 
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
