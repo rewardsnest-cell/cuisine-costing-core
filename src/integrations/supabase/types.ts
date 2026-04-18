@@ -867,6 +867,122 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_flyer_items: {
+        Row: {
+          brand: string | null
+          created_at: string
+          id: string
+          inventory_item_id: string | null
+          name: string
+          notes: string | null
+          pack_size: string | null
+          regular_price: number | null
+          sale_flyer_id: string
+          sale_price: number | null
+          savings: number | null
+          unit: string | null
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id?: string | null
+          name: string
+          notes?: string | null
+          pack_size?: string | null
+          regular_price?: number | null
+          sale_flyer_id: string
+          sale_price?: number | null
+          savings?: number | null
+          unit?: string | null
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          inventory_item_id?: string | null
+          name?: string
+          notes?: string | null
+          pack_size?: string | null
+          regular_price?: number | null
+          sale_flyer_id?: string
+          sale_price?: number | null
+          savings?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_flyer_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_flyer_items_sale_flyer_id_fkey"
+            columns: ["sale_flyer_id"]
+            isOneToOne: false
+            referencedRelation: "sale_flyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_flyers: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          notes: string | null
+          processed_at: string | null
+          raw_ocr_text: string | null
+          sale_end_date: string | null
+          sale_start_date: string | null
+          status: string
+          supplier_id: string | null
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          raw_ocr_text?: string | null
+          sale_end_date?: string | null
+          sale_start_date?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          raw_ocr_text?: string | null
+          sale_end_date?: string | null
+          sale_start_date?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_flyers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
