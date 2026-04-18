@@ -445,9 +445,9 @@ function PublicMenuPage() {
                       <Card
                         key={r.id}
                         id={`recipe-${r.id}`}
-                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 ${
+                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 rounded-xl ${
                           inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
-                        }`}
+                        } ${highlightId === r.id ? "animate-anchor-pulse" : ""}`}
                       >
                         <div className="aspect-video bg-muted relative overflow-hidden">
                           {r.image_url ? (
