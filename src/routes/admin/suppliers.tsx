@@ -34,10 +34,6 @@ function SuppliersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (location.pathname !== "/admin/suppliers") {
-    return <Outlet />;
-  }
-
   const load = async () => {
     const { data } = await (supabase as any).from("suppliers").select("*").order("name");
     if (data) setSuppliers(data as Supplier[]);
@@ -78,6 +74,10 @@ function SuppliersPage() {
     setForm(EMPTY_FORM);
     void load();
   };
+
+  if (location.pathname !== "/admin/suppliers") {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-6">
