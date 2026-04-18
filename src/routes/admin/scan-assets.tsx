@@ -8,8 +8,60 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Copy, UploadCloud } from "lucide-react";
+import { Loader2, Search, Copy, UploadCloud, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
+
+type QuickPick = {
+  slug: "hero-home" | "path-recipes" | "path-catering";
+  label: string;
+  description: string;
+  category: string;
+  preferContexts: ScannedImage["context"][];
+  keywords: string[];
+};
+
+const QUICK_PICKS: QuickPick[] = [
+  {
+    slug: "hero-home",
+    label: "Hero — Home",
+    description: "Main banner image for the homepage",
+    category: "hero",
+    preferContexts: ["og", "hero"],
+    keywords: ["hero", "home", "banner", "cover", "header"],
+  },
+  {
+    slug: "path-recipes",
+    label: "Path — Recipes",
+    description: "Recipe section card image",
+    category: "hero",
+    preferContexts: ["recipe", "hero", "gallery"],
+    keywords: ["recipe", "dish", "food", "menu", "plate"],
+  },
+  {
+    slug: "path-catering",
+    label: "Path — Catering",
+    description: "Catering section card image",
+    category: "hero",
+    preferContexts: ["hero", "gallery", "og"],
+    keywords: ["catering", "event", "wedding", "buffet", "table"],
+  },
+];
+
+function pickBestFor(qp: QuickPick, images: ScannedImage[]): ScannedImage | null {
+  if (!images.length) return null;
+  const scored = images.map((img) => {
+    let score = 0;
+    const ctxIdx = qp.preferContexts.indexOf(img.context);
+    if (ctxIdx >= 0) score += (qp.preferContexts.length - ctxIdx) * 10;
+    const hay = `${img.alt || ""} ${img.url} ${img.sourcePage}`.toLowerCase();
+    for (const kw of qp.keywords) if (hay.includes(kw)) score += 5;
+    if (img.bytes && img.bytes > 50_000) score += 2;
+    if (img.bytes && img.bytes > 200_000) score += 2;
+    return { img, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.score > 0 ? scored[0].img : images[0];
+}
 
 function suggestSlug(img: ScannedImage, idx: number): string {
   const base = (img.alt || img.url.split("/").pop() || `img-${idx}`)
@@ -90,6 +142,31 @@ function ScanAssetsPage() {
     }
   };
 
+  const [savedSlugs, setSavedSlugs] = useState<Set<string>>(new Set());
+  const [savingSlug, setSavingSlug] = useState<string | null>(null);
+
+  const handleQuickSave = async (qp: QuickPick) => {
+    if (!result) return toast.error("Run a scan first");
+    const best = pickBestFor(qp, result.images);
+    if (!best) return toast.error("No images available");
+    setSavingSlug(qp.slug);
+    try {
+      const res = await importFn({
+        data: { items: [{ url: best.url, alt: best.alt, category: qp.category, slug: qp.slug }] },
+      });
+      if (res.imported > 0) {
+        toast.success(`Saved ${qp.slug}`);
+        setSavedSlugs((s) => new Set(s).add(qp.slug));
+      } else {
+        toast.error(`Failed: ${res.errors[0]?.error || "unknown"}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Save failed");
+    } finally {
+      setSavingSlug(null);
+    }
+  };
+
   const toggle = (url: string) => {
     setPicked((s) => {
       const n = new Set(s);
@@ -136,6 +213,59 @@ function ScanAssetsPage() {
           )}
         </CardContent>
       </Card>
+
+      {result && result.images.length > 0 && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Quick save — one click per slot
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Picks the best candidate from the scan and uploads it to site-assets with the exact slug.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {QUICK_PICKS.map((qp) => {
+                const best = pickBestFor(qp, result.images);
+                const isSaved = savedSlugs.has(qp.slug);
+                const isSaving = savingSlug === qp.slug;
+                return (
+                  <div key={qp.slug} className="rounded-lg border bg-card p-3 space-y-2">
+                    <div className="aspect-video bg-muted rounded overflow-hidden">
+                      {best ? (
+                        <img src={best.url} alt={best.alt || ""} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">no candidate</div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{qp.label}</p>
+                      <p className="text-xs text-muted-foreground">{qp.description}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1 truncate" title={best?.url}>
+                        {best?.alt || best?.url.split("/").pop() || "—"}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleQuickSave(qp)}
+                      disabled={!best || isSaving || isSaved}
+                      size="sm"
+                      className="w-full"
+                      variant={isSaved ? "outline" : "default"}
+                    >
+                      {isSaving ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> :
+                        isSaved ? <Check className="w-3 h-3 mr-2" /> :
+                        <UploadCloud className="w-3 h-3 mr-2" />}
+                      {isSaving ? "Saving..." : isSaved ? `Saved as ${qp.slug}` : `Save as ${qp.slug}`}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {result && result.images.length > 0 && (
         <Card>
