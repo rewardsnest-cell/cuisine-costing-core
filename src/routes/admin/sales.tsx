@@ -200,6 +200,21 @@ function SalesDashboard() {
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
+        <select
+          value={`${sortKey}:${sortDir}`}
+          onChange={(e) => {
+            const [k, d] = e.target.value.split(":");
+            setSortKey(k as SortKey);
+            setSortDir(d as "asc" | "desc");
+          }}
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="savings_pct:desc">Biggest % savings</option>
+          <option value="price_per_unit:asc">Cheapest per unit</option>
+          <option value="sale_price:asc">Lowest sale price</option>
+          <option value="sale_end_date:asc">Ending soonest</option>
+          <option value="supplier_name:asc">Supplier A→Z</option>
+        </select>
       </div>
 
       {loading ? (
