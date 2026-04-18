@@ -1,7 +1,12 @@
 import * as React from 'react'
-import {
-  Body, Button, Container, Head, Heading, Html, Preview, Text,
-} from '@react-email/components'
+import { Body } from '@react-email/body'
+import { Button } from '@react-email/button'
+import { Container } from '@react-email/container'
+import { Head } from '@react-email/head'
+import { Heading } from '@react-email/heading'
+import { Html } from '@react-email/html'
+import { Preview } from '@react-email/preview'
+import { Text } from '@react-email/text'
 import { main, container, eyebrow, h1, text, button, divider, footer } from './_brand'
 
 interface MagicLinkEmailProps {

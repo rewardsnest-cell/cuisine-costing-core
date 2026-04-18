@@ -1,7 +1,13 @@
 import * as React from 'react'
-import {
-  Body, Button, Container, Head, Heading, Html, Link, Preview, Text,
-} from '@react-email/components'
+import { Body } from '@react-email/body'
+import { Button } from '@react-email/button'
+import { Container } from '@react-email/container'
+import { Head } from '@react-email/head'
+import { Heading } from '@react-email/heading'
+import { Html } from '@react-email/html'
+import { Link } from '@react-email/link'
+import { Preview } from '@react-email/preview'
+import { Text } from '@react-email/text'
 import { main, container, eyebrow, h1, text, link, button, divider, footer } from './_brand'
 
 interface InviteEmailProps {
