@@ -205,9 +205,22 @@ function AdminMenuPage() {
                   {r.image_url ? (
                     <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <div className="flex flex-col items-center text-muted-foreground/50">
-                      <ImageOff className="w-8 h-8 mb-1" />
-                      <span className="text-xs">No photo</span>
+                    <div className="flex flex-col items-center text-muted-foreground/60 gap-2">
+                      <ImageOff className="w-8 h-8" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-7 text-xs"
+                        disabled={generatingId === r.id || bulkRunning}
+                        onClick={() => generateOne(r.id)}
+                      >
+                        {generatingId === r.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        {generatingId === r.id ? "Generating…" : "Generate photo"}
+                      </Button>
                     </div>
                   )}
                 </div>
