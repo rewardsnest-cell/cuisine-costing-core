@@ -345,6 +345,21 @@ function QuotesPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Quote | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [recalcingId, setRecalcingId] = useState<string | null>(null);
+
+  const handleRecalc = async (q: Quote) => {
+    setRecalcingId(q.id);
+    try {
+      const { recalcQuotePricing } = await import("@/lib/server-fns/recalc-quote-pricing.functions");
+      const res = await recalcQuotePricing({ data: { quoteId: q.id } }) as { updatedItems: number; subtotal: number; total: number; markup: number };
+      toast.success(`Recalculated ${res.updatedItems} item${res.updatedItems === 1 ? "" : "s"} · total $${res.total.toFixed(2)}`);
+      loadQuotes();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to recalculate");
+    } finally {
+      setRecalcingId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
