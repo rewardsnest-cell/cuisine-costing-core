@@ -39,11 +39,16 @@ type Row = {
   guest_count: number | null;
   per_guest_price: number | null;
   total: number | null;
+  subtotal: number | null;
+  taxes: number | null;
+  gratuity: number | null;
   service_style: string | null;
   outcome: Outcome;
   counter_quote_id: string | null;
   notes: string | null;
   counter_total: number | null;
+  analysis: any;
+  source_image_url: string | null;
 };
 
 const OUTCOME_META: Record<Outcome, { label: string; className: string; icon: any }> = {
