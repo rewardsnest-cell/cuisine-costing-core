@@ -512,6 +512,33 @@ export type Database = {
           },
         ]
       }
+      ingredient_synonyms: {
+        Row: {
+          alias: string
+          alias_normalized: string
+          canonical: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          alias: string
+          alias_normalized: string
+          canonical: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          alias?: string
+          alias_normalized?: string
+          canonical?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_adjustments: {
         Row: {
           change_amount: number
