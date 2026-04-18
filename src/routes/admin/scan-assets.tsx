@@ -246,14 +246,20 @@ function ScanAssetsPage() {
 
       {result && result.images.length > 0 && (
         <Card className="border-primary/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Quick save — one click per slot
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Picks the best candidate from the scan and uploads it to site-assets with the exact slug.
-            </p>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Quick save — one click per slot
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Picks the best candidate from the scan and uploads it to site-assets with the exact slug.
+              </p>
+            </div>
+            <Button onClick={handleSaveAll} disabled={savingAll} size="sm">
+              {savingAll ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Zap className="w-3 h-3 mr-2" />}
+              {savingAll ? "Saving all..." : "Save all 3"}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
