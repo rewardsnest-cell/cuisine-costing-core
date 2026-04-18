@@ -231,6 +231,17 @@ export function UnlinkedIngredientsReview() {
                     {busy === ing.id ? <Link2 className="w-3.5 h-3.5 animate-pulse" /> : <Check className="w-3.5 h-3.5" />}
                     Link
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5"
+                    onClick={() => addToInventory(ing)}
+                    disabled={busy === ing.id}
+                    title="Create a new inventory item from this ingredient and link it"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add to inventory
+                  </Button>
                 </div>
               );
             })
