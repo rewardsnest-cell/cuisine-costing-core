@@ -1763,6 +1763,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_quote_totals: {
+        Args: { _quote_id: string }
+        Returns: undefined
+      }
       recompute_recipe_cost: {
         Args: { _recipe_id: string }
         Returns: undefined
