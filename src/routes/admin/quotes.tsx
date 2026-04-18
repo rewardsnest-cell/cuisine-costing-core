@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
