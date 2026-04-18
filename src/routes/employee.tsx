@@ -314,9 +314,10 @@ function ExpandableAssignment({ a, userId }: { a: any; userId: string }) {
       {open && quoteId && (
         <div className="border-t border-border/60 p-3 bg-background/40">
           <Tabs defaultValue="prep">
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-4 w-full">
               <TabsTrigger value="prep">Prep</TabsTrigger>
               <TabsTrigger value="clock">Time</TabsTrigger>
+              <TabsTrigger value="recipes">Recipes</TabsTrigger>
               <TabsTrigger value="shopping">Shopping</TabsTrigger>
             </TabsList>
             <TabsContent value="prep" className="mt-3">
@@ -324,6 +325,9 @@ function ExpandableAssignment({ a, userId }: { a: any; userId: string }) {
             </TabsContent>
             <TabsContent value="clock" className="mt-3">
               <TimeClock quoteId={quoteId} userId={userId} />
+            </TabsContent>
+            <TabsContent value="recipes" className="mt-3">
+              <RecipeBreakdown quoteId={quoteId} />
             </TabsContent>
             <TabsContent value="shopping" className="mt-3">
               <ShoppingList quoteId={quoteId} />
