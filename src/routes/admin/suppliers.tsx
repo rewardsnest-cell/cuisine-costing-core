@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone, Pencil } from "lucide-react";
+import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone, Pencil, Tag } from "lucide-react";
+import { SupplierFlyersDialog } from "@/components/admin/SupplierFlyersDialog";
 
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
@@ -32,6 +33,7 @@ function SuppliersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [flyersFor, setFlyersFor] = useState<Supplier | null>(null);
 
   const load = async () => {
     const { data } = await (supabase as any).from("suppliers").select("*").order("name");
@@ -167,11 +169,28 @@ function SuppliersPage() {
                 {s.phone && !s.office_phone && !s.cellphone && (
                   <p className="text-sm text-muted-foreground">{s.phone}</p>
                 )}
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 w-full"
+                    onClick={() => setFlyersFor(s)}
+                  >
+                    <Tag className="w-3.5 h-3.5" /> Sale Flyers
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <SupplierFlyersDialog
+        supplierId={flyersFor?.id ?? null}
+        supplierName={flyersFor?.name ?? ""}
+        open={!!flyersFor}
+        onOpenChange={(o) => { if (!o) setFlyersFor(null); }}
+      />
     </div>
   );
 }
