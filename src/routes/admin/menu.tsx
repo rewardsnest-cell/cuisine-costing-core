@@ -272,6 +272,16 @@ function AdminMenuPage() {
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
                     )}
+                    <a
+                      href={`/menu#recipe-${r.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      title="Open this recipe on the public menu in a new tab"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Preview on /menu
+                    </a>
                   </div>
 
                   <div>
