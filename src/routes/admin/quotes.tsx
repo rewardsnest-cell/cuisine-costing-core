@@ -323,6 +323,15 @@ function QuotesPage() {
         toast.success("Competitor quote analyzed");
         toast.error(recErr instanceof Error ? `Receipt not saved: ${recErr.message}` : "Receipt not saved");
       }
+
+      // Auto-build counter quote (creates AI recipes, saves to /admin/recipes)
+      if (linkMode !== "account" || linkedClient) {
+        try {
+          await createDraftCounter();
+        } catch (autoErr) {
+          console.warn("Auto build counter failed:", autoErr);
+        }
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Analysis failed");
     } finally {

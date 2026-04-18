@@ -1027,6 +1027,7 @@ export type Database = {
           prep_time: number | null
           seasonal_tags: string[] | null
           servings: number
+          source_competitor_quote_id: string | null
           total_cost: number | null
           updated_at: string
         }
@@ -1049,6 +1050,7 @@ export type Database = {
           prep_time?: number | null
           seasonal_tags?: string[] | null
           servings?: number
+          source_competitor_quote_id?: string | null
           total_cost?: number | null
           updated_at?: string
         }
@@ -1071,10 +1073,19 @@ export type Database = {
           prep_time?: number | null
           seasonal_tags?: string[] | null
           servings?: number
+          source_competitor_quote_id?: string | null
           total_cost?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recipes_source_competitor_quote_id_fkey"
+            columns: ["source_competitor_quote_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_section_permissions: {
         Row: {

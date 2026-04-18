@@ -261,6 +261,7 @@ Deno.serve(async (req: Request) => {
             cost_per_serving: costPerServing,
             total_cost: totalCost,
             active: true,
+            source_competitor_quote_id: competitorQuoteId,
           })
           .select("id,name,cost_per_serving")
           .single();
