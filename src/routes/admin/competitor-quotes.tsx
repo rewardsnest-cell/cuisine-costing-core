@@ -133,12 +133,17 @@ function CompetitorQuotesPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         <StatCard label="Analyses" value={stats.total.toString()} />
         <StatCard label="Won" value={stats.won.toString()} tone="green" />
         <StatCard label="Lost" value={stats.lost.toString()} tone="red" />
         <StatCard label="Win rate" value={`${stats.winRate}%`} />
         <StatCard label="Avg total" value={fmtMoney(stats.avgTotal)} />
+        <StatCard
+          label={`Avg gap vs counter (${stats.gapCount})`}
+          value={`${stats.avgGap >= 0 ? "+" : ""}${fmtMoney(stats.avgGap)}`}
+          tone={stats.avgGap >= 0 ? "green" : "red"}
+        />
       </div>
 
       <Card>
