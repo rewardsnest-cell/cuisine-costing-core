@@ -196,7 +196,7 @@ export function BulkCompetitorUpload({
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
   const runPerFile = async () => {
-    let done = 0; let created = 0; let failed = 0;
+    let done = 0; let created = 0; let failed = 0; let countersBuilt = 0;
     const total = items.length;
     await runWithConcurrency(items, 3, async (it) => {
       updateItem(it.id, { status: "processing" });
@@ -205,7 +205,11 @@ export function BulkCompetitorUpload({
         const blob = blobs[0];
         const uploaded = await uploadToReceipts(blob);
         const analysis = await analyzeBlob(blob);
-        await saveCompetitorRow(analysis, uploaded.url);
+        const cqId = await saveCompetitorRow(analysis, uploaded.url);
+        if (cqId) {
+          const built = await autoBuildCounter(cqId);
+          if (built?.ok) countersBuilt++;
+        }
         updateItem(it.id, { status: "done" });
         created++;
       } catch (e) {
@@ -216,7 +220,7 @@ export function BulkCompetitorUpload({
         setProgress(Math.round((done / total) * 100));
       }
     });
-    if (created) toast.success(`Created ${created} competitor quote${created === 1 ? "" : "s"}`);
+    if (created) toast.success(`Created ${created} competitor quote${created === 1 ? "" : "s"}${countersBuilt ? ` · built ${countersBuilt} counter draft${countersBuilt === 1 ? "" : "s"}` : ""}`);
     if (failed) toast.error(`${failed} file${failed === 1 ? "" : "s"} failed`);
   };
 
@@ -261,8 +265,13 @@ export function BulkCompetitorUpload({
     }
     const merged = mergeAnalyses(allAnalyses);
     try {
-      await saveCompetitorRow(merged, allPages[0]?.image_url ?? "", allPages);
-      toast.success(`Created 1 competitor quote from ${allPages.length} page${allPages.length === 1 ? "" : "s"}`);
+      const cqId = await saveCompetitorRow(merged, allPages[0]?.image_url ?? "", allPages);
+      let counterMsg = "";
+      if (cqId) {
+        const built = await autoBuildCounter(cqId);
+        if (built?.ok) counterMsg = " · counter draft built";
+      }
+      toast.success(`Created 1 competitor quote from ${allPages.length} page${allPages.length === 1 ? "" : "s"}${counterMsg}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save merged analysis");
     }
