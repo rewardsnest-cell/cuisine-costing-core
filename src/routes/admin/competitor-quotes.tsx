@@ -85,6 +85,37 @@ function CompetitorQuotesPage() {
   const [archiving, setArchiving] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<Row | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmBulkArchive, setConfirmBulkArchive] = useState(false);
+
+  const toggleOne = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const runBulk = async (archived: boolean) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const patch = archived
+        ? { archived: true, archived_at: new Date().toISOString() }
+        : { archived: false, archived_at: null };
+      const { error } = await supabase.from("competitor_quotes").update(patch as any).in("id", ids);
+      if (error) throw error;
+      toast.success(`${archived ? "Archived" : "Restored"} ${ids.length} quote${ids.length === 1 ? "" : "s"}`);
+      setRows((rs) => rs.map((r) => (selected.has(r.id) ? { ...r, ...patch } as Row : r)));
+      setSelected(new Set());
+      setConfirmBulkArchive(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Bulk action failed");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const archiveQuote = async (row: Row) => {
     setArchiving(row.id);
