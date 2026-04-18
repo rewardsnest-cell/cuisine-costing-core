@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +46,7 @@ type Ingredient = {
 };
 
 function RecipesPage() {
+  const location = useLocation();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "off">("all");
@@ -56,12 +57,18 @@ function RecipesPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
 
+  const isNestedRoute = location.pathname !== "/admin/recipes";
+
   const load = async () => {
     const { data } = await supabase.from("recipes").select("*").order("name");
     if (data) setRecipes(data as Recipe[]);
   };
 
   useEffect(() => { load(); }, []);
+
+  if (isNestedRoute) {
+    return <Outlet />;
+  }
 
   const filtered = recipes.filter((r) => {
     if (!r.name.toLowerCase().includes(search.toLowerCase())) return false;
