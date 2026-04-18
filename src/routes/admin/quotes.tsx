@@ -66,6 +66,40 @@ type Assignment = {
 
 const ROLES = ["Lead", "Cook", "Server", "Driver", "Other"];
 
+type CompetitorLineItem = {
+  name: string; qty: number | null; unitPrice: number | null;
+  total: number | null; category: string | null;
+};
+type CompetitorAnalysis = {
+  competitorName: string | null;
+  clientName: string | null;
+  eventType: string | null;
+  eventDate: string | null;
+  guestCount: number | null;
+  perGuestPrice: number | null;
+  subtotal: number | null;
+  taxes: number | null;
+  gratuity: number | null;
+  total: number | null;
+  lineItems: CompetitorLineItem[];
+  menuHighlights: string[];
+  serviceStyle: string | null;
+  addons: string[];
+  notes: string;
+  ourSuggestedPrice: { perGuest: number; total: number; rationale: string } | null;
+};
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer();
+  let bin = "";
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+const fmt = (n: number | null | undefined) =>
+  n == null || isNaN(Number(n)) ? "—" : `$${Number(n).toFixed(2)}`;
+
 function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
