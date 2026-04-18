@@ -181,6 +181,22 @@ function QuotePage() {
         user_id: user?.id || null,
         conversation: aiTranscript ? { source: "ai_builder", messages: aiTranscript } : null,
       }).select("id, reference_number").single();
+      // Insert selected recipes as quote_items so admins can see them in /admin/events
+      const recList = selections.recipes || [];
+      if (data?.id && recList.length > 0) {
+        const items = recList.map((r) => {
+          const unitPrice = (r.cost_per_serving || 0) * markup * (selectedTier.multiplier);
+          return {
+            quote_id: data.id,
+            recipe_id: r.id,
+            name: r.name,
+            quantity: selections.guestCount,
+            unit_price: +unitPrice.toFixed(2),
+            total_price: +(unitPrice * selections.guestCount).toFixed(2),
+          };
+        });
+        await (supabase as any).from("quote_items").insert(items);
+      }
       if (data?.reference_number) setReferenceNumber(data.reference_number);
       if (data?.id) {
         setSubmittedQuoteId(data.id);
