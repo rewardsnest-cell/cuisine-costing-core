@@ -328,11 +328,21 @@ function IngredientReferencePage() {
     toast.success(`Attached ${picks.length} synonym${picks.length === 1 ? "" : "s"}`);
     setSuggestOpen(false);
     setSuggestions([]);
+    // Attached aliases are now linked, so any cached candidate sets are stale.
+    setSuggestionCache(new Map());
     await load();
   };
 
   const handleDismissSuggestion = async (aliasNorm: string) => {
     setSuggestions((prev) => prev.filter((s) => s.alias_normalized !== aliasNorm));
+    // Remove this alias from every cached entry so it doesn't reappear from cache.
+    setSuggestionCache((prev) => {
+      const next = new Map<string, Suggestion[]>();
+      for (const [k, list] of prev) {
+        next.set(k, list.filter((s) => s.alias_normalized !== aliasNorm));
+      }
+      return next;
+    });
     await supabase
       .from("ingredient_synonym_dismissed")
       .insert({ alias_normalized: aliasNorm });
