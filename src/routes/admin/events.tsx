@@ -51,8 +51,17 @@ type QuoteItem = {
   quantity: number;
   unit_price: number;
   total_price: number;
+  recipe_id?: string | null;
   _new?: boolean;
   _deleted?: boolean;
+};
+
+type RecipeOpt = {
+  id: string;
+  name: string;
+  category: string | null;
+  cuisine: string | null;
+  cost_per_serving: number | null;
 };
 
 type Assignment = {
