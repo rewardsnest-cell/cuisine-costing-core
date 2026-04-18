@@ -2,12 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { scanVpsfinestAssets, type ScannedImage } from "@/lib/server/scan-vpsfinest-assets";
+import { importSiteAssets } from "@/lib/server/import-site-assets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Search, Copy, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
+
+function suggestSlug(img: ScannedImage, idx: number): string {
+  const base = (img.alt || img.url.split("/").pop() || `img-${idx}`)
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return `${img.context}-${base || idx}`;
+}
 
 export const Route = createFileRoute("/admin/scan-assets")({
   head: () => ({ meta: [{ title: "Scan vpsfinest.com Images — Admin" }] }),
