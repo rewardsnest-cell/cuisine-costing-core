@@ -112,12 +112,17 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, prefilled } = await req.json();
+    const { messages, prefilled, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const weddingAddendum = context === "wedding"
+      ? `\n\n# Wedding Context\nThe client arrived from the wedding catering page. Treat this as a WEDDING inquiry from the start. Set eventType to "Wedding" via the tool. Lead with wedding-specific questions: wedding date, venue (or area in/around Aurora, Ohio / NE Ohio), guest count, ceremony + reception flow, cocktail hour vs reception meal, plated/family/buffet preference, signature dishes that mean something to the couple, dietary mix among guests, tasting interest, and the overall vibe of the day. Be especially calm, warm, and reassuring — emphasize stress-free service. Avoid corporate-event framing.`
+      : "";
+
     const systemContent =
       SYSTEM_PROMPT +
+      weddingAddendum +
       (prefilled
         ? `\n\n# Prefilled draft from the user (already chose these — acknowledge and skip questions for these):\n${JSON.stringify(prefilled, null, 2)}`
         : "");
