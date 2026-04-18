@@ -123,7 +123,7 @@ export const Route = createFileRoute("/recipes/$id")({
 });
 
 function RecipeDetailPage() {
-  const { recipe, ingredients } = Route.useLoaderData();
+  const { recipe, ingredients, related } = Route.useLoaderData();
   const r: any = recipe;
   const tags = [
     r.is_vegetarian && "Vegetarian",
@@ -218,6 +218,39 @@ function RecipeDetailPage() {
             )}
           </section>
         </div>
+
+        {related && related.length > 0 && (
+          <section className="mt-16 pt-10 border-t border-border">
+            <h2 className="font-display text-2xl font-semibold text-primary mb-6">Related recipes</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              {related.map((rr: any) => (
+                <Link
+                  key={rr.id}
+                  to="/recipes/$id"
+                  params={{ id: rr.id }}
+                  className="group block"
+                >
+                  <div className="aspect-[4/3] bg-secondary rounded-xl overflow-hidden mb-3">
+                    {rr.image_url ? (
+                      <img
+                        src={rr.image_url}
+                        alt={rr.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="text-xs uppercase tracking-widest text-primary mb-1">
+                    {rr.category || rr.cuisine || "Recipe"}
+                  </p>
+                  <h3 className="font-display text-lg text-foreground group-hover:text-primary transition-colors">
+                    {rr.name}
+                  </h3>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="mt-16 pt-8 border-t border-border">
           <Link to="/recipes" className="text-primary hover:underline text-sm">← Back to all recipes</Link>
