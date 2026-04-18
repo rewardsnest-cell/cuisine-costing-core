@@ -12,6 +12,7 @@ import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
