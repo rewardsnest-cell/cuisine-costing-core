@@ -9,9 +9,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageUrl, flyerId } = await req.json();
-    if (!imageUrl || !flyerId) {
-      return new Response(JSON.stringify({ error: "imageUrl and flyerId required" }), {
+    const body = await req.json();
+    const { flyerId } = body;
+    // Accept either a single imageUrl (back-compat) or imageUrls (multi-page)
+    const imageUrls: string[] = Array.isArray(body.imageUrls)
+      ? body.imageUrls.filter((u: any) => typeof u === "string" && u.length > 0)
+      : body.imageUrl
+        ? [body.imageUrl]
+        : [];
+
+    if (!flyerId || imageUrls.length === 0) {
+      return new Response(JSON.stringify({ error: "flyerId and at least one imageUrl required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -19,6 +27,20 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Build a single multimodal request that includes ALL pages so the AI
+    // can merge items across pages and pick a single sale period.
+    const userContent: any[] = [
+      {
+        type: "text",
+        text:
+          `Extract every product across ${imageUrls.length} flyer page${imageUrls.length === 1 ? "" : "s"}. ` +
+          "For each item include: name, brand (if shown), pack_size (e.g. '12 oz', '5 lb case'), unit (each/lb/oz/case), sale_price, regular_price (if shown), and savings amount. " +
+          "Deduplicate items that appear on multiple pages. " +
+          "Also extract sale_start_date and sale_end_date in YYYY-MM-DD format if any page shows a sale period, plus a short title and any raw text.",
+      },
+      ...imageUrls.map((url) => ({ type: "image_url", image_url: { url } })),
+    ];
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -32,25 +54,16 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "You are a sale flyer extraction specialist. Read supplier sale flyers and extract every advertised item with its sale price, regular price, brand, pack size and unit. Also extract the sale period start and end dates if visible. Return data via the extract_sale_flyer tool.",
+              "You are a sale flyer extraction specialist. Read supplier sale flyers (which may span multiple pages) and extract every advertised item with its sale price, regular price, brand, pack size and unit. Also extract the sale period start and end dates if visible. Return data via the extract_sale_flyer tool.",
           },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Extract every product on this sale flyer. For each item include: name, brand (if shown), pack_size (e.g. '12 oz', '5 lb case'), unit (each/lb/oz/case), sale_price, regular_price (if shown), and savings amount. Also extract sale_start_date and sale_end_date in YYYY-MM-DD format if the flyer shows a sale period, plus a short title and any raw text.",
-              },
-              { type: "image_url", image_url: { url: imageUrl } },
-            ],
-          },
+          { role: "user", content: userContent },
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "extract_sale_flyer",
-              description: "Extract structured items and sale period from a sale flyer",
+              description: "Extract structured items and sale period from a (possibly multi-page) sale flyer",
               parameters: {
                 type: "object",
                 properties: {
@@ -129,6 +142,12 @@ serve(async (req) => {
       );
     };
 
+    // Replace existing items for this flyer (re-extract is idempotent)
+    await fetch(`${SUPABASE_URL}/rest/v1/sale_flyer_items?sale_flyer_id=eq.${flyerId}`, {
+      method: "DELETE",
+      headers: sbHeaders,
+    });
+
     // Insert flyer items
     const itemsToInsert = (extracted.items || []).map((it: any) => {
       const matched = matchInv(it.name || "");
@@ -176,6 +195,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        pages_processed: imageUrls.length,
         items_count: itemsToInsert.length,
         matched_count: itemsToInsert.filter((i: any) => i.inventory_item_id).length,
         sale_start_date: extracted.sale_start_date,
