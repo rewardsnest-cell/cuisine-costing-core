@@ -421,10 +421,15 @@ export function SupplierFlyersDialog({
                               </Badge>
                               <button
                                 onClick={() => handleDelete(fl.id)}
-                                className="text-muted-foreground hover:text-destructive p-1"
+                                disabled={deletingId === fl.id}
+                                className="text-muted-foreground hover:text-destructive p-1 disabled:opacity-50"
                                 aria-label="Delete flyer"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {deletingId === fl.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </div>
@@ -516,10 +521,15 @@ export function SupplierFlyersDialog({
                                 </span>
                                 <button
                                   onClick={() => handleDeletePage(fl.id, p)}
-                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  disabled={deletingPageId === p.id}
+                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                                   aria-label={`Delete page ${p.page_number}`}
                                 >
-                                  <X className="w-3 h-3" />
+                                  {deletingPageId === p.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <X className="w-3 h-3" />
+                                  )}
                                 </button>
                               </div>
                             ))}
