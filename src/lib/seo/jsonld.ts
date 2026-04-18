@@ -27,6 +27,22 @@ export function articleJsonLd(opts: {
   };
 }
 
+export function breadcrumbJsonLd(items: Array<{ name: string; url: string }>) {
+  return {
+    type: "application/ld+json" as const,
+    children: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: items.map((it, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: it.name,
+        item: it.url,
+      })),
+    }),
+  };
+}
+
 export function faqJsonLd(faqs: Array<{ q: string; a: string }>) {
   return {
     type: "application/ld+json" as const,
