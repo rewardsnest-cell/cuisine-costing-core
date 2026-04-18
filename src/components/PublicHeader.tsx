@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -10,38 +9,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Menu } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/vpsfinest-logo.png";
 
 export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("site_asset_manifest")
-        .select("public_url, alt")
-        .or("category.eq.logo,slug.ilike.%logo%")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled && data?.public_url) setLogoUrl(data.public_url);
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          {logoUrl ? (
-            <img src={logoUrl} alt="VPS Finest" className="h-8 w-auto object-contain" loading="eager" />
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">VPS</span>
-            </div>
-          )}
+          <img src={logo} alt="VPS Finest" className="h-9 w-auto object-contain" loading="eager" />
           <span className="font-display text-xl font-semibold text-foreground">VPS Finest</span>
         </Link>
 

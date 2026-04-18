@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, Instagram, Facebook } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/vpsfinest-logo.png";
 
 const EMAIL = "hello@vpsfinest.com";
 const PHONE_DISPLAY = "(330) 555-0199";
@@ -10,23 +9,6 @@ const INSTAGRAM_URL = "https://instagram.com/vpsfinest";
 const FACEBOOK_URL = "https://facebook.com/vpsfinest";
 
 export function PublicFooter() {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("site_asset_manifest")
-        .select("public_url, alt")
-        .or("category.eq.logo,slug.ilike.%logo%")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled && data?.public_url) setLogoUrl(data.public_url);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
   return (
     <footer className="bg-foreground text-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,13 +16,7 @@ export function PublicFooter() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt="VPS Finest" className="h-8 w-auto object-contain" loading="lazy" />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                  <span className="text-accent-foreground font-bold text-xs">VF</span>
-                </div>
-              )}
+              <img src={logo} alt="VPS Finest" className="h-9 w-auto object-contain bg-background/90 rounded-md p-1" loading="lazy" />
               <span className="font-display text-lg font-semibold">VPS Finest</span>
             </div>
             <p className="text-sm text-background/60 leading-relaxed">
