@@ -144,6 +144,36 @@ function ScanAssetsPage() {
 
   const [savedSlugs, setSavedSlugs] = useState<Set<string>>(new Set());
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
+
+  const handleSaveAll = async () => {
+    if (!result) return toast.error("Run a scan first");
+    setSavingAll(true);
+    let ok = 0;
+    let failed = 0;
+    for (const qp of QUICK_PICKS) {
+      const best = pickBestFor(qp, result.images);
+      if (!best) { failed++; continue; }
+      setSavingSlug(qp.slug);
+      try {
+        const res = await importFn({
+          data: { items: [{ url: best.url, alt: best.alt, category: qp.category, slug: qp.slug }] },
+        });
+        if (res.imported > 0) {
+          ok++;
+          setSavedSlugs((s) => new Set(s).add(qp.slug));
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+    setSavingSlug(null);
+    setSavingAll(false);
+    if (failed === 0) toast.success(`Saved all ${ok} assets`);
+    else toast.error(`Saved ${ok} · failed ${failed}`);
+  };
 
   const handleQuickSave = async (qp: QuickPick) => {
     if (!result) return toast.error("Run a scan first");
@@ -216,14 +246,20 @@ function ScanAssetsPage() {
 
       {result && result.images.length > 0 && (
         <Card className="border-primary/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Quick save — one click per slot
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Picks the best candidate from the scan and uploads it to site-assets with the exact slug.
-            </p>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Quick save — one click per slot
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Picks the best candidate from the scan and uploads it to site-assets with the exact slug.
+              </p>
+            </div>
+            <Button onClick={handleSaveAll} disabled={savingAll} size="sm">
+              {savingAll ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Zap className="w-3 h-3 mr-2" />}
+              {savingAll ? "Saving all..." : "Save all 3"}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
