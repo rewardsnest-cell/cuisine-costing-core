@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/admin/servings-review")({
   head: () => ({
     meta: [
-      { title: "Servings Review — TasteQuote" },
+      { title: "Servings Review — VPS Finest" },
       { name: "description", content: "Fix recipes whose servings count is wrong so per-serving costs and quotes are accurate." },
     ],
   }),

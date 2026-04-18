@@ -11,7 +11,7 @@ import { FileText, Plus, LinkIcon } from "lucide-react";
 export const Route = createFileRoute("/my-quotes")({
   head: () => ({
     meta: [
-      { title: "My Quotes — TasteQuote" },
+      { title: "My Quotes — VPS Finest" },
       { name: "description", content: "View and manage your saved catering quotes." },
     ],
   }),

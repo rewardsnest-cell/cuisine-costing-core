@@ -8,7 +8,7 @@ import { Tag, Search, ArrowUpDown, Truck, Calendar, Package, ExternalLink } from
 export const Route = createFileRoute("/admin/sales")({
   head: () => ({
     meta: [
-      { title: "Sales Dashboard — TasteQuote" },
+      { title: "Sales Dashboard — VPS Finest" },
       { name: "description", content: "All currently active supplier sale prices, sortable by savings." },
     ],
   }),

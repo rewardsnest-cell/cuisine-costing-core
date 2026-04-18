@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Set New Password — TasteQuote" },
+      { title: "Set New Password — VPS Finest" },
       { name: "description", content: "Set a new password for your account." },
     ],
   }),

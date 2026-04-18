@@ -143,7 +143,7 @@ export function QuotePage() {
       pricePerDish: PRICE_PER_DISH,
       preferences: selections.preferences,
     });
-    doc.save(`TasteQuote-${selections.clientName || "Proposal"}.pdf`);
+    doc.save(`VPS Finest-${selections.clientName || "Proposal"}.pdf`);
   };
 
   const [submittedQuoteId, setSubmittedQuoteId] = useState<string | null>(null);

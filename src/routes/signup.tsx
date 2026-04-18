@@ -10,8 +10,8 @@ import { lovable } from "@/integrations/lovable/index";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Create Account — TasteQuote" },
-      { name: "description", content: "Create your TasteQuote account to save and manage quotes." },
+      { title: "Create Account — VPS Finest" },
+      { name: "description", content: "Create your VPS Finest account to save and manage quotes." },
     ],
   }),
   component: SignupPage,

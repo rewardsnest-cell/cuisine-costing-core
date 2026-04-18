@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/events")({
-  head: () => ({ meta: [{ title: "Events — TasteQuote Admin" }] }),
+  head: () => ({ meta: [{ title: "Events — VPS Finest Admin" }] }),
   component: EventsPage,
 });
 

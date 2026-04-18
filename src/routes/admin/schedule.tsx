@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/admin/schedule")({
-  head: () => ({ meta: [{ title: "Schedule — TasteQuote Admin" }] }),
+  head: () => ({ meta: [{ title: "Schedule — VPS Finest Admin" }] }),
   component: SchedulePage,
 });
 

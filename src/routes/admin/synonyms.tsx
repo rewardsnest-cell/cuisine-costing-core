@@ -18,7 +18,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 export const Route = createFileRoute("/admin/synonyms")({
   head: () => ({
     meta: [
-      { title: "Ingredient Synonyms — TasteQuote" },
+      { title: "Ingredient Synonyms — VPS Finest" },
       { name: "description", content: "Edit the alias map used by the AI counter-quote builder to match ingredients to inventory." },
     ],
   }),

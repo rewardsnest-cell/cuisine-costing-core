@@ -25,7 +25,7 @@ import {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — TasteQuote" },
+      { title: "Dashboard — VPS Finest" },
       { name: "description", content: "Your quotes, upcoming events, and account at a glance." },
     ],
   }),

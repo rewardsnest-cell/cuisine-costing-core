@@ -9,8 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Forgot Password — TasteQuote" },
-      { name: "description", content: "Reset your TasteQuote password." },
+      { title: "Forgot Password — VPS Finest" },
+      { name: "description", content: "Reset your VPS Finest password." },
     ],
   }),
   component: ForgotPasswordPage,

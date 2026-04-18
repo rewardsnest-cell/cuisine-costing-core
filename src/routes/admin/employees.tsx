@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { UserCog, Plus, Pencil, Search, BadgeCheck, BadgeX } from "lucide-react";
 
 export const Route = createFileRoute("/admin/employees")({
-  head: () => ({ meta: [{ title: "Employees — TasteQuote Admin" }] }),
+  head: () => ({ meta: [{ title: "Employees — VPS Finest Admin" }] }),
   component: EmployeesPage,
 });
 

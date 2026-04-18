@@ -11,7 +11,7 @@ import { Search, FileText, Link as LinkIcon } from "lucide-react";
 export const Route = createFileRoute("/lookup")({
   head: () => ({
     meta: [
-      { title: "Look Up Your Quote — TasteQuote" },
+      { title: "Look Up Your Quote — VPS Finest" },
       { name: "description", content: "Find your catering quote using your reference number or email." },
     ],
   }),
