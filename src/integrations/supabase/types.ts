@@ -927,6 +927,41 @@ export type Database = {
           },
         ]
       }
+      sale_flyer_pages: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          page_number: number
+          sale_flyer_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          page_number: number
+          sale_flyer_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          page_number?: number
+          sale_flyer_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_flyer_pages_sale_flyer_id_fkey"
+            columns: ["sale_flyer_id"]
+            isOneToOne: false
+            referencedRelation: "sale_flyers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_flyers: {
         Row: {
           created_at: string
