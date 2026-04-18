@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat, Plus } from "lucide-react";
+import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat, Plus, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
