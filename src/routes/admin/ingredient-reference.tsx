@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -80,6 +89,12 @@ function IngredientReferencePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "linked" | "unlinked">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchRecomputing, setBatchRecomputing] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
+  const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -226,57 +241,177 @@ function IngredientReferencePage() {
     updateRow(row.id, { linkQuery: q, linkResults: results });
   };
 
-  const handleRecompute = async (row: RowState) => {
-    updateRow(row.id, { recomputing: true });
-    // Find affected recipes: any recipe with an ingredient referencing this id, or matching by normalized name (fallback), or linked via the same inventory_item_id
-    const conditions: string[] = [`reference_id.eq.${row.id}`];
-    if (row.inventory_item_id) conditions.push(`inventory_item_id.eq.${row.inventory_item_id}`);
+  // Find recipe ids that depend on a reference (by reference_id, linked inventory_item_id, or normalized name fallback)
+  const collectAffectedRecipeIds = async (refs: RowState[]): Promise<Set<string>> => {
+    const ids = new Set<string>();
+    if (refs.length === 0) return ids;
+
+    const refIds = refs.map((r) => r.id);
+    const invIds = refs.map((r) => r.inventory_item_id).filter((x): x is string => !!x);
+    const conditions: string[] = [`reference_id.in.(${refIds.join(",")})`];
+    if (invIds.length > 0) conditions.push(`inventory_item_id.in.(${invIds.join(",")})`);
+
     const { data: ings, error } = await supabase
       .from("recipe_ingredients")
       .select("recipe_id,name")
       .or(conditions.join(","));
     if (error) {
       toast.error(error.message);
-      updateRow(row.id, { recomputing: false });
-      return;
+      return ids;
     }
-    const ids = new Set<string>();
     for (const ing of ings ?? []) {
       if ((ing as any).recipe_id) ids.add((ing as any).recipe_id);
     }
-    // Also include name-based matches (normalized)
-    const { data: byName } = await supabase
-      .from("recipe_ingredients")
-      .select("recipe_id,name");
+
+    // Name-based fallback for ingredients that have neither reference_id nor inventory link
+    const normSet = new Set(refs.map((r) => r.canonical_normalized));
+    const { data: byName } = await supabase.from("recipe_ingredients").select("recipe_id,name");
     for (const ing of byName ?? []) {
       const n = (ing as any).name as string;
       if (!n) continue;
       const norm = n.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-      if (norm === row.canonical_normalized) ids.add((ing as any).recipe_id);
+      if (normSet.has(norm)) ids.add((ing as any).recipe_id);
     }
-    if (ids.size === 0) {
-      toast.info("No recipes use this ingredient");
-      updateRow(row.id, { recomputing: false });
-      return;
-    }
+    return ids;
+  };
+
+  const recomputeRecipes = async (recipeIds: Set<string>): Promise<{ ok: number; fail: number }> => {
     let ok = 0;
     let fail = 0;
     await Promise.all(
-      Array.from(ids).map(async (rid) => {
+      Array.from(recipeIds).map(async (rid) => {
         const { error: rpcErr } = await supabase.rpc("recompute_recipe_cost", { _recipe_id: rid });
         if (rpcErr) fail++;
         else ok++;
       }),
     );
+    return { ok, fail };
+  };
+
+  const handleRecompute = async (row: RowState) => {
+    updateRow(row.id, { recomputing: true });
+    const ids = await collectAffectedRecipeIds([row]);
+    if (ids.size === 0) {
+      toast.info("No recipes use this ingredient");
+      updateRow(row.id, { recomputing: false });
+      return;
+    }
+    const { ok, fail } = await recomputeRecipes(ids);
     updateRow(row.id, { recomputing: false });
     if (fail) toast.warning(`Recomputed ${ok}, ${fail} failed`);
     else toast.success(`Recomputed ${ok} recipe${ok === 1 ? "" : "s"}`);
+  };
+
+  const handleBatchRecompute = async () => {
+    const targets = rows.filter((r) => selected.has(r.id));
+    if (targets.length === 0) return;
+    setBatchRecomputing(true);
+    try {
+      const ids = await collectAffectedRecipeIds(targets);
+      if (ids.size === 0) {
+        toast.info("No recipes use the selected ingredients");
+        return;
+      }
+      const { ok, fail } = await recomputeRecipes(ids);
+      if (fail) toast.warning(`Recomputed ${ok} of ${ids.size} recipes (${fail} failed) across ${targets.length} ingredients`);
+      else toast.success(`Recomputed ${ok} recipe${ok === 1 ? "" : "s"} across ${targets.length} ingredient${targets.length === 1 ? "" : "s"}`);
+    } finally {
+      setBatchRecomputing(false);
+    }
+  };
+
+  const openMergeDialog = () => {
+    if (selected.size !== 2) return;
+    const [a, b] = Array.from(selected);
+    // Default: keep the linked one (or the first)
+    const rowA = rows.find((r) => r.id === a);
+    const rowB = rows.find((r) => r.id === b);
+    const keep = rowA?.inventory_item_id && !rowB?.inventory_item_id ? a : b && !rowA?.inventory_item_id && rowB?.inventory_item_id ? b : a;
+    setMergeKeepId(keep);
+    setMergeRemoveId(keep === a ? b : a);
+    setMergeOpen(true);
+  };
+
+  const handleMerge = async () => {
+    if (!mergeKeepId || !mergeRemoveId || mergeKeepId === mergeRemoveId) return;
+    const keep = rows.find((r) => r.id === mergeKeepId);
+    const remove = rows.find((r) => r.id === mergeRemoveId);
+    if (!keep || !remove) return;
+    setMerging(true);
+    try {
+      // 1. Rewrite recipe_ingredients.reference_id from remove → keep
+      const { error: riErr, count: riCount } = await supabase
+        .from("recipe_ingredients")
+        .update({ reference_id: keep.id }, { count: "exact" })
+        .eq("reference_id", remove.id);
+      if (riErr) throw riErr;
+
+      // 2. Repoint synonyms from remove → keep, and add the removed canonical name as a synonym
+      await supabase
+        .from("ingredient_synonyms")
+        .update({ reference_id: keep.id, canonical: keep.canonical_name })
+        .eq("reference_id", remove.id);
+
+      await supabase
+        .from("ingredient_synonyms")
+        .upsert(
+          {
+            alias: remove.canonical_name,
+            alias_normalized: remove.canonical_normalized,
+            canonical: keep.canonical_name,
+            reference_id: keep.id,
+          },
+          { onConflict: "alias_normalized" },
+        );
+
+      // 3. If keep has no inventory link but remove does, inherit it
+      if (!keep.inventory_item_id && remove.inventory_item_id) {
+        await supabase
+          .from("ingredient_reference")
+          .update({ inventory_item_id: remove.inventory_item_id })
+          .eq("id", keep.id);
+      }
+
+      // 4. Delete the removed reference (FK on recipe_ingredients was nulled by the update above)
+      const { error: delErr } = await supabase.from("ingredient_reference").delete().eq("id", remove.id);
+      if (delErr) throw delErr;
+
+      toast.success(`Merged "${remove.canonical_name}" → "${keep.canonical_name}" (${riCount ?? 0} recipe ingredient${riCount === 1 ? "" : "s"} repointed)`);
+
+      // 5. Recompute affected recipes
+      const ids = await collectAffectedRecipeIds([keep]);
+      if (ids.size > 0) {
+        const { ok, fail } = await recomputeRecipes(ids);
+        if (fail) toast.warning(`Recomputed ${ok} of ${ids.size} recipes (${fail} failed)`);
+        else if (ok > 0) toast.success(`Recomputed ${ok} affected recipe${ok === 1 ? "" : "s"}`);
+      }
+
+      setMergeOpen(false);
+      setSelected(new Set());
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Merge failed");
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const counts = useMemo(() => {
     const linked = rows.filter((r) => r.inventory_item_id).length;
     return { total: rows.length, linked, unlinked: rows.length - linked };
   }, [rows]);
+
+  const mergeKeepRow = mergeKeepId ? rows.find((r) => r.id === mergeKeepId) ?? null : null;
+  const mergeRemoveRow = mergeRemoveId ? rows.find((r) => r.id === mergeRemoveId) ?? null : null;
 
   return (
     <div className="space-y-6 max-w-7xl">
@@ -326,6 +461,47 @@ function IngredientReferencePage() {
         </CardContent>
       </Card>
 
+      {selected.size > 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="font-mono">
+              {selected.size} selected
+            </Badge>
+            <Button
+              size="sm"
+              onClick={handleBatchRecompute}
+              disabled={batchRecomputing}
+            >
+              {batchRecomputing ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+              )}
+              Recompute affected recipes
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openMergeDialog}
+              disabled={selected.size !== 2}
+              title={selected.size !== 2 ? "Select exactly 2 references to merge" : "Merge these two references"}
+            >
+              <Merge className="w-4 h-4 mr-1.5" />
+              Merge duplicates
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              className="ml-auto"
+            >
+              <X className="w-4 h-4 mr-1.5" />
+              Clear
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -342,19 +518,28 @@ function IngredientReferencePage() {
             const linkedItem = row.inventory_item_id ? inventoryById.get(row.inventory_item_id) : null;
             const dirty = isDirty(row);
             return (
-              <Card key={row.id}>
+              <Card key={row.id} className={selected.has(row.id) ? "border-primary/50 ring-1 ring-primary/30" : undefined}>
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                    <div className="md:col-span-4">
-                      <Label className="text-xs">Canonical name</Label>
-                      <Input
-                        value={row.draft.canonical_name}
-                        onChange={(e) => updateDraft(row.id, { canonical_name: e.target.value })}
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                        norm: {row.canonical_normalized}
-                        {row.category ? ` · ${row.category}` : ""}
-                      </p>
+                    <div className="md:col-span-4 flex gap-2">
+                      <div className="pt-6">
+                        <Checkbox
+                          checked={selected.has(row.id)}
+                          onCheckedChange={() => toggleSelect(row.id)}
+                          aria-label={`Select ${row.canonical_name}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className="text-xs">Canonical name</Label>
+                        <Input
+                          value={row.draft.canonical_name}
+                          onChange={(e) => updateDraft(row.id, { canonical_name: e.target.value })}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                          norm: {row.canonical_normalized}
+                          {row.category ? ` · ${row.category}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <div className="md:col-span-2">
                       <Label className="text-xs">Default unit</Label>
@@ -480,6 +665,77 @@ function IngredientReferencePage() {
           })}
         </div>
       )}
+
+      <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Merge ingredient references</DialogTitle>
+            <DialogDescription>
+              Repoints all <code className="text-xs">recipe_ingredients.reference_id</code> from the removed reference to the kept one,
+              moves synonyms, and adds the removed name as a synonym so future imports auto-resolve. The removed reference is then deleted.
+              Affected recipes are recomputed automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          {mergeKeepRow && mergeRemoveRow && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMergeKeepId(mergeRemoveRow.id);
+                    setMergeRemoveId(mergeKeepRow.id);
+                  }}
+                  className="text-left rounded-md border-2 border-primary bg-primary/5 p-3 transition-colors"
+                >
+                  <div className="text-[10px] font-semibold uppercase text-primary mb-1">Keep</div>
+                  <div className="font-medium text-sm truncate">{mergeKeepRow.canonical_name}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {mergeKeepRow.inventory_item_id
+                      ? `Linked: ${inventoryById.get(mergeKeepRow.inventory_item_id)?.name ?? "—"}`
+                      : "Unlinked"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    unit: {mergeKeepRow.default_unit} · waste: {mergeKeepRow.waste_factor}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMergeKeepId(mergeRemoveRow.id);
+                    setMergeRemoveId(mergeKeepRow.id);
+                  }}
+                  className="text-left rounded-md border-2 border-destructive/40 bg-destructive/5 p-3 transition-colors"
+                >
+                  <div className="text-[10px] font-semibold uppercase text-destructive mb-1">Remove</div>
+                  <div className="font-medium text-sm truncate">{mergeRemoveRow.canonical_name}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {mergeRemoveRow.inventory_item_id
+                      ? `Linked: ${inventoryById.get(mergeRemoveRow.inventory_item_id)?.name ?? "—"}`
+                      : "Unlinked"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    unit: {mergeRemoveRow.default_unit} · waste: {mergeRemoveRow.waste_factor}
+                  </div>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click either card to swap which reference is kept.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeOpen(false)} disabled={merging}>
+              Cancel
+            </Button>
+            <Button onClick={handleMerge} disabled={merging || !mergeKeepId || !mergeRemoveId}>
+              {merging ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Merge className="w-4 h-4 mr-1.5" />}
+              Merge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
