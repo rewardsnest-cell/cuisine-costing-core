@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2, Sparkles, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, type ActiveSale } from "@/lib/use-active-sales";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
@@ -39,6 +40,7 @@ type PO = {
 };
 
 function PurchaseOrdersPage() {
+  const askConfirm = useConfirm();
   const [orders, setOrders] = useState<PO[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
