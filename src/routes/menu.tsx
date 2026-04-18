@@ -144,6 +144,16 @@ function PublicMenuPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (tier !== "all") count++;
+    if (meat !== "all") count++;
+    if (search.trim()) count++;
+    if (sort !== "name-asc") count++;
+    if (priceRange[0] > 0 || priceRange[1] < priceMax) count++;
+    return count;
+  }, [tier, meat, search, sort, priceRange, priceMax]);
+
   function resetFilters() {
     setTier("all");
     setMeat("all");
