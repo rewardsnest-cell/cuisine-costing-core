@@ -105,6 +105,28 @@ function PublicMenuPage() {
     })();
   }, []);
 
+  // Highlight a recipe card briefly when arriving via #recipe-<id> anchor
+  useEffect(() => {
+    if (loading || recipes.length === 0) return;
+    if (typeof window === "undefined") return;
+    const triggerFromHash = () => {
+      const hash = window.location.hash;
+      const m = hash.match(/^#recipe-(.+)$/);
+      if (!m) return;
+      const id = m[1];
+      // Wait a tick so the card is rendered + scroll-mt offset applied
+      setTimeout(() => {
+        setHighlightId(id);
+        const el = document.getElementById(`recipe-${id}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => setHighlightId(null), 1600);
+      }, 100);
+    };
+    triggerFromHash();
+    window.addEventListener("hashchange", triggerFromHash);
+    return () => window.removeEventListener("hashchange", triggerFromHash);
+  }, [loading, recipes.length]);
+
   const meatCounts = useMemo(() => {
     const counts: Record<string, number> = { all: recipes.length };
     for (const m of MEAT_TYPES) counts[m.key] = 0;
