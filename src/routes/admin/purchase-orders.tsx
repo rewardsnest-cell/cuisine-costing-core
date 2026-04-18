@@ -319,6 +319,86 @@ function PurchaseOrdersPage() {
         </Dialog>
       </div>
 
+      {/* Suggested POs from active sale flyers */}
+      {suggestionsBySupplier.length > 0 && (
+        <Card className="shadow-warm border-gold/40 bg-gradient-to-br from-gold/5 to-transparent">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-5 h-5 text-warm mt-0.5" />
+                <div>
+                  <h2 className="font-display text-lg font-semibold">Suggested Purchase Orders</h2>
+                  <p className="text-xs text-muted-foreground">Items below par level that are currently on sale — order now while prices are low.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {suggestionsBySupplier.map((group) => {
+                const groupTotal = group.items.reduce((s, it) => s + (it.sale.sale_price ?? 0) * it.suggested_qty, 0);
+                return (
+                  <div key={group.supplierName} className="rounded-lg border border-border/60 bg-background/60 p-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-muted-foreground" />
+                        <p className="font-medium text-sm">{group.supplierName}</p>
+                        <span className="text-xs text-muted-foreground">· {group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="font-display font-bold">${groupTotal.toFixed(2)}</p>
+                        <Button
+                          size="sm"
+                          className="bg-gradient-warm text-primary-foreground"
+                          onClick={() => createSuggestedPO(group)}
+                          disabled={creatingSuggested}
+                        >
+                          {creatingSuggested ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
+                          Create draft PO
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th className="py-1">Item</th>
+                            <th className="py-1 text-right">Stock / Par</th>
+                            <th className="py-1 text-right">Suggested Qty</th>
+                            <th className="py-1 text-right">Sale Price</th>
+                            <th className="py-1 text-right">Line Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((it) => (
+                            <tr key={it.inventory_item_id} className="border-t border-border/30">
+                              <td className="py-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium">{it.name}</span>
+                                  <span className="inline-flex items-center gap-0.5 text-warm">
+                                    <Tag className="w-3 h-3" />
+                                  </span>
+                                  {it.sale.regular_price != null && it.sale.sale_price != null && it.sale.regular_price > it.sale.sale_price && (
+                                    <span className="text-muted-foreground line-through">${it.sale.regular_price.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-1.5 text-right text-muted-foreground">{it.current_stock} / {it.par_level} {it.unit}</td>
+                              <td className="py-1.5 text-right font-medium">{it.suggested_qty} {it.unit}</td>
+                              <td className="py-1.5 text-right">${(it.sale.sale_price ?? 0).toFixed(2)}</td>
+                              <td className="py-1.5 text-right font-medium">${((it.sale.sale_price ?? 0) * it.suggested_qty).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {orders.length === 0 ? (
         <Card className="shadow-warm border-border/50">
           <CardContent className="p-12 text-center">
