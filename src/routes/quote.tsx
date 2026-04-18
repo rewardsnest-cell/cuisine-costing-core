@@ -29,6 +29,8 @@ import { QuoteStepService } from "@/components/quote/QuoteStepService";
 import { QuoteStepExtras } from "@/components/quote/QuoteStepExtras";
 import { QuoteStepAddons } from "@/components/quote/QuoteStepAddons";
 import { QuoteStepTier } from "@/components/quote/QuoteStepTier";
+import { QuoteStepRecipes } from "@/components/quote/QuoteStepRecipes";
+import { totalForRecipes } from "@/lib/quote-recipes";
 
 export const Route = createFileRoute("/quote")({
   head: () => ({
@@ -49,6 +51,12 @@ function QuotePage() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
   const [aiTranscript, setAiTranscript] = useState<{ role: string; content: string }[] | null>(null);
+  const [markup, setMarkup] = useState(3.0);
+
+  useEffect(() => {
+    (supabase as any).from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle()
+      .then(({ data }: any) => { if (data?.markup_multiplier) setMarkup(Number(data.markup_multiplier)); });
+  }, []);
 
   // Hydrate from AI handoff
   useEffect(() => {
@@ -115,7 +123,14 @@ function QuotePage() {
     const item = ADDONS.find((a) => a.id === id);
     return sum + (item ? item.price * selections.guestCount : 0);
   }, 0);
-  const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier;
+  const recipesTotal = totalForRecipes(
+    selections.recipes || [],
+    selections.guestCount,
+    markup,
+    selections.tier,
+  );
+  // Recipes already include tier multiplier; tier multiplier applied to other lines below.
+  const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier + recipesTotal;
   const totalAmount = Math.round(subtotal);
 
   const handleDownloadPDF = () => {
@@ -166,6 +181,22 @@ function QuotePage() {
         user_id: user?.id || null,
         conversation: aiTranscript ? { source: "ai_builder", messages: aiTranscript } : null,
       }).select("id, reference_number").single();
+      // Insert selected recipes as quote_items so admins can see them in /admin/events
+      const recList = selections.recipes || [];
+      if (data?.id && recList.length > 0) {
+        const items = recList.map((r) => {
+          const unitPrice = (r.cost_per_serving || 0) * markup * (selectedTier.multiplier);
+          return {
+            quote_id: data.id,
+            recipe_id: r.id,
+            name: r.name,
+            quantity: selections.guestCount,
+            unit_price: +unitPrice.toFixed(2),
+            total_price: +(unitPrice * selections.guestCount).toFixed(2),
+          };
+        });
+        await (supabase as any).from("quote_items").insert(items);
+      }
       if (data?.reference_number) setReferenceNumber(data.reference_number);
       if (data?.id) {
         setSubmittedQuoteId(data.id);
@@ -348,6 +379,7 @@ function QuotePage() {
           )}
 
           {step === "service" && <QuoteStepService selections={selections} setSelections={setSelections} setStep={setStep} />}
+          {step === "recipes" && <QuoteStepRecipes selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "extras" && <QuoteStepExtras selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "addons" && <QuoteStepAddons selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "tier" && <QuoteStepTier selections={selections} setSelections={setSelections} setStep={setStep} />}
@@ -392,6 +424,21 @@ function QuotePage() {
                     <p className="text-sm text-muted-foreground mb-2">Selected Dishes</p>
                     <ul className="space-y-1">{selections.proteins.map((p) => (<li key={p} className="text-sm font-medium">• {p}</li>))}</ul>
                   </div>
+                  {(selections.recipes || []).length > 0 && (
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Chef-Selected Recipes</p>
+                      <ul className="space-y-1">
+                        {(selections.recipes || []).map((r) => (
+                          <li key={r.id} className="text-sm flex justify-between gap-2">
+                            <span className="font-medium">• {r.name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ${(r.cost_per_serving * markup * selectedTier.multiplier).toFixed(2)}/guest
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {selections.extras.length > 0 && (
                     <div className="border-t pt-4">
                       <p className="text-sm text-muted-foreground mb-2">Sides & Extras</p>
@@ -446,6 +493,7 @@ function QuotePage() {
                       <div className="flex justify-between"><span className="text-muted-foreground">Main dishes ({selections.proteins.length}×{selections.guestCount} guests)</span><span>${dishTotal.toLocaleString()}</span></div>
                       {extrasTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Sides & extras</span><span>${extrasTotal.toLocaleString()}</span></div>}
                       {addonsTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>${addonsTotal.toLocaleString()}</span></div>}
+                      {recipesTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Chef recipes ({(selections.recipes || []).length})</span><span>${Math.round(recipesTotal).toLocaleString()}</span></div>}
                       {selectedTier.multiplier > 1 && <div className="flex justify-between"><span className="text-muted-foreground">{selectedTier.label} tier ({selectedTier.multiplier}x)</span><span className="text-xs">applied</span></div>}
                     </div>
                     <div className="flex justify-between items-center border-t pt-3">
