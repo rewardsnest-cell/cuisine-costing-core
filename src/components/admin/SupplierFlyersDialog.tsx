@@ -57,6 +57,8 @@ export function SupplierFlyersDialog({
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [addingPagesId, setAddingPagesId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const addPagesRef = useRef<HTMLInputElement>(null);
@@ -164,8 +166,9 @@ export function SupplierFlyersDialog({
       if (pagesErr) throw pagesErr;
 
       await load();
-      setUploadStatus("Extracting with AI…");
-      await processFlyer(inserted.id);
+      setUploadStatus(
+        `Uploaded ${uploaded.length} page${uploaded.length === 1 ? "" : "s"}. Add more pages or click "Extract with AI" when ready.`,
+      );
     } catch (e: any) {
       setError(e.message || "Upload failed");
     } finally {
@@ -242,37 +245,76 @@ export function SupplierFlyersDialog({
 
   const handleDelete = async (flyerId: string) => {
     if (!confirm("Delete this flyer and its extracted items?")) return;
-    await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
-    load();
+    setDeletingId(flyerId);
+    setError(null);
+    // Optimistic: remove from UI immediately
+    const prev = flyers;
+    setFlyers((fs) => fs.filter((f) => f.id !== flyerId));
+    try {
+      // Best-effort: clean up storage objects for all pages first
+      const pages = pagesByFlyer[flyerId] || [];
+      const paths = pages.map((p) => p.storage_path).filter(Boolean) as string[];
+      if (paths.length > 0) {
+        supabase.storage.from("sale-flyers").remove(paths).catch(() => {});
+      }
+      const { error: delErr } = await (supabase as any)
+        .from("sale_flyers")
+        .delete()
+        .eq("id", flyerId);
+      if (delErr) throw delErr;
+    } catch (e: any) {
+      setError(e.message || "Delete failed");
+      setFlyers(prev); // restore
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleDeletePage = async (flyerId: string, page: FlyerPage) => {
     const remaining = (pagesByFlyer[flyerId] || []).length;
     if (remaining <= 1) {
       if (!confirm("This is the last page. Delete the entire flyer?")) return;
-      await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
-      load();
-      return;
+      return handleDelete(flyerId);
     }
     if (!confirm(`Delete page ${page.page_number}? You'll need to re-extract afterwards.`)) return;
-    // Remove storage object (best-effort)
-    if (page.storage_path) {
-      await supabase.storage.from("sale-flyers").remove([page.storage_path]).catch(() => {});
-    }
-    await (supabase as any).from("sale_flyer_pages").delete().eq("id", page.id);
-
-    // If we deleted the cover, promote next page to cover
-    const flyer = flyers.find((f) => f.id === flyerId);
-    if (flyer && flyer.image_url === page.image_url) {
-      const next = (pagesByFlyer[flyerId] || []).find((p) => p.id !== page.id);
-      if (next) {
-        await (supabase as any)
-          .from("sale_flyers")
-          .update({ image_url: next.image_url })
-          .eq("id", flyerId);
+    setDeletingPageId(page.id);
+    setError(null);
+    // Optimistic UI
+    const prev = pagesByFlyer;
+    setPagesByFlyer((m) => ({
+      ...m,
+      [flyerId]: (m[flyerId] || []).filter((p) => p.id !== page.id),
+    }));
+    try {
+      if (page.storage_path) {
+        supabase.storage.from("sale-flyers").remove([page.storage_path]).catch(() => {});
       }
+      const { error: delErr } = await (supabase as any)
+        .from("sale_flyer_pages")
+        .delete()
+        .eq("id", page.id);
+      if (delErr) throw delErr;
+
+      // If we deleted the cover, promote next page to cover
+      const flyer = flyers.find((f) => f.id === flyerId);
+      if (flyer && flyer.image_url === page.image_url) {
+        const next = (prev[flyerId] || []).find((p) => p.id !== page.id);
+        if (next) {
+          await (supabase as any)
+            .from("sale_flyers")
+            .update({ image_url: next.image_url })
+            .eq("id", flyerId);
+          setFlyers((fs) =>
+            fs.map((f) => (f.id === flyerId ? { ...f, image_url: next.image_url } : f)),
+          );
+        }
+      }
+    } catch (e: any) {
+      setError(e.message || "Failed to delete page");
+      setPagesByFlyer(prev); // restore
+    } finally {
+      setDeletingPageId(null);
     }
-    load();
   };
 
   return (
@@ -379,10 +421,15 @@ export function SupplierFlyersDialog({
                               </Badge>
                               <button
                                 onClick={() => handleDelete(fl.id)}
-                                className="text-muted-foreground hover:text-destructive p-1"
+                                disabled={deletingId === fl.id}
+                                className="text-muted-foreground hover:text-destructive p-1 disabled:opacity-50"
                                 aria-label="Delete flyer"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {deletingId === fl.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </div>
@@ -474,10 +521,15 @@ export function SupplierFlyersDialog({
                                 </span>
                                 <button
                                   onClick={() => handleDeletePage(fl.id, p)}
-                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  disabled={deletingPageId === p.id}
+                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                                   aria-label={`Delete page ${p.page_number}`}
                                 >
-                                  <X className="w-3 h-3" />
+                                  {deletingPageId === p.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <X className="w-3 h-3" />
+                                  )}
                                 </button>
                               </div>
                             ))}
