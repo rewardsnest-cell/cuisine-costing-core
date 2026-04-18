@@ -378,6 +378,32 @@ function SynonymsPage() {
     else announceRelink(res);
   };
 
+  // ---------- Relink all ----------
+  const [relinkAllRunning, setRelinkAllRunning] = useState(false);
+  const [relinkAllProgress, setRelinkAllProgress] = useState({ done: 0, total: 0, current: "" });
+  const relinkAll = async () => {
+    if (rows.length === 0) return;
+    if (!confirm(`Run Relink on all ${rows.length} synonym${rows.length === 1 ? "" : "s"}? This may take a moment.`)) return;
+    setRelinkAllRunning(true);
+    setRelinkAllProgress({ done: 0, total: rows.length, current: "" });
+    let totalLinked = 0;
+    let totalRecipes = 0;
+    let processed = 0;
+    for (const row of rows) {
+      setRelinkAllProgress({ done: processed, total: rows.length, current: row.alias });
+      const res = await relinkAndRecompute(row.alias_normalized, row.canonical);
+      totalLinked += res.linked;
+      totalRecipes += res.recipesUpdated;
+      processed++;
+      setRelinkAllProgress({ done: processed, total: rows.length, current: row.alias });
+    }
+    setRelinkAllRunning(false);
+    toast.success(
+      `Relink all complete · ${totalLinked} ingredient${totalLinked === 1 ? "" : "s"} re-linked across ${totalRecipes} recipe${totalRecipes === 1 ? "" : "s"}`,
+    );
+  };
+
+
   const [draftCanonical, setDraftCanonical] = useState<Record<string, string>>({});
 
   const acceptSuggestion = async (s: Suggestion) => {
