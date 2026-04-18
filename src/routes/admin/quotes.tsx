@@ -297,6 +297,7 @@ function QuotesPage() {
     setAnalysisFileName(file.name);
     setAnalyzeOpen(true);
     resetLinkState();
+    setUploadedReceipt(null);
     try {
       // Convert PDF to first page image, or compress an image directly
       let blob: Blob;
@@ -319,7 +320,37 @@ function QuotesPage() {
       const result = (data as { result?: CompetitorAnalysis })?.result ?? null;
       if (!result) throw new Error("No analysis returned");
       setAnalysis(result);
-      toast.success("Competitor quote analyzed");
+
+      // Upload image to receipts bucket and create a receipts row
+      try {
+        const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+        const path = `competitor/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("receipts").upload(path, blob, {
+          contentType: blob.type || "image/jpeg",
+          upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from("receipts").getPublicUrl(path);
+        const imageUrl = pub.publicUrl;
+        const { data: rec, error: recErr } = await supabase
+          .from("receipts")
+          .insert({
+            image_url: imageUrl,
+            total_amount: result.total ?? null,
+            status: "pending",
+            receipt_date: result.eventDate || new Date().toISOString().slice(0, 10),
+            extracted_line_items: (result.lineItems ?? []) as any,
+          })
+          .select("id,image_url")
+          .single();
+        if (recErr) throw recErr;
+        setUploadedReceipt({ id: rec.id, imageUrl: rec.image_url ?? imageUrl });
+        toast.success("Competitor quote analyzed and saved as receipt");
+      } catch (recErr) {
+        console.error("Receipt creation failed", recErr);
+        toast.success("Competitor quote analyzed");
+        toast.error(recErr instanceof Error ? `Receipt not saved: ${recErr.message}` : "Receipt not saved");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Analysis failed");
     } finally {
