@@ -240,6 +240,36 @@ function QuotesPage() {
         .select("id")
         .single();
       if (error) throw error;
+      // Pre-fill quote_items from competitor's line items, mapped to recipes when names match
+      const lineItems = analysis.lineItems ?? [];
+      if (lineItems.length > 0) {
+        const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        const { data: recipes } = await supabase
+          .from("recipes")
+          .select("id,name,cost_per_serving")
+          .eq("active", true);
+        const recipeMap = new Map<string, { id: string; name: string; cost_per_serving: number | null }>();
+        (recipes ?? []).forEach((r: any) => recipeMap.set(norm(r.name), r));
+        const itemsToInsert = lineItems
+          .filter((li) => li.name)
+          .map((li) => {
+            const match = recipeMap.get(norm(li.name));
+            const qty = Math.max(1, Math.round(Number(li.qty ?? guests) || guests));
+            const unit = Number(li.unitPrice ?? 0) || 0;
+            return {
+              quote_id: q.id,
+              recipe_id: match?.id ?? null,
+              name: match?.name ?? li.name,
+              quantity: qty,
+              unit_price: unit,
+              total_price: Number(li.total ?? unit * qty) || unit * qty,
+            };
+          });
+        if (itemsToInsert.length > 0) {
+          const { error: itemsErr } = await supabase.from("quote_items").insert(itemsToInsert);
+          if (itemsErr) console.warn("Failed to insert quote items:", itemsErr.message);
+        }
+      }
       // Link competitor analysis to the new draft
       if (competitorId) {
         await (supabase as any)
@@ -248,7 +278,8 @@ function QuotesPage() {
           .eq("id", competitorId);
       }
       setDraftQuoteId(q.id);
-      toast.success("Draft counter-quote created");
+      const matched = analysis.lineItems?.length ?? 0;
+      toast.success(matched > 0 ? `Draft counter-quote created with ${matched} line item${matched === 1 ? "" : "s"}` : "Draft counter-quote created");
       loadQuotes();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to create draft");
