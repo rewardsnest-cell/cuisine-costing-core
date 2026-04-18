@@ -1621,7 +1621,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cost_health_summary: {
+        Row: {
+          inventory_items_count: number | null
+          last_receipt_date: string | null
+          recipes_servings_one: number | null
+          recipes_zero_cost: number | null
+          total_active_recipes: number | null
+          total_ingredients: number | null
+          unlinked_ingredients: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
@@ -1632,6 +1643,16 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      find_ingredient_matches: {
+        Args: { _limit?: number; _name: string }
+        Returns: {
+          inventory_item_id: string
+          inventory_name: string
+          inventory_unit: string
+          similarity: number
+          source: string
+        }[]
       }
       get_active_flyer_for_supplier: {
         Args: { _supplier_id: string }
@@ -1665,6 +1686,12 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_recipe_cost: {
+        Args: { _recipe_id: string }
+        Returns: undefined
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employee"

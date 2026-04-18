@@ -53,6 +53,7 @@ import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSynonymsRouteImport } from './routes/admin/synonyms'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
+import { Route as AdminServingsReviewRouteImport } from './routes/admin/servings-review'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
 import { Route as AdminScanAssetsRouteImport } from './routes/admin/scan-assets'
@@ -73,6 +74,7 @@ import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
+import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -311,6 +313,11 @@ const AdminSetPasswordRoute = AdminSetPasswordRouteImport.update({
   path: '/set-password',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminServingsReviewRoute = AdminServingsReviewRouteImport.update({
+  id: '/servings-review',
+  path: '/servings-review',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminScheduleRoute = AdminScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -412,6 +419,12 @@ const AdminBrandColorsRoute = AdminBrandColorsRouteImport.update({
   path: '/brand-colors',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAutoLinkIngredientsRoute =
+  AdminAutoLinkIngredientsRouteImport.update({
+    id: '/auto-link-ingredients',
+    path: '/auto-link-ingredients',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAccessRoute = AdminAccessRouteImport.update({
   id: '/access',
   path: '/access',
@@ -500,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -520,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -576,6 +591,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -596,6 +612,7 @@ export interface FileRoutesByTo {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -655,6 +672,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -675,6 +693,7 @@ export interface FileRoutesById {
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/servings-review': typeof AdminServingsReviewRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/synonyms': typeof AdminSynonymsRoute
@@ -735,6 +754,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -755,6 +775,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -811,6 +832,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -831,6 +853,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -889,6 +912,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -909,6 +933,7 @@ export interface FileRouteTypes {
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
+    | '/admin/servings-review'
     | '/admin/set-password'
     | '/admin/suppliers'
     | '/admin/synonyms'
@@ -1294,6 +1319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSetPasswordRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/servings-review': {
+      id: '/admin/servings-review'
+      path: '/servings-review'
+      fullPath: '/admin/servings-review'
+      preLoaderRoute: typeof AdminServingsReviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/schedule': {
       id: '/admin/schedule'
       path: '/schedule'
@@ -1434,6 +1466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBrandColorsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/auto-link-ingredients': {
+      id: '/admin/auto-link-ingredients'
+      path: '/auto-link-ingredients'
+      fullPath: '/admin/auto-link-ingredients'
+      preLoaderRoute: typeof AdminAutoLinkIngredientsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/access': {
       id: '/admin/access'
       path: '/access'
@@ -1549,6 +1588,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
+  AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
@@ -1569,6 +1609,7 @@ interface AdminRouteChildren {
   AdminScanAssetsRoute: typeof AdminScanAssetsRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
+  AdminServingsReviewRoute: typeof AdminServingsReviewRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminSynonymsRoute: typeof AdminSynonymsRoute
@@ -1583,6 +1624,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
+  AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,
@@ -1603,6 +1645,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScanAssetsRoute: AdminScanAssetsRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
+  AdminServingsReviewRoute: AdminServingsReviewRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminSynonymsRoute: AdminSynonymsRoute,
