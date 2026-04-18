@@ -65,8 +65,8 @@ function InventoryPage() {
   const navigate = useNavigate({ from: "/admin/inventory" });
   const setSearch = (v: string) =>
     navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
-  const selectedCategories = categoriesParam
-    ? categoriesParam.split(",").map((s) => s.trim()).filter(Boolean)
+  const selectedCategories: string[] = categoriesParam
+    ? categoriesParam.split(",").map((s: string) => s.trim()).filter(Boolean)
     : [];
   const setSelectedCategories = (next: string[]) => {
     const value = next.join(",");
@@ -74,7 +74,7 @@ function InventoryPage() {
   };
   const toggleCategory = (cat: string) => {
     const has = selectedCategories.includes(cat);
-    setSelectedCategories(has ? selectedCategories.filter((c) => c !== cat) : [...selectedCategories, cat]);
+    setSelectedCategories(has ? selectedCategories.filter((c: string) => c !== cat) : [...selectedCategories, cat]);
   };
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -133,18 +133,18 @@ function InventoryPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  const categories = Array.from(
+  const allCategories: string[] = Array.from(
     new Set(items.map((i) => (i.category || "").trim()).filter(Boolean))
-  ).sort((a, b) => a.localeCompare(b));
+  ).sort((a: string, b: string) => a.localeCompare(b));
 
   const filteredBase = items.filter((i) => {
     const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all"
-        ? true
-        : categoryFilter === "__uncategorized__"
-        ? !i.category || !i.category.trim()
-        : (i.category || "").trim().toLowerCase() === categoryFilter.toLowerCase();
+    if (selectedCategories.length === 0) return matchesSearch;
+    const itemCat = (i.category || "").trim().toLowerCase();
+    const matchesCategory = selectedCategories.some((c: string) => {
+      if (c === "__uncategorized__") return !itemCat;
+      return itemCat === c.toLowerCase();
+    });
     return matchesSearch && matchesCategory;
   });
   const filtered = [...filteredBase].sort((a, b) => {
