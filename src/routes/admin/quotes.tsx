@@ -193,6 +193,7 @@ function QuotesPage() {
         service_style: analysis.serviceStyle,
         analysis: analysis as any,
         notes: analysis.notes || null,
+        source_image_url: uploadedReceipt?.imageUrl ?? null,
       };
       const { data, error } = await (supabase as any)
         .from("competitor_quotes")
