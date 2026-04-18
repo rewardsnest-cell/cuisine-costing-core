@@ -493,6 +493,7 @@ function QuotePage() {
                       <div className="flex justify-between"><span className="text-muted-foreground">Main dishes ({selections.proteins.length}×{selections.guestCount} guests)</span><span>${dishTotal.toLocaleString()}</span></div>
                       {extrasTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Sides & extras</span><span>${extrasTotal.toLocaleString()}</span></div>}
                       {addonsTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>${addonsTotal.toLocaleString()}</span></div>}
+                      {recipesTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Chef recipes ({(selections.recipes || []).length})</span><span>${Math.round(recipesTotal).toLocaleString()}</span></div>}
                       {selectedTier.multiplier > 1 && <div className="flex justify-between"><span className="text-muted-foreground">{selectedTier.label} tier ({selectedTier.multiplier}x)</span><span className="text-xs">applied</span></div>}
                     </div>
                     <div className="flex justify-between items-center border-t pt-3">
