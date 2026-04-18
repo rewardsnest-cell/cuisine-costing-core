@@ -101,6 +101,50 @@ function AdminMenuPage() {
     });
   };
 
+  const generateOne = async (id: string) => {
+    setGeneratingId(id);
+    try {
+      const res = await genPhoto({ data: { recipeId: id } });
+      setRecipes((cur) => cur.map((r) => (r.id === id ? { ...r, image_url: res.url } : r)));
+      toast.success(`Generated photo for ${res.name}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate photo");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
+  const generateMissing = async () => {
+    const missing = recipes.filter((r) => !r.image_url);
+    if (missing.length === 0) {
+      toast.info("All recipes already have photos.");
+      return;
+    }
+    if (!confirm(`Generate AI photos for ${missing.length} recipe${missing.length === 1 ? "" : "s"}? This may take a few minutes.`)) return;
+    setBulkRunning(true);
+    setBulkProgress({ done: 0, total: missing.length, current: "" });
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < missing.length; i++) {
+      const r = missing[i];
+      setBulkProgress({ done: i, total: missing.length, current: r.name });
+      try {
+        const res = await genPhoto({ data: { recipeId: r.id } });
+        setRecipes((cur) => cur.map((x) => (x.id === r.id ? { ...x, image_url: res.url } : x)));
+        ok++;
+      } catch (e: any) {
+        console.error("Photo gen failed for", r.name, e);
+        fail++;
+      }
+    }
+    setBulkProgress({ done: missing.length, total: missing.length, current: "" });
+    setBulkRunning(false);
+    if (fail === 0) toast.success(`Generated ${ok} photo${ok === 1 ? "" : "s"}.`);
+    else toast.warning(`Generated ${ok}, failed ${fail}. Check console for details.`);
+  };
+
+  const missingCount = recipes.filter((r) => !r.image_url).length;
+
   return (
     <div className="space-y-6">
       <div>
