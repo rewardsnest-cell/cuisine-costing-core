@@ -32,17 +32,16 @@ import { QuoteStepTier } from "@/components/quote/QuoteStepTier";
 import { QuoteStepRecipes } from "@/components/quote/QuoteStepRecipes";
 import { totalForRecipes } from "@/lib/quote-recipes";
 
+import { redirect } from "@tanstack/react-router";
+
 export const Route = createFileRoute("/quote")({
-  head: () => ({
-    meta: [
-      { title: "Build Your Catering Quote — TasteQuote" },
-      { name: "description", content: "Create a customized catering proposal with our interactive quote builder." },
-    ],
-  }),
-  component: QuotePage,
+  beforeLoad: () => {
+    throw redirect({ to: "/catering/quote", statusCode: 301 });
+  },
+  component: () => null,
 });
 
-function QuotePage() {
+export function QuotePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("style");

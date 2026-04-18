@@ -9,8 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WeddingsRouteImport } from './routes/weddings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as MyEventsRouteImport } from './routes/my-events'
@@ -19,11 +23,15 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as EmployeeRouteImport } from './routes/employee'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CateringRouteImport } from './routes/catering'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
+import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
@@ -56,14 +64,34 @@ import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
+const WeddingsRoute = WeddingsRouteImport.update({
+  id: '/weddings',
+  path: '/weddings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecipesRoute = RecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuoteRoute = QuoteRouteImport.update({
@@ -106,9 +134,24 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CateringRoute = CateringRouteImport.update({
+  id: '/catering',
+  path: '/catering',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -130,6 +173,11 @@ const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
   path: '/event/$reference',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CateringQuoteRoute = CateringQuoteRouteImport.update({
+  id: '/quote',
+  path: '/quote',
+  getParentRoute: () => CateringRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -291,7 +339,10 @@ const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/catering': typeof CateringRouteWithChildren
+  '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -300,8 +351,12 @@ export interface FileRoutesByFullPath {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/weddings': typeof WeddingsRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -328,6 +383,7 @@ export interface FileRoutesByFullPath {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
@@ -339,6 +395,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/catering': typeof CateringRouteWithChildren
+  '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -347,8 +406,12 @@ export interface FileRoutesByTo {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/weddings': typeof WeddingsRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -375,6 +438,7 @@ export interface FileRoutesByTo {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
@@ -387,7 +451,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/catering': typeof CateringRouteWithChildren
+  '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -396,8 +463,12 @@ export interface FileRoutesById {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/weddings': typeof WeddingsRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -424,6 +495,7 @@ export interface FileRoutesById {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/catering/quote': typeof CateringQuoteRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
@@ -437,7 +509,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
+    | '/catering'
+    | '/contact'
     | '/dashboard'
     | '/employee'
     | '/forgot-password'
@@ -446,8 +521,12 @@ export interface FileRouteTypes {
     | '/my-events'
     | '/my-quotes'
     | '/quote'
+    | '/recipes'
     | '/reset-password'
+    | '/robots.txt'
     | '/signup'
+    | '/sitemap.xml'
+    | '/weddings'
     | '/admin/access'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -474,6 +553,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
     | '/admin/'
@@ -485,6 +565,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/catering'
+    | '/contact'
     | '/dashboard'
     | '/employee'
     | '/forgot-password'
@@ -493,8 +576,12 @@ export interface FileRouteTypes {
     | '/my-events'
     | '/my-quotes'
     | '/quote'
+    | '/recipes'
     | '/reset-password'
+    | '/robots.txt'
     | '/signup'
+    | '/sitemap.xml'
+    | '/weddings'
     | '/admin/access'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -521,6 +608,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote/ai'
     | '/admin'
@@ -532,7 +620,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
+    | '/catering'
+    | '/contact'
     | '/dashboard'
     | '/employee'
     | '/forgot-password'
@@ -541,8 +632,12 @@ export interface FileRouteTypes {
     | '/my-events'
     | '/my-quotes'
     | '/quote'
+    | '/recipes'
     | '/reset-password'
+    | '/robots.txt'
     | '/signup'
+    | '/sitemap.xml'
+    | '/weddings'
     | '/admin/access'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -569,6 +664,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/catering/quote'
     | '/event/$reference'
     | '/quote_/ai'
     | '/admin/'
@@ -581,7 +677,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CateringRoute: typeof CateringRouteWithChildren
+  ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -590,14 +689,32 @@ export interface RootRouteChildren {
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
+  RecipesRoute: typeof RecipesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  WeddingsRoute: typeof WeddingsRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/weddings': {
+      id: '/weddings'
+      path: '/weddings'
+      fullPath: '/weddings'
+      preLoaderRoute: typeof WeddingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -605,11 +722,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recipes': {
+      id: '/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof RecipesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quote': {
@@ -668,11 +799,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catering': {
+      id: '/catering'
+      path: '/catering'
+      fullPath: '/catering'
+      preLoaderRoute: typeof CateringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -702,6 +854,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/event/$reference'
       preLoaderRoute: typeof EventReferenceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/catering/quote': {
+      id: '/catering/quote'
+      path: '/quote'
+      fullPath: '/catering/quote'
+      preLoaderRoute: typeof CateringQuoteRouteImport
+      parentRoute: typeof CateringRoute
     }
     '/admin/users': {
       id: '/admin/users'
@@ -1015,9 +1174,24 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CateringRouteChildren {
+  CateringQuoteRoute: typeof CateringQuoteRoute
+}
+
+const CateringRouteChildren: CateringRouteChildren = {
+  CateringQuoteRoute: CateringQuoteRoute,
+}
+
+const CateringRouteWithChildren = CateringRoute._addFileChildren(
+  CateringRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
+  CateringRoute: CateringRouteWithChildren,
+  ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -1026,8 +1200,12 @@ const rootRouteChildren: RootRouteChildren = {
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
+  RecipesRoute: RecipesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  WeddingsRoute: WeddingsRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
 }

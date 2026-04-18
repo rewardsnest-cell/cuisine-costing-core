@@ -2,12 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { scanVpsfinestAssets, type ScannedImage } from "@/lib/server/scan-vpsfinest-assets";
+import { importSiteAssets } from "@/lib/server/import-site-assets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Copy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Search, Copy, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
+
+function suggestSlug(img: ScannedImage, idx: number): string {
+  const base = (img.alt || img.url.split("/").pop() || `img-${idx}`)
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return `${img.context}-${base || idx}`;
+}
 
 export const Route = createFileRoute("/admin/scan-assets")({
   head: () => ({ meta: [{ title: "Scan vpsfinest.com Images — Admin" }] }),
@@ -26,26 +38,55 @@ const CONTEXT_COLOR: Record<ScannedImage["context"], string> = {
 
 function ScanAssetsPage() {
   const scan = useServerFn(scanVpsfinestAssets);
+  const importFn = useServerFn(importSiteAssets);
   const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof scanVpsfinestAssets>> | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [slugs, setSlugs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<ScannedImage["context"] | "all">("all");
 
   const handleScan = async () => {
     setScanning(true);
     setResult(null);
     setPicked(new Set());
+    setSlugs({});
     try {
       const r = await scan();
       setResult(r);
-      // Pre-select og + hero + recipe by default
       const auto = new Set(r.images.filter((i) => ["og", "hero", "recipe"].includes(i.context)).map((i) => i.url));
       setPicked(auto);
+      const initialSlugs: Record<string, string> = {};
+      r.images.forEach((img, idx) => { initialSlugs[img.url] = suggestSlug(img, idx); });
+      setSlugs(initialSlugs);
       toast.success(`Found ${r.uniqueImages} unique images across ${r.pagesScanned} pages`);
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!result) return;
+    const items = result.images
+      .filter((i) => picked.has(i.url))
+      .map((i) => ({
+        url: i.url,
+        alt: i.alt,
+        category: i.context,
+        slug: slugs[i.url] || suggestSlug(i, 0),
+      }));
+    if (!items.length) return toast.error("Pick at least one image");
+    setImporting(true);
+    try {
+      const res = await importFn({ data: { items } });
+      toast.success(`Imported ${res.imported} · failed ${res.failed}`);
+      if (res.errors.length) console.error("Import errors:", res.errors);
+    } catch (e: any) {
+      toast.error(e?.message || "Import failed");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -121,10 +162,16 @@ function ScanAssetsPage() {
                 ))}
               </div>
             </div>
-            <Button onClick={copyManifest} variant="outline" disabled={!picked.size}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copy {picked.size} as JSON
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={copyManifest} variant="outline" disabled={!picked.size}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy JSON
+              </Button>
+              <Button onClick={handleImport} disabled={!picked.size || importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                Import {picked.size} to site-assets
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -156,7 +203,16 @@ function ScanAssetsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="p-2 space-y-0.5">
+                    <div className="p-2 space-y-1">
+                      {isPicked && (
+                        <Input
+                          value={slugs[img.url] || ""}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setSlugs((s) => ({ ...s, [img.url]: e.target.value }))}
+                          placeholder="slug"
+                          className="h-7 text-xs"
+                        />
+                      )}
                       <p className="text-xs truncate" title={img.alt || ""}>{img.alt || <span className="text-muted-foreground italic">no alt</span>}</p>
                       <p className="text-[10px] text-muted-foreground truncate" title={img.sourcePage}>
                         {img.sourcePage.replace(SITE_PREFIX, "") || "/"}
