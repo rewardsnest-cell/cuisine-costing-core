@@ -60,10 +60,8 @@ function RecipesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {recipes.map((r) => (
-              <Link
+              <article
                 key={r.id}
-                to="/recipes/$id" as any
-                params={{ id: r.id } as any}
                 className="block bg-card rounded-xl overflow-hidden border border-border hover:shadow-warm transition-shadow"
               >
                 <div className="aspect-[4/3] bg-secondary overflow-hidden">
@@ -83,7 +81,7 @@ function RecipesPage() {
                     {r.cuisine && <span>· {r.cuisine}</span>}
                   </div>
                 </div>
-              </Link>
+              </article>
             ))}
           </div>
         )}
