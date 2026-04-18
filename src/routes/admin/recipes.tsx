@@ -57,6 +57,7 @@ function RecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [recomputing, setRecomputing] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
 
   const isNestedRoute = location.pathname !== "/admin/recipes";
@@ -121,7 +122,6 @@ function RecipesPage() {
     setLoadingDetail(false);
   };
 
-  const [recomputing, setRecomputing] = useState(false);
   const recomputeCost = async () => {
     if (!selectedRecipe) return;
     setRecomputing(true);
