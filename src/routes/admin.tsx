@@ -49,6 +49,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },
       { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
+      { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
     ],
   },
   {
