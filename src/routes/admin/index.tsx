@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings } from "lucide-react";
+import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -163,6 +163,7 @@ function AdminDashboard() {
   }, []);
 
   const stats: Stat[] = [
+    { label: "Quick Quote", value: "New", icon: Zap, color: "bg-gradient-warm text-primary-foreground", to: "/admin/quick-quote" },
     { label: "Total Recipes", value: loading ? "…" : counts.recipes, icon: ChefHat, color: "bg-primary/10 text-primary", to: "/admin/recipes" },
     { label: "Inventory Items", value: loading ? "…" : counts.inventory, icon: Package, color: "bg-success/10 text-success", to: "/admin/inventory" },
     { label: "Total Quotes", value: loading ? "…" : counts.quotes, icon: FileText, color: "bg-gold/20 text-warm", to: "/admin/quotes" },
