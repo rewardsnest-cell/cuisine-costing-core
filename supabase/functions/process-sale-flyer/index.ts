@@ -12,14 +12,39 @@ serve(async (req) => {
     const body = await req.json();
     const { flyerId } = body;
     // Accept either a single imageUrl (back-compat) or imageUrls (multi-page)
-    const imageUrls: string[] = Array.isArray(body.imageUrls)
+    let imageUrls: string[] = Array.isArray(body.imageUrls)
       ? body.imageUrls.filter((u: any) => typeof u === "string" && u.length > 0)
       : body.imageUrl
         ? [body.imageUrl]
         : [];
 
-    if (!flyerId || imageUrls.length === 0) {
-      return new Response(JSON.stringify({ error: "flyerId and at least one imageUrl required" }), {
+    if (!flyerId) {
+      return new Response(JSON.stringify({ error: "flyerId required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sbHeaders = {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    // If no imageUrls provided, fetch every persisted page for this flyer
+    if (imageUrls.length === 0) {
+      const pagesResp = await fetch(
+        `${SUPABASE_URL}/rest/v1/sale_flyer_pages?sale_flyer_id=eq.${flyerId}&select=image_url,page_number&order=page_number.asc`,
+        { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } },
+      );
+      const pages = await pagesResp.json();
+      imageUrls = (pages || []).map((p: any) => p.image_url).filter(Boolean);
+    }
+
+    if (imageUrls.length === 0) {
+      return new Response(JSON.stringify({ error: "No pages found for this flyer" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -120,13 +145,7 @@ serve(async (req) => {
     if (!toolCall) throw new Error("No tool call returned from AI");
     const extracted = JSON.parse(toolCall.function.arguments);
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sbHeaders = {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-    };
+    // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / sbHeaders already initialized above
 
     // Fetch inventory for matching
     const invResp = await fetch(
