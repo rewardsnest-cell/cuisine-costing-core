@@ -12,6 +12,9 @@ import { INITIAL_SELECTIONS } from "@/components/quote/types";
 type Msg = { role: "user" | "assistant"; content: string };
 
 export const Route = createFileRoute("/quote_/ai")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    context: (search.context as string) || "",
+  }),
   head: () => ({
     meta: [
       { title: "AI Catering Concierge — VPS Finest" },
@@ -23,14 +26,20 @@ export const Route = createFileRoute("/quote_/ai")({
 
 function QuoteAiPage() {
   const navigate = useNavigate();
+  const { context } = Route.useSearch();
+  const isWedding = context === "wedding";
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content:
-        "Hi! I'm your catering concierge. Tell me about your event — what are we celebrating, and roughly when and how many guests?",
+      content: isWedding
+        ? "Congratulations on your upcoming wedding! I'm your wedding catering concierge. To start shaping your menu, tell me a little about your day — the date, your venue (or area), and roughly how many guests you're expecting?"
+        : "Hi! I'm your catering concierge. Tell me about your event — what are we celebrating, and roughly when and how many guests?",
     },
   ]);
-  const [draft, setDraft] = useState<Record<string, any>>({ ...INITIAL_SELECTIONS });
+  const [draft, setDraft] = useState<Record<string, any>>({
+    ...INITIAL_SELECTIONS,
+    ...(isWedding ? { eventType: "Wedding" } : {}),
+  });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
