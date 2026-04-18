@@ -1,6 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { z } from "zod";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const emailSchema = z.string().trim().email().max(255);
 
 export const Route = createFileRoute("/follow")({
   head: () => ({
