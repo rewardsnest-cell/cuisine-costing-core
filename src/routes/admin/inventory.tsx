@@ -62,7 +62,7 @@ function InventoryPage() {
   const { q: search, sort: sortKey, dir: sortDir } = Route.useSearch();
   const navigate = useNavigate({ from: "/admin/inventory" });
   const setSearch = (v: string) =>
-    navigate({ search: (prev) => ({ ...prev, q: v }), replace: true });
+    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -79,7 +79,7 @@ function InventoryPage() {
 
   const toggleSort = (key: SortKey) => {
     navigate({
-      search: (prev) => {
+      search: (prev: z.infer<typeof inventorySearchSchema>) => {
         if (prev.sort === key) {
           return { ...prev, dir: prev.dir === "asc" ? "desc" : "asc" };
         }
@@ -133,6 +133,7 @@ function InventoryPage() {
         case "average_cost_per_unit": return Number(it.average_cost_per_unit);
         case "last_receipt_cost": return it.last_receipt_cost == null ? -Infinity : Number(it.last_receipt_cost);
         case "status": return it.current_stock < it.par_level ? 0 : 1;
+        default: return 0;
       }
     };
     const av = get(a), bv = get(b);
