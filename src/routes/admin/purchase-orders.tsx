@@ -7,15 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2 } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2, Sparkles, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveSales, type ActiveSale } from "@/lib/use-active-sales";
 
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
 });
 
 type Supplier = { id: string; name: string };
-type InventoryItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+type InventoryItem = { id: string; name: string; unit: string; average_cost_per_unit: number; current_stock: number; par_level: number; supplier_id: string | null };
 
 type POItem = {
   id: string;
@@ -47,6 +48,8 @@ function PurchaseOrdersPage() {
   const [form, setForm] = useState({ notes: "", expected_delivery: "", supplier_id: "" });
   const [itemForm, setItemForm] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
   const [scanning, setScanning] = useState(false);
+  const [creatingSuggested, setCreatingSuggested] = useState(false);
+  const { byItemId: activeSales } = useActiveSales();
 
   const handleScan = async (file: File) => {
     setScanning(true);
@@ -115,7 +118,7 @@ function PurchaseOrdersPage() {
     const [ordersRes, supRes, invRes] = await Promise.all([
       supabase.from("purchase_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, name").order("name"),
-      supabase.from("inventory_items").select("id, name, unit, average_cost_per_unit").order("name"),
+      supabase.from("inventory_items").select("id, name, unit, average_cost_per_unit, current_stock, par_level, supplier_id").order("name"),
     ]);
     if (ordersRes.data) setOrders(ordersRes.data as PO[]);
     if (supRes.data) setSuppliers(supRes.data as Supplier[]);
