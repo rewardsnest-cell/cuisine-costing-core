@@ -240,6 +240,35 @@ function QuotesPage() {
 
   return (
     <div className="space-y-6">
+      <Card className="shadow-warm border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Analyze a competitor quote
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Upload a competitor's PDF or photo. We'll extract pricing and suggest a winning counter-offer.
+            </p>
+          </div>
+          <label className="inline-flex">
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) onAnalyzeFile(f);
+              }}
+            />
+            <Button asChild variant="default" size="sm" className="gap-2 cursor-pointer">
+              <span><Upload className="w-3.5 h-3.5" /> Upload competitor quote</span>
+            </Button>
+          </label>
+        </CardContent>
+      </Card>
+
       {quotes.length === 0 ? (
         <Card className="shadow-warm border-border/50">
           <CardContent className="p-12 text-center">
