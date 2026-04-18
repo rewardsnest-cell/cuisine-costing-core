@@ -262,6 +262,7 @@ function QuotesPage() {
     setAnalysis(null);
     setAnalysisFileName(file.name);
     setAnalyzeOpen(true);
+    resetLinkState();
     try {
       // Convert PDF to first page image, or compress an image directly
       let blob: Blob;
