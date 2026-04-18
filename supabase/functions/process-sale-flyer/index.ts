@@ -145,13 +145,7 @@ serve(async (req) => {
     if (!toolCall) throw new Error("No tool call returned from AI");
     const extracted = JSON.parse(toolCall.function.arguments);
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sbHeaders = {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-    };
+    // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / sbHeaders already initialized above
 
     // Fetch inventory for matching
     const invResp = await fetch(
