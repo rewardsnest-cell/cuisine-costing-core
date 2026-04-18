@@ -658,11 +658,40 @@ function SynonymsPage() {
                 Ingredient names recently created by the AI that didn't match any inventory item.
               </span>
             </div>
-            <Button variant="outline" size="sm" onClick={loadSuggestions} disabled={suggLoading} className="gap-1.5">
-              <RefreshCw className={`w-3.5 h-3.5 ${suggLoading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={linkAllSuggestions}
+                disabled={linkAllRunning || suggLoading || suggestions.length === 0}
+                className="bg-gradient-warm text-primary-foreground gap-1.5"
+                title="Auto-link all suggestions using your picks (or best inventory match)"
+              >
+                <Link2 className={`w-3.5 h-3.5 ${linkAllRunning ? "animate-pulse" : ""}`} />
+                {linkAllRunning
+                  ? `Linking ${linkAllProgress.done}/${linkAllProgress.total}…`
+                  : `Link all (${suggestions.length})`}
+              </Button>
+              <Button variant="outline" size="sm" onClick={loadSuggestions} disabled={suggLoading} className="gap-1.5">
+                <RefreshCw className={`w-3.5 h-3.5 ${suggLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
+          {linkAllRunning && (
+            <div className="mb-3 space-y-1.5">
+              <Progress
+                value={
+                  linkAllProgress.total > 0
+                    ? (linkAllProgress.done / linkAllProgress.total) * 100
+                    : 0
+                }
+              />
+              <p className="text-xs text-muted-foreground truncate">
+                {linkAllProgress.done} / {linkAllProgress.total} ·{" "}
+                <span className="font-medium">{linkAllProgress.current || "starting…"}</span>
+              </p>
+            </div>
+          )}
           {suggLoading ? (
             <p className="text-sm text-muted-foreground">Scanning recent recipes…</p>
           ) : suggestions.length === 0 ? (
