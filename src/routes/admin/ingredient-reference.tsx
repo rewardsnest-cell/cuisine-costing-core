@@ -199,10 +199,24 @@ function IngredientReferencePage() {
     refId: string,
     refName: string,
     refNormalized: string,
+    opts?: { force?: boolean },
   ) => {
     setSuggestRefId(refId);
     setSuggestRefName(refName);
     setSuggestOpen(true);
+
+    // Serve from session cache when available unless caller forces a rescan.
+    if (!opts?.force) {
+      const cached = suggestionCache.get(refId);
+      if (cached) {
+        setSuggestions(cached.map((s) => ({ ...s })));
+        setSuggestFromCache(true);
+        setSuggestLoading(false);
+        return;
+      }
+    }
+
+    setSuggestFromCache(false);
     setSuggestLoading(true);
     setSuggestions([]);
 
@@ -243,13 +257,7 @@ function IngredientReferencePage() {
     // Score each candidate via Postgres pg_trgm by calling find_ingredient_matches.
     // A candidate maps to THIS reference when the RPC returns a row with reference_id === refId.
     const CONCURRENCY = 6;
-    const scored: Array<{
-      alias: string;
-      alias_normalized: string;
-      score: number;
-      usage: number;
-      selected: boolean;
-    }> = [];
+    const scored: Suggestion[] = [];
 
     let cursor = 0;
     const worker = async () => {
@@ -285,7 +293,14 @@ function IngredientReferencePage() {
     );
 
     scored.sort((a, b) => b.score - a.score || b.usage - a.usage);
-    setSuggestions(scored.slice(0, 25));
+    const trimmed = scored.slice(0, 25);
+    setSuggestions(trimmed);
+    // Cache a deep-ish copy so user toggling `selected` doesn't mutate the cache.
+    setSuggestionCache((prev) => {
+      const next = new Map(prev);
+      next.set(refId, trimmed.map((s) => ({ ...s })));
+      return next;
+    });
     setSuggestLoading(false);
   };
 
