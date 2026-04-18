@@ -24,7 +24,23 @@ export const Route = createFileRoute("/recipes/$id")({
       .eq("recipe_id", params.id)
       .order("name");
 
-    return { recipe, ingredients: ingredients || [] };
+    // Related recipes: same category or cuisine, excluding current
+    let related: any[] = [];
+    if (recipe.category || recipe.cuisine) {
+      const filters: string[] = [];
+      if (recipe.category) filters.push(`category.eq.${recipe.category}`);
+      if (recipe.cuisine) filters.push(`cuisine.eq.${recipe.cuisine}`);
+      const { data: rel } = await (supabase as any)
+        .from("recipes")
+        .select("id, name, image_url, category, cuisine")
+        .eq("active", true)
+        .neq("id", params.id)
+        .or(filters.join(","))
+        .limit(6);
+      related = rel || [];
+    }
+
+    return { recipe, ingredients: ingredients || [], related };
   },
   head: ({ loaderData }) => {
     if (!loaderData?.recipe) return { meta: [{ title: "Recipe — VPS Finest" }] };
