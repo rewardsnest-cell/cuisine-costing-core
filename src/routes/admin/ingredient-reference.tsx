@@ -117,6 +117,14 @@ function IngredientReferencePage() {
     notes: "",
   });
   const [creating, setCreating] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestRefId, setSuggestRefId] = useState<string | null>(null);
+  const [suggestRefName, setSuggestRefName] = useState<string>("");
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestAttaching, setSuggestAttaching] = useState(false);
+  const [suggestions, setSuggestions] = useState<
+    Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }>
+  >([]);
 
   const resetCreateDraft = () => {
     setCreateDraft({
@@ -158,24 +166,144 @@ function IngredientReferencePage() {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from("ingredient_reference").insert({
-      canonical_name: name,
-      canonical_normalized: norm,
-      default_unit: createDraft.default_unit.trim() || "each",
-      density_g_per_ml: density,
-      waste_factor: waste,
-      category: createDraft.category.trim() || null,
-      notes: createDraft.notes.trim() || null,
-    });
+    const { data: inserted, error } = await supabase
+      .from("ingredient_reference")
+      .insert({
+        canonical_name: name,
+        canonical_normalized: norm,
+        default_unit: createDraft.default_unit.trim() || "each",
+        density_g_per_ml: density,
+        waste_factor: waste,
+        category: createDraft.category.trim() || null,
+        notes: createDraft.notes.trim() || null,
+      })
+      .select("id,canonical_name,canonical_normalized")
+      .single();
     setCreating(false);
-    if (error) {
-      toast.error(error.message);
+    if (error || !inserted) {
+      toast.error(error?.message ?? "Failed to create reference");
       return;
     }
     toast.success(`Created "${name}"`);
     resetCreateDraft();
     setCreateOpen(false);
     await load();
+    await scanSynonymSuggestions(inserted.id, inserted.canonical_name, inserted.canonical_normalized);
+  };
+
+  // ===== Synonym suggestion scan =====
+  const tokenize = (s: string) => normalizeName(s).split(" ").filter((t) => t.length >= 2);
+
+  const fuzzyScore = (a: string, b: string): number => {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 0.9;
+    const ta = new Set(tokenize(a));
+    const tb = new Set(tokenize(b));
+    if (ta.size === 0 || tb.size === 0) return 0;
+    let inter = 0;
+    for (const t of ta) if (tb.has(t)) inter++;
+    const jaccard = inter / (ta.size + tb.size - inter);
+    let sub = 0;
+    for (const x of ta) for (const y of tb) {
+      if (x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x))) {
+        sub = Math.max(sub, 0.4);
+      }
+    }
+    return Math.max(jaccard, sub);
+  };
+
+  const scanSynonymSuggestions = async (
+    refId: string,
+    refName: string,
+    refNormalized: string,
+  ) => {
+    setSuggestRefId(refId);
+    setSuggestRefName(refName);
+    setSuggestOpen(true);
+    setSuggestLoading(true);
+    setSuggestions([]);
+
+    const [ingRes, synRes, refsRes, dismissRes] = await Promise.all([
+      supabase.from("recipe_ingredients").select("name,reference_id"),
+      supabase.from("ingredient_synonyms").select("alias_normalized"),
+      supabase.from("ingredient_reference").select("canonical_normalized"),
+      supabase.from("ingredient_synonym_dismissed").select("alias_normalized"),
+    ]);
+    if (ingRes.error) {
+      toast.error(ingRes.error.message);
+      setSuggestLoading(false);
+      return;
+    }
+    const existingAliases = new Set<string>((synRes.data ?? []).map((s: any) => s.alias_normalized));
+    const existingRefs = new Set<string>((refsRes.data ?? []).map((r: any) => r.canonical_normalized));
+    const dismissed = new Set<string>((dismissRes.data ?? []).map((d: any) => d.alias_normalized));
+
+    const byNorm = new Map<string, { alias: string; usage: number; hasLink: boolean }>();
+    for (const ing of (ingRes.data ?? []) as any[]) {
+      const raw = String(ing.name ?? "").trim();
+      if (!raw) continue;
+      const n = normalizeName(raw);
+      if (!n || n === refNormalized) continue;
+      if (existingAliases.has(n) || existingRefs.has(n) || dismissed.has(n)) continue;
+      const cur = byNorm.get(n) ?? { alias: raw, usage: 0, hasLink: false };
+      cur.usage += 1;
+      if (ing.reference_id) cur.hasLink = true;
+      if (raw.length < cur.alias.length) cur.alias = raw;
+      byNorm.set(n, cur);
+    }
+
+    const scored: Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }> = [];
+    for (const [norm, info] of byNorm) {
+      if (info.hasLink) continue;
+      const score = fuzzyScore(refNormalized, norm);
+      if (score >= 0.35) {
+        scored.push({
+          alias: info.alias,
+          alias_normalized: norm,
+          score,
+          usage: info.usage,
+          selected: score >= 0.6,
+        });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score || b.usage - a.usage);
+    setSuggestions(scored.slice(0, 25));
+    setSuggestLoading(false);
+  };
+
+  const handleAttachSelected = async () => {
+    if (!suggestRefId) return;
+    const picks = suggestions.filter((s) => s.selected);
+    if (picks.length === 0) {
+      setSuggestOpen(false);
+      return;
+    }
+    setSuggestAttaching(true);
+    const { error } = await supabase.from("ingredient_synonyms").insert(
+      picks.map((p) => ({
+        alias: p.alias,
+        alias_normalized: p.alias_normalized,
+        canonical: suggestRefName,
+        reference_id: suggestRefId,
+      })),
+    );
+    setSuggestAttaching(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Attached ${picks.length} synonym${picks.length === 1 ? "" : "s"}`);
+    setSuggestOpen(false);
+    setSuggestions([]);
+    await load();
+  };
+
+  const handleDismissSuggestion = async (aliasNorm: string) => {
+    setSuggestions((prev) => prev.filter((s) => s.alias_normalized !== aliasNorm));
+    await supabase
+      .from("ingredient_synonym_dismissed")
+      .insert({ alias_normalized: aliasNorm });
   };
 
   const load = async () => {
@@ -981,6 +1109,108 @@ function IngredientReferencePage() {
           })}
         </div>
       )}
+
+      <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Suggested synonyms for "{suggestRefName}"</DialogTitle>
+            <DialogDescription>
+              Unlinked ingredient names from your recipes that look similar. Check the ones you want to attach as synonyms — future imports will auto-resolve them to this reference.
+            </DialogDescription>
+          </DialogHeader>
+
+          {suggestLoading ? (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Scanning recipe ingredients...
+            </div>
+          ) : suggestions.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No fuzzy matches found in unlinked recipe ingredients.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSuggestions((prev) => prev.map((s) => ({ ...s, selected: true })))}
+                >
+                  Select all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSuggestions((prev) => prev.map((s) => ({ ...s, selected: false })))}
+                >
+                  Clear
+                </Button>
+                <span className="ml-auto text-muted-foreground">
+                  {suggestions.filter((s) => s.selected).length} of {suggestions.length} selected
+                </span>
+              </div>
+              <div className="max-h-[55vh] overflow-y-auto divide-y rounded-md border">
+                {suggestions.map((s) => (
+                  <div key={s.alias_normalized} className="flex items-center gap-3 px-3 py-2 hover:bg-accent/40">
+                    <Checkbox
+                      checked={s.selected}
+                      onCheckedChange={(v) =>
+                        setSuggestions((prev) =>
+                          prev.map((x) =>
+                            x.alias_normalized === s.alias_normalized ? { ...x, selected: !!v } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{s.alias}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono truncate">
+                        {s.alias_normalized}
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
+                      used {s.usage}×
+                    </Badge>
+                    <Badge
+                      variant={s.score >= 0.8 ? "default" : s.score >= 0.6 ? "secondary" : "outline"}
+                      className="text-[10px] shrink-0 font-mono"
+                    >
+                      {Math.round(s.score * 100)}%
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      title="Dismiss — never suggest this alias again"
+                      onClick={() => handleDismissSuggestion(s.alias_normalized)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuggestOpen(false)} disabled={suggestAttaching}>
+              Skip
+            </Button>
+            <Button
+              onClick={handleAttachSelected}
+              disabled={suggestAttaching || suggestions.filter((s) => s.selected).length === 0}
+            >
+              {suggestAttaching ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Link2 className="w-4 h-4 mr-1.5" />
+              )}
+              Attach {suggestions.filter((s) => s.selected).length} synonym
+              {suggestions.filter((s) => s.selected).length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
         <DialogContent className="max-w-lg">
