@@ -665,6 +665,77 @@ function IngredientReferencePage() {
           })}
         </div>
       )}
+
+      <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Merge ingredient references</DialogTitle>
+            <DialogDescription>
+              Repoints all <code className="text-xs">recipe_ingredients.reference_id</code> from the removed reference to the kept one,
+              moves synonyms, and adds the removed name as a synonym so future imports auto-resolve. The removed reference is then deleted.
+              Affected recipes are recomputed automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          {mergeKeepRow && mergeRemoveRow && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMergeKeepId(mergeRemoveRow.id);
+                    setMergeRemoveId(mergeKeepRow.id);
+                  }}
+                  className="text-left rounded-md border-2 border-primary bg-primary/5 p-3 transition-colors"
+                >
+                  <div className="text-[10px] font-semibold uppercase text-primary mb-1">Keep</div>
+                  <div className="font-medium text-sm truncate">{mergeKeepRow.canonical_name}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {mergeKeepRow.inventory_item_id
+                      ? `Linked: ${inventoryById.get(mergeKeepRow.inventory_item_id)?.name ?? "—"}`
+                      : "Unlinked"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    unit: {mergeKeepRow.default_unit} · waste: {mergeKeepRow.waste_factor}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMergeKeepId(mergeRemoveRow.id);
+                    setMergeRemoveId(mergeKeepRow.id);
+                  }}
+                  className="text-left rounded-md border-2 border-destructive/40 bg-destructive/5 p-3 transition-colors"
+                >
+                  <div className="text-[10px] font-semibold uppercase text-destructive mb-1">Remove</div>
+                  <div className="font-medium text-sm truncate">{mergeRemoveRow.canonical_name}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {mergeRemoveRow.inventory_item_id
+                      ? `Linked: ${inventoryById.get(mergeRemoveRow.inventory_item_id)?.name ?? "—"}`
+                      : "Unlinked"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    unit: {mergeRemoveRow.default_unit} · waste: {mergeRemoveRow.waste_factor}
+                  </div>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click either card to swap which reference is kept.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeOpen(false)} disabled={merging}>
+              Cancel
+            </Button>
+            <Button onClick={handleMerge} disabled={merging || !mergeKeepId || !mergeRemoveId}>
+              {merging ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Merge className="w-4 h-4 mr-1.5" />}
+              Merge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
