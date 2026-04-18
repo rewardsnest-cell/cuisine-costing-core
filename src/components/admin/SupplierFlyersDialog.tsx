@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function SupplierFlyersDialog({
   const fileRef = useRef<HTMLInputElement>(null);
   const addPagesRef = useRef<HTMLInputElement>(null);
   const addPagesFlyerIdRef = useRef<string | null>(null);
+  const navigate = useNavigate();
 
   const load = async () => {
     if (!supplierId) return;
@@ -364,12 +366,16 @@ export function SupplierFlyersDialog({
               }}
             />
             <Button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
+              onClick={() => {
+                if (!supplierId) return;
+                onOpenChange(false);
+                navigate({ to: "/admin/scan-flyer", search: { supplierId } });
+              }}
+              disabled={uploading || !supplierId}
               className="bg-gradient-warm text-primary-foreground gap-2 shrink-0"
             >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? "Working..." : "Scan Flyer"}
+              <Upload className="w-4 h-4" />
+              Scan Flyer
             </Button>
           </div>
 

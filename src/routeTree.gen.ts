@@ -30,6 +30,7 @@ import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
+import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
 import { Route as AdminSalesRouteImport } from './routes/admin/sales'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
@@ -147,6 +148,11 @@ const AdminScheduleRoute = AdminScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminScanFlyerRoute = AdminScanFlyerRouteImport.update({
+  id: '/scan-flyer',
+  path: '/scan-flyer',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSalesRoute = AdminSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -295,6 +303,7 @@ export interface FileRoutesById {
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -331,6 +340,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/admin/recipes'
     | '/admin/register'
     | '/admin/sales'
+    | '/admin/scan-flyer'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -575,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/scan-flyer': {
+      id: '/admin/scan-flyer'
+      path: '/scan-flyer'
+      fullPath: '/admin/scan-flyer'
+      preLoaderRoute: typeof AdminScanFlyerRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sales': {
       id: '/admin/sales'
       path: '/sales'
@@ -667,6 +686,7 @@ interface AdminRouteChildren {
   AdminRecipesRoute: typeof AdminRecipesRoute
   AdminRegisterRoute: typeof AdminRegisterRoute
   AdminSalesRoute: typeof AdminSalesRoute
+  AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRoute
@@ -688,6 +708,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRecipesRoute: AdminRecipesRoute,
   AdminRegisterRoute: AdminRegisterRoute,
   AdminSalesRoute: AdminSalesRoute,
+  AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRoute,
@@ -718,3 +739,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
