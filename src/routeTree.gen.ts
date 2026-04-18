@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WeddingsRouteImport } from './routes/weddings'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -83,6 +84,11 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
+const WeddingsRoute = WeddingsRouteImport.update({
+  id: '/weddings',
+  path: '/weddings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -179,9 +185,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const WeddingsIndexRoute = WeddingsIndexRouteImport.update({
-  id: '/weddings/',
-  path: '/weddings/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => WeddingsRoute,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
@@ -479,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -629,6 +636,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -706,6 +714,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
+    | '/weddings'
     | '/admin/access'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -855,6 +864,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
+    | '/weddings'
     | '/admin/access'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -931,6 +941,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
   BlogFallWeddingCateringGuideRoute: typeof BlogFallWeddingCateringGuideRoute
   BlogSpringWeddingCateringGuideRoute: typeof BlogSpringWeddingCateringGuideRoute
@@ -940,7 +951,6 @@ export interface RootRouteChildren {
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
-  WeddingsIndexRoute: typeof WeddingsIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -951,6 +961,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/weddings': {
+      id: '/weddings'
+      path: '/weddings'
+      fullPath: '/weddings'
+      preLoaderRoute: typeof WeddingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -1086,10 +1103,10 @@ declare module '@tanstack/react-router' {
     }
     '/weddings/': {
       id: '/weddings/'
-      path: '/weddings'
+      path: '/'
       fullPath: '/weddings/'
       preLoaderRoute: typeof WeddingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WeddingsRoute
     }
     '/blog/': {
       id: '/blog/'
@@ -1570,6 +1587,26 @@ const RecipesRouteChildren: RecipesRouteChildren = {
 const RecipesRouteWithChildren =
   RecipesRoute._addFileChildren(RecipesRouteChildren)
 
+interface WeddingsRouteChildren {
+  WeddingsBookingTimelineRoute: typeof WeddingsBookingTimelineRoute
+  WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
+  WeddingsSpringAuroraOhioRoute: typeof WeddingsSpringAuroraOhioRoute
+  WeddingsWinterClevelandOhioRoute: typeof WeddingsWinterClevelandOhioRoute
+  WeddingsIndexRoute: typeof WeddingsIndexRoute
+}
+
+const WeddingsRouteChildren: WeddingsRouteChildren = {
+  WeddingsBookingTimelineRoute: WeddingsBookingTimelineRoute,
+  WeddingsFallHudsonOhioRoute: WeddingsFallHudsonOhioRoute,
+  WeddingsSpringAuroraOhioRoute: WeddingsSpringAuroraOhioRoute,
+  WeddingsWinterClevelandOhioRoute: WeddingsWinterClevelandOhioRoute,
+  WeddingsIndexRoute: WeddingsIndexRoute,
+}
+
+const WeddingsRouteWithChildren = WeddingsRoute._addFileChildren(
+  WeddingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1590,6 +1627,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
   BlogFallWeddingCateringGuideRoute: BlogFallWeddingCateringGuideRoute,
   BlogSpringWeddingCateringGuideRoute: BlogSpringWeddingCateringGuideRoute,
@@ -1599,7 +1637,6 @@ const rootRouteChildren: RootRouteChildren = {
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
   BlogIndexRoute: BlogIndexRoute,
-  WeddingsIndexRoute: WeddingsIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
