@@ -656,6 +656,36 @@ function SynonymsPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk add */}
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListPlus className="w-4 h-4 text-primary" />
+            <p className="font-semibold">Bulk add synonyms</p>
+            <span className="text-xs text-muted-foreground">
+              One per line. Separator can be <code>=&gt;</code>, <code>-&gt;</code>, <code>=</code>, comma, or tab.
+            </span>
+          </div>
+          <Textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={"EVOO => Extra Virgin Olive Oil\nsalt => Kosher Salt\ngarlic clove, Garlic\nmaldon = Kosher Salt"}
+            rows={6}
+            className="font-mono text-sm"
+          />
+          <div className="flex justify-end">
+            <Button
+              onClick={handleBulkAdd}
+              disabled={bulkAdding || !bulkText.trim()}
+              className="bg-gradient-warm text-primary-foreground gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              {bulkAdding ? "Adding…" : "Add all"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Existing synonyms */}
       <Card className="shadow-warm border-border/50">
         <CardContent className="p-5">
