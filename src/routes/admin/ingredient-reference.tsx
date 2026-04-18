@@ -382,9 +382,9 @@ function IngredientReferencePage() {
     setSuggestions((prev) => prev.filter((s) => s.alias_normalized !== aliasNorm));
     // Remove this alias from every cached entry so it doesn't reappear from cache.
     setSuggestionCache((prev) => {
-      const next = new Map<string, Suggestion[]>();
-      for (const [k, list] of prev) {
-        next.set(k, list.filter((s) => s.alias_normalized !== aliasNorm));
+      const next = new Map<string, CacheEntry>();
+      for (const [k, entry] of prev) {
+        next.set(k, { savedAt: entry.savedAt, suggestions: entry.suggestions.filter((s) => s.alias_normalized !== aliasNorm) });
       }
       return next;
     });
