@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat, Plus } from "lucide-react";
+import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat, Plus, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -131,6 +131,8 @@ function IngredientReferencePage() {
   type CacheEntry = { savedAt: number; suggestions: Suggestion[] };
   const [suggestionCache, setSuggestionCache] = useState<Map<string, CacheEntry>>(new Map());
   const [suggestFromCache, setSuggestFromCache] = useState(false);
+  const [bulkScanning, setBulkScanning] = useState(false);
+  const [bulkScanProgress, setBulkScanProgress] = useState({ done: 0, total: 0, withSuggestions: 0 });
 
   // Hydrate cache from localStorage on mount, pruning anything past the TTL.
   useEffect(() => {
@@ -237,6 +239,105 @@ function IngredientReferencePage() {
     setCreateOpen(false);
     await load();
     await scanSynonymSuggestions(inserted.id, inserted.canonical_name, inserted.canonical_normalized);
+  };
+
+  // ===== Bulk scan: run find_ingredient_matches for every reference and queue suggestions in the cache =====
+  const handleBulkScanAll = async () => {
+    if (rows.length === 0) return;
+    setBulkScanning(true);
+    setBulkScanProgress({ done: 0, total: rows.length, withSuggestions: 0 });
+
+    // Fetch shared lookup data ONCE for the whole scan (instead of once per reference).
+    const [ingRes, synRes, refsRes, dismissRes] = await Promise.all([
+      supabase.from("recipe_ingredients").select("name,reference_id"),
+      supabase.from("ingredient_synonyms").select("alias_normalized"),
+      supabase.from("ingredient_reference").select("canonical_normalized"),
+      supabase.from("ingredient_synonym_dismissed").select("alias_normalized"),
+    ]);
+    if (ingRes.error) {
+      toast.error(ingRes.error.message);
+      setBulkScanning(false);
+      return;
+    }
+    const existingAliases = new Set<string>((synRes.data ?? []).map((s: any) => s.alias_normalized));
+    const existingRefs = new Set<string>((refsRes.data ?? []).map((r: any) => r.canonical_normalized));
+    const dismissed = new Set<string>((dismissRes.data ?? []).map((d: any) => d.alias_normalized));
+
+    // Build the global candidate pool (unlinked aliases) once.
+    type Candidate = { alias: string; norm: string; usage: number; matches: any[] | null };
+    const byNorm = new Map<string, Candidate>();
+    for (const ing of (ingRes.data ?? []) as any[]) {
+      const raw = String(ing.name ?? "").trim();
+      if (!raw) continue;
+      const n = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!n) continue;
+      if (existingAliases.has(n) || existingRefs.has(n) || dismissed.has(n)) continue;
+      if (ing.reference_id) continue;
+      const cur = byNorm.get(n) ?? { alias: raw, norm: n, usage: 0, matches: null };
+      cur.usage += 1;
+      if (raw.length < cur.alias.length) cur.alias = raw;
+      byNorm.set(n, cur);
+    }
+    const candidates = Array.from(byNorm.values());
+
+    // Score each candidate against the RPC ONCE — results carry references for every ref it could map to.
+    const CONCURRENCY = 8;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < candidates.length) {
+        const i = cursor++;
+        const c = candidates[i];
+        const { data, error } = await (supabase as any).rpc("find_ingredient_matches", {
+          _name: c.alias,
+          _limit: 5,
+        });
+        c.matches = error || !Array.isArray(data) ? [] : data;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, candidates.length) }, worker));
+
+    // Bucket scored suggestions per reference id.
+    const perRef = new Map<string, Suggestion[]>();
+    for (const c of candidates) {
+      if (!c.matches) continue;
+      const bestByRef = new Map<string, number>();
+      for (const row of c.matches) {
+        const refId = row?.reference_id;
+        if (!refId) continue;
+        const sim = typeof row.similarity === "number" ? row.similarity : 0;
+        if (sim < 0.3) continue;
+        if (sim > (bestByRef.get(refId) ?? 0)) bestByRef.set(refId, sim);
+      }
+      for (const [refId, score] of bestByRef) {
+        const list = perRef.get(refId) ?? [];
+        list.push({
+          alias: c.alias,
+          alias_normalized: c.norm,
+          score,
+          usage: c.usage,
+          selected: score >= 0.55,
+        });
+        perRef.set(refId, list);
+      }
+    }
+
+    // Write into the cache for every reference (even empty results, so the user knows we scanned it).
+    let withSuggestions = 0;
+    setSuggestionCache((prev) => {
+      const next = new Map(prev);
+      const now = Date.now();
+      for (const r of rows) {
+        const list = (perRef.get(r.id) ?? []).sort((a, b) => b.score - a.score || b.usage - a.usage).slice(0, 25);
+        if (list.length > 0) withSuggestions++;
+        next.set(r.id, { savedAt: now, suggestions: list });
+      }
+      return next;
+    });
+    setBulkScanProgress({ done: rows.length, total: rows.length, withSuggestions });
+    setBulkScanning(false);
+    toast.success(
+      `Scanned ${rows.length} reference${rows.length === 1 ? "" : "s"} — ${withSuggestions} have suggestions queued for review`,
+    );
   };
 
   // ===== Synonym suggestion scan (server-side pg_trgm via find_ingredient_matches) =====
@@ -789,9 +890,26 @@ function IngredientReferencePage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={handleBulkScanAll}
+            disabled={bulkScanning || loading || rows.length === 0}
+            title="Run pg_trgm matching for every reference and queue suggestions in the cache"
+          >
+            {bulkScanning ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-1.5" />
+            )}
+            {bulkScanning
+              ? `Scanning ${bulkScanProgress.done}/${bulkScanProgress.total}…`
+              : `Scan all references${rows.length > 0 ? ` (${rows.length})` : ""}`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               const count = suggestionCache.size;
               setSuggestionCache(new Map());
+              setBulkScanProgress({ done: 0, total: 0, withSuggestions: 0 });
               toast.success(count > 0 ? `Cleared ${count} cached scan${count === 1 ? "" : "s"}` : "Cache already empty");
             }}
             disabled={suggestionCache.size === 0}
