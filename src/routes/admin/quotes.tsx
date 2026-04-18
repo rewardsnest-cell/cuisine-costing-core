@@ -9,6 +9,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 } from "lucide-react";
@@ -329,15 +332,34 @@ function QuotesPage() {
     if (data) setQuotes(data as Quote[]);
   };
 
-  const loadEmployees = async () => {
-    const { data } = await (supabase as any)
-      .from("employee_profiles")
-      .select("user_id, position, active, profile:profiles!inner(full_name, email)")
-      .eq("active", true);
-    setEmployees((data ?? []) as Employee[]);
+  const [deleteTarget, setDeleteTarget] = useState<Quote | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const id = deleteTarget.id;
+      // Detach competitor_quotes counter link (so analyses are preserved)
+      await (supabase as any).from("competitor_quotes").update({ counter_quote_id: null }).eq("counter_quote_id", id);
+      // Delete dependent rows
+      await supabase.from("event_time_entries").delete().eq("quote_id", id);
+      await supabase.from("event_prep_tasks").delete().eq("quote_id", id);
+      await supabase.from("event_assignments").delete().eq("quote_id", id);
+      await supabase.from("quote_items").delete().eq("quote_id", id);
+      const { error } = await supabase.from("quotes").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Quote deleted");
+      setDeleteTarget(null);
+      loadQuotes();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete quote");
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  useEffect(() => { loadQuotes(); loadEmployees(); }, []);
+  useEffect(() => { loadQuotes(); }, []);
 
   const openAssign = async (q: Quote) => {
     setActiveQuote(q);
@@ -469,11 +491,31 @@ function QuotesPage() {
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => openAssign(q)}>
                   <Users className="w-3.5 h-3.5" /> Staff
                 </Button>
+                <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(q)}>
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{deleteTarget?.client_name || "the quote"}</strong> ({deleteTarget?.id.slice(0, 8)}) along with its line items, prep tasks, staff assignments, and time entries. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Quote details dialog: full selections + AI preferences */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
