@@ -28,6 +28,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
 import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
+import { Route as AdminSynonymsRouteImport } from './routes/admin/synonyms'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
@@ -144,6 +145,11 @@ const AdminTrendsRoute = AdminTrendsRouteImport.update({
 const AdminTimesheetRoute = AdminTimesheetRouteImport.update({
   id: '/timesheet',
   path: '/timesheet',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSynonymsRoute = AdminSynonymsRouteImport.update({
+  id: '/synonyms',
+  path: '/synonyms',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSuppliersRoute = AdminSuppliersRouteImport.update({
@@ -288,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
+  '/admin/synonyms': typeof AdminSynonymsRoute
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
@@ -330,6 +337,7 @@ export interface FileRoutesByTo {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
+  '/admin/synonyms': typeof AdminSynonymsRoute
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
+  '/admin/synonyms': typeof AdminSynonymsRoute
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/synonyms'
     | '/admin/timesheet'
     | '/admin/trends'
     | '/admin/uploads'
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/synonyms'
     | '/admin/timesheet'
     | '/admin/trends'
     | '/admin/uploads'
@@ -504,6 +515,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
+    | '/admin/synonyms'
     | '/admin/timesheet'
     | '/admin/trends'
     | '/admin/uploads'
@@ -668,6 +680,13 @@ declare module '@tanstack/react-router' {
       path: '/timesheet'
       fullPath: '/admin/timesheet'
       preLoaderRoute: typeof AdminTimesheetRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/synonyms': {
+      id: '/admin/synonyms'
+      path: '/synonyms'
+      fullPath: '/admin/synonyms'
+      preLoaderRoute: typeof AdminSynonymsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/suppliers': {
@@ -871,6 +890,7 @@ interface AdminRouteChildren {
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
+  AdminSynonymsRoute: typeof AdminSynonymsRoute
   AdminTimesheetRoute: typeof AdminTimesheetRoute
   AdminTrendsRoute: typeof AdminTrendsRoute
   AdminUploadsRoute: typeof AdminUploadsRoute
@@ -898,6 +918,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
+  AdminSynonymsRoute: AdminSynonymsRoute,
   AdminTimesheetRoute: AdminTimesheetRoute,
   AdminTrendsRoute: AdminTrendsRoute,
   AdminUploadsRoute: AdminUploadsRoute,
