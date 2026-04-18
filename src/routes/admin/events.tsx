@@ -242,10 +242,40 @@ function EventsPage() {
         quantity: 1,
         unit_price: 0,
         total_price: 0,
+        recipe_id: null,
         _new: true,
       },
     ]);
   };
+
+  const addItemFromRecipe = (r: RecipeOpt) => {
+    const cost = Number(r.cost_per_serving) || 0;
+    const unitPrice = +(cost * markup).toFixed(2);
+    const guests = Number(form.guest_count) || 1;
+    setItems((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: r.name,
+        quantity: guests,
+        unit_price: unitPrice,
+        total_price: +(unitPrice * guests).toFixed(2),
+        recipe_id: r.id,
+        _new: true,
+      },
+    ]);
+    toast.success(`Added "${r.name}" — $${unitPrice.toFixed(2)}/guest`);
+  };
+
+  // Theoretical cost = Σ recipe.cost_per_serving × quantity for items linked to a recipe
+  const theoreticalCost = useMemo(() => {
+    return liveItems.reduce((sum, it) => {
+      if (!it.recipe_id) return sum;
+      const r = recipes.find((x) => x.id === it.recipe_id);
+      if (!r) return sum;
+      return sum + (Number(r.cost_per_serving) || 0) * (Number(it.quantity) || 0);
+    }, 0);
+  }, [liveItems, recipes]);
 
   const removeItem = (id: string) => {
     setItems((prev) =>
