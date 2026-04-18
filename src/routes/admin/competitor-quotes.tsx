@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download } from "lucide-react";
+import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload } from "lucide-react";
+import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
@@ -65,6 +66,7 @@ function CompetitorQuotesPage() {
   const [outcomeFilter, setOutcomeFilter] = useState<"all" | Outcome>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -183,6 +185,9 @@ function CompetitorQuotesPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" className="gap-2" onClick={exportCsv}>
             <Download className="w-4 h-4" />Export CSV
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setBulkOpen(true)}>
+            <Upload className="w-4 h-4" />Bulk upload
           </Button>
           <Link to="/admin/quotes">
             <Button variant="outline" className="gap-2"><FileSearch className="w-4 h-4" />Analyze New Quote</Button>
