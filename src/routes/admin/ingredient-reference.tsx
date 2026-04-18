@@ -1004,6 +1004,23 @@ function IngredientReferencePage() {
                         )}
                         Recompute
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          scanSynonymSuggestions(row.id, row.canonical_name, row.canonical_normalized)
+                        }
+                        disabled={suggestLoading && suggestRefId === row.id}
+                        className="w-full"
+                        title="Scan recipe ingredients for unlinked names that look similar to this reference"
+                      >
+                        {suggestLoading && suggestRefId === row.id ? (
+                          <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                        ) : (
+                          <Search className="w-4 h-4 mr-1.5" />
+                        )}
+                        Find synonyms
+                      </Button>
                     </div>
                   </div>
 
