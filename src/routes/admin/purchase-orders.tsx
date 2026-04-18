@@ -208,6 +208,11 @@ function PurchaseOrdersPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const ok = await askConfirm({
+      title: "Delete this purchase order?",
+      description: "All line items on this PO will be removed. This cannot be undone.",
+    });
+    if (!ok) return;
     await supabase.from("purchase_orders").delete().eq("id", id);
     load();
   };
@@ -253,6 +258,11 @@ function PurchaseOrdersPage() {
   };
 
   const removeItem = async (poId: string, itemId: string) => {
+    const ok = await askConfirm({
+      title: "Remove this line item?",
+      description: "It will be deleted from the purchase order.",
+    });
+    if (!ok) return;
     await supabase.from("purchase_order_items").delete().eq("id", itemId);
     await loadItems(poId);
     await recalcTotal(poId);
