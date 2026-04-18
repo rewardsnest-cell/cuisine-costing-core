@@ -24,13 +24,14 @@ const inventorySearchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
-  category: fallback(z.string(), "all").default("all"),
+  // Comma-separated list of categories. Use the literal value "__uncategorized__" for items with no category.
+  categories: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/admin/inventory")({
   validateSearch: zodValidator(inventorySearchSchema),
   search: {
-    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", category: "all" })],
+    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", categories: "" })],
   },
   component: InventoryPage,
 });
