@@ -5,8 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, ChefHat, ImageOff } from "lucide-react";
+import { Search, ChefHat, ImageOff, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useServerFn } from "@tanstack/react-start";
+import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
 
 export const Route = createFileRoute("/admin/menu")({
   head: () => ({
@@ -41,6 +44,14 @@ function AdminMenuPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string }>({
+    done: 0,
+    total: 0,
+    current: "",
+  });
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const genPhoto = useServerFn(generateRecipePhoto);
 
   const load = async () => {
     setLoading(true);
@@ -90,6 +101,50 @@ function AdminMenuPage() {
     });
   };
 
+  const generateOne = async (id: string) => {
+    setGeneratingId(id);
+    try {
+      const res = await genPhoto({ data: { recipeId: id } });
+      setRecipes((cur) => cur.map((r) => (r.id === id ? { ...r, image_url: res.url } : r)));
+      toast.success(`Generated photo for ${res.name}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate photo");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
+  const generateMissing = async () => {
+    const missing = recipes.filter((r) => !r.image_url);
+    if (missing.length === 0) {
+      toast.info("All recipes already have photos.");
+      return;
+    }
+    if (!confirm(`Generate AI photos for ${missing.length} recipe${missing.length === 1 ? "" : "s"}? This may take a few minutes.`)) return;
+    setBulkRunning(true);
+    setBulkProgress({ done: 0, total: missing.length, current: "" });
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < missing.length; i++) {
+      const r = missing[i];
+      setBulkProgress({ done: i, total: missing.length, current: r.name });
+      try {
+        const res = await genPhoto({ data: { recipeId: r.id } });
+        setRecipes((cur) => cur.map((x) => (x.id === r.id ? { ...x, image_url: res.url } : x)));
+        ok++;
+      } catch (e: any) {
+        console.error("Photo gen failed for", r.name, e);
+        fail++;
+      }
+    }
+    setBulkProgress({ done: missing.length, total: missing.length, current: "" });
+    setBulkRunning(false);
+    if (fail === 0) toast.success(`Generated ${ok} photo${ok === 1 ? "" : "s"}.`);
+    else toast.warning(`Generated ${ok}, failed ${fail}. Check console for details.`);
+  };
+
+  const missingCount = recipes.filter((r) => !r.image_url).length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -100,15 +155,33 @@ function AdminMenuPage() {
         </p>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search recipes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search recipes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button
+          onClick={generateMissing}
+          disabled={bulkRunning || loading || missingCount === 0}
+          variant="outline"
+          className="gap-2"
+        >
+          {bulkRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {bulkRunning
+            ? `Generating ${bulkProgress.done}/${bulkProgress.total}…`
+            : missingCount === 0
+              ? "All photos generated"
+              : `Generate ${missingCount} missing photo${missingCount === 1 ? "" : "s"}`}
+        </Button>
       </div>
+      {bulkRunning && bulkProgress.current && (
+        <p className="text-xs text-muted-foreground -mt-3">Current: {bulkProgress.current}</p>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading recipes…</p>
@@ -132,9 +205,22 @@ function AdminMenuPage() {
                   {r.image_url ? (
                     <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
-                    <div className="flex flex-col items-center text-muted-foreground/50">
-                      <ImageOff className="w-8 h-8 mb-1" />
-                      <span className="text-xs">No photo</span>
+                    <div className="flex flex-col items-center text-muted-foreground/60 gap-2">
+                      <ImageOff className="w-8 h-8" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-7 text-xs"
+                        disabled={generatingId === r.id || bulkRunning}
+                        onClick={() => generateOne(r.id)}
+                      >
+                        {generatingId === r.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        {generatingId === r.id ? "Generating…" : "Generate photo"}
+                      </Button>
                     </div>
                   )}
                 </div>
