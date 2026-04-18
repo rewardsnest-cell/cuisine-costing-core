@@ -124,10 +124,55 @@ function IngredientReferencePage() {
   const [suggestAttaching, setSuggestAttaching] = useState(false);
   type Suggestion = { alias: string; alias_normalized: string; score: number; usage: number; selected: boolean };
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  // Per-session cache of scan results, keyed by reference id.
-  // Survives dialog close/reopen; cleared on full page reload.
-  const [suggestionCache, setSuggestionCache] = useState<Map<string, Suggestion[]>>(new Map());
+  // Persistent cache of scan results, keyed by reference id, with a 24h TTL.
+  // Stored in localStorage so it survives page reloads; expired entries are pruned on load.
+  const CACHE_STORAGE_KEY = "vpsfinest:ingredient-suggestion-cache:v1";
+  const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  type CacheEntry = { savedAt: number; suggestions: Suggestion[] };
+  const [suggestionCache, setSuggestionCache] = useState<Map<string, CacheEntry>>(new Map());
   const [suggestFromCache, setSuggestFromCache] = useState(false);
+
+  // Hydrate cache from localStorage on mount, pruning anything past the TTL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(CACHE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, CacheEntry>;
+      const now = Date.now();
+      const next = new Map<string, CacheEntry>();
+      for (const [k, v] of Object.entries(parsed)) {
+        if (v && typeof v.savedAt === "number" && now - v.savedAt < CACHE_TTL_MS && Array.isArray(v.suggestions)) {
+          next.set(k, v);
+        }
+      }
+      if (next.size > 0) setSuggestionCache(next);
+      if (next.size !== Object.keys(parsed).length) {
+        const obj: Record<string, CacheEntry> = {};
+        for (const [k, v] of next) obj[k] = v;
+        window.localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(obj));
+      }
+    } catch {
+      // Ignore corrupt cache; it will be overwritten on next save.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist cache to localStorage whenever it changes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (suggestionCache.size === 0) {
+        window.localStorage.removeItem(CACHE_STORAGE_KEY);
+        return;
+      }
+      const obj: Record<string, CacheEntry> = {};
+      for (const [k, v] of suggestionCache) obj[k] = v;
+      window.localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(obj));
+    } catch {
+      // Quota or serialization error — non-fatal.
+    }
+  }, [suggestionCache]);
 
   const resetCreateDraft = () => {
     setCreateDraft({
