@@ -46,6 +46,7 @@ import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/compet
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
+import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -234,6 +235,11 @@ const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminSuppliersRoute,
 } as any)
+const AdminRecipesNewRoute = AdminRecipesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminRecipesRoute,
+} as any)
 const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   id: '/competitor-quotes/$id',
   path: '/competitor-quotes/$id',
@@ -263,7 +269,7 @@ export interface FileRoutesByFullPath {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/admin/receipts': typeof AdminReceiptsRoute
-  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
 }
@@ -302,7 +309,7 @@ export interface FileRoutesByTo {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/admin/receipts': typeof AdminReceiptsRoute
-  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
 }
@@ -343,7 +351,7 @@ export interface FileRoutesById {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
   '/admin/receipts': typeof AdminReceiptsRoute
-  '/admin/recipes': typeof AdminRecipesRoute
+  '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -357,6 +365,7 @@ export interface FileRoutesById {
   '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
 }
@@ -399,6 +408,7 @@ export interface FileRouteTypes {
     | '/quote/ai'
     | '/admin/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
   fileRoutesByTo: FileRoutesByTo
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/quote/ai'
     | '/admin'
     | '/admin/competitor-quotes/$id'
+    | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes'
   id:
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/quote_/ai'
     | '/admin/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
   fileRoutesById: FileRoutesById
@@ -760,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSuppliersIdRouteImport
       parentRoute: typeof AdminSuppliersRoute
     }
+    '/admin/recipes/new': {
+      id: '/admin/recipes/new'
+      path: '/new'
+      fullPath: '/admin/recipes/new'
+      preLoaderRoute: typeof AdminRecipesNewRouteImport
+      parentRoute: typeof AdminRecipesRoute
+    }
     '/admin/competitor-quotes/$id': {
       id: '/admin/competitor-quotes/$id'
       path: '/competitor-quotes/$id'
@@ -769,6 +788,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRecipesRouteChildren {
+  AdminRecipesNewRoute: typeof AdminRecipesNewRoute
+}
+
+const AdminRecipesRouteChildren: AdminRecipesRouteChildren = {
+  AdminRecipesNewRoute: AdminRecipesNewRoute,
+}
+
+const AdminRecipesRouteWithChildren = AdminRecipesRoute._addFileChildren(
+  AdminRecipesRouteChildren,
+)
 
 interface AdminSuppliersRouteChildren {
   AdminSuppliersIdRoute: typeof AdminSuppliersIdRoute
@@ -793,7 +824,7 @@ interface AdminRouteChildren {
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
   AdminReceiptsRoute: typeof AdminReceiptsRoute
-  AdminRecipesRoute: typeof AdminRecipesRoute
+  AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
   AdminRegisterRoute: typeof AdminRegisterRoute
   AdminSalesRoute: typeof AdminSalesRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
@@ -819,7 +850,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuotesRoute: AdminQuotesRoute,
   AdminReceiptsRoute: AdminReceiptsRoute,
-  AdminRecipesRoute: AdminRecipesRoute,
+  AdminRecipesRoute: AdminRecipesRouteWithChildren,
   AdminRegisterRoute: AdminRegisterRoute,
   AdminSalesRoute: AdminSalesRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
