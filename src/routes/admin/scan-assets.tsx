@@ -12,7 +12,7 @@ import { Loader2, Search, Copy, UploadCloud, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type QuickPick = {
-  slug: "hero-home" | "path-recipes" | "path-catering";
+  slug: "hero-home" | "path-recipes" | "path-catering" | "logo-main";
   label: string;
   description: string;
   category: string;
@@ -44,6 +44,14 @@ const QUICK_PICKS: QuickPick[] = [
     category: "hero",
     preferContexts: ["hero", "gallery", "og"],
     keywords: ["catering", "event", "wedding", "buffet", "table"],
+  },
+  {
+    slug: "logo-main",
+    label: "Logo — Main",
+    description: "Brand logo used in header and emails",
+    category: "logo",
+    preferContexts: ["logo", "other"],
+    keywords: ["logo", "vps", "vpsfinest", "brand", "mark", "wordmark"],
   },
 ];
 
@@ -258,7 +266,7 @@ function ScanAssetsPage() {
             </div>
             <Button onClick={handleSaveAll} disabled={savingAll} size="sm">
               {savingAll ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Zap className="w-3 h-3 mr-2" />}
-              {savingAll ? "Saving all..." : "Save all 3"}
+              {savingAll ? "Saving all..." : `Save all ${QUICK_PICKS.length}`}
             </Button>
           </CardHeader>
           <CardContent>
