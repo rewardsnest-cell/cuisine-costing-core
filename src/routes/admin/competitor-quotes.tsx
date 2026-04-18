@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw, Archive, ArchiveRestore } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 import {
   AlertDialog,
@@ -84,6 +85,37 @@ function CompetitorQuotesPage() {
   const [archiving, setArchiving] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<Row | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmBulkArchive, setConfirmBulkArchive] = useState(false);
+
+  const toggleOne = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const runBulk = async (archived: boolean) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const patch = archived
+        ? { archived: true, archived_at: new Date().toISOString() }
+        : { archived: false, archived_at: null };
+      const { error } = await supabase.from("competitor_quotes").update(patch as any).in("id", ids);
+      if (error) throw error;
+      toast.success(`${archived ? "Archived" : "Restored"} ${ids.length} quote${ids.length === 1 ? "" : "s"}`);
+      setRows((rs) => rs.map((r) => (selected.has(r.id) ? { ...r, ...patch } as Row : r)));
+      setSelected(new Set());
+      setConfirmBulkArchive(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Bulk action failed");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const archiveQuote = async (row: Row) => {
     setArchiving(row.id);
@@ -331,6 +363,32 @@ function CompetitorQuotesPage() {
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2 bg-accent/40 border-b border-border">
+              <div className="text-sm font-medium">
+                {selected.size} selected
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} disabled={bulkBusy}>
+                  Clear
+                </Button>
+                {showArchived && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => runBulk(false)} disabled={bulkBusy}>
+                    <ArchiveRestore className="w-3.5 h-3.5" /> Restore selected
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive"
+                  onClick={() => setConfirmBulkArchive(true)}
+                  disabled={bulkBusy}
+                >
+                  <Archive className="w-3.5 h-3.5" /> Archive selected
+                </Button>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Loading…</div>
           ) : filtered.length === 0 ? (
@@ -339,6 +397,20 @@ function CompetitorQuotesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((r) => selected.has(r.id))}
+                      onCheckedChange={(c) => {
+                        setSelected((s) => {
+                          const next = new Set(s);
+                          if (c) filtered.forEach((r) => next.add(r.id));
+                          else filtered.forEach((r) => next.delete(r.id));
+                          return next;
+                        });
+                      }}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Competitor</TableHead>
@@ -357,6 +429,13 @@ function CompetitorQuotesPage() {
                   const Icon = meta.icon;
                   return (
                     <TableRow key={r.id} className={r.archived ? "opacity-60" : ""}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selected.has(r.id)}
+                          onCheckedChange={() => toggleOne(r.id)}
+                          aria-label="Select row"
+                        />
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.created_at)}</TableCell>
                       <TableCell className="text-sm">
                         <div className="font-medium">{r.client_name || "Guest"}</div>
@@ -450,6 +529,23 @@ function CompetitorQuotesPage() {
 
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
       <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
+
+      <AlertDialog open={confirmBulkArchive} onOpenChange={setConfirmBulkArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {selected.size} competitor quote{selected.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They'll be hidden from the list but recoverable from the <strong>Show archived</strong> toggle. Linked counter drafts stay intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); runBulk(true); }} disabled={bulkBusy}>
+              {bulkBusy ? "Archiving…" : "Archive selected"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!confirmArchive} onOpenChange={(o) => !o && setConfirmArchive(null)}>
         <AlertDialogContent>
