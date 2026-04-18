@@ -437,6 +437,78 @@ function SynonymsPage() {
     setSuggestions((prev) => prev.filter((x) => x.alias_normalized !== s.alias_normalized));
   };
 
+  // ---------- Link all suggestions ----------
+  const [linkAllRunning, setLinkAllRunning] = useState(false);
+  const [linkAllProgress, setLinkAllProgress] = useState({ done: 0, total: 0, current: "" });
+
+  // Pick the best inventory match for an alias when the user hasn't chosen one.
+  // Uses pg_trgm via find_ingredient_matches for accuracy.
+  const autoPickCanonical = async (alias: string): Promise<string | null> => {
+    const { data, error } = await (supabase as any).rpc("find_ingredient_matches", {
+      _name: alias,
+      _limit: 1,
+    });
+    if (error || !data || data.length === 0) return null;
+    const top = data[0];
+    if (!top.inventory_name || (top.similarity ?? 0) < 0.55) return null;
+    return top.inventory_name as string;
+  };
+
+  const linkAllSuggestions = async () => {
+    if (suggestions.length === 0) return;
+    const ok = await askConfirm({
+      title: `Link all ${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"}?`,
+      description:
+        "For each suggestion, the canonical you picked will be used. Suggestions with no pick will be auto-matched against inventory (≥55% similarity) — others are skipped.",
+    });
+    if (!ok) return;
+
+    setLinkAllRunning(true);
+    setLinkAllProgress({ done: 0, total: suggestions.length, current: "" });
+
+    let added = 0;
+    let skipped = 0;
+    let totalLinked = 0;
+    let totalRecipes = 0;
+    const handled = new Set<string>();
+
+    for (let i = 0; i < suggestions.length; i++) {
+      const s = suggestions[i];
+      setLinkAllProgress({ done: i, total: suggestions.length, current: s.display });
+
+      let canonical = (draftCanonical[s.alias_normalized] || "").trim();
+      if (!canonical) {
+        const picked = await autoPickCanonical(s.display);
+        if (picked) canonical = picked;
+      }
+      if (!canonical) { skipped++; continue; }
+      if (aliasIndex.has(s.alias_normalized)) { skipped++; handled.add(s.alias_normalized); continue; }
+
+      const { error } = await (supabase as any).from("ingredient_synonyms").insert({
+        alias: s.display,
+        canonical,
+        alias_normalized: s.alias_normalized,
+      });
+      if (error) { skipped++; continue; }
+
+      added++;
+      handled.add(s.alias_normalized);
+      const res = await relinkAndRecompute(s.alias_normalized, canonical);
+      totalLinked += res.linked;
+      totalRecipes += res.recipesUpdated;
+      setLinkAllProgress({ done: i + 1, total: suggestions.length, current: s.display });
+    }
+
+    setLinkAllRunning(false);
+    setSuggestions((prev) => prev.filter((x) => !handled.has(x.alias_normalized)));
+    toast.success(
+      `Linked ${added} synonym${added === 1 ? "" : "s"}` +
+        (skipped ? ` · ${skipped} skipped` : "") +
+        (totalLinked ? ` · re-linked ${totalLinked} ingredients in ${totalRecipes} recipes` : ""),
+    );
+    load();
+  };
+
   // ---------- Bulk add (textarea) ----------
   const [bulkText, setBulkText] = useState("");
   const [bulkAdding, setBulkAdding] = useState(false);
@@ -586,11 +658,40 @@ function SynonymsPage() {
                 Ingredient names recently created by the AI that didn't match any inventory item.
               </span>
             </div>
-            <Button variant="outline" size="sm" onClick={loadSuggestions} disabled={suggLoading} className="gap-1.5">
-              <RefreshCw className={`w-3.5 h-3.5 ${suggLoading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={linkAllSuggestions}
+                disabled={linkAllRunning || suggLoading || suggestions.length === 0}
+                className="bg-gradient-warm text-primary-foreground gap-1.5"
+                title="Auto-link all suggestions using your picks (or best inventory match)"
+              >
+                <Link2 className={`w-3.5 h-3.5 ${linkAllRunning ? "animate-pulse" : ""}`} />
+                {linkAllRunning
+                  ? `Linking ${linkAllProgress.done}/${linkAllProgress.total}…`
+                  : `Link all (${suggestions.length})`}
+              </Button>
+              <Button variant="outline" size="sm" onClick={loadSuggestions} disabled={suggLoading} className="gap-1.5">
+                <RefreshCw className={`w-3.5 h-3.5 ${suggLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
+          {linkAllRunning && (
+            <div className="mb-3 space-y-1.5">
+              <Progress
+                value={
+                  linkAllProgress.total > 0
+                    ? (linkAllProgress.done / linkAllProgress.total) * 100
+                    : 0
+                }
+              />
+              <p className="text-xs text-muted-foreground truncate">
+                {linkAllProgress.done} / {linkAllProgress.total} ·{" "}
+                <span className="font-medium">{linkAllProgress.current || "starting…"}</span>
+              </p>
+            </div>
+          )}
           {suggLoading ? (
             <p className="text-sm text-muted-foreground">Scanning recent recipes…</p>
           ) : suggestions.length === 0 ? (
