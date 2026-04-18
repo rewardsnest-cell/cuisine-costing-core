@@ -37,6 +37,7 @@ import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
+import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
@@ -181,6 +182,11 @@ const AdminInventoryRoute = AdminInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminExportsRoute = AdminExportsRouteImport.update({
+  id: '/exports',
+  path: '/exports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEventsRoute = AdminEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/admin/access': typeof AdminAccessRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/exports': typeof AdminExportsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/admin/access': typeof AdminAccessRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/exports': typeof AdminExportsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/admin/access': typeof AdminAccessRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
+  '/admin/exports': typeof AdminExportsRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/employees'
     | '/admin/events'
+    | '/admin/exports'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/employees'
     | '/admin/events'
+    | '/admin/exports'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/employees'
     | '/admin/events'
+    | '/admin/exports'
     | '/admin/inventory'
     | '/admin/purchase-orders'
     | '/admin/quotes'
@@ -612,6 +624,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/exports': {
+      id: '/admin/exports'
+      path: '/exports'
+      fullPath: '/admin/exports'
+      preLoaderRoute: typeof AdminExportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/events': {
       id: '/admin/events'
       path: '/events'
@@ -640,6 +659,7 @@ interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
+  AdminExportsRoute: typeof AdminExportsRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
@@ -660,6 +680,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
+  AdminExportsRoute: AdminExportsRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuotesRoute: AdminQuotesRoute,
