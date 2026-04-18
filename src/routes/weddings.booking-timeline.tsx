@@ -3,6 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
+import { breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 
 export const Route = createFileRoute("/weddings/booking-timeline")({
   head: () => ({
@@ -11,6 +12,13 @@ export const Route = createFileRoute("/weddings/booking-timeline")({
       { name: "description", content: "A calm, honest guide to when to book wedding catering in Northeast Ohio — typically 6 to 12 months ahead. What each stage looks like, and why earlier is usually easier." },
       { property: "og:title", content: "When to Book Your Wedding Caterer — VPS Finest" },
       { property: "og:description", content: "How far in advance to book wedding catering in Aurora, Hudson, and Cleveland. A reassuring, step-by-step timeline." },
+    ],
+    scripts: [
+      breadcrumbJsonLd([
+        { name: "Home", url: `${SITE_URL}/` },
+        { name: "Weddings", url: `${SITE_URL}/weddings` },
+        { name: "Booking timeline", url: `${SITE_URL}/weddings/booking-timeline` },
+      ]),
     ],
   }),
   component: BookingTimelinePage,

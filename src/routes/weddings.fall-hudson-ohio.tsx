@@ -3,7 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
-import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 import heroFall from "@/assets/hero-fall-wedding.jpg";
 
 const HERO_URL = `${SITE_URL}${heroFall}`;
@@ -25,6 +25,11 @@ export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
         description: "Fall wedding catering in Hudson, Ohio and Northeast Ohio.",
         primaryCity: "Hudson, Ohio",
       }),
+      breadcrumbJsonLd([
+        { name: "Home", url: `${SITE_URL}/` },
+        { name: "Weddings", url: `${SITE_URL}/weddings` },
+        { name: "Fall · Hudson, Ohio", url: `${SITE_URL}/weddings/fall-hudson-ohio` },
+      ]),
     ],
   }),
   component: FallHudsonPage,

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
-import { articleJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 
 const TITLE = "Fall Wedding Catering Guide — Northeast Ohio | VPS Finest";
 const DESC = "A calm guide to planning fall wedding catering in Hudson, Aurora, and Northeast Ohio. Seasonal menus, timing, and what to expect from peak wedding season.";
@@ -17,7 +17,14 @@ export const Route = createFileRoute("/blog/fall-wedding-catering-guide")({
       { property: "og:description", content: "Planning, menus, and timing for a fall wedding in Northeast Ohio." },
       { property: "og:type", content: "article" },
     ],
-    scripts: [articleJsonLd({ title: TITLE, description: DESC, url: URL })],
+    scripts: [
+      articleJsonLd({ title: TITLE, description: DESC, url: URL }),
+      breadcrumbJsonLd([
+        { name: "Home", url: `${SITE_URL}/` },
+        { name: "Guides", url: `${SITE_URL}/blog` },
+        { name: "Fall wedding catering guide", url: URL },
+      ]),
+    ],
   }),
   component: FallGuide,
 });

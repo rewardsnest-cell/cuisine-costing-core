@@ -3,7 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
-import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 import heroWinter from "@/assets/hero-winter-wedding.jpg";
 
 const HERO_URL = `${SITE_URL}${heroWinter}`;
@@ -25,6 +25,11 @@ export const Route = createFileRoute("/weddings/winter-cleveland-ohio")({
         description: "Winter wedding catering across the Cleveland area and Northeast Ohio.",
         primaryCity: "Cleveland, Ohio",
       }),
+      breadcrumbJsonLd([
+        { name: "Home", url: `${SITE_URL}/` },
+        { name: "Weddings", url: `${SITE_URL}/weddings` },
+        { name: "Winter · Cleveland Area", url: `${SITE_URL}/weddings/winter-cleveland-ohio` },
+      ]),
     ],
   }),
   component: WinterClevelandPage,

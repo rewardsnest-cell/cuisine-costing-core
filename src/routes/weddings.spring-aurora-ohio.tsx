@@ -3,7 +3,7 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
-import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import { localBusinessJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
 import heroSpring from "@/assets/hero-spring-wedding.jpg";
 
 const HERO_URL = `${SITE_URL}${heroSpring}`;
@@ -25,6 +25,11 @@ export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
         description: "Spring wedding catering in Aurora, Ohio and Northeast Ohio.",
         primaryCity: "Aurora, Ohio",
       }),
+      breadcrumbJsonLd([
+        { name: "Home", url: `${SITE_URL}/` },
+        { name: "Weddings", url: `${SITE_URL}/weddings` },
+        { name: "Spring · Aurora, Ohio", url: `${SITE_URL}/weddings/spring-aurora-ohio` },
+      ]),
     ],
   }),
   component: SpringAuroraPage,
