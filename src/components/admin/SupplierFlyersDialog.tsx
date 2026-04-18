@@ -56,8 +56,11 @@ export function SupplierFlyersDialog({
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [addingPagesId, setAddingPagesId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const addPagesRef = useRef<HTMLInputElement>(null);
+  const addPagesFlyerIdRef = useRef<string | null>(null);
 
   const load = async () => {
     if (!supplierId) return;
@@ -189,6 +192,54 @@ export function SupplierFlyersDialog({
     }
   };
 
+  const addPagesToFlyer = async (flyerId: string, files: File[]) => {
+    if (!supplierId || files.length === 0) return;
+    setError(null);
+    setAddingPagesId(flyerId);
+    try {
+      const allBlobs: { blob: Blob; ext: string }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isPdf =
+          file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+          const pageBlobs = await pdfFileToImageBlobs(file);
+          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+        } else {
+          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+          allBlobs.push({ blob: file, ext });
+        }
+      }
+      if (allBlobs.length === 0) throw new Error("No pages to add");
+
+      const uploaded = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
+      const existing = pagesByFlyer[flyerId] || [];
+      const startNum = existing.reduce((m, p) => Math.max(m, p.page_number), 0) + 1;
+      const pageRows = uploaded.map((u, idx) => ({
+        sale_flyer_id: flyerId,
+        page_number: startNum + idx,
+        image_url: u.url,
+        storage_path: u.path,
+      }));
+      const { error: pagesErr } = await (supabase as any)
+        .from("sale_flyer_pages")
+        .insert(pageRows);
+      if (pagesErr) throw pagesErr;
+
+      // Mark flyer back to pending so user can re-extract with new pages
+      await (supabase as any)
+        .from("sale_flyers")
+        .update({ status: "pending" })
+        .eq("id", flyerId);
+
+      await load();
+    } catch (e: any) {
+      setError(e.message || "Failed to add pages");
+    } finally {
+      setAddingPagesId(null);
+    }
+  };
+
   const handleDelete = async (flyerId: string) => {
     if (!confirm("Delete this flyer and its extracted items?")) return;
     await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
@@ -238,7 +289,7 @@ export function SupplierFlyersDialog({
             <div className="text-sm text-muted-foreground space-y-0.5">
               <p>Upload one or more sale flyer pages (images or PDFs).</p>
               <p className="text-xs flex items-center gap-1">
-                <FileText className="w-3 h-3" /> PDFs are split into pages automatically.
+                <FileText className="w-3 h-3" /> PDFs are split into pages automatically. On mobile, tap-and-hold or use "Select" to pick multiple photos — or use <strong>Add Pages</strong> on an existing flyer to append more.
               </p>
               {uploadStatus && (
                 <p className="text-xs text-primary font-medium">{uploadStatus}</p>
@@ -254,6 +305,20 @@ export function SupplierFlyersDialog({
                 const files = Array.from(e.target.files || []);
                 if (files.length > 0) handleUpload(files);
                 if (fileRef.current) fileRef.current.value = "";
+              }}
+            />
+            <input
+              ref={addPagesRef}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                const flyerId = addPagesFlyerIdRef.current;
+                if (files.length > 0 && flyerId) addPagesToFlyer(flyerId, files);
+                if (addPagesRef.current) addPagesRef.current.value = "";
+                addPagesFlyerIdRef.current = null;
               }}
             />
             <Button
@@ -328,6 +393,23 @@ export function SupplierFlyersDialog({
                             </p>
                           )}
                           <div className="flex flex-wrap gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={addingPagesId === fl.id || uploading}
+                              onClick={() => {
+                                addPagesFlyerIdRef.current = fl.id;
+                                addPagesRef.current?.click();
+                              }}
+                              className="gap-1.5"
+                            >
+                              {addingPagesId === fl.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              {addingPagesId === fl.id ? "Adding..." : "Add Pages"}
+                            </Button>
                             {fl.status !== "processed" && pages.length > 0 && (
                               <Button
                                 size="sm"
