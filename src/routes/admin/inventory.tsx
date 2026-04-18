@@ -333,6 +333,18 @@ function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search inventory..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+            <SelectItem value="__uncategorized__">Uncategorized</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 mr-1" /> Template</Button>
           <label>
