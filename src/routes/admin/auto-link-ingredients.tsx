@@ -44,6 +44,10 @@ interface UnlinkedGroup {
   done: boolean;
   dismissed: boolean;
   busy: boolean;
+  showAddForm: boolean;
+  newName: string;
+  newUnit: string;
+  newCost: string;
 }
 
 function AutoLink() {
