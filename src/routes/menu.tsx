@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChefHat, ImageOff, Sparkles, Crown, Search } from "lucide-react";
 
 export const Route = createFileRoute("/menu")({
@@ -76,6 +78,9 @@ function PublicMenuPage() {
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
   const [meat, setMeat] = useState<MeatKey>("all");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"price-asc" | "price-desc" | "name-asc">("name-asc");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [priceMax, setPriceMax] = useState(100);
 
   useEffect(() => {
     (async () => {
@@ -86,7 +91,11 @@ function PublicMenuPage() {
         )
         .eq("active", true)
         .order("name");
-      setRecipes((data || []) as MenuRecipe[]);
+      const list = (data || []) as MenuRecipe[];
+      setRecipes(list);
+      const maxP = Math.max(10, Math.ceil(list.reduce((m, r) => Math.max(m, resolvedPrice(r)), 0)));
+      setPriceMax(maxP);
+      setPriceRange([0, maxP]);
       setLoading(false);
     })();
   }, []);
@@ -103,20 +112,27 @@ function PublicMenuPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return recipes.filter((r) => {
+    const list = recipes.filter((r) => {
       if (tier === "standard" && !r.is_standard) return false;
       if (tier === "premium" && !r.is_premium) return false;
       if (meat !== "all") {
         const k = detectMeat(r);
         if (k !== meat) return false;
       }
+      const p = resolvedPrice(r);
+      if (p < priceRange[0] || p > priceRange[1]) return false;
       if (q) {
         const hay = `${r.name} ${r.description || ""} ${r.category || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [recipes, tier, meat, search]);
+    const sorted = [...list];
+    if (sort === "price-asc") sorted.sort((a, b) => resolvedPrice(a) - resolvedPrice(b));
+    else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
+    else sorted.sort((a, b) => a.name.localeCompare(b.name));
+    return sorted;
+  }, [recipes, tier, meat, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
@@ -161,6 +177,34 @@ function PublicMenuPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-card"
           />
+        </div>
+
+        <div className="max-w-xl mx-auto mb-5 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center">
+          <div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <span>Price range</span>
+              <span className="font-medium text-foreground">
+                ${priceRange[0].toFixed(0)} – ${priceRange[1].toFixed(0)}
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={priceMax}
+              step={1}
+              value={priceRange}
+              onValueChange={(v) => setPriceRange([v[0], v[1]] as [number, number])}
+            />
+          </div>
+          <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+            <SelectTrigger className="w-full sm:w-44 bg-card">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Name (A → Z)</SelectItem>
+              <SelectItem value="price-asc">Price (low → high)</SelectItem>
+              <SelectItem value="price-desc">Price (high → low)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 mb-10">
