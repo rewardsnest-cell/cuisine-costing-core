@@ -3,10 +3,14 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import heroFall from "@/assets/hero-fall-wedding.jpg";
 
 const TITLE = "Fall Wedding Catering Guide — Northeast Ohio | VPS Finest";
 const DESC = "A calm guide to planning fall wedding catering in Hudson, Aurora, and Northeast Ohio. Seasonal menus, timing, and what to expect from peak wedding season.";
 const URL = `${SITE_URL}/blog/fall-wedding-catering-guide`;
+const PUBLISHED = "2025-09-08";
+const MODIFIED = "2026-04-18";
+const IMAGE = `${SITE_URL}${heroFall}`;
 
 export const Route = createFileRoute("/blog/fall-wedding-catering-guide")({
   head: () => ({
@@ -16,9 +20,14 @@ export const Route = createFileRoute("/blog/fall-wedding-catering-guide")({
       { property: "og:title", content: "Fall Wedding Catering Guide — Northeast Ohio" },
       { property: "og:description", content: "Planning, menus, and timing for a fall wedding in Northeast Ohio." },
       { property: "og:type", content: "article" },
+      { property: "og:image", content: IMAGE },
+      { property: "article:published_time", content: PUBLISHED },
+      { property: "article:modified_time", content: MODIFIED },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: IMAGE },
     ],
     scripts: [
-      articleJsonLd({ title: TITLE, description: DESC, url: URL }),
+      articleJsonLd({ title: TITLE, description: DESC, url: URL, datePublished: PUBLISHED, dateModified: MODIFIED, image: IMAGE }),
       breadcrumbJsonLd([
         { name: "Home", url: `${SITE_URL}/` },
         { name: "Guides", url: `${SITE_URL}/blog` },

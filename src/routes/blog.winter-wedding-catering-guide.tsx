@@ -3,10 +3,14 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import heroWinter from "@/assets/hero-winter-wedding.jpg";
 
 const TITLE = "Winter Wedding Catering Guide — Cleveland Area | VPS Finest";
 const DESC = "A calm guide to planning winter wedding catering across the Cleveland area. Intimate menus, off-season timing, and what to expect.";
 const URL = `${SITE_URL}/blog/winter-wedding-catering-guide`;
+const PUBLISHED = "2025-11-12";
+const MODIFIED = "2026-04-18";
+const IMAGE = `${SITE_URL}${heroWinter}`;
 
 export const Route = createFileRoute("/blog/winter-wedding-catering-guide")({
   head: () => ({
@@ -16,9 +20,14 @@ export const Route = createFileRoute("/blog/winter-wedding-catering-guide")({
       { property: "og:title", content: "Winter Wedding Catering Guide — Cleveland Area" },
       { property: "og:description", content: "Planning, menus, and timing for a winter wedding in the Cleveland area." },
       { property: "og:type", content: "article" },
+      { property: "og:image", content: IMAGE },
+      { property: "article:published_time", content: PUBLISHED },
+      { property: "article:modified_time", content: MODIFIED },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: IMAGE },
     ],
     scripts: [
-      articleJsonLd({ title: TITLE, description: DESC, url: URL }),
+      articleJsonLd({ title: TITLE, description: DESC, url: URL, datePublished: PUBLISHED, dateModified: MODIFIED, image: IMAGE }),
       breadcrumbJsonLd([
         { name: "Home", url: `${SITE_URL}/` },
         { name: "Guides", url: `${SITE_URL}/blog` },
