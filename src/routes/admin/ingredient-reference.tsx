@@ -1110,6 +1110,108 @@ function IngredientReferencePage() {
         </div>
       )}
 
+      <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Suggested synonyms for "{suggestRefName}"</DialogTitle>
+            <DialogDescription>
+              Unlinked ingredient names from your recipes that look similar. Check the ones you want to attach as synonyms — future imports will auto-resolve them to this reference.
+            </DialogDescription>
+          </DialogHeader>
+
+          {suggestLoading ? (
+            <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Scanning recipe ingredients...
+            </div>
+          ) : suggestions.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No fuzzy matches found in unlinked recipe ingredients.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSuggestions((prev) => prev.map((s) => ({ ...s, selected: true })))}
+                >
+                  Select all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSuggestions((prev) => prev.map((s) => ({ ...s, selected: false })))}
+                >
+                  Clear
+                </Button>
+                <span className="ml-auto text-muted-foreground">
+                  {suggestions.filter((s) => s.selected).length} of {suggestions.length} selected
+                </span>
+              </div>
+              <div className="max-h-[55vh] overflow-y-auto divide-y rounded-md border">
+                {suggestions.map((s) => (
+                  <div key={s.alias_normalized} className="flex items-center gap-3 px-3 py-2 hover:bg-accent/40">
+                    <Checkbox
+                      checked={s.selected}
+                      onCheckedChange={(v) =>
+                        setSuggestions((prev) =>
+                          prev.map((x) =>
+                            x.alias_normalized === s.alias_normalized ? { ...x, selected: !!v } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{s.alias}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono truncate">
+                        {s.alias_normalized}
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
+                      used {s.usage}×
+                    </Badge>
+                    <Badge
+                      variant={s.score >= 0.8 ? "default" : s.score >= 0.6 ? "secondary" : "outline"}
+                      className="text-[10px] shrink-0 font-mono"
+                    >
+                      {Math.round(s.score * 100)}%
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      title="Dismiss — never suggest this alias again"
+                      onClick={() => handleDismissSuggestion(s.alias_normalized)}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuggestOpen(false)} disabled={suggestAttaching}>
+              Skip
+            </Button>
+            <Button
+              onClick={handleAttachSelected}
+              disabled={suggestAttaching || suggestions.filter((s) => s.selected).length === 0}
+            >
+              {suggestAttaching ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Link2 className="w-4 h-4 mr-1.5" />
+              )}
+              Attach {suggestions.filter((s) => s.selected).length} synonym
+              {suggestions.filter((s) => s.selected).length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
