@@ -85,6 +85,7 @@ function PublicMenuPage() {
   const [sort, setSort] = useState<"price-asc" | "price-desc" | "name-asc">("name-asc");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
   const [priceMax, setPriceMax] = useState(100);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +104,28 @@ function PublicMenuPage() {
       setLoading(false);
     })();
   }, []);
+
+  // Highlight a recipe card briefly when arriving via #recipe-<id> anchor
+  useEffect(() => {
+    if (loading || recipes.length === 0) return;
+    if (typeof window === "undefined") return;
+    const triggerFromHash = () => {
+      const hash = window.location.hash;
+      const m = hash.match(/^#recipe-(.+)$/);
+      if (!m) return;
+      const id = m[1];
+      // Wait a tick so the card is rendered + scroll-mt offset applied
+      setTimeout(() => {
+        setHighlightId(id);
+        const el = document.getElementById(`recipe-${id}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => setHighlightId(null), 1600);
+      }, 100);
+    };
+    triggerFromHash();
+    window.addEventListener("hashchange", triggerFromHash);
+    return () => window.removeEventListener("hashchange", triggerFromHash);
+  }, [loading, recipes.length]);
 
   const meatCounts = useMemo(() => {
     const counts: Record<string, number> = { all: recipes.length };
@@ -422,9 +445,9 @@ function PublicMenuPage() {
                       <Card
                         key={r.id}
                         id={`recipe-${r.id}`}
-                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 ${
+                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 rounded-xl ${
                           inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
-                        }`}
+                        } ${highlightId === r.id ? "animate-anchor-pulse" : ""}`}
                       >
                         <div className="aspect-video bg-muted relative overflow-hidden">
                           {r.image_url ? (
