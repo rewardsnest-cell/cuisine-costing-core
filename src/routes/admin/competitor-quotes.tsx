@@ -1,0 +1,250 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
+import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink } from "lucide-react";
+
+export const Route = createFileRoute("/admin/competitor-quotes")({
+  head: () => ({
+    meta: [
+      { title: "Competitor Quotes — Admin" },
+      { name: "description", content: "Saved competitor quote analyses with win/loss tracking and trends." },
+    ],
+  }),
+  component: CompetitorQuotesPage,
+});
+
+type Outcome = "pending" | "won" | "lost";
+
+type Row = {
+  id: string;
+  created_at: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_user_id: string | null;
+  competitor_name: string | null;
+  event_type: string | null;
+  event_date: string | null;
+  guest_count: number | null;
+  per_guest_price: number | null;
+  total: number | null;
+  service_style: string | null;
+  outcome: Outcome;
+  counter_quote_id: string | null;
+  notes: string | null;
+};
+
+const OUTCOME_META: Record<Outcome, { label: string; className: string; icon: any }> = {
+  won: { label: "Won", className: "bg-green-100 text-green-800 hover:bg-green-100", icon: Trophy },
+  lost: { label: "Lost", className: "bg-red-100 text-red-800 hover:bg-red-100", icon: XIcon },
+  pending: { label: "Pending", className: "bg-amber-100 text-amber-800 hover:bg-amber-100", icon: Clock },
+};
+
+function CompetitorQuotesPage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [clientFilter, setClientFilter] = useState("");
+  const [outcomeFilter, setOutcomeFilter] = useState<"all" | Outcome>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("competitor_quotes")
+      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,service_style,outcome,counter_quote_id,notes")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setRows((data ?? []) as Row[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      if (outcomeFilter !== "all" && r.outcome !== outcomeFilter) return false;
+      if (clientFilter) {
+        const q = clientFilter.toLowerCase();
+        const hay = `${r.client_name ?? ""} ${r.client_email ?? ""} ${r.competitor_name ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (fromDate && r.created_at < fromDate) return false;
+      if (toDate && r.created_at > `${toDate}T23:59:59`) return false;
+      return true;
+    });
+  }, [rows, clientFilter, outcomeFilter, fromDate, toDate]);
+
+  const stats = useMemo(() => {
+    const won = filtered.filter((r) => r.outcome === "won").length;
+    const lost = filtered.filter((r) => r.outcome === "lost").length;
+    const pending = filtered.filter((r) => r.outcome === "pending").length;
+    const decided = won + lost;
+    const winRate = decided > 0 ? Math.round((won / decided) * 100) : 0;
+    const totals = filtered.map((r) => Number(r.total ?? 0)).filter((n) => n > 0);
+    const avgTotal = totals.length ? totals.reduce((s, n) => s + n, 0) / totals.length : 0;
+    return { total: filtered.length, won, lost, pending, winRate, avgTotal };
+  }, [filtered]);
+
+  const setOutcome = async (id: string, outcome: Outcome) => {
+    const prev = rows;
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, outcome } : r)));
+    const { error } = await supabase.from("competitor_quotes").update({ outcome }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      setRows(prev);
+    } else {
+      toast.success(`Marked as ${outcome}`);
+    }
+  };
+
+  const fmtMoney = (n: number | null | undefined) =>
+    n == null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n));
+  const fmtDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString() : "—");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Competitor Quotes</h1>
+          <p className="text-sm text-muted-foreground mt-1">All saved competitor analyses with win/loss tracking.</p>
+        </div>
+        <Link to="/admin/quotes">
+          <Button variant="outline" className="gap-2"><FileSearch className="w-4 h-4" />Analyze New Quote</Button>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <StatCard label="Analyses" value={stats.total.toString()} />
+        <StatCard label="Won" value={stats.won.toString()} tone="green" />
+        <StatCard label="Lost" value={stats.lost.toString()} tone="red" />
+        <StatCard label="Win rate" value={`${stats.winRate}%`} />
+        <StatCard label="Avg total" value={fmtMoney(stats.avgTotal)} />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <Label className="text-xs">Client / competitor</Label>
+            <Input placeholder="Search…" value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Outcome</Label>
+            <Select value={outcomeFilter} onValueChange={(v) => setOutcomeFilter(v as any)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="won">Won</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">From</Label>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">To</Label>
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No competitor quotes match your filters.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Competitor</TableHead>
+                  <TableHead>Event</TableHead>
+                  <TableHead className="text-right">Guests</TableHead>
+                  <TableHead className="text-right">Per guest</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Outcome</TableHead>
+                  <TableHead>Counter</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => {
+                  const meta = OUTCOME_META[r.outcome];
+                  const Icon = meta.icon;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.created_at)}</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="font-medium">{r.client_name || "Guest"}</div>
+                        {r.client_email && <div className="text-xs text-muted-foreground">{r.client_email}</div>}
+                        {r.client_user_id && <Badge variant="outline" className="mt-1 text-[10px]">linked</Badge>}
+                      </TableCell>
+                      <TableCell className="text-sm">{r.competitor_name || "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        <div>{r.event_type || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{fmtDate(r.event_date)}{r.service_style ? ` · ${r.service_style}` : ""}</div>
+                      </TableCell>
+                      <TableCell className="text-right text-sm">{r.guest_count ?? "—"}</TableCell>
+                      <TableCell className="text-right text-sm">{fmtMoney(r.per_guest_price)}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{fmtMoney(r.total)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge className={meta.className}><Icon className="w-3 h-3 mr-1" />{meta.label}</Badge>
+                          <Select value={r.outcome} onValueChange={(v) => setOutcome(r.id, v as Outcome)}>
+                            <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="won">Won</SelectItem>
+                              <SelectItem value="lost">Lost</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {r.counter_quote_id ? (
+                          <Link to="/admin/quotes" className="text-primary text-xs inline-flex items-center gap-1 hover:underline">
+                            View <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatCard({ label, value, tone }: { label: string; value: string; tone?: "green" | "red" }) {
+  const toneClass = tone === "green" ? "text-green-700" : tone === "red" ? "text-red-700" : "text-foreground";
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={`text-2xl font-semibold mt-1 ${toneClass}`}>{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
