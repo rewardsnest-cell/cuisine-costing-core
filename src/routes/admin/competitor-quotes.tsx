@@ -327,6 +327,7 @@ function CompetitorQuotesPage() {
       </Card>
 
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
+      <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
     </div>
   );
 }
