@@ -338,10 +338,10 @@ function RecipesPage() {
           {filtered.map((r) => (
             <Card
               key={r.id}
-              className={`shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer ${r.active === false ? "opacity-60" : ""}`}
+              className="shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer"
               onClick={() => openDetail(r)}
             >
-              <CardContent className="p-5">
+              <CardContent className={`p-5 ${r.active === false ? "opacity-60" : ""}`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-display text-lg font-semibold">{r.name}</h3>
@@ -364,16 +364,16 @@ function RecipesPage() {
                   {r.is_vegan && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegan</span>}
                   {r.is_gluten_free && <span className="px-2 py-0.5 bg-gold/20 text-warm text-xs rounded-full">GF</span>}
                 </div>
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-between mt-4 pt-3 border-t border-border/40"
-                >
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {r.active === false ? "Off menu" : "On menu"}
-                  </span>
-                  <Switch checked={r.active !== false} onCheckedChange={() => toggleActive(r)} />
-                </div>
               </CardContent>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center justify-between px-5 py-3 border-t border-border/40"
+              >
+                <span className="text-xs font-medium text-muted-foreground">
+                  {r.active === false ? "Off menu" : "On menu"}
+                </span>
+                <Switch checked={r.active !== false} onCheckedChange={() => toggleActive(r)} />
+              </div>
             </Card>
           ))}
         </div>
