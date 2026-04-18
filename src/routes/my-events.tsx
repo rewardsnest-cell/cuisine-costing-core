@@ -1,9 +1,18 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
+
+type Filter = "upcoming" | "past" | "all";
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 export const Route = createFileRoute("/my-events")({
   head: () => ({ meta: [{ title: "My Events — TasteQuote" }] }),
   component: MyEventsPage,
@@ -27,6 +36,7 @@ type Assignment = {
 function MyEventsPage() {
   const { user, loading } = useAuth();
   const [rows, setRows] = useState<Assignment[]>([]);
+  const [filter, setFilter] = useState<Filter>("upcoming");
 
   useEffect(() => {
     if (!user) return;
@@ -62,14 +72,36 @@ function MyEventsPage() {
             <h1 className="font-display text-3xl font-bold">My Events</h1>
             <p className="text-muted-foreground text-sm mt-1">Events you've been assigned to work.</p>
           </div>
-          {rows.length === 0 ? (
-            <Card><CardContent className="p-12 text-center">
-              <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">You have no assigned events yet.</p>
-            </CardContent></Card>
-          ) : (
-            <div className="space-y-3">
-              {rows.map((a) => (
+          {(() => {
+            const today = startOfToday();
+            const upcoming = rows.filter((a) => {
+              if (!a.quote?.event_date) return true;
+              return new Date(a.quote.event_date) >= today;
+            });
+            const past = rows.filter((a) => {
+              if (!a.quote?.event_date) return false;
+              return new Date(a.quote.event_date) < today;
+            });
+            const filtered = filter === "upcoming" ? upcoming : filter === "past" ? past : rows;
+            return (
+              <>
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
+                    <TabsTrigger value="past">Past ({past.length})</TabsTrigger>
+                    <TabsTrigger value="all">All ({rows.length})</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                {filtered.length === 0 ? (
+                  <Card><CardContent className="p-12 text-center">
+                    <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-muted-foreground">
+                      {filter === "upcoming" ? "No upcoming events." : filter === "past" ? "No past events." : "You have no assigned events yet."}
+                    </p>
+                  </CardContent></Card>
+                ) : (
+                  <div className="space-y-3">
+                    {filtered.map((a) => (
                 <Card key={a.id}>
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-3">
@@ -87,9 +119,12 @@ function MyEventsPage() {
                     {a.notes && <p className="text-sm bg-muted/50 rounded-md p-2">{a.notes}</p>}
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </>
