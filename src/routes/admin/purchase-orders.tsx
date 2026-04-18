@@ -205,6 +205,78 @@ function PurchaseOrdersPage() {
 
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "No vendor";
 
+  // Build suggestions: inventory items below par WITH an active sale flyer match.
+  // Group by the SALE flyer's supplier (so we order from whoever has it on sale).
+  type Suggestion = {
+    inventory_item_id: string;
+    name: string;
+    unit: string;
+    current_stock: number;
+    par_level: number;
+    suggested_qty: number;
+    sale: ActiveSale;
+  };
+  const suggestionsBySupplier = (() => {
+    const groups = new Map<string, { supplierName: string; supplierId: string | null; items: Suggestion[] }>();
+    for (const inv of inventory) {
+      if (!(inv.current_stock < inv.par_level)) continue;
+      const sale = activeSales[inv.id];
+      if (!sale) continue;
+      const need = Math.max(1, Math.ceil(inv.par_level - inv.current_stock));
+      const key = sale.supplier_name || "Unknown supplier";
+      const supId = suppliers.find((s) => s.name === sale.supplier_name)?.id || null;
+      if (!groups.has(key)) groups.set(key, { supplierName: key, supplierId: supId, items: [] });
+      groups.get(key)!.items.push({
+        inventory_item_id: inv.id,
+        name: inv.name,
+        unit: inv.unit,
+        current_stock: inv.current_stock,
+        par_level: inv.par_level,
+        suggested_qty: need,
+        sale,
+      });
+    }
+    return Array.from(groups.values());
+  })();
+
+  const createSuggestedPO = async (group: { supplierName: string; supplierId: string | null; items: Suggestion[] }) => {
+    setCreatingSuggested(true);
+    try {
+      const { data: poRow, error: poErr } = await supabase
+        .from("purchase_orders")
+        .insert({
+          supplier_id: group.supplierId,
+          notes: `Auto-suggested from active sale flyer (${group.supplierName})`,
+        })
+        .select()
+        .single();
+      if (poErr || !poRow) throw poErr || new Error("Failed to create PO");
+
+      const lineItems = group.items.map((s) => ({
+        purchase_order_id: poRow.id,
+        inventory_item_id: s.inventory_item_id,
+        name: s.name,
+        quantity: s.suggested_qty,
+        unit: s.unit,
+        unit_price: s.sale.sale_price ?? 0,
+        total_price: (s.sale.sale_price ?? 0) * s.suggested_qty,
+      }));
+      await supabase.from("purchase_order_items").insert(lineItems);
+      const total = lineItems.reduce((sum, r) => sum + r.total_price, 0);
+      await supabase.from("purchase_orders").update({ total_amount: total }).eq("id", poRow.id);
+
+      toast.success(`Draft PO created with ${lineItems.length} item${lineItems.length === 1 ? "" : "s"}`);
+      await load();
+      setExpanded(poRow.id);
+      await loadItems(poRow.id);
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "Failed to create suggested PO");
+    } finally {
+      setCreatingSuggested(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end gap-2">
