@@ -192,6 +192,54 @@ export function SupplierFlyersDialog({
     }
   };
 
+  const addPagesToFlyer = async (flyerId: string, files: File[]) => {
+    if (!supplierId || files.length === 0) return;
+    setError(null);
+    setAddingPagesId(flyerId);
+    try {
+      const allBlobs: { blob: Blob; ext: string }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isPdf =
+          file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+          const pageBlobs = await pdfFileToImageBlobs(file);
+          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+        } else {
+          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+          allBlobs.push({ blob: file, ext });
+        }
+      }
+      if (allBlobs.length === 0) throw new Error("No pages to add");
+
+      const uploaded = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
+      const existing = pagesByFlyer[flyerId] || [];
+      const startNum = existing.reduce((m, p) => Math.max(m, p.page_number), 0) + 1;
+      const pageRows = uploaded.map((u, idx) => ({
+        sale_flyer_id: flyerId,
+        page_number: startNum + idx,
+        image_url: u.url,
+        storage_path: u.path,
+      }));
+      const { error: pagesErr } = await (supabase as any)
+        .from("sale_flyer_pages")
+        .insert(pageRows);
+      if (pagesErr) throw pagesErr;
+
+      // Mark flyer back to pending so user can re-extract with new pages
+      await (supabase as any)
+        .from("sale_flyers")
+        .update({ status: "pending" })
+        .eq("id", flyerId);
+
+      await load();
+    } catch (e: any) {
+      setError(e.message || "Failed to add pages");
+    } finally {
+      setAddingPagesId(null);
+    }
+  };
+
   const handleDelete = async (flyerId: string) => {
     if (!confirm("Delete this flyer and its extracted items?")) return;
     await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
