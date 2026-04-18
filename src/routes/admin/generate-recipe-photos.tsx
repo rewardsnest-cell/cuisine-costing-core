@@ -32,23 +32,45 @@ function Page() {
   const failed = rows.filter((r) => r.status === "error").length;
   const total = rows.length;
 
-  const runAll = async () => {
+  const missingCount = rows.filter((r) => !r.image_url || r.status === "error").length;
+
+  const runFiltered = async (predicate: (r: Row) => boolean) => {
     setRunning(true);
     setStopRequested(false);
+    let okCount = 0;
+    let errCount = 0;
     for (let i = 0; i < rows.length; i++) {
       if (stopRequested) break;
       const r = rows[i];
+      if (!predicate(r)) continue;
       if (r.status === "done") continue;
       setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "running" } : x)));
       try {
         const out = await gen({ data: { recipeId: r.id } });
+        okCount++;
         setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "done", newUrl: out.url, image_url: out.url } : x)));
       } catch (e: any) {
+        errCount++;
         setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "error", error: e?.message || "failed" } : x)));
       }
     }
     setRunning(false);
-    toast.success(`Finished — ${done + 1} done, ${failed} failed`);
+    toast.success(`Finished — ${okCount} done, ${errCount} failed`);
+  };
+
+  const runAll = () => runFiltered(() => true);
+  const runMissing = () => runFiltered((r) => !r.image_url || r.status === "error");
+
+  const regenerateOne = async (id: string) => {
+    const i = rows.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "running", error: undefined } : x)));
+    try {
+      const out = await gen({ data: { recipeId: id } });
+      setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "done", newUrl: out.url, image_url: out.url } : x)));
+    } catch (e: any) {
+      setRows((s) => s.map((x, idx) => (idx === i ? { ...x, status: "error", error: e?.message || "failed" } : x)));
+    }
   };
 
   return (
