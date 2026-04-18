@@ -530,6 +530,23 @@ function CompetitorQuotesPage() {
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
       <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
 
+      <AlertDialog open={confirmBulkArchive} onOpenChange={setConfirmBulkArchive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {selected.size} competitor quote{selected.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They'll be hidden from the list but recoverable from the <strong>Show archived</strong> toggle. Linked counter drafts stay intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); runBulk(true); }} disabled={bulkBusy}>
+              {bulkBusy ? "Archiving…" : "Archive selected"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!confirmArchive} onOpenChange={(o) => !o && setConfirmArchive(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
