@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 export const Route = createFileRoute("/admin/competitor-quotes")({
   head: () => ({
