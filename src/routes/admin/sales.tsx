@@ -21,6 +21,9 @@ type Row = {
   brand: string | null;
   pack_size: string | null;
   unit: string | null;
+  pack_qty: number | null;
+  pack_unit: string | null;
+  price_per_unit: number | null;
   sale_price: number | null;
   regular_price: number | null;
   savings_pct: number | null;
@@ -33,11 +36,28 @@ type Row = {
   sale_end_date: string | null;
   inventory_item_id: string | null;
   inventory_name: string | null;
+  inventory_unit: string | null;
   current_stock: number | null;
   par_level: number | null;
+  avg_cost: number | null;
+  recipe_usage: number;
 };
 
-type SortKey = "savings_pct" | "sale_price" | "supplier_name" | "sale_end_date";
+type SortKey = "savings_pct" | "sale_price" | "supplier_name" | "sale_end_date" | "price_per_unit";
+
+// Parse "6.6 oz", "12 ct", "2 lb", "case of 24 / 12 oz" → { qty, unit }
+function parsePack(pack: string | null, fallbackUnit: string | null): { qty: number | null; unit: string | null } {
+  if (!pack) return { qty: null, unit: fallbackUnit };
+  const cleaned = pack.toLowerCase().replace(/,/g, "");
+  // Try last "<num> <unit>" occurrence (handles "case of 24 / 12 oz")
+  const matches = [...cleaned.matchAll(/(\d+(?:\.\d+)?)\s*(oz|lb|lbs|kg|g|ml|l|ct|count|each|pk|pack|gal|qt|pt)\b/g)];
+  if (matches.length > 0) {
+    const m = matches[matches.length - 1];
+    return { qty: parseFloat(m[1]), unit: m[2] };
+  }
+  const num = cleaned.match(/(\d+(?:\.\d+)?)/);
+  return { qty: num ? parseFloat(num[1]) : null, unit: fallbackUnit };
+}
 
 function SalesDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
