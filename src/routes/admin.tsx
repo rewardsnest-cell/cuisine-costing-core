@@ -55,6 +55,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
       { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
+      { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
       { to: "/admin/auto-link-ingredients", label: "Auto-Link Ingredients", icon: Sparkles },
       { to: "/admin/servings-review", label: "Servings Review", icon: Activity },
       { to: "/admin/import-recipes", label: "Import from vpsfinest.com", icon: Globe },
