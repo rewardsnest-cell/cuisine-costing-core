@@ -289,7 +289,7 @@ export function SupplierFlyersDialog({
                                 size="sm"
                                 variant="ghost"
                                 disabled={isProcessing}
-                                onClick={() => processFlyer(fl.id, fl.image_url!)}
+                                onClick={() => processFlyer(fl.id, [fl.image_url!])}
                                 className="gap-1.5"
                               >
                                 {isProcessing ? (
