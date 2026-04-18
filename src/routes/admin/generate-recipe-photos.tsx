@@ -130,9 +130,19 @@ function Page() {
                 </div>
               )}
             </div>
-            <div className="p-2">
+            <div className="p-2 space-y-1">
               <p className="text-sm font-medium truncate" title={r.name}>{r.name}</p>
               {r.error && <p className="text-[10px] text-destructive truncate" title={r.error}>{r.error}</p>}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full h-7 text-xs"
+                disabled={running || r.status === "running"}
+                onClick={() => regenerateOne(r.id)}
+              >
+                {r.status === "running" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                Regenerate
+              </Button>
             </div>
           </div>
         ))}
