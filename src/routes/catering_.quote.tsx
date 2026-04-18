@@ -21,6 +21,14 @@ function CateringQuoteChooser() {
   const [mode, setMode] = useState<"chooser" | "basic">("chooser");
   const navigate = useNavigate();
 
+  // If menu page (or AI flow) handed off selections, skip the chooser and go straight into the wizard.
+  useState(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (sessionStorage.getItem("quote_handoff")) setMode("basic");
+    } catch {}
+  });
+
   if (mode === "basic") return <QuotePage />;
 
   return (
