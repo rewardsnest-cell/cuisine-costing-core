@@ -18,6 +18,7 @@ import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 
 import { toast } from "sonner";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
@@ -132,6 +133,7 @@ function QuotesPage() {
   const [saving, setSaving] = useState(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [draftQuoteId, setDraftQuoteId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [recipeNames, setRecipeNames] = useState<string[]>([]);
 
   // Load active recipe names whenever an analysis appears, to compute match preview
@@ -503,21 +505,26 @@ function QuotesPage() {
               Upload a competitor's PDF or photo. We'll extract pricing and suggest a winning counter-offer.
             </p>
           </div>
-          <label className="inline-flex">
-            <input
-              type="file"
-              accept="application/pdf,image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) onAnalyzeFile(f);
-              }}
-            />
-            <Button asChild variant="default" size="sm" className="gap-2 cursor-pointer">
-              <span><Upload className="w-3.5 h-3.5" /> Upload competitor quote</span>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex">
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) onAnalyzeFile(f);
+                }}
+              />
+              <Button asChild variant="default" size="sm" className="gap-2 cursor-pointer">
+                <span><Upload className="w-3.5 h-3.5" /> Upload competitor quote</span>
+              </Button>
+            </label>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setBulkOpen(true)}>
+              <Upload className="w-3.5 h-3.5" /> Bulk upload
             </Button>
-          </label>
+          </div>
         </CardContent>
       </Card>
 
