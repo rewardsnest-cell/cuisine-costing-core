@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History } from "lucide-react";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
@@ -112,6 +112,30 @@ function InventoryPage() {
   };
 
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name || "—";
+
+  const switchSupplier = async (
+    item: InventoryItem,
+    sale: { supplier_id: string | null; supplier_name: string | null; sale_price: number | null },
+  ) => {
+    if (!sale.supplier_id || sale.sale_price == null) return;
+    const ok = confirm(
+      `Switch ${item.name} to ${sale.supplier_name ?? "this supplier"} at $${sale.sale_price.toFixed(2)}/${item.unit}?`,
+    );
+    if (!ok) return;
+    const { error } = await supabase
+      .from("inventory_items")
+      .update({
+        supplier_id: sale.supplier_id,
+        last_receipt_cost: sale.sale_price,
+      })
+      .eq("id", item.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`${item.name} now sourced from ${sale.supplier_name ?? "new supplier"}`);
+    loadItems();
+  };
 
   const openAdjust = (item: InventoryItem) => {
     setAdjustItem(item);
@@ -322,6 +346,28 @@ function InventoryPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span>{item.name}</span>
                           {activeSales[item.id] && <SaleBadge sale={activeSales[item.id]} />}
+                          {(() => {
+                            const sale = activeSales[item.id];
+                            if (!sale || sale.sale_price == null) return null;
+                            const current = Number(item.average_cost_per_unit);
+                            if (!current || sale.sale_price >= current) return null;
+                            const isDifferentSupplier =
+                              sale.supplier_id && sale.supplier_id !== item.supplier_id;
+                            if (!isDifferentSupplier) return null;
+                            const savings = current - sale.sale_price;
+                            const pct = Math.round((savings / current) * 100);
+                            return (
+                              <button
+                                onClick={() => switchSupplier(item, sale)}
+                                title={`Switch to ${sale.supplier_name} • Save $${savings.toFixed(2)}/unit (${pct}%)`}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-colors"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                Best price −{pct}%
+                                <ArrowRightLeft className="w-3 h-3" />
+                              </button>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{supplierName(item.supplier_id)}</td>
