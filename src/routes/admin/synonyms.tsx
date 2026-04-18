@@ -720,16 +720,47 @@ function SynonymsPage() {
             <p className="font-semibold">
               {loading ? "Loading…" : `${filtered.length} synonym${filtered.length === 1 ? "" : "s"}`}
             </p>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search aliases or canonical names…"
-                className="pl-9"
-              />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={relinkAll}
+                disabled={relinkAllRunning || loading || rows.length === 0}
+                className="gap-1.5"
+                title="Re-run relink + recipe-cost recompute for every synonym"
+              >
+                <Link2 className={`w-3.5 h-3.5 ${relinkAllRunning ? "animate-pulse" : ""}`} />
+                {relinkAllRunning
+                  ? `Relinking ${relinkAllProgress.done}/${relinkAllProgress.total}…`
+                  : "Relink all"}
+              </Button>
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search aliases or canonical names…"
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
+
+          {relinkAllRunning && (
+            <div className="mb-4 space-y-1.5">
+              <Progress
+                value={
+                  relinkAllProgress.total > 0
+                    ? (relinkAllProgress.done / relinkAllProgress.total) * 100
+                    : 0
+                }
+              />
+              <p className="text-xs text-muted-foreground truncate">
+                {relinkAllProgress.done} / {relinkAllProgress.total} ·{" "}
+                <span className="font-medium">{relinkAllProgress.current || "starting…"}</span>
+              </p>
+            </div>
+          )}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
