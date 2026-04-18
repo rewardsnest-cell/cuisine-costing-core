@@ -307,6 +307,20 @@ export function SupplierFlyersDialog({
                 if (fileRef.current) fileRef.current.value = "";
               }}
             />
+            <input
+              ref={addPagesRef}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                const flyerId = addPagesFlyerIdRef.current;
+                if (files.length > 0 && flyerId) addPagesToFlyer(flyerId, files);
+                if (addPagesRef.current) addPagesRef.current.value = "";
+                addPagesFlyerIdRef.current = null;
+              }}
+            />
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
