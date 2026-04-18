@@ -208,13 +208,6 @@ function SuppliersPage() {
           ))}
         </div>
       )}
-
-      <SupplierFlyersDialog
-        supplierId={flyersFor?.id ?? null}
-        supplierName={flyersFor?.name ?? ""}
-        open={!!flyersFor}
-        onOpenChange={(o) => { if (!o) setFlyersFor(null); }}
-      />
     </div>
   );
 }
