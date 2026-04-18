@@ -42,6 +42,7 @@ import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
+import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -208,6 +209,11 @@ const AdminAccessRoute = AdminAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminSuppliersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -236,13 +242,14 @@ export interface FileRoutesByFullPath {
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
-  '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -270,13 +277,14 @@ export interface FileRoutesByTo {
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
-  '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -306,13 +314,14 @@ export interface FileRoutesById {
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
-  '/admin/suppliers': typeof AdminSuppliersRoute
+  '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/admin/'
+    | '/admin/suppliers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/admin'
+    | '/admin/suppliers/$id'
   id:
     | '__root__'
     | '/'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote_/ai'
     | '/admin/'
+    | '/admin/suppliers/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -671,8 +683,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccessRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/suppliers/$id': {
+      id: '/admin/suppliers/$id'
+      path: '/$id'
+      fullPath: '/admin/suppliers/$id'
+      preLoaderRoute: typeof AdminSuppliersIdRouteImport
+      parentRoute: typeof AdminSuppliersRoute
+    }
   }
 }
+
+interface AdminSuppliersRouteChildren {
+  AdminSuppliersIdRoute: typeof AdminSuppliersIdRoute
+}
+
+const AdminSuppliersRouteChildren: AdminSuppliersRouteChildren = {
+  AdminSuppliersIdRoute: AdminSuppliersIdRoute,
+}
+
+const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
+  AdminSuppliersRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
@@ -689,7 +720,7 @@ interface AdminRouteChildren {
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
-  AdminSuppliersRoute: typeof AdminSuppliersRoute
+  AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminTimesheetRoute: typeof AdminTimesheetRoute
   AdminTrendsRoute: typeof AdminTrendsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -711,7 +742,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
-  AdminSuppliersRoute: AdminSuppliersRoute,
+  AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminTimesheetRoute: AdminTimesheetRoute,
   AdminTrendsRoute: AdminTrendsRoute,
   AdminUsersRoute: AdminUsersRoute,
