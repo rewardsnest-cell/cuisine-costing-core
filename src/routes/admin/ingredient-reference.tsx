@@ -107,6 +107,76 @@ function IngredientReferencePage() {
   const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
   const [usageByRef, setUsageByRef] = useState<Map<string, RecipeUsage[]>>(new Map());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({
+    canonical_name: "",
+    default_unit: "each",
+    density_g_per_ml: "",
+    waste_factor: "1",
+    category: "",
+    notes: "",
+  });
+  const [creating, setCreating] = useState(false);
+
+  const resetCreateDraft = () => {
+    setCreateDraft({
+      canonical_name: "",
+      default_unit: "each",
+      density_g_per_ml: "",
+      waste_factor: "1",
+      category: "",
+      notes: "",
+    });
+  };
+
+  const normalizeName = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const handleCreate = async () => {
+    const name = createDraft.canonical_name.trim();
+    if (!name) {
+      toast.error("Canonical name is required");
+      return;
+    }
+    const norm = normalizeName(name);
+    if (!norm) {
+      toast.error("Canonical name must contain letters or numbers");
+      return;
+    }
+    if (rows.some((r) => r.canonical_normalized === norm)) {
+      toast.error("A reference with that normalized name already exists");
+      return;
+    }
+    const density = createDraft.density_g_per_ml.trim() === "" ? null : Number(createDraft.density_g_per_ml);
+    if (density != null && (!Number.isFinite(density) || density <= 0)) {
+      toast.error("Density must be a positive number or empty");
+      return;
+    }
+    const waste = Number(createDraft.waste_factor || "1");
+    if (!Number.isFinite(waste) || waste <= 0 || waste > 1) {
+      toast.error("Waste factor must be between 0 and 1 (e.g. 0.85)");
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from("ingredient_reference").insert({
+      canonical_name: name,
+      canonical_normalized: norm,
+      default_unit: createDraft.default_unit.trim() || "each",
+      density_g_per_ml: density,
+      waste_factor: waste,
+      category: createDraft.category.trim() || null,
+      notes: createDraft.notes.trim() || null,
+    });
+    setCreating(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Created "${name}"`);
+    resetCreateDraft();
+    setCreateOpen(false);
+    await load();
+  };
 
   const load = async () => {
     setLoading(true);
