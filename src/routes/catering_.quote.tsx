@@ -18,16 +18,16 @@ export const Route = createFileRoute("/catering_/quote")({
 });
 
 function CateringQuoteChooser() {
-  const [mode, setMode] = useState<"chooser" | "basic">("chooser");
-  const navigate = useNavigate();
-
-  // If menu page (or AI flow) handed off selections, skip the chooser and go straight into the wizard.
-  useState(() => {
-    if (typeof window === "undefined") return;
+  // If a handoff exists (from /menu selections or AI flow), skip the chooser.
+  const [mode, setMode] = useState<"chooser" | "basic">(() => {
+    if (typeof window === "undefined") return "chooser";
     try {
-      if (sessionStorage.getItem("quote_handoff")) setMode("basic");
-    } catch {}
+      return sessionStorage.getItem("quote_handoff") ? "basic" : "chooser";
+    } catch {
+      return "chooser";
+    }
   });
+  const navigate = useNavigate();
 
   if (mode === "basic") return <QuotePage />;
 
