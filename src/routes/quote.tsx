@@ -424,6 +424,21 @@ function QuotePage() {
                     <p className="text-sm text-muted-foreground mb-2">Selected Dishes</p>
                     <ul className="space-y-1">{selections.proteins.map((p) => (<li key={p} className="text-sm font-medium">• {p}</li>))}</ul>
                   </div>
+                  {(selections.recipes || []).length > 0 && (
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-muted-foreground mb-2">Chef-Selected Recipes</p>
+                      <ul className="space-y-1">
+                        {(selections.recipes || []).map((r) => (
+                          <li key={r.id} className="text-sm flex justify-between gap-2">
+                            <span className="font-medium">• {r.name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ${(r.cost_per_serving * markup * selectedTier.multiplier).toFixed(2)}/guest
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {selections.extras.length > 0 && (
                     <div className="border-t pt-4">
                       <p className="text-sm text-muted-foreground mb-2">Sides & Extras</p>
