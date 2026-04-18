@@ -100,9 +100,9 @@ function RecipesPage() {
     load();
   };
 
-  const confirm = useConfirm();
+  const askConfirm = useConfirm();
   const handleDelete = async (id: string, name?: string) => {
-    const ok = await confirm({
+    const ok = await askConfirm({
       title: "Delete this recipe?",
       description: name
         ? `"${name}" will be permanently removed along with its ingredients. This cannot be undone.`
