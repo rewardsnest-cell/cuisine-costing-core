@@ -137,15 +137,72 @@ function PurchaseOrdersPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleAdd = async () => {
-    await supabase.from("purchase_orders").insert({
-      notes: form.notes || null,
-      expected_delivery: form.expected_delivery || null,
-      supplier_id: form.supplier_id || null,
-    });
-    setDialogOpen(false);
+  const resetDialog = () => {
+    setDialogStep(1);
     setForm({ notes: "", expected_delivery: "", supplier_id: "" });
-    load();
+    setDraftLines([]);
+    setDraftItem({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+  };
+
+  const addDraftLine = () => {
+    const qty = parseFloat(draftItem.quantity) || 0;
+    const price = parseFloat(draftItem.unit_price) || 0;
+    let name = draftItem.name.trim();
+    let unit = draftItem.unit;
+    let invId: string | null = draftItem.inventory_item_id || null;
+    if (invId) {
+      const inv = inventory.find((i) => i.id === invId);
+      if (inv) { name = inv.name; unit = inv.unit; }
+    }
+    if (!name) { toast.error("Item name required"); return; }
+    if (qty <= 0) { toast.error("Quantity must be > 0"); return; }
+    setDraftLines((prev) => [...prev, { inventory_item_id: invId, name, quantity: qty, unit, unit_price: price }]);
+    setDraftItem({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+  };
+
+  const removeDraftLine = (idx: number) => {
+    setDraftLines((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleCreatePO = async () => {
+    if (!form.supplier_id) { toast.error("Pick a vendor"); return; }
+    if (draftLines.length === 0) { toast.error("Add at least one line item"); return; }
+    setCreatingDraft(true);
+    try {
+      const total = draftLines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
+      const { data: poRow, error: poErr } = await supabase
+        .from("purchase_orders")
+        .insert({
+          notes: form.notes || null,
+          expected_delivery: form.expected_delivery || null,
+          supplier_id: form.supplier_id,
+          total_amount: total,
+        })
+        .select()
+        .single();
+      if (poErr || !poRow) throw poErr || new Error("Failed to create PO");
+      const lineRows = draftLines.map((l) => ({
+        purchase_order_id: poRow.id,
+        inventory_item_id: l.inventory_item_id,
+        name: l.name,
+        quantity: l.quantity,
+        unit: l.unit,
+        unit_price: l.unit_price,
+        total_price: l.quantity * l.unit_price,
+      }));
+      const { error: itemsErr } = await supabase.from("purchase_order_items").insert(lineRows);
+      if (itemsErr) throw itemsErr;
+      toast.success(`PO created with ${lineRows.length} item${lineRows.length === 1 ? "" : "s"}`);
+      setDialogOpen(false);
+      resetDialog();
+      await load();
+      setExpanded(poRow.id);
+      await loadItems(poRow.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create PO");
+    } finally {
+      setCreatingDraft(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
