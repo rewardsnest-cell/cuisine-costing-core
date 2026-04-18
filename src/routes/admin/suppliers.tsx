@@ -136,54 +136,75 @@ function SuppliersPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
-            <Card key={s.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
-              <CardContent className="p-5 space-y-1">
-                <div className="flex justify-between items-start">
-                  <Link
-                    to="/admin/suppliers/$id"
-                    params={{ id: s.id }}
-                    className="font-display text-lg font-semibold hover:text-primary transition-colors"
-                  >
-                    {s.name}
-                  </Link>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(s)} className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Edit supplier">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1" aria-label="Delete supplier">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+            <Link
+              key={s.id}
+              to="/admin/suppliers/$id"
+              params={{ id: s.id }}
+              className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+            >
+              <Card className="shadow-warm border-border/50 group-hover:shadow-gold group-hover:border-primary/40 transition-all cursor-pointer h-full">
+                <CardContent className="p-5 space-y-1">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-display text-lg font-semibold group-hover:text-primary transition-colors">
+                      {s.name}
+                    </h3>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(s); }}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1"
+                        aria-label="Edit supplier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(s.id); }}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                        aria-label="Delete supplier"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
-                {s.email && <p className="text-sm text-muted-foreground">{s.email}</p>}
-                {s.website && (
-                  <a href={normalizeUrl(s.website)} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5" />{s.website.replace(/^https?:\/\//, "")}
-                  </a>
-                )}
-                {s.office_phone && (
-                  <a href={`tel:${s.office_phone}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
-                  </a>
-                )}
-                {s.cellphone && (
-                  <a href={`tel:${s.cellphone}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5">
-                    <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
-                  </a>
-                )}
-                {s.phone && !s.office_phone && !s.cellphone && (
-                  <p className="text-sm text-muted-foreground">{s.phone}</p>
-                )}
-                <div className="pt-2">
-                  <Button asChild variant="outline" size="sm" className="gap-1.5 w-full">
-                    <Link to="/admin/suppliers/$id" params={{ id: s.id }}>
-                      <Tag className="w-3.5 h-3.5" /> View & Sale Flyers
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
+                  {s.email && <p className="text-sm text-muted-foreground">{s.email}</p>}
+                  {s.website && (
+                    <a
+                      href={normalizeUrl(s.website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                    >
+                      <Globe className="w-3.5 h-3.5" />{s.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  )}
+                  {s.office_phone && (
+                    <a
+                      href={`tel:${s.office_phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                    >
+                      <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
+                    </a>
+                  )}
+                  {s.cellphone && (
+                    <a
+                      href={`tel:${s.cellphone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
+                    </a>
+                  )}
+                  {s.phone && !s.office_phone && !s.cellphone && (
+                    <p className="text-sm text-muted-foreground">{s.phone}</p>
+                  )}
+                  <div className="pt-2 text-xs text-primary font-medium inline-flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" /> View details & sale flyers →
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
