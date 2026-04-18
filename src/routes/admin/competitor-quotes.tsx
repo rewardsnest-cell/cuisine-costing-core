@@ -380,6 +380,15 @@ function CompetitorQuotesPage() {
                           <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
                             <Eye className="w-3.5 h-3.5" /> View
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 h-7 text-xs text-destructive hover:text-destructive"
+                            onClick={() => setConfirmDelete(r)}
+                            title="Delete competitor quote"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
