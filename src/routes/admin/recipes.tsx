@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
+import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 
 export const Route = createFileRoute("/admin/recipes")({
@@ -122,10 +123,12 @@ function RecipesPage() {
   // Detail view
   if (selectedRecipe) {
     const calcCost = (ing: Ingredient) => {
-      if (ing.inventory_item) {
-        return ing.quantity * ing.inventory_item.average_cost_per_unit;
-      }
-      return ing.quantity * (ing.cost_per_unit || 0);
+      return getIngredientCostMetrics({
+        quantity: ing.quantity,
+        unit: ing.unit,
+        fallbackCostPerUnit: ing.cost_per_unit,
+        inventoryItem: ing.inventory_item,
+      }).lineTotal;
     };
 
     const totalCost = ingredients.reduce((sum, ing) => sum + calcCost(ing), 0);
@@ -249,10 +252,12 @@ function RecipesPage() {
                   </thead>
                   <tbody>
                     {ingredients.map((ing) => {
-                      const unitCost = ing.inventory_item
-                        ? ing.inventory_item.average_cost_per_unit
-                        : (ing.cost_per_unit || 0);
-                      const lineTotal = calcCost(ing);
+                      const { unitCost, lineTotal } = getIngredientCostMetrics({
+                        quantity: ing.quantity,
+                        unit: ing.unit,
+                        fallbackCostPerUnit: ing.cost_per_unit,
+                        inventoryItem: ing.inventory_item,
+                      });
                       const isLinked = !!ing.inventory_item;
 
                       return (

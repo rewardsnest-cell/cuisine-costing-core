@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
 
 type IngredientRow = {
   id?: string; // existing recipe_ingredients row id
@@ -176,11 +177,17 @@ export function RecipeForm({
   const totalCost = useMemo(
     () =>
       ingredients.reduce((sum, ing) => {
-        const q = parseFloat(ing.quantity) || 0;
-        const c = parseFloat(ing.cost_per_unit) || 0;
-        return sum + q * c;
+        const inv = ing.inventory_item_id ? inventory.find((item) => item.id === ing.inventory_item_id) : null;
+        return sum + getIngredientCostMetrics({
+          quantity: parseFloat(ing.quantity) || 0,
+          unit: ing.unit,
+          fallbackCostPerUnit: parseFloat(ing.cost_per_unit) || 0,
+          inventoryItem: inv
+            ? { average_cost_per_unit: inv.average_cost_per_unit, unit: inv.unit }
+            : null,
+        }).lineTotal;
       }, 0),
-    [ingredients],
+    [ingredients, inventory],
   );
   const servingsNum = parseInt(form.servings) || 0;
   const costPerServing = servingsNum > 0 ? totalCost / servingsNum : 0;
@@ -395,8 +402,15 @@ export function RecipeForm({
             </div>
 
             {ingredients.map((ing, idx) => {
-              const lineTotal =
-                (parseFloat(ing.quantity) || 0) * (parseFloat(ing.cost_per_unit) || 0);
+              const inv = ing.inventory_item_id ? inventory.find((item) => item.id === ing.inventory_item_id) : null;
+              const lineTotal = getIngredientCostMetrics({
+                quantity: parseFloat(ing.quantity) || 0,
+                unit: ing.unit,
+                fallbackCostPerUnit: parseFloat(ing.cost_per_unit) || 0,
+                inventoryItem: inv
+                  ? { average_cost_per_unit: inv.average_cost_per_unit, unit: inv.unit }
+                  : null,
+              }).lineTotal;
               return (
                 <div
                   key={idx}
@@ -409,13 +423,18 @@ export function RecipeForm({
                       displayName={ing.name}
                       onPick={(inv, freeText) => {
                         if (inv) {
+                          const convertedUnitCost = getConvertedUnitCost(
+                            ing.unit || inv.unit,
+                            inv.unit,
+                            inv.average_cost_per_unit,
+                          );
                           updateIngredient(idx, {
                             inventory_item_id: inv.id,
                             name: inv.name,
                             unit: ing.unit || inv.unit,
                             cost_per_unit:
                               inv.average_cost_per_unit > 0
-                                ? String(inv.average_cost_per_unit)
+                                ? String(convertedUnitCost ?? inv.average_cost_per_unit)
                                 : ing.cost_per_unit,
                           });
                         } else if (typeof freeText === "string") {
