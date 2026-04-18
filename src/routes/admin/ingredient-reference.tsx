@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat } from "lucide-react";
+import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat, Plus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -107,6 +107,76 @@ function IngredientReferencePage() {
   const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
   const [usageByRef, setUsageByRef] = useState<Map<string, RecipeUsage[]>>(new Map());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({
+    canonical_name: "",
+    default_unit: "each",
+    density_g_per_ml: "",
+    waste_factor: "1",
+    category: "",
+    notes: "",
+  });
+  const [creating, setCreating] = useState(false);
+
+  const resetCreateDraft = () => {
+    setCreateDraft({
+      canonical_name: "",
+      default_unit: "each",
+      density_g_per_ml: "",
+      waste_factor: "1",
+      category: "",
+      notes: "",
+    });
+  };
+
+  const normalizeName = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  const handleCreate = async () => {
+    const name = createDraft.canonical_name.trim();
+    if (!name) {
+      toast.error("Canonical name is required");
+      return;
+    }
+    const norm = normalizeName(name);
+    if (!norm) {
+      toast.error("Canonical name must contain letters or numbers");
+      return;
+    }
+    if (rows.some((r) => r.canonical_normalized === norm)) {
+      toast.error("A reference with that normalized name already exists");
+      return;
+    }
+    const density = createDraft.density_g_per_ml.trim() === "" ? null : Number(createDraft.density_g_per_ml);
+    if (density != null && (!Number.isFinite(density) || density <= 0)) {
+      toast.error("Density must be a positive number or empty");
+      return;
+    }
+    const waste = Number(createDraft.waste_factor || "1");
+    if (!Number.isFinite(waste) || waste <= 0 || waste > 1) {
+      toast.error("Waste factor must be between 0 and 1 (e.g. 0.85)");
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from("ingredient_reference").insert({
+      canonical_name: name,
+      canonical_normalized: norm,
+      default_unit: createDraft.default_unit.trim() || "each",
+      density_g_per_ml: density,
+      waste_factor: waste,
+      category: createDraft.category.trim() || null,
+      notes: createDraft.notes.trim() || null,
+    });
+    setCreating(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Created "${name}"`);
+    resetCreateDraft();
+    setCreateOpen(false);
+    await load();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -492,11 +562,132 @@ function IngredientReferencePage() {
             Canonical ingredients used by recipes for costing. Edit defaults and link inventory.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={createOpen ? "secondary" : "default"}
+            size="sm"
+            onClick={() => setCreateOpen((o) => !o)}
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            {createOpen ? "Cancel" : "New reference"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {createOpen && (
+        <Card className="border-primary/40">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                Create new ingredient reference
+              </h3>
+              <span className="text-[10px] text-muted-foreground">
+                Seed a canonical entry. Link inventory afterward from the row.
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-1 lg:col-span-2">
+                <Label className="text-xs">Canonical name *</Label>
+                <Input
+                  placeholder="e.g. Roma Tomato"
+                  value={createDraft.canonical_name}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, canonical_name: e.target.value }))
+                  }
+                  autoFocus
+                />
+                {createDraft.canonical_name.trim() && (
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    normalized: {normalizeName(createDraft.canonical_name) || "(empty)"}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Default unit</Label>
+                <Input
+                  placeholder="each, lb, oz, cup, ml..."
+                  value={createDraft.default_unit}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, default_unit: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Density (g/ml)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="optional, e.g. 0.53 for flour"
+                  value={createDraft.density_g_per_ml}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, density_g_per_ml: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Waste factor (0–1)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max="1"
+                  placeholder="1.0 = no waste, 0.85 = 15% loss"
+                  value={createDraft.waste_factor}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, waste_factor: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Category</Label>
+                <Input
+                  placeholder="produce, dairy, protein..."
+                  value={createDraft.category}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, category: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                <Label className="text-xs">Notes</Label>
+                <Input
+                  placeholder="Optional notes about sourcing, prep, etc."
+                  value={createDraft.notes}
+                  onChange={(e) =>
+                    setCreateDraft((d) => ({ ...d, notes: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  resetCreateDraft();
+                  setCreateOpen(false);
+                }}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleCreate} disabled={creating || !createDraft.canonical_name.trim()}>
+                {creating ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-1.5" />
+                )}
+                Create reference
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-4 flex flex-wrap items-center gap-3">
