@@ -80,41 +80,74 @@ export function SupplierFlyersDialog({
     if (open && supplierId) load();
   }, [open, supplierId]);
 
-  const handleUpload = async (file: File) => {
-    if (!supplierId) return;
+  const uploadOneBlob = async (blob: Blob, ext: string) => {
+    if (!supplierId) throw new Error("No supplier");
+    const path = `${supplierId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("sale-flyers")
+      .upload(path, blob, { contentType: blob.type || `image/${ext}` });
+    if (upErr) throw upErr;
+    const { data: pub } = supabase.storage.from("sale-flyers").getPublicUrl(path);
+    return pub.publicUrl;
+  };
+
+  const handleUpload = async (files: File[]) => {
+    if (!supplierId || files.length === 0) return;
     setError(null);
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${supplierId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("sale-flyers").upload(path, file);
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("sale-flyers").getPublicUrl(path);
-      const imageUrl = pub.publicUrl;
+      // Expand: PDFs become one image per page; images stay as-is
+      const allBlobs: { blob: Blob; ext: string }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isPdf =
+          file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+          setUploadStatus(`Rendering PDF ${i + 1}/${files.length}…`);
+          const pageBlobs = await pdfFileToImageBlobs(file);
+          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+        } else {
+          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+          allBlobs.push({ blob: file, ext });
+        }
+      }
 
+      if (allBlobs.length === 0) throw new Error("No pages to upload");
+
+      // Upload all pages in parallel
+      setUploadStatus(`Uploading ${allBlobs.length} page${allBlobs.length === 1 ? "" : "s"}…`);
+      const imageUrls = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
+
+      // Create flyer record (cover = first page)
       const { data: inserted, error: insErr } = await (supabase as any)
         .from("sale_flyers")
-        .insert({ supplier_id: supplierId, image_url: imageUrl, status: "pending" })
+        .insert({
+          supplier_id: supplierId,
+          image_url: imageUrls[0],
+          status: "pending",
+          notes: imageUrls.length > 1 ? `${imageUrls.length} pages` : null,
+        })
         .select()
         .single();
       if (insErr) throw insErr;
 
       await load();
-      // Auto-process with AI
-      processFlyer(inserted.id, imageUrl);
+      setUploadStatus("Extracting with AI…");
+      await processFlyer(inserted.id, imageUrls);
     } catch (e: any) {
       setError(e.message || "Upload failed");
     } finally {
       setUploading(false);
+      setUploadStatus("");
     }
   };
 
-  const processFlyer = async (flyerId: string, imageUrl: string) => {
+  const processFlyer = async (flyerId: string, imageUrls: string[]) => {
     setProcessingId(flyerId);
     setError(null);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("process-sale-flyer", {
-        body: { flyerId, imageUrl },
+        body: { flyerId, imageUrls },
       });
       if (fnErr) throw fnErr;
       if ((data as any)?.error) throw new Error((data as any).error);
