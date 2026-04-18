@@ -147,6 +147,7 @@ export type Database = {
           client_email: string | null
           client_name: string | null
           client_user_id: string | null
+          competitor_id: string | null
           competitor_name: string | null
           counter_quote_id: string | null
           created_at: string
@@ -173,6 +174,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_user_id?: string | null
+          competitor_id?: string | null
           competitor_name?: string | null
           counter_quote_id?: string | null
           created_at?: string
@@ -199,6 +201,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_user_id?: string | null
+          competitor_id?: string | null
           competitor_name?: string | null
           counter_quote_id?: string | null
           created_at?: string
@@ -220,6 +223,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "competitor_quotes_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "competitor_quotes_counter_quote_id_fkey"
             columns: ["counter_quote_id"]
             isOneToOne: false
@@ -227,6 +237,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      competitors: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          name: string
+          name_normalized: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          name: string
+          name_normalized: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          name?: string
+          name_normalized?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       employee_invites: {
         Row: {
