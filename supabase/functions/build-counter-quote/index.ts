@@ -243,6 +243,9 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // 0a. Load admin-editable ingredient synonyms map
+    await loadSynonyms(sb);
+
     // 0. Load configurable markup
     const { data: settings } = await sb
       .from("app_settings")
