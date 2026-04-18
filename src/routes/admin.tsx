@@ -30,6 +30,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     items: [
       { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
       { to: "/admin/competitor-quotes", label: "Competitor Quotes", icon: FileSearch },
+      { to: "/admin/competitor-trends", label: "Competitor Trends", icon: TrendingUp },
       { to: "/admin/events", label: "Events", icon: CalendarDays },
       { to: "/admin/schedule", label: "Schedule", icon: Calendar },
       { to: "/admin/timesheet", label: "Timesheet", icon: Clock },
