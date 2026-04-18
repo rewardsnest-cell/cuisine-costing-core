@@ -776,9 +776,14 @@ function EventsPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h4 className="font-semibold text-sm flex items-center gap-1.5"><ClipboardList className="w-4 h-4" />Menu items</h4>
-                <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
-                  <Plus className="w-3.5 h-3.5" />Add item
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setRecipeSearch(""); setPickerOpen(true); }} className="gap-1">
+                    <Utensils className="w-3.5 h-3.5" />Pick from recipes
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
+                    <Plus className="w-3.5 h-3.5" />Add item
+                  </Button>
+                </div>
               </div>
               {detailsLoading ? (
                 <p className="text-xs text-muted-foreground">Loading items…</p>
