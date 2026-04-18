@@ -155,10 +155,9 @@ function CompetitorQuotesPage() {
   const rebuildCounter = async (id: string) => {
     setRebuilding(id);
     try {
-      const { data, error } = await supabase.functions.invoke("build-counter-quote", {
-        body: { competitorQuoteId: id },
-      });
-      if (error) throw error;
+      const { buildCounterQuote } = await import("@/lib/server-fns/build-counter-quote.functions");
+      const data = await buildCounterQuote({ data: { competitorQuoteId: id } });
+      if ((data as any).error) throw new Error((data as any).error);
       const stats = (data as any)?.stats;
       toast.success(
         `Counter rebuilt${stats ? ` · ${stats.aiCreated ?? 0} new recipe${stats.aiCreated === 1 ? "" : "s"}` : ""}`,

@@ -244,11 +244,9 @@ function QuotesPage() {
     try {
       const competitorId = await saveCompetitorAnalysis();
       if (!competitorId) throw new Error("Could not save competitor analysis first");
-      const { data, error } = await supabase.functions.invoke("build-counter-quote", {
-        body: { competitorQuoteId: competitorId },
-      });
-      if (error) throw error;
-      const result = data as { counterQuoteId?: string; stats?: { aiCreated?: number; matchedExisting?: number; lineItems?: number } };
+      const { buildCounterQuote } = await import("@/lib/server-fns/build-counter-quote.functions");
+      const result = await buildCounterQuote({ data: { competitorQuoteId: competitorId } }) as { counterQuoteId?: string; stats?: { aiCreated?: number; matchedExisting?: number; lineItems?: number }; error?: string };
+      if (result.error) throw new Error(result.error);
       if (!result?.counterQuoteId) throw new Error("Build returned no quote id");
       setDraftQuoteId(result.counterQuoteId);
       const s = result.stats ?? {};
@@ -287,10 +285,9 @@ function QuotesPage() {
       }
 
       const base64 = await blobToBase64(blob);
-      const { data, error } = await supabase.functions.invoke("analyze-competitor-quote", {
-        body: { imageBase64: base64, mimeType: blob.type || "image/jpeg" },
-      });
-      if (error) throw error;
+      const { analyzeCompetitorQuote } = await import("@/lib/server-fns/analyze-competitor-quote.functions");
+      const data = await analyzeCompetitorQuote({ data: { imageBase64: base64, mimeType: blob.type || "image/jpeg" } });
+      if ((data as any).error) throw new Error((data as any).error);
       const result = (data as { result?: CompetitorAnalysis })?.result ?? null;
       if (!result) throw new Error("No analysis returned");
       setAnalysis(result);

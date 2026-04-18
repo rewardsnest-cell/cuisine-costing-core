@@ -1,8 +1,6 @@
-// Quote Assistant — streams from Lovable AI Gateway with tool calling for structured updates
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Quote Assistant — streams from Lovable AI Gateway with tool calling for structured updates.
+// Server route (NOT a server function) so we can return a Response with SSE.
+import { createFileRoute } from "@tanstack/react-router";
 
 const SYSTEM_PROMPT = `You are a deeply curious, expert catering concierge — think of yourself as part chef, part event planner, part interviewer. Your superpower is asking thoughtful, probing questions that uncover what the client REALLY wants, even things they hadn't thought to mention. Ask ONE focused question at a time, but make every question count.
 
@@ -108,12 +106,14 @@ async function callGateway(body: unknown, apiKey: string) {
   });
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
+async function handlePost({ request }: { request: Request }) {
   try {
-    const { messages, prefilled, context } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const { messages, prefilled, context } = (await request.json()) as {
+      messages: Array<{ role: string; content: string }>;
+      prefilled?: unknown;
+      context?: string;
+    };
+    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const weddingAddendum = context === "wedding"
@@ -138,18 +138,18 @@ Deno.serve(async (req: Request) => {
     if (!firstResp.ok) {
       if (firstResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit reached. Please wait a moment and try again." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { "Content-Type": "application/json" },
         });
       }
       if (firstResp.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to your workspace." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { "Content-Type": "application/json" },
         });
       }
       const text = await firstResp.text();
       console.error("AI gateway error (first):", firstResp.status, text);
       return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -158,15 +158,12 @@ Deno.serve(async (req: Request) => {
     const toolCalls = assistantMsg.tool_calls as Array<any> | undefined;
     const firstContent: string = assistantMsg.content ?? "";
 
-    // If there's already a textual reply and no tool calls, stream it back as a single SSE chunk
     const encoder = new TextEncoder();
     const writeSSE = (controller: ReadableStreamDefaultController, payload: unknown) => {
       controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
     };
 
-    // Helper to emit content as streamed deltas (chunked for nicer UX)
     const emitTextAsDeltas = (controller: ReadableStreamDefaultController, text: string) => {
-      // chunk by ~40 chars
       const chunkSize = 40;
       for (let i = 0; i < text.length; i += chunkSize) {
         writeSSE(controller, { choices: [{ delta: { content: text.slice(i, i + chunkSize) } }] });
@@ -174,7 +171,6 @@ Deno.serve(async (req: Request) => {
     };
 
     const emitToolCalls = (controller: ReadableStreamDefaultController, calls: Array<any>) => {
-      // Send each tool call as a single delta (client accumulates by index)
       calls.forEach((tc, idx) => {
         writeSSE(controller, {
           choices: [{
@@ -194,7 +190,6 @@ Deno.serve(async (req: Request) => {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Always emit any tool calls first so client updates draft
           if (toolCalls && toolCalls.length > 0) {
             emitToolCalls(controller, toolCalls);
           }
@@ -206,7 +201,6 @@ Deno.serve(async (req: Request) => {
             return;
           }
 
-          // No textual content but we have tool calls — make a follow-up call with tool results
           if (toolCalls && toolCalls.length > 0) {
             const toolResultMessages = toolCalls.map((tc) => ({
               role: "tool",
@@ -237,21 +231,16 @@ Deno.serve(async (req: Request) => {
               return;
             }
 
-            // Pipe the follow-up SSE stream straight through
             const reader = followResp.body.getReader();
-            const decoder = new TextDecoder();
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
               controller.enqueue(value);
-              // (don't decode — pass bytes through verbatim)
-              void decoder;
             }
             controller.close();
             return;
           }
 
-          // No content and no tool calls — fallback
           emitTextAsDeltas(controller, "Sorry, I didn't catch that. Could you tell me a bit more?");
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
@@ -260,20 +249,30 @@ Deno.serve(async (req: Request) => {
           try {
             emitTextAsDeltas(controller, "Something went wrong. Please try again.");
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          } catch {}
+          } catch {
+            // ignore
+          }
           controller.close();
         }
       },
     });
 
     return new Response(stream, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (e) {
     console.error("quote-assistant error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
     });
   }
+}
+
+export const Route = createFileRoute("/api/quote-assistant")({
+  server: {
+    handlers: {
+      POST: handlePost,
+    },
+  },
 });

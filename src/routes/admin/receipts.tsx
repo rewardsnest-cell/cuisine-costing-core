@@ -103,10 +103,9 @@ function ReceiptsPage() {
     if (!receipt.image_url) { toast.error("No image to process"); return; }
     setProcessing(receipt.id);
     try {
-      const { data, error } = await supabase.functions.invoke("process-receipt", {
-        body: { imageUrl: receipt.image_url, receiptId: receipt.id },
-      });
-      if (error) throw error;
+      const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
+      const data = await processReceipt({ data: { imageUrl: receipt.image_url, receiptId: receipt.id } });
+      if (!data.success) throw new Error(data.error || "OCR failed");
       toast.success(`Extracted ${data.line_items?.length || 0} line items`);
       load();
     } catch (err: any) {
@@ -146,10 +145,8 @@ function ReceiptsPage() {
   const handleApplyCosts = async (receiptId: string) => {
     setApplyingCosts(true);
     try {
-      const { data, error } = await supabase.functions.invoke("update-inventory-costs", {
-        body: { receiptId },
-      });
-      if (error) throw error;
+      const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
+      const data = await updateInventoryCosts({ data: { receiptId } });
       const updates = data.updates || [];
       toast.success(`Updated costs for ${updates.length} inventory items`);
       load();
