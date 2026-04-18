@@ -14,31 +14,53 @@ export const Route = createFileRoute("/admin/")({
 
 function SettingsCard() {
   const [days, setDays] = useState<number>(7);
+  const [markup, setMarkup] = useState<number>(3.0);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    (supabase as any).from("app_settings").select("revision_lock_days").eq("id", 1).maybeSingle()
-      .then(({ data }: any) => { if (data) setDays(data.revision_lock_days); });
+    (supabase as any).from("app_settings").select("revision_lock_days,markup_multiplier").eq("id", 1).maybeSingle()
+      .then(({ data }: any) => {
+        if (data) {
+          setDays(data.revision_lock_days);
+          if (data.markup_multiplier != null) setMarkup(Number(data.markup_multiplier));
+        }
+      });
   }, []);
   const save = async () => {
     setSaving(true);
-    const { error } = await (supabase as any).from("app_settings").update({ revision_lock_days: days }).eq("id", 1);
+    const { error } = await (supabase as any)
+      .from("app_settings")
+      .update({ revision_lock_days: days, markup_multiplier: markup })
+      .eq("id", 1);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Settings saved");
   };
+  const targetFoodCost = markup > 0 ? Math.round((100 / markup) * 10) / 10 : 0;
   return (
     <Card className="shadow-warm border-border/50">
       <CardContent className="p-5 flex items-end gap-4 flex-wrap">
         <div className="flex items-center gap-3 mr-auto">
           <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-accent/20 text-accent-foreground"><Settings className="w-5 h-5" /></div>
           <div>
-            <p className="font-semibold">Revision Lock</p>
-            <p className="text-xs text-muted-foreground">Days before an event when customers can no longer revise their quote.</p>
+            <p className="font-semibold">Quote Settings</p>
+            <p className="text-xs text-muted-foreground">Revision lock window and counter-quote markup target.</p>
           </div>
         </div>
         <div>
           <Label className="text-xs">Lock days</Label>
           <Input type="number" min={0} max={365} value={days} onChange={(e) => setDays(parseInt(e.target.value) || 0)} className="w-24" />
+        </div>
+        <div>
+          <Label className="text-xs">Markup ×{markup ? ` (≈${targetFoodCost}% food cost)` : ""}</Label>
+          <Input
+            type="number"
+            min={1}
+            max={10}
+            step={0.1}
+            value={markup}
+            onChange={(e) => setMarkup(parseFloat(e.target.value) || 0)}
+            className="w-24"
+          />
         </div>
         <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </CardContent>

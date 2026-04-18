@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
+import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -285,6 +286,7 @@ function RecipesPage() {
   // List view
   return (
     <div className="space-y-6">
+      <UnlinkedIngredientsReview />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex gap-2 flex-1 max-w-xl">
           <div className="relative flex-1">
