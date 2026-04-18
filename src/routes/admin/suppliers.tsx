@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +27,6 @@ type Supplier = {
 const EMPTY_FORM = { name: "", contact_name: "", email: "", phone: "", address: "", website: "", office_phone: "", cellphone: "" };
 
 function SuppliersPage() {
-  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -91,10 +90,6 @@ function SuppliersPage() {
     load();
   };
 
-  const openSupplier = (id: string) => {
-    navigate({ to: "/admin/suppliers/$id", params: { id } });
-  };
-
   const normalizeUrl = (u: string) => (u.startsWith("http://") || u.startsWith("https://") ? u : `https://${u}`);
 
   return (
@@ -141,32 +136,31 @@ function SuppliersPage() {
           {filtered.map((s) => (
             <Card
               key={s.id}
-              role="link"
-              tabIndex={0}
-              onClick={() => openSupplier(s.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  openSupplier(s.id);
-                }
-              }}
-              className="shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all cursor-pointer h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="relative shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all cursor-pointer h-full overflow-hidden"
             >
-              <CardContent className="p-5 space-y-1">
+              <Link
+                to="/admin/suppliers/$id"
+                params={{ id: s.id }}
+                aria-label={`Open ${s.name} supplier details`}
+                className="absolute inset-0 z-10 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <span className="sr-only">Open supplier details</span>
+              </Link>
+              <CardContent className="p-5 space-y-1 relative">
                 <div className="flex justify-between items-start gap-3">
                   <h3 className="font-display text-lg font-semibold transition-colors">
                     {s.name}
                   </h3>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="relative z-20 flex items-center gap-1 shrink-0">
                     <button
-                      onClick={(e) => { e.stopPropagation(); openEdit(s); }}
+                      onClick={() => openEdit(s)}
                       className="text-muted-foreground hover:text-primary transition-colors p-1"
                       aria-label="Edit supplier"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
+                      onClick={() => handleDelete(s.id)}
                       className="text-muted-foreground hover:text-destructive transition-colors p-1"
                       aria-label="Delete supplier"
                     >
@@ -181,8 +175,7 @@ function SuppliersPage() {
                     href={normalizeUrl(s.website)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                    className="relative z-20 text-sm text-primary hover:underline flex items-center gap-1.5"
                   >
                     <Globe className="w-3.5 h-3.5" />{s.website.replace(/^https?:\/\//, "")}
                   </a>
@@ -190,8 +183,7 @@ function SuppliersPage() {
                 {s.office_phone && (
                   <a
                     href={`tel:${s.office_phone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                    className="relative z-20 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
                   >
                     <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
                   </a>
@@ -199,8 +191,7 @@ function SuppliersPage() {
                 {s.cellphone && (
                   <a
                     href={`tel:${s.cellphone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                    className="relative z-20 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
                   >
                     <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
                   </a>
