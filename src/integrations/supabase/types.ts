@@ -1183,8 +1183,11 @@ export type Database = {
           image_url: string | null
           instructions: string | null
           is_gluten_free: boolean | null
+          is_premium: boolean
+          is_standard: boolean
           is_vegan: boolean | null
           is_vegetarian: boolean | null
+          menu_price: number | null
           name: string
           prep_time: number | null
           seasonal_tags: string[] | null
@@ -1206,8 +1209,11 @@ export type Database = {
           image_url?: string | null
           instructions?: string | null
           is_gluten_free?: boolean | null
+          is_premium?: boolean
+          is_standard?: boolean
           is_vegan?: boolean | null
           is_vegetarian?: boolean | null
+          menu_price?: number | null
           name: string
           prep_time?: number | null
           seasonal_tags?: string[] | null
@@ -1229,8 +1235,11 @@ export type Database = {
           image_url?: string | null
           instructions?: string | null
           is_gluten_free?: boolean | null
+          is_premium?: boolean
+          is_standard?: boolean
           is_vegan?: boolean | null
           is_vegetarian?: boolean | null
+          menu_price?: number | null
           name?: string
           prep_time?: number | null
           seasonal_tags?: string[] | null
