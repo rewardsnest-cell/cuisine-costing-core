@@ -241,81 +241,23 @@ function QuotesPage() {
     setCreatingDraft(true);
     try {
       const competitorId = await saveCompetitorAnalysis();
-      const ours = analysis.ourSuggestedPrice;
-      const total = ours?.total ?? analysis.total ?? 0;
-      const guests = analysis.guestCount ?? 1;
-      const subtotal = total / 1.08;
-      const quoteRow: any = {
-        client_name: linkMode === "account"
-          ? linkedClient?.full_name ?? null
-          : (guestName || analysis.clientName || null),
-        client_email: linkMode === "account"
-          ? linkedClient?.email ?? null
-          : (guestEmail || null),
-        user_id: linkMode === "account" ? linkedClient?.user_id ?? null : null,
-        event_type: analysis.eventType,
-        event_date: analysis.eventDate,
-        guest_count: guests,
-        subtotal,
-        tax_rate: 0.08,
-        total,
-        status: "draft",
-        notes: `Counter to competitor quote${analysis.competitorName ? ` (${analysis.competitorName})` : ""}.${ours?.rationale ? ` ${ours.rationale}` : ""}`,
-        dietary_preferences: { serviceStyle: analysis.serviceStyle ?? null, addons: analysis.addons ?? [] },
-      };
-      const { data: q, error } = await supabase
-        .from("quotes")
-        .insert(quoteRow)
-        .select("id")
-        .single();
+      if (!competitorId) throw new Error("Could not save competitor analysis first");
+      const { data, error } = await supabase.functions.invoke("build-counter-quote", {
+        body: { competitorQuoteId: competitorId },
+      });
       if (error) throw error;
-      // Pre-fill quote_items from competitor's line items, mapped to recipes when names match
-      const lineItems = analysis.lineItems ?? [];
-      if (lineItems.length > 0) {
-        const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-        const { data: recipes } = await supabase
-          .from("recipes")
-          .select("id,name,cost_per_serving")
-          .eq("active", true);
-        const recipeMap = new Map<string, { id: string; name: string; cost_per_serving: number | null }>();
-        (recipes ?? []).forEach((r: any) => recipeMap.set(norm(r.name), r));
-        const itemsToInsert = lineItems
-          .filter((li) => li.name)
-          .map((li) => {
-            const match = recipeMap.get(norm(li.name));
-            const qty = Math.max(1, Math.round(Number(li.qty ?? guests) || guests));
-            const competitorUnit = Number(li.unitPrice ?? 0) || 0;
-            // If matched to a recipe, use OUR cost_per_serving as the unit price
-            // so the counter reflects our actual costing instead of the competitor's price.
-            const ourUnit = match && match.cost_per_serving != null ? Number(match.cost_per_serving) : null;
-            const unit = ourUnit ?? competitorUnit;
-            return {
-              quote_id: q.id,
-              recipe_id: match?.id ?? null,
-              name: match?.name ?? li.name,
-              quantity: qty,
-              unit_price: unit,
-              total_price: ourUnit != null ? unit * qty : (Number(li.total ?? unit * qty) || unit * qty),
-            };
-          });
-        if (itemsToInsert.length > 0) {
-          const { error: itemsErr } = await supabase.from("quote_items").insert(itemsToInsert);
-          if (itemsErr) console.warn("Failed to insert quote items:", itemsErr.message);
-        }
-      }
-      // Link competitor analysis to the new draft
-      if (competitorId) {
-        await (supabase as any)
-          .from("competitor_quotes")
-          .update({ counter_quote_id: q.id })
-          .eq("id", competitorId);
-      }
-      setDraftQuoteId(q.id);
-      const matched = analysis.lineItems?.length ?? 0;
-      toast.success(matched > 0 ? `Draft counter-quote created with ${matched} line item${matched === 1 ? "" : "s"}` : "Draft counter-quote created");
+      const result = data as { counterQuoteId?: string; stats?: { aiCreated?: number; matchedExisting?: number; lineItems?: number } };
+      if (!result?.counterQuoteId) throw new Error("Build returned no quote id");
+      setDraftQuoteId(result.counterQuoteId);
+      const s = result.stats ?? {};
+      const parts: string[] = [];
+      if (s.matchedExisting) parts.push(`${s.matchedExisting} matched`);
+      if (s.aiCreated) parts.push(`${s.aiCreated} new recipe${s.aiCreated === 1 ? "" : "s"}`);
+      const detail = parts.length ? ` (${parts.join(" · ")})` : "";
+      toast.success(`Counter quote built${detail}`);
       loadQuotes();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to create draft");
+      toast.error(e instanceof Error ? e.message : "Failed to build counter quote");
     } finally {
       setCreatingDraft(false);
     }
