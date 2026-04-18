@@ -45,6 +45,7 @@ import { Route as CateringQuoteRouteImport } from './routes/catering_.quote'
 import { Route as BlogWinterWeddingCateringGuideRouteImport } from './routes/blog.winter-wedding-catering-guide'
 import { Route as BlogSpringWeddingCateringGuideRouteImport } from './routes/blog.spring-wedding-catering-guide'
 import { Route as BlogFallWeddingCateringGuideRouteImport } from './routes/blog.fall-wedding-catering-guide'
+import { Route as ApiQuoteAssistantRouteImport } from './routes/api/quote-assistant'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
@@ -274,6 +275,11 @@ const BlogFallWeddingCateringGuideRoute =
     path: '/blog/fall-wedding-catering-guide',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiQuoteAssistantRoute = ApiQuoteAssistantRouteImport.update({
+  id: '/api/quote-assistant',
+  path: '/api/quote-assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiContactRoute = ApiContactRouteImport.update({
   id: '/api/contact',
   path: '/api/contact',
@@ -551,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -630,6 +637,7 @@ export interface FileRoutesByTo {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -712,6 +720,7 @@ export interface FileRoutesById {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -795,6 +804,7 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/quote-assistant'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -874,6 +884,7 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/quote-assistant'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -955,6 +966,7 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/quote-assistant'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -1006,6 +1018,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
+  ApiQuoteAssistantRoute: typeof ApiQuoteAssistantRoute
   BlogFallWeddingCateringGuideRoute: typeof BlogFallWeddingCateringGuideRoute
   BlogSpringWeddingCateringGuideRoute: typeof BlogSpringWeddingCateringGuideRoute
   BlogWinterWeddingCateringGuideRoute: typeof BlogWinterWeddingCateringGuideRoute
@@ -1274,6 +1287,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/fall-wedding-catering-guide'
       fullPath: '/blog/fall-wedding-catering-guide'
       preLoaderRoute: typeof BlogFallWeddingCateringGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/quote-assistant': {
+      id: '/api/quote-assistant'
+      path: '/api/quote-assistant'
+      fullPath: '/api/quote-assistant'
+      preLoaderRoute: typeof ApiQuoteAssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/contact': {
@@ -1736,6 +1756,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
+  ApiQuoteAssistantRoute: ApiQuoteAssistantRoute,
   BlogFallWeddingCateringGuideRoute: BlogFallWeddingCateringGuideRoute,
   BlogSpringWeddingCateringGuideRoute: BlogSpringWeddingCateringGuideRoute,
   BlogWinterWeddingCateringGuideRoute: BlogWinterWeddingCateringGuideRoute,
