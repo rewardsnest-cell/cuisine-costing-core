@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft, ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft, ArrowUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
@@ -24,13 +26,14 @@ const inventorySearchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
-  category: fallback(z.string(), "all").default("all"),
+  // Comma-separated list of categories. Use the literal value "__uncategorized__" for items with no category.
+  categories: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/admin/inventory")({
   validateSearch: zodValidator(inventorySearchSchema),
   search: {
-    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", category: "all" })],
+    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", categories: "" })],
   },
   component: InventoryPage,
 });
@@ -60,12 +63,21 @@ type PurchaseRow = {
 };
 
 function InventoryPage() {
-  const { q: search, sort: sortKey, dir: sortDir, category: categoryFilter } = Route.useSearch();
+  const { q: search, sort: sortKey, dir: sortDir, categories: categoriesParam } = Route.useSearch();
   const navigate = useNavigate({ from: "/admin/inventory" });
   const setSearch = (v: string) =>
     navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
-  const setCategoryFilter = (v: string) =>
-    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, category: v }), replace: true });
+  const selectedCategories: string[] = categoriesParam
+    ? categoriesParam.split(",").map((s: string) => s.trim()).filter(Boolean)
+    : [];
+  const setSelectedCategories = (next: string[]) => {
+    const value = next.join(",");
+    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, categories: value }), replace: true });
+  };
+  const toggleCategory = (cat: string) => {
+    const has = selectedCategories.includes(cat);
+    setSelectedCategories(has ? selectedCategories.filter((c: string) => c !== cat) : [...selectedCategories, cat]);
+  };
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -123,18 +135,18 @@ function InventoryPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  const categories = Array.from(
+  const allCategories: string[] = Array.from(
     new Set(items.map((i) => (i.category || "").trim()).filter(Boolean))
-  ).sort((a, b) => a.localeCompare(b));
+  ).sort((a: string, b: string) => a.localeCompare(b));
 
   const filteredBase = items.filter((i) => {
     const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all"
-        ? true
-        : categoryFilter === "__uncategorized__"
-        ? !i.category || !i.category.trim()
-        : (i.category || "").trim().toLowerCase() === categoryFilter.toLowerCase();
+    if (selectedCategories.length === 0) return matchesSearch;
+    const itemCat = (i.category || "").trim().toLowerCase();
+    const matchesCategory = selectedCategories.some((c: string) => {
+      if (c === "__uncategorized__") return !itemCat;
+      return itemCat === c.toLowerCase();
+    });
     return matchesSearch && matchesCategory;
   });
   const filtered = [...filteredBase].sort((a, b) => {
@@ -333,18 +345,55 @@ function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search inventory..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-            <SelectItem value="__uncategorized__">Uncategorized</SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full sm:w-auto justify-between gap-2">
+              <span className="truncate">
+                {selectedCategories.length === 0
+                  ? "All categories"
+                  : selectedCategories.length === 1
+                  ? (selectedCategories[0] === "__uncategorized__" ? "Uncategorized" : selectedCategories[0])
+                  : `${selectedCategories.length} categories`}
+              </span>
+              <ChevronDown className="w-4 h-4 opacity-60" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-2">
+            <div className="flex items-center justify-between px-2 py-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Categories</span>
+              {selectedCategories.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategories([])}
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Clear
+                </button>
+              )}
+            </div>
+            <div className="max-h-72 overflow-y-auto py-1">
+              {allCategories.length === 0 && (
+                <div className="px-2 py-2 text-sm text-muted-foreground">No categories yet</div>
+              )}
+              {allCategories.map((c: string) => {
+                const checked = selectedCategories.includes(c);
+                return (
+                  <label key={c} className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-sm">
+                    <Checkbox checked={checked} onCheckedChange={() => toggleCategory(c)} />
+                    <span className="flex-1 truncate">{c}</span>
+                  </label>
+                );
+              })}
+              <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-sm border-t mt-1 pt-2">
+                <Checkbox
+                  checked={selectedCategories.includes("__uncategorized__")}
+                  onCheckedChange={() => toggleCategory("__uncategorized__")}
+                />
+                <span className="flex-1 truncate italic text-muted-foreground">Uncategorized</span>
+              </label>
+            </div>
+          </PopoverContent>
+        </Popover>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 mr-1" /> Template</Button>
           <label>
