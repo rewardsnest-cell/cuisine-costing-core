@@ -61,12 +61,21 @@ type PurchaseRow = {
 };
 
 function InventoryPage() {
-  const { q: search, sort: sortKey, dir: sortDir, category: categoryFilter } = Route.useSearch();
+  const { q: search, sort: sortKey, dir: sortDir, categories: categoriesParam } = Route.useSearch();
   const navigate = useNavigate({ from: "/admin/inventory" });
   const setSearch = (v: string) =>
     navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
-  const setCategoryFilter = (v: string) =>
-    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, category: v }), replace: true });
+  const selectedCategories = categoriesParam
+    ? categoriesParam.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const setSelectedCategories = (next: string[]) => {
+    const value = next.join(",");
+    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, categories: value }), replace: true });
+  };
+  const toggleCategory = (cat: string) => {
+    const has = selectedCategories.includes(cat);
+    setSelectedCategories(has ? selectedCategories.filter((c) => c !== cat) : [...selectedCategories, cat]);
+  };
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
