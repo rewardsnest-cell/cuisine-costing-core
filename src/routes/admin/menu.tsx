@@ -273,16 +273,42 @@ function AdminMenuPage() {
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
                     )}
-                    <a
-                      href={`/menu#recipe-${r.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      title="Open this recipe on the public menu in a new tab"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      Preview on /menu
-                    </a>
+                    <div className="flex items-center gap-2 mt-2">
+                      <a
+                        href={`/menu#recipe-${r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        title="Open this recipe on the public menu in a new tab"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Preview on /menu
+                      </a>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs gap-1.5"
+                        onClick={() => {
+                          const url = `${window.location.origin}/menu#recipe-${r.id}`;
+                          navigator.clipboard.writeText(url);
+                          setCopiedId(r.id);
+                          toast.success("Link copied to clipboard");
+                          setTimeout(() => setCopiedId((cur) => (cur === r.id ? null : cur)), 1500);
+                        }}
+                      >
+                        {copiedId === r.id ? (
+                          <>
+                            <Check className="w-3 h-3 text-green-500" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="w-3 h-3" />
+                            Copy link
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
                   <div>
