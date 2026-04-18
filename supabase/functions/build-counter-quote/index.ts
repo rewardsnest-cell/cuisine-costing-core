@@ -270,22 +270,44 @@ Deno.serve(async (req: Request) => {
         for (const ing of gen.ingredients) {
           const ingName = String(ing.name || "").trim();
           if (!ingName) continue;
+          const ingQty = Number(ing.quantity ?? 0) || 0;
+          const ingUnit = String(ing.unit ?? "each");
           const match = bestInventoryMatch(ingName, inventoryList);
           const invHit = match?.item ?? null;
-          const cpu = invHit && invHit.average_cost_per_unit > 0
-            ? Number(invHit.average_cost_per_unit)
-            : Number(ing.estimated_cost_per_unit ?? 0) || 0;
-          const ingQty = Number(ing.quantity ?? 0) || 0;
-          costPerServing += cpu * ingQty;
-          if (invHit) ingredientsLinked++;
-          else ingredientsUnlinked++;
+
+          // Try to convert recipe qty into inventory's unit. If incompatible,
+          // fall back to AI-estimated cost (using recipe unit) instead of inventing a price.
+          let cpu: number;
+          let qtyForCost: number;
+          let linkedInvId: string | null = null;
+          let noteSuffix = "";
+          if (invHit && invHit.average_cost_per_unit > 0) {
+            const converted = convertQty(ingQty, ingUnit, invHit.unit);
+            if (converted !== null) {
+              cpu = Number(invHit.average_cost_per_unit);
+              qtyForCost = converted;
+              linkedInvId = invHit.id;
+              noteSuffix = ` (auto-linked, score ${match!.score.toFixed(2)}, ${ingQty}${ingUnit}→${converted.toFixed(4)}${invHit.unit})`;
+              ingredientsLinked++;
+            } else {
+              cpu = Number(ing.estimated_cost_per_unit ?? 0) || 0;
+              qtyForCost = ingQty;
+              noteSuffix = ` (matched "${invHit.name}" but unit ${ingUnit}↔${invHit.unit} incompatible — using AI estimate)`;
+              ingredientsUnlinked++;
+            }
+          } else {
+            cpu = Number(ing.estimated_cost_per_unit ?? 0) || 0;
+            qtyForCost = ingQty;
+            ingredientsUnlinked++;
+          }
+          costPerServing += cpu * qtyForCost;
           ingredientsRows.push({
             name: ingName,
             quantity: ingQty,
-            unit: String(ing.unit ?? "each"),
+            unit: ingUnit,
             cost_per_unit: cpu,
-            inventory_item_id: invHit?.id ?? null,
-            notes: invHit ? `auto-linked (score ${match!.score.toFixed(2)})` : null,
+            inventory_item_id: linkedInvId,
+            notes: noteSuffix.trim() || null,
           });
         }
 
