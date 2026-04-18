@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
+import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const Route = createFileRoute("/my-events")({
   head: () => ({ meta: [{ title: "My Events — TasteQuote" }] }),
