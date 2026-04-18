@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Link2, Check, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, Link2, Check, ChevronDown, ChevronUp, Plus, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +19,7 @@ type Unlinked = {
 };
 
 type InvItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+type Supplier = { id: string; name: string };
 
 // ---- Fuzzy match (mirrors edge function) ----
 function norm(s: string) {
@@ -70,17 +74,27 @@ function topMatches(name: string, inventory: InvItem[], n = 3) {
 }
 // ---------------------------------------------
 
+const NONE = "__none__";
+
 export function UnlinkedIngredientsReview() {
   const [open, setOpen] = useState(false);
   const [unlinked, setUnlinked] = useState<Unlinked[]>([]);
   const [inventory, setInventory] = useState<InvItem[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
   const [pickFor, setPickFor] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  // Per-row draft for category/supplier popover
+  const [draft, setDraft] = useState<Record<string, { category: string; supplier_id: string }>>({});
+  // Bulk defaults
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkSupplier, setBulkSupplier] = useState<string>(NONE);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: ings }, { data: inv }] = await Promise.all([
+    const [{ data: ings }, { data: inv }, { data: sup }] = await Promise.all([
       (supabase as any)
         .from("recipe_ingredients")
         .select("id,name,unit,recipe_id,recipe:recipes(id,name)")
@@ -90,9 +104,11 @@ export function UnlinkedIngredientsReview() {
         .from("inventory_items")
         .select("id,name,unit,average_cost_per_unit")
         .order("name"),
+      supabase.from("suppliers").select("id,name").order("name"),
     ]);
     setUnlinked((ings ?? []) as Unlinked[]);
     setInventory((inv ?? []) as InvItem[]);
+    setSuppliers((sup ?? []) as Supplier[]);
     setLoading(false);
   };
 
@@ -120,36 +136,83 @@ export function UnlinkedIngredientsReview() {
     setUnlinked((rows) => rows.filter((r) => r.id !== ingId));
   };
 
-  const addToInventory = async (ing: Unlinked) => {
-    setBusy(ing.id);
+  const createAndLink = async (
+    ing: Unlinked,
+    opts: { category?: string | null; supplier_id?: string | null },
+  ): Promise<InvItem | null> => {
+    const insertPayload: any = {
+      name: ing.name,
+      unit: ing.unit || "each",
+      current_stock: 0,
+      par_level: 0,
+      average_cost_per_unit: 0,
+    };
+    if (opts.category && opts.category.trim()) insertPayload.category = opts.category.trim();
+    if (opts.supplier_id) insertPayload.supplier_id = opts.supplier_id;
+
     const { data: newItem, error: invErr } = await (supabase as any)
       .from("inventory_items")
-      .insert({
-        name: ing.name,
-        unit: ing.unit || "each",
-        current_stock: 0,
-        par_level: 0,
-        average_cost_per_unit: 0,
-      })
+      .insert(insertPayload)
       .select("id,name,unit,average_cost_per_unit")
       .single();
     if (invErr || !newItem) {
-      setBusy(null);
-      toast.error(invErr?.message || "Failed to create inventory item");
-      return;
+      toast.error(invErr?.message || `Failed to create "${ing.name}"`);
+      return null;
     }
     const { error: linkErr } = await (supabase as any)
       .from("recipe_ingredients")
       .update({ inventory_item_id: newItem.id })
       .eq("id", ing.id);
-    setBusy(null);
     if (linkErr) {
       toast.error(linkErr.message);
-      return;
+      return null;
     }
+    return newItem as InvItem;
+  };
+
+  const addToInventory = async (ing: Unlinked) => {
+    setBusy(ing.id);
+    const d = draft[ing.id] ?? { category: "", supplier_id: NONE };
+    const created = await createAndLink(ing, {
+      category: d.category,
+      supplier_id: d.supplier_id === NONE ? null : d.supplier_id,
+    });
+    setBusy(null);
+    if (!created) return;
     toast.success(`Added "${ing.name}" to inventory`);
-    setInventory((prev) => [...prev, newItem as InvItem].sort((a, b) => a.name.localeCompare(b.name)));
+    setInventory((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
     setUnlinked((rows) => rows.filter((r) => r.id !== ing.id));
+  };
+
+  const addAllToInventory = async () => {
+    if (unlinked.length === 0) return;
+    setBulkBusy(true);
+    setBulkOpen(false);
+    const supplierId = bulkSupplier === NONE ? null : bulkSupplier;
+    let created = 0;
+    let failed = 0;
+    const newItems: InvItem[] = [];
+    const successIds: string[] = [];
+    for (const ing of unlinked) {
+      const item = await createAndLink(ing, { category: bulkCategory, supplier_id: supplierId });
+      if (item) {
+        created++;
+        newItems.push(item);
+        successIds.push(ing.id);
+      } else {
+        failed++;
+      }
+    }
+    setBulkBusy(false);
+    if (newItems.length) {
+      setInventory((prev) =>
+        [...prev, ...newItems].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      const idSet = new Set(successIds);
+      setUnlinked((rows) => rows.filter((r) => !idSet.has(r.id)));
+    }
+    if (failed === 0) toast.success(`Added ${created} ingredient${created === 1 ? "" : "s"} to inventory`);
+    else toast.warning(`Added ${created}, ${failed} failed`);
   };
 
   if (!loading && unlinked.length === 0) return null;
@@ -163,9 +226,59 @@ export function UnlinkedIngredientsReview() {
             Unlinked ingredients
             <Badge variant="outline" className="ml-1">{unlinked.length}</Badge>
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} className="gap-1.5">
-            {open ? <><ChevronUp className="w-4 h-4" />Hide</> : <><ChevronDown className="w-4 h-4" />Review</>}
-          </Button>
+          <div className="flex items-center gap-2">
+            {open && unlinked.length > 0 && (
+              <Popover open={bulkOpen} onOpenChange={setBulkOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={bulkBusy}>
+                    {bulkBusy ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5" />
+                    )}
+                    Add all to inventory
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">Bulk add {unlinked.length} item(s)</p>
+                    <p className="text-xs text-muted-foreground">
+                      These defaults apply to every new inventory item.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Category (optional)</Label>
+                    <Input
+                      value={bulkCategory}
+                      onChange={(e) => setBulkCategory(e.target.value)}
+                      placeholder="e.g. Produce"
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Supplier (optional)</Label>
+                    <Select value={bulkSupplier} onValueChange={setBulkSupplier}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="No supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>No supplier</SelectItem>
+                        {suppliers.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button size="sm" className="w-full" onClick={addAllToInventory}>
+                    Create {unlinked.length} item(s)
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} className="gap-1.5">
+              {open ? <><ChevronUp className="w-4 h-4" />Hide</> : <><ChevronDown className="w-4 h-4" />Review</>}
+            </Button>
+          </div>
         </div>
         {!open && (
           <p className="text-xs text-muted-foreground">
@@ -182,6 +295,7 @@ export function UnlinkedIngredientsReview() {
               const matches = suggestions.get(ing.id) ?? [];
               const top = matches[0];
               const picked = pickFor[ing.id] ?? top?.inv.id ?? "";
+              const d = draft[ing.id] ?? { category: "", supplier_id: NONE };
               return (
                 <div
                   key={ing.id}
@@ -231,17 +345,72 @@ export function UnlinkedIngredientsReview() {
                     {busy === ing.id ? <Link2 className="w-3.5 h-3.5 animate-pulse" /> : <Check className="w-3.5 h-3.5" />}
                     Link
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1.5"
-                    onClick={() => addToInventory(ing)}
-                    disabled={busy === ing.id}
-                    title="Create a new inventory item from this ingredient and link it"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add to inventory
-                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5"
+                        disabled={busy === ing.id || bulkBusy}
+                        title="Create a new inventory item from this ingredient and link it"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add to inventory
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-72 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium truncate">Add "{ing.name}"</p>
+                        <p className="text-xs text-muted-foreground">
+                          Set a category and supplier (optional) before saving.
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Category</Label>
+                        <Input
+                          value={d.category}
+                          onChange={(e) =>
+                            setDraft((p) => ({
+                              ...p,
+                              [ing.id]: { ...d, category: e.target.value },
+                            }))
+                          }
+                          placeholder="e.g. Produce"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Supplier</Label>
+                        <Select
+                          value={d.supplier_id}
+                          onValueChange={(v) =>
+                            setDraft((p) => ({
+                              ...p,
+                              [ing.id]: { ...d, supplier_id: v },
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="No supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>No supplier</SelectItem>
+                            {suppliers.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => addToInventory(ing)}
+                        disabled={busy === ing.id}
+                      >
+                        {busy === ing.id ? "Adding…" : "Create & link"}
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               );
             })
