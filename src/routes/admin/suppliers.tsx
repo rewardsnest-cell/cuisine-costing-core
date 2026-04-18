@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,7 +139,13 @@ function SuppliersPage() {
             <Card key={s.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
               <CardContent className="p-5 space-y-1">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-display text-lg font-semibold">{s.name}</h3>
+                  <Link
+                    to="/admin/suppliers/$id"
+                    params={{ id: s.id }}
+                    className="font-display text-lg font-semibold hover:text-primary transition-colors"
+                  >
+                    {s.name}
+                  </Link>
                   <div className="flex items-center gap-1">
                     <button onClick={() => openEdit(s)} className="text-muted-foreground hover:text-primary transition-colors p-1" aria-label="Edit supplier">
                       <Pencil className="w-4 h-4" />
