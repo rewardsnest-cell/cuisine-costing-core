@@ -368,6 +368,15 @@ function SynonymsPage() {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 
+  const [relinkingId, setRelinkingId] = useState<string | null>(null);
+  const relinkRow = async (row: SynonymRow) => {
+    setRelinkingId(row.id);
+    const res = await relinkAndRecompute(row.alias_normalized, row.canonical);
+    setRelinkingId(null);
+    if (res.linked === 0) toast.info("No matching recipe ingredients found");
+    else announceRelink(res);
+  };
+
   const [draftCanonical, setDraftCanonical] = useState<Record<string, string>>({});
 
   const acceptSuggestion = async (s: Suggestion) => {
