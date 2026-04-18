@@ -525,6 +525,10 @@ function QuotesPage() {
                     <MessageSquare className="w-3.5 h-3.5" /> Transcript
                   </Button>
                 ) : null}
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleRecalc(q)} disabled={recalcingId === q.id}>
+                  {recalcingId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {recalcingId === q.id ? "Recalculating…" : "Recalculate pricing"}
+                </Button>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => openAssign(q)}>
                   <Users className="w-3.5 h-3.5" /> Staff
                 </Button>
