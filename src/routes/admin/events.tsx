@@ -800,12 +800,19 @@ function EventsPage() {
                   </div>
                   {liveItems.map((it) => (
                     <div key={it.id} className="grid grid-cols-[1fr_70px_90px_90px_auto] gap-2 items-center">
-                      <Input
-                        value={it.name}
-                        placeholder="Item name"
-                        onChange={(e) => updateItem(it.id, { name: e.target.value })}
-                        className="h-8 text-sm"
-                      />
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Input
+                          value={it.name}
+                          placeholder="Item name"
+                          onChange={(e) => updateItem(it.id, { name: e.target.value })}
+                          className="h-8 text-sm"
+                        />
+                        {it.recipe_id && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5 shrink-0" title="Linked to recipe">
+                            <Utensils className="w-2.5 h-2.5" />
+                          </Badge>
+                        )}
+                      </div>
                       <Input
                         type="number"
                         min={0}
