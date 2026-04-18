@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft } from "lucide-react";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
@@ -57,7 +57,14 @@ function InventoryPage() {
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [sortKey, setSortKey] = useState<"name" | "vendor" | "current_stock" | "unit" | "par_level" | "average_cost_per_unit" | "last_receipt_cost" | "status">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const { byItemId: activeSales } = useActiveSales();
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   const openHistory = async (item: InventoryItem) => {
     setHistoryItem(item);
@@ -90,7 +97,26 @@ function InventoryPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  const filtered = items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredBase = items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = [...filteredBase].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    const get = (it: InventoryItem): string | number => {
+      switch (sortKey) {
+        case "name": return it.name.toLowerCase();
+        case "vendor": return supplierName(it.supplier_id).toLowerCase();
+        case "current_stock": return Number(it.current_stock);
+        case "unit": return (it.unit || "").toLowerCase();
+        case "par_level": return Number(it.par_level);
+        case "average_cost_per_unit": return Number(it.average_cost_per_unit);
+        case "last_receipt_cost": return it.last_receipt_cost == null ? -Infinity : Number(it.last_receipt_cost);
+        case "status": return it.current_stock < it.par_level ? 0 : 1;
+      }
+    };
+    const av = get(a), bv = get(b);
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
 
   const handleAdd = async () => {
     await supabase.from("inventory_items").insert({
@@ -326,15 +352,29 @@ function InventoryPage() {
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="py-3 px-2"></th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Name</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Vendor</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Stock</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Unit</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Par</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Avg Cost</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Last Cost</th>
+                {([
+                  ["name", "Name"],
+                  ["vendor", "Vendor"],
+                  ["current_stock", "Stock"],
+                  ["unit", "Unit"],
+                  ["par_level", "Par"],
+                  ["average_cost_per_unit", "Avg Cost"],
+                  ["last_receipt_cost", "Last Cost"],
+                ] as const).map(([key, label]) => (
+                  <th key={key} className="py-3 px-4 font-semibold text-muted-foreground">
+                    <button onClick={() => toggleSort(key)} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                      {label}
+                      {sortKey === key ? (sortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </th>
+                ))}
                 <th className="py-3 px-4 font-semibold text-muted-foreground">Trend</th>
-                <th className="py-3 px-4 font-semibold text-muted-foreground">Status</th>
+                <th className="py-3 px-4 font-semibold text-muted-foreground">
+                  <button onClick={() => toggleSort("status")} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                    Status
+                    {sortKey === "status" ? (sortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                  </button>
+                </th>
                 <th className="py-3 px-4"></th>
               </tr>
             </thead>
