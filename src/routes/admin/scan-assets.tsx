@@ -45,6 +45,14 @@ const QUICK_PICKS: QuickPick[] = [
     preferContexts: ["hero", "gallery", "og"],
     keywords: ["catering", "event", "wedding", "buffet", "table"],
   },
+  {
+    slug: "logo-main",
+    label: "Logo — Main",
+    description: "Brand logo used in header and emails",
+    category: "logo",
+    preferContexts: ["logo", "other"],
+    keywords: ["logo", "vps", "vpsfinest", "brand", "mark", "wordmark"],
+  },
 ];
 
 function pickBestFor(qp: QuickPick, images: ScannedImage[]): ScannedImage | null {
