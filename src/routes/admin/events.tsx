@@ -413,6 +413,7 @@ function EventsPage() {
       dietary_preferences: dietaryArr.length ? dietaryArr : [],
       subtotal: +subtotal.toFixed(2),
       total: +total.toFixed(2),
+      theoretical_cost: +theoreticalCost.toFixed(2),
     }).eq("id", editing.id);
 
     setSaving(false);
