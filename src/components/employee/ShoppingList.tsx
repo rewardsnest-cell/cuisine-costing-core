@@ -334,12 +334,37 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                       className={`border-t border-border/40 ${covered ? "bg-success/5" : ""}`}
                     >
                       <td className="py-2 px-3">
-                        {r.name}
-                        {!r.inventoryItemId && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            unlinked
+                        <div className="flex flex-col gap-0.5">
+                          <span>
+                            {r.name}
+                            {!r.inventoryItemId && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                unlinked
+                              </span>
+                            )}
+                            {r.onSale && (
+                              <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-success/15 text-success border border-success/30">
+                                <Tag className="w-2.5 h-2.5" /> Sale ${r.salePrice?.toFixed(2)}
+                                {r.packSize ? ` / ${r.packSize}` : ""}
+                              </span>
+                            )}
                           </span>
-                        )}
+                          {r.onSale && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Switched from{" "}
+                              <span className="line-through">{r.originalSupplierName}</span>
+                              {r.savingsPerUnit && r.savingsPerUnit > 0 ? (
+                                <>
+                                  {" "}• save{" "}
+                                  <span className="text-success font-semibold">
+                                    ${r.savingsPerUnit.toFixed(2)}/{r.unit}
+                                  </span>
+                                </>
+                              ) : null}
+                              {r.saleEndDate && <> • ends {r.saleEndDate}</>}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-2 px-3 text-right font-mono">{fmt(r.needed)}</td>
                       <td className="py-2 px-3 text-right font-mono text-muted-foreground">
@@ -354,7 +379,18 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                       </td>
                       <td className="py-2 px-3 text-muted-foreground">{r.unit}</td>
                       <td className="py-2 px-3 text-right font-mono">
-                        {lineCost > 0 ? `$${lineCost.toFixed(2)}` : "—"}
+                        {lineCost > 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span>${lineCost.toFixed(2)}</span>
+                            {r.totalSavings && r.totalSavings > 0 ? (
+                              <span className="text-[10px] text-success">
+                                −${r.totalSavings.toFixed(2)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   );
