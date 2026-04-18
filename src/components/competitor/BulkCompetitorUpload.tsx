@@ -106,6 +106,22 @@ async function saveCompetitorRow(
   return competitorQuoteId;
 }
 
+async function autoBuildCounter(competitorQuoteId: string): Promise<{ ok: boolean; aiCreated?: number } | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("build-counter-quote", {
+      body: { competitorQuoteId },
+    });
+    if (error) {
+      console.warn("build-counter-quote failed:", error.message);
+      return { ok: false };
+    }
+    return { ok: true, aiCreated: (data as any)?.stats?.aiCreated ?? 0 };
+  } catch (e) {
+    console.warn("build-counter-quote threw:", e);
+    return { ok: false };
+  }
+}
+
 async function runWithConcurrency<T>(
   items: T[],
   limit: number,
