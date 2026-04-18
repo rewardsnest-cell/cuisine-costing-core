@@ -130,12 +130,16 @@ function EventsPage() {
   const [recipeSearch, setRecipeSearch] = useState("");
 
   const load = async () => {
-    const [{ data: ev }, { data: settings }] = await Promise.all([
+    const [{ data: ev }, { data: settings }, { data: recs }, { data: appS }] = await Promise.all([
       (supabase as any).from("quotes").select("*").order("event_date", { ascending: true, nullsFirst: false }),
       (supabase as any).from("app_settings").select("revision_lock_days").eq("id", 1).maybeSingle(),
+      (supabase as any).from("recipes").select("id, name, category, cuisine, cost_per_serving").eq("active", true).order("name"),
+      (supabase as any).from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle(),
     ]);
     setEvents((ev ?? []) as Event[]);
     setLockDays(settings?.revision_lock_days ?? 7);
+    setRecipes((recs ?? []) as RecipeOpt[]);
+    if (appS?.markup_multiplier) setMarkup(Number(appS.markup_multiplier));
   };
 
   const loadEmployees = async () => {
