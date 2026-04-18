@@ -683,13 +683,24 @@ function SynonymsPage() {
               {filtered.map((row) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2 items-center p-2 rounded-lg hover:bg-muted/40"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto_auto] gap-2 items-center p-2 rounded-lg hover:bg-muted/40"
                 >
                   <Input value={row.alias} onChange={(e) => updateRow(row, "alias", e.target.value)} />
                   <Input value={row.canonical} onChange={(e) => updateRow(row, "canonical", e.target.value)} />
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={() => saveRow(row)}>
                     <Save className="w-3.5 h-3.5" />
                     Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => relinkRow(row)}
+                    disabled={relinkingId === row.id}
+                    title="Re-link matching recipe ingredients and recompute affected recipe costs"
+                  >
+                    <Link2 className={`w-3.5 h-3.5 ${relinkingId === row.id ? "animate-pulse" : ""}`} />
+                    {relinkingId === row.id ? "Relinking…" : "Relink"}
                   </Button>
                   <Button
                     size="sm"
