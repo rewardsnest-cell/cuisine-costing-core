@@ -4,6 +4,9 @@ import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import heroFall from "@/assets/hero-fall-wedding.jpg";
+
+const HERO_URL = `${SITE_URL}${heroFall}`;
 
 export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
   head: () => ({
@@ -12,6 +15,9 @@ export const Route = createFileRoute("/weddings/fall-hudson-ohio")({
       { name: "description", content: "Fall wedding catering in Hudson, Ohio. Seasonal menus built around Northeast Ohio's harvest, with calm planning and itemized quotes." },
       { property: "og:title", content: "Fall Wedding Catering in Hudson, Ohio — VPS Finest" },
       { property: "og:description", content: "Seasonal fall wedding catering in Hudson, Ohio and across Northeast Ohio. Tastings included." },
+      { property: "og:image", content: HERO_URL },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: HERO_URL },
     ],
     scripts: [
       localBusinessJsonLd({
@@ -29,13 +35,17 @@ function FallHudsonPage() {
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      <section className="pt-32 pb-20 bg-background">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Fall weddings · Hudson, Ohio</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground leading-[1.1] mb-6">
+      <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
+        <div className="absolute inset-0">
+          <img src={heroFall} alt="Fall wedding catering in Hudson, Ohio" width={1920} height={1280} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/55" />
+        </div>
+        <div className="relative max-w-3xl mx-auto px-6 py-20">
+          <p className="text-xs tracking-[0.25em] uppercase text-background/75 mb-5">Fall weddings · Hudson, Ohio</p>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-background leading-[1.1] mb-6">
             Fall wedding catering in Hudson, Ohio.
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-lg text-background/90 max-w-xl mx-auto leading-relaxed font-light">
             Fall is our busiest season for a reason. The light is warmer, the venues across Hudson and Northeast Ohio are at their best, and the food we love to cook is finally in season. We build menus that feel like a real Ohio harvest — quietly generous, never overdone.
           </p>
         </div>

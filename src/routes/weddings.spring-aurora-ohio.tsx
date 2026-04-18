@@ -4,6 +4,9 @@ import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import heroSpring from "@/assets/hero-spring-wedding.jpg";
+
+const HERO_URL = `${SITE_URL}${heroSpring}`;
 
 export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
   head: () => ({
@@ -12,6 +15,9 @@ export const Route = createFileRoute("/weddings/spring-aurora-ohio")({
       { name: "description", content: "Spring wedding catering in Aurora, Ohio. Seasonal menus, calm planning, and itemized quotes for couples planning a March, April, or May wedding in Northeast Ohio." },
       { property: "og:title", content: "Spring Wedding Catering in Aurora, Ohio — VPS Finest" },
       { property: "og:description", content: "Seasonal spring wedding catering in Aurora, Ohio and Northeast Ohio. Tastings included." },
+      { property: "og:image", content: HERO_URL },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: HERO_URL },
     ],
     scripts: [
       localBusinessJsonLd({
@@ -29,13 +35,17 @@ function SpringAuroraPage() {
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      <section className="pt-32 pb-20 bg-background">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Spring weddings · Aurora, Ohio</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground leading-[1.1] mb-6">
+      <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
+        <div className="absolute inset-0">
+          <img src={heroSpring} alt="Spring wedding catering in Aurora, Ohio" width={1920} height={1280} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/55" />
+        </div>
+        <div className="relative max-w-3xl mx-auto px-6 py-20">
+          <p className="text-xs tracking-[0.25em] uppercase text-background/75 mb-5">Spring weddings · Aurora, Ohio</p>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-background leading-[1.1] mb-6">
             Spring wedding catering in Aurora, Ohio.
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-lg text-background/90 max-w-xl mx-auto leading-relaxed font-light">
             Spring in Northeast Ohio is gentle and unhurried — bright greens, cool mornings, and the first proper farmers' markets of the year. We design wedding menus that feel like the season: light, fresh, and quietly thoughtful.
           </p>
         </div>

@@ -4,6 +4,9 @@ import { PublicFooter } from "@/components/PublicFooter";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { SeasonalCTA } from "@/components/SeasonalCTA";
 import { localBusinessJsonLd, SITE_URL } from "@/lib/seo/jsonld";
+import heroWinter from "@/assets/hero-winter-wedding.jpg";
+
+const HERO_URL = `${SITE_URL}${heroWinter}`;
 
 export const Route = createFileRoute("/weddings/winter-cleveland-ohio")({
   head: () => ({
@@ -12,6 +15,9 @@ export const Route = createFileRoute("/weddings/winter-cleveland-ohio")({
       { name: "description", content: "Winter wedding catering across the Cleveland area and Northeast Ohio. Warm, generous menus and calm planning for off-season weddings." },
       { property: "og:title", content: "Winter Wedding Catering in the Cleveland Area — VPS Finest" },
       { property: "og:description", content: "Warm winter wedding catering across Cleveland and Northeast Ohio. Tastings included." },
+      { property: "og:image", content: HERO_URL },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: HERO_URL },
     ],
     scripts: [
       localBusinessJsonLd({
@@ -29,13 +35,17 @@ function WinterClevelandPage() {
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      <section className="pt-32 pb-20 bg-background">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Winter weddings · Cleveland area</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground leading-[1.1] mb-6">
+      <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
+        <div className="absolute inset-0">
+          <img src={heroWinter} alt="Winter wedding catering in the Cleveland area" width={1920} height={1280} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/55" />
+        </div>
+        <div className="relative max-w-3xl mx-auto px-6 py-20">
+          <p className="text-xs tracking-[0.25em] uppercase text-background/75 mb-5">Winter weddings · Cleveland area</p>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-background leading-[1.1] mb-6">
             Winter wedding catering in the Cleveland area.
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
+          <p className="text-lg text-background/90 max-w-xl mx-auto leading-relaxed font-light">
             Winter weddings in Cleveland have a quiet kind of magic — candlelight, good wine, and food that warms the room. We design menus that lean into the season honestly: generous, comforting, and put together with care.
           </p>
         </div>
