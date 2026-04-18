@@ -18,6 +18,7 @@ import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as MyEventsRouteImport } from './routes/my-events'
+import { Route as MenuRouteImport } from './routes/menu'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -62,6 +63,7 @@ import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
+import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
@@ -127,6 +129,11 @@ const MyQuotesRoute = MyQuotesRouteImport.update({
 const MyEventsRoute = MyEventsRouteImport.update({
   id: '/my-events',
   path: '/my-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MenuRoute = MenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LookupRoute = LookupRouteImport.update({
@@ -354,6 +361,11 @@ const AdminPurchaseOrdersRoute = AdminPurchaseOrdersRouteImport.update({
   path: '/purchase-orders',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMenuRoute = AdminMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -477,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
@@ -496,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -552,6 +566,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
@@ -570,6 +585,7 @@ export interface FileRoutesByTo {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -628,6 +644,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
+  '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
@@ -647,6 +664,7 @@ export interface FileRoutesById {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -706,6 +724,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/menu'
     | '/my-events'
     | '/my-quotes'
     | '/quote'
@@ -725,6 +744,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/inventory'
+    | '/admin/menu'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -781,6 +801,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/menu'
     | '/my-events'
     | '/my-quotes'
     | '/quote'
@@ -799,6 +820,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/inventory'
+    | '/admin/menu'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -856,6 +878,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/lookup'
+    | '/menu'
     | '/my-events'
     | '/my-quotes'
     | '/quote'
@@ -875,6 +898,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/inventory'
+    | '/admin/menu'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -933,6 +957,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
+  MenuRoute: typeof MenuRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
@@ -1022,6 +1047,13 @@ declare module '@tanstack/react-router' {
       path: '/my-events'
       fullPath: '/my-events'
       preLoaderRoute: typeof MyEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/menu': {
+      id: '/menu'
+      path: '/menu'
+      fullPath: '/menu'
+      preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lookup': {
@@ -1332,6 +1364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPurchaseOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/menu': {
+      id: '/admin/menu'
+      path: '/menu'
+      fullPath: '/admin/menu'
+      preLoaderRoute: typeof AdminMenuRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/inventory': {
       id: '/admin/inventory'
       path: '/inventory'
@@ -1519,6 +1558,7 @@ interface AdminRouteChildren {
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminMenuRoute: typeof AdminMenuRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
@@ -1552,6 +1592,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminInventoryRoute: AdminInventoryRoute,
+  AdminMenuRoute: AdminMenuRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuotesRoute: AdminQuotesRoute,
@@ -1619,6 +1660,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
+  MenuRoute: MenuRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,

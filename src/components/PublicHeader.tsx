@@ -24,6 +24,7 @@ export function PublicHeader() {
 
         <div className="hidden md:flex items-center gap-6 text-sm">
           <Link to="/catering" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Catering</Link>
+          <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>
           <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>
           <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>
           <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
@@ -44,6 +45,7 @@ export function PublicHeader() {
               <DropdownMenuLabel>Navigate</DropdownMenuLabel>
               <DropdownMenuItem asChild><Link to="/">Home</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/catering">Catering</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/blog">Guides</Link></DropdownMenuItem>
