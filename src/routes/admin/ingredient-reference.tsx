@@ -461,6 +461,47 @@ function IngredientReferencePage() {
         </CardContent>
       </Card>
 
+      {selected.size > 0 && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="p-3 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary" className="font-mono">
+              {selected.size} selected
+            </Badge>
+            <Button
+              size="sm"
+              onClick={handleBatchRecompute}
+              disabled={batchRecomputing}
+            >
+              {batchRecomputing ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+              )}
+              Recompute affected recipes
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={openMergeDialog}
+              disabled={selected.size !== 2}
+              title={selected.size !== 2 ? "Select exactly 2 references to merge" : "Merge these two references"}
+            >
+              <Merge className="w-4 h-4 mr-1.5" />
+              Merge duplicates
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelected(new Set())}
+              className="ml-auto"
+            >
+              <X className="w-4 h-4 mr-1.5" />
+              Clear
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
