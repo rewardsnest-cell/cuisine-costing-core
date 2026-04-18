@@ -191,28 +191,7 @@ function IngredientReferencePage() {
     await scanSynonymSuggestions(inserted.id, inserted.canonical_name, inserted.canonical_normalized);
   };
 
-  // ===== Synonym suggestion scan =====
-  const tokenize = (s: string) => normalizeName(s).split(" ").filter((t) => t.length >= 2);
-
-  const fuzzyScore = (a: string, b: string): number => {
-    if (!a || !b) return 0;
-    if (a === b) return 1;
-    if (a.includes(b) || b.includes(a)) return 0.9;
-    const ta = new Set(tokenize(a));
-    const tb = new Set(tokenize(b));
-    if (ta.size === 0 || tb.size === 0) return 0;
-    let inter = 0;
-    for (const t of ta) if (tb.has(t)) inter++;
-    const jaccard = inter / (ta.size + tb.size - inter);
-    let sub = 0;
-    for (const x of ta) for (const y of tb) {
-      if (x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x))) {
-        sub = Math.max(sub, 0.4);
-      }
-    }
-    return Math.max(jaccard, sub);
-  };
-
+  // ===== Synonym suggestion scan (server-side pg_trgm via find_ingredient_matches) =====
   const scanSynonymSuggestions = async (
     refId: string,
     refName: string,
@@ -239,6 +218,7 @@ function IngredientReferencePage() {
     const existingRefs = new Set<string>((refsRes.data ?? []).map((r: any) => r.canonical_normalized));
     const dismissed = new Set<string>((dismissRes.data ?? []).map((d: any) => d.alias_normalized));
 
+    // Aggregate unlinked candidate aliases by normalized form.
     const byNorm = new Map<string, { alias: string; usage: number; hasLink: boolean }>();
     for (const ing of (ingRes.data ?? []) as any[]) {
       const raw = String(ing.name ?? "").trim();
@@ -253,20 +233,54 @@ function IngredientReferencePage() {
       byNorm.set(n, cur);
     }
 
-    const scored: Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }> = [];
-    for (const [norm, info] of byNorm) {
-      if (info.hasLink) continue;
-      const score = fuzzyScore(refNormalized, norm);
-      if (score >= 0.35) {
-        scored.push({
-          alias: info.alias,
-          alias_normalized: norm,
-          score,
-          usage: info.usage,
-          selected: score >= 0.6,
+    const candidates = Array.from(byNorm.entries())
+      .filter(([, info]) => !info.hasLink)
+      .map(([norm, info]) => ({ norm, ...info }));
+
+    // Score each candidate via Postgres pg_trgm by calling find_ingredient_matches.
+    // A candidate maps to THIS reference when the RPC returns a row with reference_id === refId.
+    const CONCURRENCY = 6;
+    const scored: Array<{
+      alias: string;
+      alias_normalized: string;
+      score: number;
+      usage: number;
+      selected: boolean;
+    }> = [];
+
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < candidates.length) {
+        const i = cursor++;
+        const c = candidates[i];
+        const { data, error } = await (supabase as any).rpc("find_ingredient_matches", {
+          _name: c.alias,
+          _limit: 5,
         });
+        if (error || !Array.isArray(data)) continue;
+
+        let best = 0;
+        for (const row of data) {
+          if (row?.reference_id === refId) {
+            const sim = typeof row.similarity === "number" ? row.similarity : 0;
+            if (sim > best) best = sim;
+          }
+        }
+        if (best >= 0.3) {
+          scored.push({
+            alias: c.alias,
+            alias_normalized: c.norm,
+            score: best,
+            usage: c.usage,
+            selected: best >= 0.55,
+          });
+        }
       }
-    }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, candidates.length) }, worker),
+    );
+
     scored.sort((a, b) => b.score - a.score || b.usage - a.usage);
     setSuggestions(scored.slice(0, 25));
     setSuggestLoading(false);
