@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload } from "lucide-react";
+import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw } from "lucide-react";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -67,6 +67,26 @@ function CompetitorQuotesPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [rebuilding, setRebuilding] = useState<string | null>(null);
+
+  const rebuildCounter = async (id: string) => {
+    setRebuilding(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("build-counter-quote", {
+        body: { competitorQuoteId: id },
+      });
+      if (error) throw error;
+      const stats = (data as any)?.stats;
+      toast.success(
+        `Counter rebuilt${stats ? ` · ${stats.aiCreated ?? 0} new recipe${stats.aiCreated === 1 ? "" : "s"}` : ""}`,
+      );
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to rebuild counter quote");
+    } finally {
+      setRebuilding(null);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -313,9 +333,22 @@ function CompetitorQuotesPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
-                          <Eye className="w-3.5 h-3.5" /> View
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 h-7 text-xs"
+                            onClick={() => rebuildCounter(r.id)}
+                            disabled={rebuilding === r.id}
+                            title={r.counter_quote_id ? "Rebuild counter quote" : "Build counter quote"}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${rebuilding === r.id ? "animate-spin" : ""}`} />
+                            {r.counter_quote_id ? "Rebuild" : "Build"}
+                          </Button>
+                          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
+                            <Eye className="w-3.5 h-3.5" /> View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
