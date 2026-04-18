@@ -21,6 +21,7 @@ import { Route as MyEventsRouteImport } from './routes/my-events'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as FollowRouteImport } from './routes/follow'
 import { Route as EmployeeRouteImport } from './routes/employee'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -132,6 +133,11 @@ const LoginRoute = LoginRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowRoute = FollowRouteImport.update({
+  id: '/follow',
+  path: '/follow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmployeeRoute = EmployeeRouteImport.update({
@@ -408,6 +414,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
@@ -473,6 +480,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
@@ -540,6 +548,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
@@ -608,6 +617,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/follow'
     | '/forgot-password'
     | '/login'
     | '/lookup'
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/follow'
     | '/forgot-password'
     | '/login'
     | '/lookup'
@@ -739,6 +750,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/follow'
     | '/forgot-password'
     | '/login'
     | '/lookup'
@@ -806,6 +818,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
+  FollowRoute: typeof FollowRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
@@ -915,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/follow': {
+      id: '/follow'
+      path: '/follow'
+      fullPath: '/follow'
+      preLoaderRoute: typeof FollowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/employee': {
@@ -1397,6 +1417,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
+  FollowRoute: FollowRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
