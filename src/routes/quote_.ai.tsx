@@ -136,7 +136,7 @@ function QuoteAiPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PublicHeader />
-      <main className="flex-1 pt-24 pb-32 px-4">
+      <main className="flex-1 pt-28 md:pt-32 pb-32 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <Badge variant="secondary" className="gap-1">
