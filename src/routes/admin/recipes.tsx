@@ -58,6 +58,7 @@ function RecipesPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
+  const [recomputingAll, setRecomputingAll] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
 
   const isNestedRoute = location.pathname !== "/admin/recipes";
