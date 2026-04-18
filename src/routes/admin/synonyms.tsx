@@ -8,6 +8,7 @@ import { Plus, Trash2, Save, Search, Download, Upload, Sparkles, X, RefreshCw, C
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -377,6 +378,32 @@ function SynonymsPage() {
     else announceRelink(res);
   };
 
+  // ---------- Relink all ----------
+  const [relinkAllRunning, setRelinkAllRunning] = useState(false);
+  const [relinkAllProgress, setRelinkAllProgress] = useState({ done: 0, total: 0, current: "" });
+  const relinkAll = async () => {
+    if (rows.length === 0) return;
+    if (!confirm(`Run Relink on all ${rows.length} synonym${rows.length === 1 ? "" : "s"}? This may take a moment.`)) return;
+    setRelinkAllRunning(true);
+    setRelinkAllProgress({ done: 0, total: rows.length, current: "" });
+    let totalLinked = 0;
+    let totalRecipes = 0;
+    let processed = 0;
+    for (const row of rows) {
+      setRelinkAllProgress({ done: processed, total: rows.length, current: row.alias });
+      const res = await relinkAndRecompute(row.alias_normalized, row.canonical);
+      totalLinked += res.linked;
+      totalRecipes += res.recipesUpdated;
+      processed++;
+      setRelinkAllProgress({ done: processed, total: rows.length, current: row.alias });
+    }
+    setRelinkAllRunning(false);
+    toast.success(
+      `Relink all complete · ${totalLinked} ingredient${totalLinked === 1 ? "" : "s"} re-linked across ${totalRecipes} recipe${totalRecipes === 1 ? "" : "s"}`,
+    );
+  };
+
+
   const [draftCanonical, setDraftCanonical] = useState<Record<string, string>>({});
 
   const acceptSuggestion = async (s: Suggestion) => {
@@ -693,16 +720,47 @@ function SynonymsPage() {
             <p className="font-semibold">
               {loading ? "Loading…" : `${filtered.length} synonym${filtered.length === 1 ? "" : "s"}`}
             </p>
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search aliases or canonical names…"
-                className="pl-9"
-              />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={relinkAll}
+                disabled={relinkAllRunning || loading || rows.length === 0}
+                className="gap-1.5"
+                title="Re-run relink + recipe-cost recompute for every synonym"
+              >
+                <Link2 className={`w-3.5 h-3.5 ${relinkAllRunning ? "animate-pulse" : ""}`} />
+                {relinkAllRunning
+                  ? `Relinking ${relinkAllProgress.done}/${relinkAllProgress.total}…`
+                  : "Relink all"}
+              </Button>
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search aliases or canonical names…"
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
+
+          {relinkAllRunning && (
+            <div className="mb-4 space-y-1.5">
+              <Progress
+                value={
+                  relinkAllProgress.total > 0
+                    ? (relinkAllProgress.done / relinkAllProgress.total) * 100
+                    : 0
+                }
+              />
+              <p className="text-xs text-muted-foreground truncate">
+                {relinkAllProgress.done} / {relinkAllProgress.total} ·{" "}
+                <span className="font-medium">{relinkAllProgress.current || "starting…"}</span>
+              </p>
+            </div>
+          )}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
