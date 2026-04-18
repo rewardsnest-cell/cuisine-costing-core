@@ -33,6 +33,16 @@ export const Route = createFileRoute("/event/$reference")({
   ),
 });
 
+type AlcoholPrefs = { beer?: string; wine?: string; spirits?: string; signatureCocktail?: string };
+type QuotePrefs = {
+  proteinDetails?: string; vegetableNotes?: string; cuisineLean?: string;
+  spiceLevel?: string; vibe?: string; notes?: string; alcohol?: AlcoholPrefs;
+};
+type DietaryPrefs = {
+  allergies?: string[]; style?: string; proteins?: string[];
+  serviceStyle?: string; extras?: string[]; addons?: string[];
+  tier?: string; preferences?: QuotePrefs;
+};
 type Quote = {
   id: string;
   reference_number: string | null;
@@ -47,6 +57,7 @@ type Quote = {
   total: number | null;
   status: string;
   notes: string | null;
+  dietary_preferences: DietaryPrefs | null;
 };
 
 type LineItem = { id: string; name: string; quantity: number; unit_price: number; total_price: number };
