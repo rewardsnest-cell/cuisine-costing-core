@@ -44,6 +44,14 @@ function AdminMenuPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string }>({
+    done: 0,
+    total: 0,
+    current: "",
+  });
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const genPhoto = useServerFn(generateRecipePhoto);
 
   const load = async () => {
     setLoading(true);
