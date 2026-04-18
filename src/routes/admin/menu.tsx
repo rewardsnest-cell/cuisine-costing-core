@@ -155,15 +155,33 @@ function AdminMenuPage() {
         </p>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search recipes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search recipes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button
+          onClick={generateMissing}
+          disabled={bulkRunning || loading || missingCount === 0}
+          variant="outline"
+          className="gap-2"
+        >
+          {bulkRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {bulkRunning
+            ? `Generating ${bulkProgress.done}/${bulkProgress.total}…`
+            : missingCount === 0
+              ? "All photos generated"
+              : `Generate ${missingCount} missing photo${missingCount === 1 ? "" : "s"}`}
+        </Button>
       </div>
+      {bulkRunning && bulkProgress.current && (
+        <p className="text-xs text-muted-foreground -mt-3">Current: {bulkProgress.current}</p>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading recipes…</p>
