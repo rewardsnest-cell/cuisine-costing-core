@@ -1074,44 +1074,65 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          account_number: string | null
           address: string | null
+          api_endpoint: string | null
+          api_key_secret_name: string | null
+          api_username: string | null
           cellphone: string | null
           contact_name: string | null
           created_at: string
+          delivery_days: string | null
           email: string | null
           id: string
           name: string
           notes: string | null
           office_phone: string | null
+          payment_terms: string | null
           phone: string | null
+          portal_url: string | null
           updated_at: string
           website: string | null
         }
         Insert: {
+          account_number?: string | null
           address?: string | null
+          api_endpoint?: string | null
+          api_key_secret_name?: string | null
+          api_username?: string | null
           cellphone?: string | null
           contact_name?: string | null
           created_at?: string
+          delivery_days?: string | null
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           office_phone?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          portal_url?: string | null
           updated_at?: string
           website?: string | null
         }
         Update: {
+          account_number?: string | null
           address?: string | null
+          api_endpoint?: string | null
+          api_key_secret_name?: string | null
+          api_username?: string | null
           cellphone?: string | null
           contact_name?: string | null
           created_at?: string
+          delivery_days?: string | null
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           office_phone?: string | null
+          payment_terms?: string | null
           phone?: string | null
+          portal_url?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -1171,6 +1192,10 @@ export type Database = {
     }
     Functions: {
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
+      get_active_flyer_for_supplier: {
+        Args: { _supplier_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
