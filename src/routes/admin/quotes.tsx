@@ -359,7 +359,7 @@ function QuotesPage() {
     }
   };
 
-  useEffect(() => { loadQuotes(); loadEmployees(); }, []);
+  useEffect(() => { loadQuotes(); }, []);
 
   const openAssign = async (q: Quote) => {
     setActiveQuote(q);
@@ -505,7 +505,7 @@ function QuotesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this quote?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes <strong>{deleteTarget?.client_name || "the quote"}</strong> ({deleteTarget?.reference_number || deleteTarget?.id.slice(0, 8)}) along with its line items, prep tasks, staff assignments, and time entries. This cannot be undone.
+              This permanently deletes <strong>{deleteTarget?.client_name || "the quote"}</strong> ({deleteTarget?.id.slice(0, 8)}) along with its line items, prep tasks, staff assignments, and time entries. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
