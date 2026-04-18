@@ -78,6 +78,28 @@ function CompetitorQuotesPage() {
   const [toDate, setToDate] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
+
+  const deleteQuote = async (row: Row) => {
+    setDeleting(row.id);
+    try {
+      if (row.counter_quote_id) {
+        await supabase.from("competitor_quotes").update({ counter_quote_id: null }).eq("id", row.id);
+        await supabase.from("quote_items").delete().eq("quote_id", row.counter_quote_id);
+        await supabase.from("quotes").delete().eq("id", row.counter_quote_id);
+      }
+      const { error } = await supabase.from("competitor_quotes").delete().eq("id", row.id);
+      if (error) throw error;
+      toast.success("Competitor quote deleted");
+      setRows((rs) => rs.filter((r) => r.id !== row.id));
+      setConfirmDelete(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const rebuildCounter = async (id: string) => {
     setRebuilding(id);
