@@ -64,7 +64,7 @@ function QuoteAiPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: next, prefilled: draft }),
+        body: JSON.stringify({ messages: next, prefilled: draft, context: isWedding ? "wedding" : undefined }),
       });
       if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
 
