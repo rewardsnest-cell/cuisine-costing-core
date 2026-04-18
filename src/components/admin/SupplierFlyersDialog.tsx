@@ -393,6 +393,23 @@ export function SupplierFlyersDialog({
                             </p>
                           )}
                           <div className="flex flex-wrap gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={addingPagesId === fl.id || uploading}
+                              onClick={() => {
+                                addPagesFlyerIdRef.current = fl.id;
+                                addPagesRef.current?.click();
+                              }}
+                              className="gap-1.5"
+                            >
+                              {addingPagesId === fl.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              {addingPagesId === fl.id ? "Adding..." : "Add Pages"}
+                            </Button>
                             {fl.status !== "processed" && pages.length > 0 && (
                               <Button
                                 size="sm"
