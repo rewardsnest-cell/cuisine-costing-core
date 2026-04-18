@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Trash2, Truck, Globe, Phone, Smartphone, Pencil, Tag } from "lucide-react";
-import { SupplierFlyersDialog } from "@/components/admin/SupplierFlyersDialog";
+
 
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
@@ -33,7 +33,7 @@ function SuppliersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [flyersFor, setFlyersFor] = useState<Supplier | null>(null);
+  
 
   const load = async () => {
     const { data } = await (supabase as any).from("suppliers").select("*").order("name");
@@ -208,13 +208,6 @@ function SuppliersPage() {
           ))}
         </div>
       )}
-
-      <SupplierFlyersDialog
-        supplierId={flyersFor?.id ?? null}
-        supplierName={flyersFor?.name ?? ""}
-        open={!!flyersFor}
-        onOpenChange={(o) => { if (!o) setFlyersFor(null); }}
-      />
     </div>
   );
 }
