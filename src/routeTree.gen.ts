@@ -25,6 +25,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
 import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
@@ -128,6 +129,11 @@ const EventReferenceRoute = EventReferenceRouteImport.update({
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUploadsRoute = AdminUploadsRouteImport.update({
+  id: '/uploads',
+  path: '/uploads',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminTrendsRoute = AdminTrendsRouteImport.update({
@@ -284,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
+  '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
+  '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/timesheet': typeof AdminTimesheetRoute
   '/admin/trends': typeof AdminTrendsRoute
+  '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers'
     | '/admin/timesheet'
     | '/admin/trends'
+    | '/admin/uploads'
     | '/admin/users'
     | '/event/$reference'
     | '/quote/ai'
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers'
     | '/admin/timesheet'
     | '/admin/trends'
+    | '/admin/uploads'
     | '/admin/users'
     | '/event/$reference'
     | '/quote/ai'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
     | '/admin/suppliers'
     | '/admin/timesheet'
     | '/admin/trends'
+    | '/admin/uploads'
     | '/admin/users'
     | '/event/$reference'
     | '/quote_/ai'
@@ -635,6 +647,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/uploads': {
+      id: '/admin/uploads'
+      path: '/uploads'
+      fullPath: '/admin/uploads'
+      preLoaderRoute: typeof AdminUploadsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/trends': {
@@ -854,6 +873,7 @@ interface AdminRouteChildren {
   AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminTimesheetRoute: typeof AdminTimesheetRoute
   AdminTrendsRoute: typeof AdminTrendsRoute
+  AdminUploadsRoute: typeof AdminUploadsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
@@ -880,6 +900,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminTimesheetRoute: AdminTimesheetRoute,
   AdminTrendsRoute: AdminTrendsRoute,
+  AdminUploadsRoute: AdminUploadsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
