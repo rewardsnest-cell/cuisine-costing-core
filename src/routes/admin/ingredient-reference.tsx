@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X } from "lucide-react";
+import { Search, Save, Link2, Unlink, RefreshCw, Loader2, BookOpen, Merge, X, ChevronDown, ChevronRight, ChefHat } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,6 +61,16 @@ interface RowState extends RefRow {
   linkResults: InventoryItem[];
   linking: boolean;
   showLinker: boolean;
+  expanded: boolean;
+}
+
+interface RecipeUsage {
+  recipe_id: string;
+  recipe_name: string;
+  cost_per_serving: number | null;
+  servings: number;
+  ingredient_name: string;
+  match: "reference" | "inventory" | "name";
 }
 
 function toDraft(r: RefRow): RowState["draft"] {
@@ -95,17 +106,72 @@ function IngredientReferencePage() {
   const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
   const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
+  const [usageByRef, setUsageByRef] = useState<Map<string, RecipeUsage[]>>(new Map());
 
   const load = async () => {
     setLoading(true);
-    const [refRes, invRes] = await Promise.all([
+    const [refRes, invRes, ingRes, recRes] = await Promise.all([
       supabase.from("ingredient_reference").select("*").order("canonical_name", { ascending: true }),
       supabase.from("inventory_items").select("id,name,unit").order("name", { ascending: true }),
+      supabase.from("recipe_ingredients").select("recipe_id,name,reference_id,inventory_item_id"),
+      supabase.from("recipes").select("id,name,cost_per_serving,servings,active").eq("active", true),
     ]);
     if (refRes.error) toast.error(refRes.error.message);
     if (invRes.error) toast.error(invRes.error.message);
     const refs = (refRes.data ?? []) as RefRow[];
     setInventory((invRes.data ?? []) as InventoryItem[]);
+
+    // Build usage map: refId -> RecipeUsage[]
+    const recipeById = new Map<string, { id: string; name: string; cost_per_serving: number | null; servings: number }>();
+    for (const r of (recRes.data ?? []) as any[]) recipeById.set(r.id, r);
+    const refByNorm = new Map<string, RefRow>();
+    const refByInv = new Map<string, RefRow>();
+    for (const r of refs) {
+      refByNorm.set(r.canonical_normalized, r);
+      if (r.inventory_item_id) refByInv.set(r.inventory_item_id, r);
+    }
+    const usage = new Map<string, RecipeUsage[]>();
+    const seen = new Set<string>(); // dedupe (refId|recipeId)
+    const push = (refId: string, recipeId: string, ingName: string, match: RecipeUsage["match"]) => {
+      const key = `${refId}|${recipeId}`;
+      if (seen.has(key)) return;
+      const rec = recipeById.get(recipeId);
+      if (!rec) return;
+      seen.add(key);
+      const arr = usage.get(refId) ?? [];
+      arr.push({
+        recipe_id: recipeId,
+        recipe_name: rec.name,
+        cost_per_serving: rec.cost_per_serving,
+        servings: rec.servings,
+        ingredient_name: ingName,
+        match,
+      });
+      usage.set(refId, arr);
+    };
+    for (const ing of (ingRes.data ?? []) as any[]) {
+      if (!ing.recipe_id) continue;
+      if (ing.reference_id && refs.some((r) => r.id === ing.reference_id)) {
+        push(ing.reference_id, ing.recipe_id, ing.name, "reference");
+        continue;
+      }
+      if (ing.inventory_item_id) {
+        const ref = refByInv.get(ing.inventory_item_id);
+        if (ref) {
+          push(ref.id, ing.recipe_id, ing.name, "inventory");
+          continue;
+        }
+      }
+      const norm = String(ing.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const ref = refByNorm.get(norm);
+      if (ref) push(ref.id, ing.recipe_id, ing.name, "name");
+    }
+    // Sort each list by cost_per_serving desc (outliers first)
+    for (const [, list] of usage) {
+      list.sort((a, b) => (b.cost_per_serving ?? -1) - (a.cost_per_serving ?? -1));
+    }
+    setUsageByRef(usage);
+
     setRows(
       refs.map((r) => ({
         ...r,
@@ -116,6 +182,7 @@ function IngredientReferencePage() {
         linkResults: [],
         linking: false,
         showLinker: false,
+        expanded: false,
       })),
     );
     setLoading(false);
@@ -517,6 +584,12 @@ function IngredientReferencePage() {
           {filtered.map((row) => {
             const linkedItem = row.inventory_item_id ? inventoryById.get(row.inventory_item_id) : null;
             const dirty = isDirty(row);
+            const usages = usageByRef.get(row.id) ?? [];
+            const usageCount = usages.length;
+            const costs = usages.map((u) => u.cost_per_serving).filter((c): c is number => typeof c === "number" && c > 0);
+            const median = costs.length
+              ? [...costs].sort((a, b) => a - b)[Math.floor(costs.length / 2)]
+              : null;
             return (
               <Card key={row.id} className={selected.has(row.id) ? "border-primary/50 ring-1 ring-primary/30" : undefined}>
                 <CardContent className="p-4 space-y-3">
@@ -602,6 +675,21 @@ function IngredientReferencePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => updateRow(row.id, { expanded: !row.expanded })}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-accent"
+                      title={usageCount === 0 ? "Not used by any active recipe" : "Show recipes using this ingredient"}
+                      disabled={usageCount === 0}
+                    >
+                      {row.expanded ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                      <ChefHat className="w-3 h-3" />
+                      Used in {usageCount} recipe{usageCount === 1 ? "" : "s"}
+                    </button>
                     <span className="text-xs text-muted-foreground">Inventory link:</span>
                     {linkedItem ? (
                       <>
@@ -630,6 +718,43 @@ function IngredientReferencePage() {
                       {row.showLinker ? "Cancel" : linkedItem ? "Change link" : "Link inventory"}
                     </Button>
                   </div>
+
+                  {row.expanded && usageCount > 0 && (
+                    <div className="rounded-md border bg-muted/30 divide-y">
+                      <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground flex items-center justify-between">
+                        <span>Recipes using this ingredient (sorted by cost/serving, outliers first)</span>
+                        {median != null && (
+                          <span>median: ${median.toFixed(2)}</span>
+                        )}
+                      </div>
+                      {usages.map((u) => {
+                        const cost = u.cost_per_serving;
+                        const isOutlier =
+                          median != null && cost != null && cost > 0 && (cost > median * 2 || cost < median / 2);
+                        return (
+                          <Link
+                            key={u.recipe_id}
+                            to="/admin/recipes/$id/edit"
+                            params={{ id: u.recipe_id }}
+                            className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate font-medium">{u.recipe_name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                as "{u.ingredient_name}" · {u.servings} serving{u.servings === 1 ? "" : "s"} · match: {u.match}
+                              </div>
+                            </div>
+                            <Badge
+                              variant={isOutlier ? "destructive" : cost == null || cost === 0 ? "outline" : "secondary"}
+                              className="font-mono shrink-0"
+                            >
+                              {cost == null || cost === 0 ? "—" : `$${cost.toFixed(2)}/serv`}
+                            </Badge>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {row.showLinker && (
                     <div className="space-y-2 pt-1">
