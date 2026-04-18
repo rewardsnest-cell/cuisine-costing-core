@@ -1310,6 +1310,54 @@ export type Database = {
           },
         ]
       }
+      site_asset_manifest: {
+        Row: {
+          alt: string | null
+          bytes: number | null
+          category: string
+          content_type: string | null
+          created_at: string
+          height: number | null
+          id: string
+          public_url: string
+          slug: string
+          source_url: string | null
+          storage_path: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          alt?: string | null
+          bytes?: number | null
+          category?: string
+          content_type?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          public_url: string
+          slug: string
+          source_url?: string | null
+          storage_path: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          alt?: string | null
+          bytes?: number | null
+          category?: string
+          content_type?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          public_url?: string
+          slug?: string
+          source_url?: string | null
+          storage_path?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           account_number: string | null
