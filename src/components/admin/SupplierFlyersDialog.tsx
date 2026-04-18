@@ -176,18 +176,24 @@ export function SupplierFlyersDialog({
 
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border border-dashed border-border/60 rounded-lg p-4">
-            <div className="text-sm text-muted-foreground">
-              Upload a sale flyer image. AI will extract items, prices, and link to inventory.
+            <div className="text-sm text-muted-foreground space-y-0.5">
+              <p>Upload one or more sale flyer pages (images or PDFs).</p>
+              <p className="text-xs flex items-center gap-1">
+                <FileText className="w-3 h-3" /> PDFs are split into pages automatically.
+              </p>
+              {uploadStatus && (
+                <p className="text-xs text-primary font-medium">{uploadStatus}</p>
+              )}
             </div>
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/*,application/pdf"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f);
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) handleUpload(files);
                 if (fileRef.current) fileRef.current.value = "";
               }}
             />
@@ -197,7 +203,7 @@ export function SupplierFlyersDialog({
               className="bg-gradient-warm text-primary-foreground gap-2 shrink-0"
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? "Uploading..." : "Scan Flyer"}
+              {uploading ? "Working..." : "Scan Flyer"}
             </Button>
           </div>
 
