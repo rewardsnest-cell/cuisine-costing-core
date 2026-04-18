@@ -32,7 +32,9 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
+import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
@@ -61,9 +63,12 @@ import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/compet
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
@@ -182,10 +187,20 @@ const EventReferenceRoute = EventReferenceRouteImport.update({
   path: '/event/$reference',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CateringQuoteRoute = CateringQuoteRouteImport.update({
   id: '/quote',
   path: '/quote',
   getParentRoute: () => CateringRoute,
+} as any)
+const ApiContactRoute = ApiContactRouteImport.update({
+  id: '/api/contact',
+  path: '/api/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -329,6 +344,11 @@ const AdminCompetitorQuotesIndexRoute =
     path: '/competitor-quotes/',
     getParentRoute: () => AdminRoute,
   } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -344,6 +364,18 @@ const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   path: '/competitor-quotes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -403,7 +435,9 @@ export interface FileRoutesByFullPath {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -411,9 +445,12 @@ export interface FileRoutesByFullPath {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -461,7 +498,9 @@ export interface FileRoutesByTo {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -469,9 +508,12 @@ export interface FileRoutesByTo {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -521,7 +563,9 @@ export interface FileRoutesById {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/contact': typeof ApiContactRoute
   '/catering/quote': typeof CateringQuoteRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -529,9 +573,12 @@ export interface FileRoutesById {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -582,7 +629,9 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
+    | '/email/unsubscribe'
     | '/event/$reference'
     | '/quote/ai'
     | '/recipes/$id'
@@ -590,9 +639,12 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
+    | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -640,7 +692,9 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
+    | '/email/unsubscribe'
     | '/event/$reference'
     | '/quote/ai'
     | '/recipes/$id'
@@ -648,9 +702,12 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
+    | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -699,7 +756,9 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/api/contact'
     | '/catering/quote'
+    | '/email/unsubscribe'
     | '/event/$reference'
     | '/quote_/ai'
     | '/recipes/$id'
@@ -707,9 +766,12 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
+    | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -732,9 +794,14 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WeddingsRoute: typeof WeddingsRoute
+  ApiContactRoute: typeof ApiContactRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -900,12 +967,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventReferenceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catering/quote': {
       id: '/catering/quote'
       path: '/quote'
       fullPath: '/catering/quote'
       preLoaderRoute: typeof CateringQuoteRouteImport
       parentRoute: typeof CateringRoute
+    }
+    '/api/contact': {
+      id: '/api/contact'
+      path: '/api/contact'
+      fullPath: '/api/contact'
+      preLoaderRoute: typeof ApiContactRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
       id: '/admin/users'
@@ -1103,6 +1184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCompetitorQuotesIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/suppliers/$id': {
       id: '/admin/suppliers/$id'
       path: '/$id'
@@ -1123,6 +1211,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/competitor-quotes/$id'
       preLoaderRoute: typeof AdminCompetitorQuotesIdRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -1278,9 +1380,14 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WeddingsRoute: WeddingsRoute,
+  ApiContactRoute: ApiContactRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
