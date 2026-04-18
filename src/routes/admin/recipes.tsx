@@ -58,6 +58,7 @@ function RecipesPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [recomputing, setRecomputing] = useState(false);
+  const [recomputingAll, setRecomputingAll] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
 
   const isNestedRoute = location.pathname !== "/admin/recipes";
@@ -161,7 +162,72 @@ function RecipesPage() {
     }
   };
 
-  // Detail view
+  const recomputeAllCosts = async () => {
+    if (recomputingAll) return;
+    if (!confirm("Recompute costs for every recipe using the latest inventory prices?")) return;
+    setRecomputingAll(true);
+    const toastId = toast.loading("Recomputing all recipe costs…");
+    try {
+      // Fetch every recipe with ingredients + linked inventory in one query
+      const { data, error } = await (supabase as any)
+        .from("recipes")
+        .select(
+          "id, servings, recipe_ingredients(quantity, unit, cost_per_unit, inventory_item:inventory_items(name, average_cost_per_unit, unit))",
+        );
+      if (error) throw error;
+
+      type Row = {
+        id: string;
+        servings: number | null;
+        recipe_ingredients: Array<{
+          quantity: number;
+          unit: string;
+          cost_per_unit: number | null;
+          inventory_item: { name: string; average_cost_per_unit: number; unit: string } | null;
+        }>;
+      };
+
+      let updated = 0;
+      let failed = 0;
+      for (const r of (data || []) as Row[]) {
+        const total = (r.recipe_ingredients || []).reduce(
+          (sum, ing) =>
+            sum +
+            getIngredientCostMetrics({
+              quantity: Number(ing.quantity) || 0,
+              unit: ing.unit,
+              fallbackCostPerUnit: ing.cost_per_unit,
+              inventoryItem: ing.inventory_item,
+            }).lineTotal,
+          0,
+        );
+        const servings = Math.max(1, Number(r.servings) || 1);
+        const perServing = total / servings;
+        const { error: upErr } = await (supabase as any)
+          .from("recipes")
+          .update({
+            total_cost: Math.round(total * 10000) / 10000,
+            cost_per_serving: Math.round(perServing * 10000) / 10000,
+          })
+          .eq("id", r.id);
+        if (upErr) failed++;
+        else updated++;
+      }
+
+      await load();
+      toast.success(
+        failed > 0
+          ? `Recomputed ${updated} recipes (${failed} failed)`
+          : `Recomputed ${updated} recipes`,
+        { id: toastId },
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to recompute costs", { id: toastId });
+    } finally {
+      setRecomputingAll(false);
+    }
+  };
+
   if (selectedRecipe) {
     const calcCost = (ing: Ingredient) => {
       return getIngredientCostMetrics({
@@ -386,9 +452,20 @@ function RecipesPage() {
             ))}
           </div>
         </div>
-        <Link to="/admin/recipes/new">
-          <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={recomputeAllCosts}
+            disabled={recomputingAll || recipes.length === 0}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-4 h-4 ${recomputingAll ? "animate-spin" : ""}`} />
+            {recomputingAll ? "Recomputing…" : "Recompute all costs"}
+          </Button>
+          <Link to="/admin/recipes/new">
+            <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
+          </Link>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
