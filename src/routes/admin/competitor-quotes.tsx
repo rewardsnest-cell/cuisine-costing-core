@@ -190,7 +190,7 @@ function CompetitorQuotesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <StatCard label="Analyses" value={stats.total.toString()} />
         <StatCard label="Won" value={stats.won.toString()} tone="green" />
         <StatCard label="Lost" value={stats.lost.toString()} tone="red" />
@@ -200,6 +200,11 @@ function CompetitorQuotesPage() {
           label={`Avg gap vs counter (${stats.gapCount})`}
           value={`${stats.avgGap >= 0 ? "+" : ""}${fmtMoney(stats.avgGap)}`}
           tone={stats.avgGap >= 0 ? "green" : "red"}
+        />
+        <StatCard
+          label={`Avg gap / guest (${stats.perGuestGapCount})`}
+          value={`${stats.avgGapPerGuest >= 0 ? "+" : ""}${fmtMoney(stats.avgGapPerGuest)}`}
+          tone={stats.avgGapPerGuest >= 0 ? "green" : "red"}
         />
       </div>
 
