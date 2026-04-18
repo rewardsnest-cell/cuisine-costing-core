@@ -12,7 +12,7 @@ import { Loader2, Search, Copy, UploadCloud, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
 
 type QuickPick = {
-  slug: "hero-home" | "path-recipes" | "path-catering";
+  slug: "hero-home" | "path-recipes" | "path-catering" | "logo-main";
   label: string;
   description: string;
   category: string;
