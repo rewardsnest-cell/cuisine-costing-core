@@ -52,8 +52,8 @@ export const analyzeCompetitorQuote = createServerFn({ method: "POST" })
       });
       const aiData = await resp.json();
       const content = aiData.choices?.[0]?.message?.content ?? "{}";
-      let parsed: unknown;
-      try { parsed = JSON.parse(content); } catch { parsed = { raw: content }; }
+      let parsed: Record<string, unknown>;
+      try { parsed = JSON.parse(content) as Record<string, unknown>; } catch { parsed = { raw: content }; }
       return { result: parsed };
     } catch (e) {
       if (e instanceof AiGatewayError) {
