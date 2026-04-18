@@ -27,6 +27,21 @@ export function articleJsonLd(opts: {
   };
 }
 
+export function faqJsonLd(faqs: Array<{ q: string; a: string }>) {
+  return {
+    type: "application/ld+json" as const,
+    children: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    }),
+  };
+}
+
 export function localBusinessJsonLd(opts: {
   url: string;
   description: string;
