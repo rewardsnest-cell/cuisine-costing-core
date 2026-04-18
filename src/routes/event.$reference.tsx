@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, MapPin, Users, Lock, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { CalendarDays, MapPin, Users, Lock, AlertTriangle, CheckCircle, Clock, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/event/$reference")({
@@ -58,7 +58,10 @@ type Quote = {
   status: string;
   notes: string | null;
   dietary_preferences: DietaryPrefs | null;
+  conversation: ChatMessage[] | null;
 };
+
+type ChatMessage = { role: string; content: string; ts?: string | number };
 
 type LineItem = { id: string; name: string; quantity: number; unit_price: number; total_price: number };
 
@@ -236,6 +239,9 @@ function EventPage() {
           {/* Menu, allergies & chef preferences */}
           <PreferencesCard prefs={quote.dietary_preferences} />
 
+          {/* AI conversation transcript */}
+          <TranscriptCard conversation={quote.conversation} />
+
           {/* Quote summary */}
           <Card>
             <CardContent className="p-6 space-y-3">
@@ -262,6 +268,51 @@ function EventPage() {
       </div>
       <PublicFooter />
     </div>
+  );
+}
+
+function TranscriptCard({ conversation }: { conversation: ChatMessage[] | null }) {
+  const [open, setOpen] = useState(false);
+  const msgs = (conversation || []).filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim());
+  if (msgs.length === 0) return null;
+  const preview = msgs.slice(-3);
+  const shown = open ? msgs : preview;
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-display text-lg font-semibold">Conversation</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">{msgs.length} message{msgs.length === 1 ? "" : "s"}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">The chat with our AI assistant that helped shape this quote.</p>
+        <div className="space-y-2">
+          {!open && msgs.length > preview.length && (
+            <p className="text-xs text-muted-foreground italic text-center">Showing last {preview.length} of {msgs.length} messages</p>
+          )}
+          {shown.map((m, i) => {
+            const isUser = m.role === "user";
+            return (
+              <div key={i} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                  isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                }`}>
+                  {m.content}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {msgs.length > preview.length && (
+          <Button size="sm" variant="outline" className="w-full" onClick={() => setOpen(o => !o)}>
+            {open ? "Show less" : `Show full conversation (${msgs.length})`}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
