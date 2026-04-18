@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw } from "lucide-react";
+import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw, Plus, Minus, Check } from "lucide-react";
+import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTray";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -73,6 +74,7 @@ function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving">) {
 }
 
 function PublicMenuPage() {
+  const { add, setQty, qtyOf, has } = useMenuSelections();
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
@@ -414,8 +416,15 @@ function PublicMenuPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {items.map((r) => {
                     const price = resolvedPrice(r);
+                    const inTray = has(r.id);
+                    const qty = qtyOf(r.id);
                     return (
-                      <Card key={r.id} className="shadow-warm border-border/50 overflow-hidden flex flex-col">
+                      <Card
+                        key={r.id}
+                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all ${
+                          inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
+                        }`}
+                      >
                         <div className="aspect-video bg-muted relative overflow-hidden">
                           {r.image_url ? (
                             <img
@@ -442,6 +451,11 @@ function PublicMenuPage() {
                               </span>
                             )}
                           </div>
+                          {inTray && (
+                            <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold shadow-md">
+                              <Check className="w-3 h-3" /> Added
+                            </div>
+                          )}
                         </div>
                         <CardContent className="p-4 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
@@ -471,6 +485,49 @@ function PublicMenuPage() {
                               <span className="px-2 py-0.5 bg-gold/20 text-warm text-[10px] rounded-full">GF</span>
                             )}
                           </div>
+                          <div className="mt-4 pt-3 border-t border-border/50">
+                            {!inTray ? (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  add({
+                                    id: r.id,
+                                    name: r.name,
+                                    category: r.category,
+                                    cost_per_serving: Number(r.cost_per_serving || 0),
+                                  })
+                                }
+                                className="w-full gap-2 bg-gradient-warm text-primary-foreground"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Add to Selections
+                              </Button>
+                            ) : (
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-muted-foreground">Quantity per guest</span>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-7 w-7"
+                                    onClick={() => setQty(r.id, qty - 1)}
+                                    aria-label="Decrease"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </Button>
+                                  <span className="min-w-7 text-center text-sm font-bold">{qty}</span>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-7 w-7"
+                                    onClick={() => setQty(r.id, qty + 1)}
+                                    aria-label="Increase"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -490,6 +547,8 @@ function PublicMenuPage() {
           </Link>
         </div>
       </div>
+
+      <SelectionTray markup={MARKUP} />
     </div>
   );
 }
