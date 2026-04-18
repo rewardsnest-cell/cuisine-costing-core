@@ -233,34 +233,47 @@ function SynonymsPage() {
 
   // ---------- Auto-relink + recompute when a synonym is added ----------
   // Finds recipe_ingredients whose normalized name matches `aliasNormalized`,
-  // links them to the inventory item matching `canonical`, then recomputes
-  // total_cost + cost_per_serving for affected recipes.
+  // links them to the inventory item matching `canonical`, seeds their
+  // cost_per_unit from inventory's average_cost_per_unit (using unit-aware
+  // conversion when possible), then recomputes affected recipes' totals.
   const relinkAndRecompute = async (aliasNormalized: string, canonical: string) => {
     const invItem = inventoryByNormName.get(normalize(canonical));
     if (!invItem) {
-      // Canonical doesn't match any inventory item — nothing to relink
       return { linked: 0, recipesUpdated: 0 };
     }
 
-    // Pull unmatched ingredients (limit large but bounded)
+    // Pull ALL ingredients matching this alias (linked or not) so we can
+    // refresh stale fallback cost_per_unit values too.
     const { data: ings, error: ingsErr } = await (supabase as any)
       .from("recipe_ingredients")
-      .select("id, recipe_id, name, quantity, unit, cost_per_unit")
-      .is("inventory_item_id", null)
-      .limit(5000);
+      .select("id, recipe_id, name, quantity, unit, cost_per_unit, inventory_item_id")
+      .limit(10000);
     if (ingsErr) return { linked: 0, recipesUpdated: 0 };
 
     const matching = (ings || []).filter((r: any) => normalize(r.name) === aliasNormalized);
     if (matching.length === 0) return { linked: 0, recipesUpdated: 0 };
 
-    const ids = matching.map((m: any) => m.id);
     const recipeIds = Array.from(new Set(matching.map((m: any) => m.recipe_id)));
 
-    const { error: updErr } = await (supabase as any)
-      .from("recipe_ingredients")
-      .update({ inventory_item_id: invItem.id })
-      .in("id", ids);
-    if (updErr) return { linked: 0, recipesUpdated: 0 };
+    // Seed cost_per_unit from inventory using unit-aware conversion.
+    // Falls back to raw avg cost when units aren't convertible.
+    const avgCost = Number(invItem.average_cost_per_unit) || 0;
+    let linked = 0;
+    for (const m of matching as any[]) {
+      const conv = getIngredientCostMetrics({
+        quantity: 1,
+        unit: m.unit,
+        fallbackCostPerUnit: avgCost,
+        inventoryItem: invItem,
+      });
+      const seededCost = conv.usedInventoryConversion ? conv.unitCost : avgCost;
+      const { error: uErr } = await (supabase as any)
+        .from("recipe_ingredients")
+        .update({ inventory_item_id: invItem.id, cost_per_unit: seededCost })
+        .eq("id", m.id);
+      if (!uErr) linked++;
+    }
+    if (linked === 0) return { linked: 0, recipesUpdated: 0 };
 
     // Recompute affected recipes' costs
     const { data: recipesData } = await (supabase as any)
