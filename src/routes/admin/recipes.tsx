@@ -287,6 +287,7 @@ function RecipesPage() {
   // List view
   return (
     <div className="space-y-6">
+      <UnlinkedIngredientsReview />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex gap-2 flex-1 max-w-xl">
           <div className="relative flex-1">
