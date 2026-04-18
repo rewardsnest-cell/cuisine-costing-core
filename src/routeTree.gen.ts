@@ -29,6 +29,7 @@ import { Route as AdminTimesheetRouteImport } from './routes/admin/timesheet'
 import { Route as AdminSuppliersRouteImport } from './routes/admin/suppliers'
 import { Route as AdminSetPasswordRouteImport } from './routes/admin/set-password'
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
+import { Route as AdminSalesRouteImport } from './routes/admin/sales'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
 import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
@@ -139,6 +140,11 @@ const AdminScheduleRoute = AdminScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSalesRoute = AdminSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRegisterRoute = AdminRegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/sales': typeof AdminSalesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/sales': typeof AdminSalesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRoute
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/sales': typeof AdminSalesRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/set-password': typeof AdminSetPasswordRoute
   '/admin/suppliers': typeof AdminSuppliersRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/sales'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/sales'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/admin/receipts'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/sales'
     | '/admin/schedule'
     | '/admin/set-password'
     | '/admin/suppliers'
@@ -532,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/sales': {
+      id: '/admin/sales'
+      path: '/sales'
+      fullPath: '/admin/sales'
+      preLoaderRoute: typeof AdminSalesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/register': {
       id: '/admin/register'
       path: '/register'
@@ -608,6 +627,7 @@ interface AdminRouteChildren {
   AdminReceiptsRoute: typeof AdminReceiptsRoute
   AdminRecipesRoute: typeof AdminRecipesRoute
   AdminRegisterRoute: typeof AdminRegisterRoute
+  AdminSalesRoute: typeof AdminSalesRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSetPasswordRoute: typeof AdminSetPasswordRoute
   AdminSuppliersRoute: typeof AdminSuppliersRoute
@@ -626,6 +646,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminReceiptsRoute: AdminReceiptsRoute,
   AdminRecipesRoute: AdminRecipesRoute,
   AdminRegisterRoute: AdminRegisterRoute,
+  AdminSalesRoute: AdminSalesRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSetPasswordRoute: AdminSetPasswordRoute,
   AdminSuppliersRoute: AdminSuppliersRoute,
