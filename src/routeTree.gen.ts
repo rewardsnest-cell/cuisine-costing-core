@@ -74,6 +74,7 @@ import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
+import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -418,6 +419,12 @@ const AdminBrandColorsRoute = AdminBrandColorsRouteImport.update({
   path: '/brand-colors',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAutoLinkIngredientsRoute =
+  AdminAutoLinkIngredientsRouteImport.update({
+    id: '/auto-link-ingredients',
+    path: '/auto-link-ingredients',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAccessRoute = AdminAccessRouteImport.update({
   id: '/access',
   path: '/access',
@@ -506,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -583,6 +591,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -663,6 +672,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -744,6 +754,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -821,6 +832,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -900,6 +912,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -1453,6 +1466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBrandColorsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/auto-link-ingredients': {
+      id: '/admin/auto-link-ingredients'
+      path: '/auto-link-ingredients'
+      fullPath: '/admin/auto-link-ingredients'
+      preLoaderRoute: typeof AdminAutoLinkIngredientsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/access': {
       id: '/admin/access'
       path: '/access'
@@ -1568,6 +1588,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
+  AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
@@ -1603,6 +1624,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
+  AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,

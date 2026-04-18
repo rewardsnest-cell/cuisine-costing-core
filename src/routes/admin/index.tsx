@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -185,6 +186,8 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((s) => <StatCard key={s.label} stat={s} />)}
       </div>
+
+      <CostHealthWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-warm border-border/50">
