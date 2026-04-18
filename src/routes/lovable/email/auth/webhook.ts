@@ -28,9 +28,9 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-const SITE_NAME = "cuisine-costing-core"
+const SITE_NAME = "VPS Finest"
 const SENDER_DOMAIN = "notify.vpfinest.com"
-const ROOT_DOMAIN = "vpfinest.com"
+const ROOT_DOMAIN = "vpsfinest.com"
 const FROM_DOMAIN = "notify.vpfinest.com"
 
 function redactEmail(email: string | null | undefined): string {
