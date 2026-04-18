@@ -142,6 +142,31 @@ function ScanAssetsPage() {
     }
   };
 
+  const [savedSlugs, setSavedSlugs] = useState<Set<string>>(new Set());
+  const [savingSlug, setSavingSlug] = useState<string | null>(null);
+
+  const handleQuickSave = async (qp: QuickPick) => {
+    if (!result) return toast.error("Run a scan first");
+    const best = pickBestFor(qp, result.images);
+    if (!best) return toast.error("No images available");
+    setSavingSlug(qp.slug);
+    try {
+      const res = await importFn({
+        data: { items: [{ url: best.url, alt: best.alt, category: qp.category, slug: qp.slug }] },
+      });
+      if (res.imported > 0) {
+        toast.success(`Saved ${qp.slug}`);
+        setSavedSlugs((s) => new Set(s).add(qp.slug));
+      } else {
+        toast.error(`Failed: ${res.errors[0]?.error || "unknown"}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Save failed");
+    } finally {
+      setSavingSlug(null);
+    }
+  };
+
   const toggle = (url: string) => {
     setPicked((s) => {
       const n = new Set(s);
