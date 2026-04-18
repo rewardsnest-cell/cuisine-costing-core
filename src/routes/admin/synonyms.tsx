@@ -404,6 +404,59 @@ function SynonymsPage() {
     setSuggestions((prev) => prev.filter((x) => x.alias_normalized !== s.alias_normalized));
   };
 
+  // ---------- Bulk add (textarea) ----------
+  const [bulkText, setBulkText] = useState("");
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const handleBulkAdd = async () => {
+    const lines = bulkText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      toast.error("Paste one synonym per line");
+      return;
+    }
+    setBulkAdding(true);
+    const existing = new Map(rows.map((r) => [r.alias_normalized, r] as const));
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    let totalLinked = 0;
+    let totalRecipes = 0;
+    for (const raw of lines) {
+      // Accept "alias => canonical", "alias -> canonical", "alias = canonical", or "alias,canonical"
+      const m = raw.match(/^(.+?)\s*(?:=>|->|→|=|,|\t)\s*(.+)$/);
+      if (!m) { skipped++; continue; }
+      const alias = m[1].trim();
+      const canonical = m[2].trim();
+      if (!alias || !canonical) { skipped++; continue; }
+      const aliasNorm = normalize(alias);
+      const ex = existing.get(aliasNorm);
+      if (ex) {
+        const { error } = await (supabase as any)
+          .from("ingredient_synonyms")
+          .update({ alias, canonical })
+          .eq("id", ex.id);
+        if (!error) updated++;
+      } else {
+        const { error } = await (supabase as any)
+          .from("ingredient_synonyms")
+          .insert({ alias, canonical, alias_normalized: aliasNorm });
+        if (!error) added++;
+      }
+      const res = await relinkAndRecompute(aliasNorm, canonical);
+      totalLinked += res.linked;
+      totalRecipes += res.recipesUpdated;
+    }
+    setBulkAdding(false);
+    setBulkText("");
+    toast.success(
+      `Bulk add: ${added} added, ${updated} updated${skipped ? `, ${skipped} skipped` : ""}` +
+        (totalLinked ? ` · re-linked ${totalLinked} ingredients in ${totalRecipes} recipes` : ""),
+    );
+    load();
+  };
+
   // ---------- CSV import / export ----------
   const exportCsv = () => {
     const lines = ["alias,canonical"];
