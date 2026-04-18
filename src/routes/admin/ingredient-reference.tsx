@@ -117,6 +117,14 @@ function IngredientReferencePage() {
     notes: "",
   });
   const [creating, setCreating] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestRefId, setSuggestRefId] = useState<string | null>(null);
+  const [suggestRefName, setSuggestRefName] = useState<string>("");
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestAttaching, setSuggestAttaching] = useState(false);
+  const [suggestions, setSuggestions] = useState<
+    Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }>
+  >([]);
 
   const resetCreateDraft = () => {
     setCreateDraft({
