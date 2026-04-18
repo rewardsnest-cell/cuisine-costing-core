@@ -127,6 +127,7 @@ function IngredientReferencePage() {
         linkResults: [],
         linking: false,
         showLinker: false,
+        expanded: false,
       })),
     );
     setLoading(false);
