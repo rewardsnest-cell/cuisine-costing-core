@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
+import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const Route = createFileRoute("/my-events")({
   head: () => ({ meta: [{ title: "My Events — TasteQuote" }] }),
@@ -44,51 +46,59 @@ function MyEventsPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Sign in to see your assigned events.</p>
-          <Link to="/login" className="text-primary font-medium underline">Sign in</Link>
+      <>
+        <PublicHeader />
+        <div className="min-h-screen flex items-center justify-center px-4 pt-16">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Sign in to see your assigned events.</p>
+            <Link to="/login" className="text-primary font-medium underline">Sign in</Link>
+          </div>
         </div>
-      </div>
+        <PublicFooter />
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-display text-3xl font-bold">My Events</h1>
-          <p className="text-muted-foreground text-sm mt-1">Events you've been assigned to work.</p>
-        </div>
-        {rows.length === 0 ? (
-          <Card><CardContent className="p-12 text-center">
-            <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-muted-foreground">You have no assigned events yet.</p>
-          </CardContent></Card>
-        ) : (
-          <div className="space-y-3">
-            {rows.map((a) => (
-              <Card key={a.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{a.quote?.client_name || "Event"} · {a.quote?.event_type || ""}</p>
-                      <p className="text-xs text-muted-foreground">Ref: {a.quote?.reference_number || a.quote?.id.slice(0, 8)}</p>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{a.role}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />{a.quote?.event_date || "TBD"}</span>
-                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{a.quote?.guest_count} guests</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />Status: {a.quote?.status}</span>
-                  </div>
-                  {a.notes && <p className="text-sm bg-muted/50 rounded-md p-2">{a.notes}</p>}
-                </CardContent>
-              </Card>
-            ))}
+    <>
+      <PublicHeader />
+      <div className="min-h-screen bg-background py-10 px-4 pt-24">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div>
+            <h1 className="font-display text-3xl font-bold">My Events</h1>
+            <p className="text-muted-foreground text-sm mt-1">Events you've been assigned to work.</p>
           </div>
-        )}
+          {rows.length === 0 ? (
+            <Card><CardContent className="p-12 text-center">
+              <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-muted-foreground">You have no assigned events yet.</p>
+            </CardContent></Card>
+          ) : (
+            <div className="space-y-3">
+              {rows.map((a) => (
+                <Card key={a.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{a.quote?.client_name || "Event"} · {a.quote?.event_type || ""}</p>
+                        <p className="text-xs text-muted-foreground">Ref: {a.quote?.reference_number || a.quote?.id.slice(0, 8)}</p>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{a.role}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />{a.quote?.event_date || "TBD"}</span>
+                      <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{a.quote?.guest_count} guests</span>
+                      <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />Status: {a.quote?.status}</span>
+                    </div>
+                    {a.notes && <p className="text-sm bg-muted/50 rounded-md p-2">{a.notes}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <PublicFooter />
+    </>
   );
 }
