@@ -33,6 +33,16 @@ export const Route = createFileRoute("/event/$reference")({
   ),
 });
 
+type AlcoholPrefs = { beer?: string; wine?: string; spirits?: string; signatureCocktail?: string };
+type QuotePrefs = {
+  proteinDetails?: string; vegetableNotes?: string; cuisineLean?: string;
+  spiceLevel?: string; vibe?: string; notes?: string; alcohol?: AlcoholPrefs;
+};
+type DietaryPrefs = {
+  allergies?: string[]; style?: string; proteins?: string[];
+  serviceStyle?: string; extras?: string[]; addons?: string[];
+  tier?: string; preferences?: QuotePrefs;
+};
 type Quote = {
   id: string;
   reference_number: string | null;
@@ -47,6 +57,7 @@ type Quote = {
   total: number | null;
   status: string;
   notes: string | null;
+  dietary_preferences: DietaryPrefs | null;
 };
 
 type LineItem = { id: string; name: string; quantity: number; unit_price: number; total_price: number };
@@ -222,6 +233,9 @@ function EventPage() {
             </CardContent>
           </Card>
 
+          {/* Menu, allergies & chef preferences */}
+          <PreferencesCard prefs={quote.dietary_preferences} />
+
           {/* Quote summary */}
           <Card>
             <CardContent className="p-6 space-y-3">
@@ -248,5 +262,65 @@ function EventPage() {
       </div>
       <PublicFooter />
     </div>
+  );
+}
+
+function PrefRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-3 text-sm py-1">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="font-medium text-right capitalize">{value}</span>
+    </div>
+  );
+}
+
+function PreferencesCard({ prefs }: { prefs: DietaryPrefs | null }) {
+  const dp = prefs || {};
+  const p = dp.preferences || {};
+  const list = (arr?: string[]) => (arr && arr.length ? arr.join(", ") : "");
+  const hasMenu = dp.style || (dp.proteins && dp.proteins.length) || dp.serviceStyle || dp.tier
+    || (dp.allergies && dp.allergies.length) || (dp.extras && dp.extras.length) || (dp.addons && dp.addons.length);
+  const hasChef = p.proteinDetails || p.vegetableNotes || p.cuisineLean || p.spiceLevel || p.vibe || p.notes || p.alcohol;
+  if (!hasMenu && !hasChef) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <h2 className="font-display text-lg font-semibold">Menu Preferences</h2>
+
+        {hasMenu && (
+          <div className="space-y-1">
+            <PrefRow label="Style" value={dp.style} />
+            <PrefRow label="Proteins" value={list(dp.proteins)} />
+            <PrefRow label="Service" value={dp.serviceStyle} />
+            <PrefRow label="Tier" value={dp.tier} />
+            <PrefRow label="Allergies" value={list(dp.allergies)} />
+            <PrefRow label="Extras" value={list(dp.extras)} />
+            <PrefRow label="Add-ons" value={list(dp.addons)} />
+          </div>
+        )}
+
+        {hasChef && (
+          <div className="border-t pt-3 space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Chef preferences</p>
+            <PrefRow label="Protein notes" value={p.proteinDetails} />
+            <PrefRow label="Vegetables" value={p.vegetableNotes} />
+            <PrefRow label="Cuisine lean" value={p.cuisineLean} />
+            <PrefRow label="Spice" value={p.spiceLevel} />
+            <PrefRow label="Vibe" value={p.vibe} />
+            {p.alcohol && (
+              <>
+                <PrefRow label="Beer" value={p.alcohol.beer} />
+                <PrefRow label="Wine" value={p.alcohol.wine} />
+                <PrefRow label="Spirits" value={p.alcohol.spirits} />
+                <PrefRow label="Signature cocktail" value={p.alcohol.signatureCocktail} />
+              </>
+            )}
+            <PrefRow label="Notes" value={p.notes} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

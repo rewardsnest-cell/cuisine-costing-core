@@ -11,7 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { FileText, Users, Trash2, MessageSquare } from "lucide-react";
+import { FileText, Users, Trash2, MessageSquare, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/quotes")({
@@ -19,6 +19,16 @@ export const Route = createFileRoute("/admin/quotes")({
 });
 
 type TranscriptMsg = { role: string; content: string };
+type AlcoholPrefs = { beer?: string; wine?: string; spirits?: string; signatureCocktail?: string };
+type QuotePrefs = {
+  proteinDetails?: string; vegetableNotes?: string; cuisineLean?: string;
+  spiceLevel?: string; vibe?: string; notes?: string; alcohol?: AlcoholPrefs;
+};
+type DietaryPrefs = {
+  allergies?: string[]; style?: string; proteins?: string[];
+  serviceStyle?: string; extras?: string[]; addons?: string[];
+  tier?: string; preferences?: QuotePrefs;
+};
 type Quote = {
   id: string;
   client_name: string | null;
@@ -29,6 +39,10 @@ type Quote = {
   total: number;
   status: string;
   created_at: string;
+  notes: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  dietary_preferences: DietaryPrefs | null;
   conversation: { source?: string; messages?: TranscriptMsg[] } | null;
 };
 
@@ -61,6 +75,8 @@ function QuotesPage() {
   const [pickNotes, setPickNotes] = useState("");
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [transcriptQuote, setTranscriptQuote] = useState<Quote | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsQuote, setDetailsQuote] = useState<Quote | null>(null);
 
   const loadQuotes = async () => {
     const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
@@ -167,6 +183,9 @@ function QuotesPage() {
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(q.status)}`}>{q.status}</span>
                 <p className="font-display text-lg font-bold">${Number(q.total).toFixed(2)}</p>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setDetailsQuote(q); setDetailsOpen(true); }}>
+                  <Eye className="w-3.5 h-3.5" /> Details
+                </Button>
                 {q.conversation?.messages?.length ? (
                   <Button variant="outline" size="sm" className="gap-2" onClick={() => { setTranscriptQuote(q); setTranscriptOpen(true); }}>
                     <MessageSquare className="w-3.5 h-3.5" /> Transcript
@@ -180,6 +199,19 @@ function QuotesPage() {
           ))}
         </div>
       )}
+
+      {/* Quote details dialog: full selections + AI preferences */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quote Details — {detailsQuote?.client_name || "Quote"}</DialogTitle>
+          </DialogHeader>
+          {detailsQuote && <QuoteDetailsBody q={detailsQuote} />}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={transcriptOpen} onOpenChange={setTranscriptOpen}>
         <DialogContent className="max-w-2xl">
@@ -268,6 +300,77 @@ function QuotesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-3 text-sm py-1">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="font-medium text-right capitalize">{value}</span>
+    </div>
+  );
+}
+
+function QuoteDetailsBody({ q }: { q: Quote }) {
+  const dp = q.dietary_preferences || {};
+  const p = dp.preferences || {};
+  const list = (arr?: string[]) => (arr && arr.length ? arr.join(", ") : "");
+
+  return (
+    <div className="space-y-5 pr-1">
+      <section className="space-y-1">
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Client & Event</h3>
+        <Row label="Client" value={q.client_name} />
+        <Row label="Email" value={q.client_email} />
+        <Row label="Event" value={q.event_type} />
+        <Row label="Date" value={q.event_date} />
+        <Row label="Guests" value={String(q.guest_count)} />
+        <Row label="Venue" value={q.location_name} />
+        <Row label="Address" value={q.location_address} />
+        <Row label="Total" value={`$${Number(q.total).toFixed(2)}`} />
+        <Row label="Status" value={q.status} />
+      </section>
+
+      <section className="space-y-1">
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Menu & Service</h3>
+        <Row label="Style" value={dp.style} />
+        <Row label="Proteins" value={list(dp.proteins)} />
+        <Row label="Service" value={dp.serviceStyle} />
+        <Row label="Tier" value={dp.tier} />
+        <Row label="Allergies" value={list(dp.allergies)} />
+        <Row label="Extras" value={list(dp.extras)} />
+        <Row label="Add-ons" value={list(dp.addons)} />
+      </section>
+
+      {(p.proteinDetails || p.vegetableNotes || p.cuisineLean || p.spiceLevel || p.vibe || p.notes || p.alcohol) && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Chef Preferences</h3>
+          <Row label="Protein notes" value={p.proteinDetails} />
+          <Row label="Vegetables" value={p.vegetableNotes} />
+          <Row label="Cuisine lean" value={p.cuisineLean} />
+          <Row label="Spice" value={p.spiceLevel} />
+          <Row label="Vibe" value={p.vibe} />
+          {p.alcohol && (
+            <>
+              <Row label="Beer" value={p.alcohol.beer} />
+              <Row label="Wine" value={p.alcohol.wine} />
+              <Row label="Spirits" value={p.alcohol.spirits} />
+              <Row label="Signature cocktail" value={p.alcohol.signatureCocktail} />
+            </>
+          )}
+          <Row label="Notes" value={p.notes} />
+        </section>
+      )}
+
+      {q.notes && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Quote Notes</h3>
+          <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-md p-3">{q.notes}</p>
+        </section>
+      )}
     </div>
   );
 }

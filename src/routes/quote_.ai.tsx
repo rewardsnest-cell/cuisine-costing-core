@@ -28,9 +28,42 @@ export const Route = createFileRoute("/quote_/ai")({
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 type ChipGroup =
-  | { kind: "text"; match: RegExp; chips: string[] }
+  | { kind: "text"; match?: RegExp; chips: string[] }
   | { kind: "date"; match: RegExp }
   | { kind: "guests"; match: RegExp };
+
+// Try to derive chips directly from the question text when no rule matches.
+// Handles two patterns:
+//   1) Either/or: "...A, B, or C?" / "A or B?"
+//   2) Inline list of options in quotes: '"ribeye" or "filet"'
+function autoChipsFromQuestion(q: string): string[] | null {
+  const cleaned = q.replace(/\s+/g, " ").trim();
+
+  // Pattern: extract chunks between the last verb-ish phrase and the "?"
+  // Look for "A, B, or C" or "A or B" near the end of the question.
+  const tail = cleaned.slice(Math.max(0, cleaned.length - 220));
+  const orMatch = tail.match(/([A-Za-z][\w '&/-]{1,40}(?:\s*,\s*[A-Za-z][\w '&/-]{1,40})+\s*,?\s*or\s*[A-Za-z][\w '&/-]{1,40})\s*\??\s*$/i)
+    || tail.match(/([A-Za-z][\w '&/-]{1,40}\s+or\s+[A-Za-z][\w '&/-]{1,40})\s*\??\s*$/i);
+
+  if (orMatch) {
+    const raw = orMatch[1];
+    const parts = raw
+      .split(/\s*,\s*|\s+or\s+/i)
+      .map((p) => p.trim().replace(/^["'`]|["'`]$/g, ""))
+      .filter((p) => p && p.length <= 32 && !/^(the|a|an|and|with|for|on|of)$/i.test(p));
+    const unique = Array.from(new Set(parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1))));
+    if (unique.length >= 2 && unique.length <= 6) return unique;
+  }
+
+  // Pattern: quoted suggestions like "ribeye", "filet", "brisket"
+  const quoted = Array.from(cleaned.matchAll(/["'`]([A-Za-z][\w &'/-]{1,32})["'`]/g)).map((m) => m[1]);
+  if (quoted.length >= 2 && quoted.length <= 6) {
+    const unique = Array.from(new Set(quoted.map((p) => p.charAt(0).toUpperCase() + p.slice(1))));
+    if (unique.length >= 2) return unique;
+  }
+
+  return null;
+}
 
 // Order matters — date/guests must run BEFORE the generic "event type" group.
 const CHIP_GROUPS: ChipGroup[] = [
@@ -74,8 +107,11 @@ function suggestChipGroup(text: string): ChipGroup | null {
   const question = lastQuestion(text);
   if (!question) return null;
   for (const group of CHIP_GROUPS) {
-    if (group.match.test(question)) return group;
+    if (group.match && group.match.test(question)) return group;
   }
+  // Fallback: derive chips directly from the question wording.
+  const auto = autoChipsFromQuestion(question);
+  if (auto) return { kind: "text", chips: auto };
   return null;
 }
 
