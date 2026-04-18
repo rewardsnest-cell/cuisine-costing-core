@@ -38,26 +38,55 @@ const CONTEXT_COLOR: Record<ScannedImage["context"], string> = {
 
 function ScanAssetsPage() {
   const scan = useServerFn(scanVpsfinestAssets);
+  const importFn = useServerFn(importSiteAssets);
   const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof scanVpsfinestAssets>> | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [slugs, setSlugs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<ScannedImage["context"] | "all">("all");
 
   const handleScan = async () => {
     setScanning(true);
     setResult(null);
     setPicked(new Set());
+    setSlugs({});
     try {
       const r = await scan();
       setResult(r);
-      // Pre-select og + hero + recipe by default
       const auto = new Set(r.images.filter((i) => ["og", "hero", "recipe"].includes(i.context)).map((i) => i.url));
       setPicked(auto);
+      const initialSlugs: Record<string, string> = {};
+      r.images.forEach((img, idx) => { initialSlugs[img.url] = suggestSlug(img, idx); });
+      setSlugs(initialSlugs);
       toast.success(`Found ${r.uniqueImages} unique images across ${r.pagesScanned} pages`);
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!result) return;
+    const items = result.images
+      .filter((i) => picked.has(i.url))
+      .map((i) => ({
+        url: i.url,
+        alt: i.alt,
+        category: i.context,
+        slug: slugs[i.url] || suggestSlug(i, 0),
+      }));
+    if (!items.length) return toast.error("Pick at least one image");
+    setImporting(true);
+    try {
+      const res = await importFn({ data: { items } });
+      toast.success(`Imported ${res.imported} · failed ${res.failed}`);
+      if (res.errors.length) console.error("Import errors:", res.errors);
+    } catch (e: any) {
+      toast.error(e?.message || "Import failed");
+    } finally {
+      setImporting(false);
     }
   };
 
