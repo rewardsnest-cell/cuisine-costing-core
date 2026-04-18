@@ -166,6 +166,56 @@ function AutoLink() {
     setGroups((prev) => prev.map((x) => (x.alias_normalized === norm ? { ...x, busy: false, done: true } : x)));
   };
 
+  const updateGroup = (norm: string, patch: Partial<UnlinkedGroup>) =>
+    setGroups((prev) => prev.map((x) => (x.alias_normalized === norm ? { ...x, ...patch } : x)));
+
+  const createInventoryAndLink = async (norm: string) => {
+    const g = groups.find((x) => x.alias_normalized === norm);
+    if (!g) return;
+    const name = g.newName.trim();
+    if (!name) { toast.error("Name is required"); return; }
+    const cost = parseFloat(g.newCost);
+
+    updateGroup(norm, { busy: true });
+
+    const { data: invItem, error: invErr } = await supabase
+      .from("inventory_items")
+      .insert({
+        name,
+        unit: g.newUnit || "each",
+        average_cost_per_unit: isNaN(cost) ? 0 : cost,
+        last_receipt_cost: isNaN(cost) ? null : cost,
+      })
+      .select("id, name")
+      .single();
+    if (invErr || !invItem) {
+      toast.error(invErr?.message || "Failed to create inventory item");
+      updateGroup(norm, { busy: false });
+      return;
+    }
+
+    const { error: linkErr } = await supabase
+      .from("recipe_ingredients")
+      .update({ inventory_item_id: invItem.id })
+      .in("id", g.ingredient_ids);
+    if (linkErr) {
+      toast.error(linkErr.message);
+      updateGroup(norm, { busy: false });
+      return;
+    }
+
+    const { error: synErr } = await (supabase as any)
+      .from("ingredient_synonyms")
+      .upsert(
+        { alias: g.alias, alias_normalized: norm, canonical: invItem.name },
+        { onConflict: "alias_normalized" }
+      );
+    if (synErr) console.warn("synonym upsert failed:", synErr.message);
+
+    toast.success(`Created "${invItem.name}" and linked ${g.count} ingredient${g.count > 1 ? "s" : ""}`);
+    updateGroup(norm, { busy: false, done: true });
+  };
+
   const dismissGroup = async (norm: string) => {
     const g = groups.find((x) => x.alias_normalized === norm);
     if (!g) return;
