@@ -68,6 +68,39 @@ const VOLUME_TO_LITER: Record<string, number> = {
   tablespoon: 0.0147868,
   tsp: 0.00492892,
   teaspoon: 0.00492892,
+  // tiny volumes
+  pinch: 0.00031,
+  pinches: 0.00031,
+  dash: 0.00062,
+  dashes: 0.00062,
+  drop: 0.00005,
+  drops: 0.00005,
+};
+
+// Count-based / "each-like" units. Treated as 1:1 with `each` so an inventory item
+// priced per `each` costs correctly when a recipe asks for cloves, slices, sprigs, etc.
+// For weight-accurate conversion, set a typical mass on the ingredient_reference (DB-side).
+const COUNT_TO_EACH: Record<string, number> = {
+  each: 1, ea: 1,
+  piece: 1, pieces: 1, pc: 1, pcs: 1,
+  unit: 1, units: 1,
+  whole: 1,
+  clove: 1, cloves: 1,
+  slice: 1, slices: 1,
+  bunch: 1, bunches: 1,
+  sprig: 1, sprigs: 1,
+  head: 1, heads: 1,
+  stick: 1, sticks: 1,
+  leaf: 1, leaves: 1,
+  ear: 1, ears: 1,
+  stalk: 1, stalks: 1,
+  sheet: 1, sheets: 1,
+  pkg: 1, package: 1, packages: 1,
+  can: 1, cans: 1,
+  jar: 1, jars: 1,
+  bottle: 1, bottles: 1,
+  box: 1, boxes: 1,
+  bag: 1, bags: 1,
 };
 
 export function convertQty(qty: number, fromUnit: string, toUnit: string): number | null {
