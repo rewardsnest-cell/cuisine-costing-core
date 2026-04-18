@@ -131,6 +131,45 @@ function CompetitorQuotesPage() {
     n == null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n));
   const fmtDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString() : "—");
 
+  const exportCsv = () => {
+    if (filtered.length === 0) {
+      toast.error("Nothing to export");
+      return;
+    }
+    const headers = [
+      "Created", "Client", "Email", "Competitor", "Event type", "Event date",
+      "Guests", "Per guest", "Subtotal", "Taxes", "Gratuity", "Total",
+      "Service style", "Outcome", "Counter total", "Gap", "Notes",
+    ];
+    const esc = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [headers.join(",")];
+    for (const r of filtered) {
+      const gap = r.total != null && r.counter_total != null ? Number(r.counter_total) - Number(r.total) : "";
+      lines.push([
+        new Date(r.created_at).toISOString(),
+        r.client_name ?? "", r.client_email ?? "", r.competitor_name ?? "",
+        r.event_type ?? "", r.event_date ?? "",
+        r.guest_count ?? "", r.per_guest_price ?? "", r.subtotal ?? "",
+        r.taxes ?? "", r.gratuity ?? "", r.total ?? "",
+        r.service_style ?? "", r.outcome, r.counter_total ?? "", gap,
+        r.notes ?? "",
+      ].map(esc).join(","));
+    }
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `competitor-quotes-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filtered.length} row${filtered.length === 1 ? "" : "s"}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -138,9 +177,14 @@ function CompetitorQuotesPage() {
           <h1 className="font-display text-2xl font-bold text-foreground">Competitor Quotes</h1>
           <p className="text-sm text-muted-foreground mt-1">All saved competitor analyses with win/loss tracking.</p>
         </div>
-        <Link to="/admin/quotes">
-          <Button variant="outline" className="gap-2"><FileSearch className="w-4 h-4" />Analyze New Quote</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={exportCsv}>
+            <Download className="w-4 h-4" />Export CSV
+          </Button>
+          <Link to="/admin/quotes">
+            <Button variant="outline" className="gap-2"><FileSearch className="w-4 h-4" />Analyze New Quote</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
