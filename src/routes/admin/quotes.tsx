@@ -19,6 +19,16 @@ export const Route = createFileRoute("/admin/quotes")({
 });
 
 type TranscriptMsg = { role: string; content: string };
+type AlcoholPrefs = { beer?: string; wine?: string; spirits?: string; signatureCocktail?: string };
+type QuotePrefs = {
+  proteinDetails?: string; vegetableNotes?: string; cuisineLean?: string;
+  spiceLevel?: string; vibe?: string; notes?: string; alcohol?: AlcoholPrefs;
+};
+type DietaryPrefs = {
+  allergies?: string[]; style?: string; proteins?: string[];
+  serviceStyle?: string; extras?: string[]; addons?: string[];
+  tier?: string; preferences?: QuotePrefs;
+};
 type Quote = {
   id: string;
   client_name: string | null;
@@ -29,6 +39,10 @@ type Quote = {
   total: number;
   status: string;
   created_at: string;
+  notes: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  dietary_preferences: DietaryPrefs | null;
   conversation: { source?: string; messages?: TranscriptMsg[] } | null;
 };
 
