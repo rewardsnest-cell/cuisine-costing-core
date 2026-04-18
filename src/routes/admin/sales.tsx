@@ -70,15 +70,28 @@ function SalesDashboard() {
   useEffect(() => {
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
-      const { data } = await (supabase as any)
-        .from("sale_flyer_items")
-        .select(`
-          id, name, brand, pack_size, unit, sale_price, regular_price, inventory_item_id,
-          sale_flyers!inner(id, title, status, sale_start_date, sale_end_date, supplier_id, suppliers(name)),
-          inventory_items(name, current_stock, par_level)
-        `);
+      const [flyerRes, recipeRes] = await Promise.all([
+        (supabase as any)
+          .from("sale_flyer_items")
+          .select(`
+            id, name, brand, pack_size, unit, sale_price, regular_price, inventory_item_id,
+            sale_flyers!inner(id, title, status, sale_start_date, sale_end_date, supplier_id, suppliers(name)),
+            inventory_items(name, unit, current_stock, par_level, average_cost_per_unit)
+          `),
+        (supabase as any)
+          .from("recipe_ingredients")
+          .select("inventory_item_id")
+          .not("inventory_item_id", "is", null),
+      ]);
+
+      const usageMap = new Map<string, number>();
+      for (const ri of (recipeRes.data || []) as any[]) {
+        const k = ri.inventory_item_id as string;
+        usageMap.set(k, (usageMap.get(k) || 0) + 1);
+      }
+
       const out: Row[] = [];
-      for (const r of (data || []) as any[]) {
+      for (const r of (flyerRes.data || []) as any[]) {
         const f = r.sale_flyers;
         if (!f || f.status !== "processed") continue;
         if (f.sale_start_date && f.sale_start_date > today) continue;
@@ -87,12 +100,17 @@ function SalesDashboard() {
         const reg = r.regular_price != null ? Number(r.regular_price) : null;
         const savings_amt = sale != null && reg != null && reg > sale ? reg - sale : null;
         const savings_pct = savings_amt != null && reg ? (savings_amt / reg) * 100 : null;
+        const pack = parsePack(r.pack_size, r.unit);
+        const ppu = sale != null && pack.qty && pack.qty > 0 ? sale / pack.qty : null;
         out.push({
           id: r.id,
           name: r.name,
           brand: r.brand,
           pack_size: r.pack_size,
           unit: r.unit,
+          pack_qty: pack.qty,
+          pack_unit: pack.unit,
+          price_per_unit: ppu,
           sale_price: sale,
           regular_price: reg,
           savings_amt,
@@ -105,8 +123,11 @@ function SalesDashboard() {
           sale_end_date: f.sale_end_date,
           inventory_item_id: r.inventory_item_id,
           inventory_name: r.inventory_items?.name ?? null,
+          inventory_unit: r.inventory_items?.unit ?? null,
           current_stock: r.inventory_items?.current_stock ?? null,
           par_level: r.inventory_items?.par_level ?? null,
+          avg_cost: r.inventory_items?.average_cost_per_unit != null ? Number(r.inventory_items.average_cost_per_unit) : null,
+          recipe_usage: r.inventory_item_id ? (usageMap.get(r.inventory_item_id) || 0) : 0,
         });
       }
       setRows(out);
