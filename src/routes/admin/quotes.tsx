@@ -117,6 +117,145 @@ function QuotesPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
   const [analysisFileName, setAnalysisFileName] = useState<string>("");
+  // Linkage / save state for competitor analysis
+  const [linkMode, setLinkMode] = useState<"guest" | "account">("guest");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientResults, setClientResults] = useState<Array<{ user_id: string; full_name: string | null; email: string | null }>>([]);
+  const [linkedClient, setLinkedClient] = useState<{ user_id: string; full_name: string | null; email: string | null } | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [savedCompetitorId, setSavedCompetitorId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  const [draftQuoteId, setDraftQuoteId] = useState<string | null>(null);
+
+  // Search profiles when typing in account mode
+  useEffect(() => {
+    if (linkMode !== "account" || clientSearch.trim().length < 2) {
+      setClientResults([]);
+      return;
+    }
+    const q = clientSearch.trim();
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .or(`email.ilike.%${q}%,full_name.ilike.%${q}%`)
+        .limit(8);
+      if (!cancelled) setClientResults((data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [clientSearch, linkMode]);
+
+  // Pre-fill guest fields from analysis when it arrives
+  useEffect(() => {
+    if (analysis) {
+      setGuestName((prev) => prev || analysis.clientName || "");
+    }
+  }, [analysis]);
+
+  const resetLinkState = () => {
+    setLinkMode("guest");
+    setClientSearch(""); setClientResults([]); setLinkedClient(null);
+    setGuestName(""); setGuestEmail("");
+    setSavedCompetitorId(null); setDraftQuoteId(null);
+  };
+
+  const saveCompetitorAnalysis = async (): Promise<string | null> => {
+    if (!analysis) return null;
+    if (savedCompetitorId) return savedCompetitorId;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = {
+        created_by: user?.id ?? null,
+        client_user_id: linkMode === "account" ? linkedClient?.user_id ?? null : null,
+        client_name: linkMode === "account"
+          ? linkedClient?.full_name ?? null
+          : (guestName || analysis.clientName || null),
+        client_email: linkMode === "account"
+          ? linkedClient?.email ?? null
+          : (guestEmail || null),
+        competitor_name: analysis.competitorName,
+        event_type: analysis.eventType,
+        event_date: analysis.eventDate,
+        guest_count: analysis.guestCount,
+        per_guest_price: analysis.perGuestPrice,
+        subtotal: analysis.subtotal,
+        taxes: analysis.taxes,
+        gratuity: analysis.gratuity,
+        total: analysis.total,
+        service_style: analysis.serviceStyle,
+        analysis: analysis as any,
+        notes: analysis.notes || null,
+      };
+      const { data, error } = await (supabase as any)
+        .from("competitor_quotes")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+      setSavedCompetitorId(data.id);
+      toast.success("Competitor quote saved");
+      return data.id as string;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createDraftCounter = async () => {
+    if (!analysis) return;
+    setCreatingDraft(true);
+    try {
+      const competitorId = await saveCompetitorAnalysis();
+      const ours = analysis.ourSuggestedPrice;
+      const total = ours?.total ?? analysis.total ?? 0;
+      const guests = analysis.guestCount ?? 1;
+      const subtotal = total / 1.08;
+      const quoteRow: any = {
+        client_name: linkMode === "account"
+          ? linkedClient?.full_name ?? null
+          : (guestName || analysis.clientName || null),
+        client_email: linkMode === "account"
+          ? linkedClient?.email ?? null
+          : (guestEmail || null),
+        user_id: linkMode === "account" ? linkedClient?.user_id ?? null : null,
+        event_type: analysis.eventType,
+        event_date: analysis.eventDate,
+        guest_count: guests,
+        subtotal,
+        tax_rate: 0.08,
+        total,
+        status: "draft",
+        notes: `Counter to competitor quote${analysis.competitorName ? ` (${analysis.competitorName})` : ""}.${ours?.rationale ? ` ${ours.rationale}` : ""}`,
+        dietary_preferences: { serviceStyle: analysis.serviceStyle ?? null, addons: analysis.addons ?? [] },
+      };
+      const { data: q, error } = await supabase
+        .from("quotes")
+        .insert(quoteRow)
+        .select("id")
+        .single();
+      if (error) throw error;
+      // Link competitor analysis to the new draft
+      if (competitorId) {
+        await (supabase as any)
+          .from("competitor_quotes")
+          .update({ counter_quote_id: q.id })
+          .eq("id", competitorId);
+      }
+      setDraftQuoteId(q.id);
+      toast.success("Draft counter-quote created");
+      loadQuotes();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create draft");
+    } finally {
+      setCreatingDraft(false);
+    }
+  };
 
   const onAnalyzeFile = async (file: File) => {
     setAnalyzing(true);
