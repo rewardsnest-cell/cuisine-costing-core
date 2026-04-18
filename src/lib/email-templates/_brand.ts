@@ -1,6 +1,16 @@
 // Shared brand styles for VPS Finest auth emails — cream/serif look.
 // Body must remain white per email infra rules; the inner card carries the cream tone.
 
+export const LOGO_URL =
+  'https://qzxndabxkzhplhspkkoi.supabase.co/storage/v1/object/public/site-assets/brand/vpsfinest-logo.png'
+
+export const logoImg = {
+  display: 'block',
+  margin: '0 auto 20px',
+  height: '64px',
+  width: 'auto',
+}
+
 export const main = {
   backgroundColor: '#ffffff',
   fontFamily: 'Georgia, "Times New Roman", serif',
