@@ -397,6 +397,20 @@ function CompetitorQuotesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((r) => selected.has(r.id))}
+                      onCheckedChange={(c) => {
+                        setSelected((s) => {
+                          const next = new Set(s);
+                          if (c) filtered.forEach((r) => next.add(r.id));
+                          else filtered.forEach((r) => next.delete(r.id));
+                          return next;
+                        });
+                      }}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Competitor</TableHead>
