@@ -178,15 +178,19 @@ function PublicMenuPage() {
     let count = 0;
     if (tier !== "all") count++;
     if (meat !== "all") count++;
+    if (category !== "all") count++;
+    if (dietary !== "all") count++;
     if (search.trim()) count++;
     if (sort !== "name-asc") count++;
     if (priceRange[0] > 0 || priceRange[1] < priceMax) count++;
     return count;
-  }, [tier, meat, search, sort, priceRange, priceMax]);
+  }, [tier, meat, category, dietary, search, sort, priceRange, priceMax]);
 
   function resetFilters() {
     setTier("all");
     setMeat("all");
+    setCategory("all");
+    setDietary("all");
     setSearch("");
     setSort("name-asc");
     setPriceRange([0, priceMax]);
