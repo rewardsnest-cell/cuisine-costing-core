@@ -46,12 +46,16 @@ function MyEventsPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Sign in to see your assigned events.</p>
-          <Link to="/login" className="text-primary font-medium underline">Sign in</Link>
+      <>
+        <PublicHeader />
+        <div className="min-h-screen flex items-center justify-center px-4 pt-16">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Sign in to see your assigned events.</p>
+            <Link to="/login" className="text-primary font-medium underline">Sign in</Link>
+          </div>
         </div>
-      </div>
+        <PublicFooter />
+      </>
     );
   }
 
