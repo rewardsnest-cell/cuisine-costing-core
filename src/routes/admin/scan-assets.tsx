@@ -8,8 +8,60 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Copy, UploadCloud } from "lucide-react";
+import { Loader2, Search, Copy, UploadCloud, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
+
+type QuickPick = {
+  slug: "hero-home" | "path-recipes" | "path-catering";
+  label: string;
+  description: string;
+  category: string;
+  preferContexts: ScannedImage["context"][];
+  keywords: string[];
+};
+
+const QUICK_PICKS: QuickPick[] = [
+  {
+    slug: "hero-home",
+    label: "Hero — Home",
+    description: "Main banner image for the homepage",
+    category: "hero",
+    preferContexts: ["og", "hero"],
+    keywords: ["hero", "home", "banner", "cover", "header"],
+  },
+  {
+    slug: "path-recipes",
+    label: "Path — Recipes",
+    description: "Recipe section card image",
+    category: "hero",
+    preferContexts: ["recipe", "hero", "gallery"],
+    keywords: ["recipe", "dish", "food", "menu", "plate"],
+  },
+  {
+    slug: "path-catering",
+    label: "Path — Catering",
+    description: "Catering section card image",
+    category: "hero",
+    preferContexts: ["hero", "gallery", "og"],
+    keywords: ["catering", "event", "wedding", "buffet", "table"],
+  },
+];
+
+function pickBestFor(qp: QuickPick, images: ScannedImage[]): ScannedImage | null {
+  if (!images.length) return null;
+  const scored = images.map((img) => {
+    let score = 0;
+    const ctxIdx = qp.preferContexts.indexOf(img.context);
+    if (ctxIdx >= 0) score += (qp.preferContexts.length - ctxIdx) * 10;
+    const hay = `${img.alt || ""} ${img.url} ${img.sourcePage}`.toLowerCase();
+    for (const kw of qp.keywords) if (hay.includes(kw)) score += 5;
+    if (img.bytes && img.bytes > 50_000) score += 2;
+    if (img.bytes && img.bytes > 200_000) score += 2;
+    return { img, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.score > 0 ? scored[0].img : images[0];
+}
 
 function suggestSlug(img: ScannedImage, idx: number): string {
   const base = (img.alt || img.url.split("/").pop() || `img-${idx}`)
