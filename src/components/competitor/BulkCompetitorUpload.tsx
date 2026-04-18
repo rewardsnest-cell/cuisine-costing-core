@@ -55,7 +55,11 @@ async function analyzeBlob(blob: Blob) {
   return result;
 }
 
-async function saveCompetitorRow(analysis: any, imageUrl: string) {
+async function saveCompetitorRow(
+  analysis: any,
+  imageUrl: string,
+  pages?: { image_url: string; storage_path?: string | null }[],
+): Promise<string | null> {
   const insert: any = {
     analysis,
     source_image_url: imageUrl,
@@ -72,9 +76,15 @@ async function saveCompetitorRow(analysis: any, imageUrl: string) {
     service_style: analysis.serviceStyle ?? null,
     outcome: "pending",
   };
-  const { error } = await (supabase as any).from("competitor_quotes").insert(insert);
+  const { data: inserted, error } = await (supabase as any)
+    .from("competitor_quotes")
+    .insert(insert)
+    .select("id")
+    .single();
   if (error) throw error;
-  // Also create a receipts row mirroring the existing single-file flow
+  const competitorQuoteId = inserted?.id ?? null;
+
+  // Mirror to receipts (existing flow)
   await supabase.from("receipts").insert({
     image_url: imageUrl,
     total_amount: analysis.total ?? null,
@@ -82,6 +92,34 @@ async function saveCompetitorRow(analysis: any, imageUrl: string) {
     receipt_date: analysis.eventDate || new Date().toISOString().slice(0, 10),
     extracted_line_items: (analysis.lineItems ?? []) as any,
   });
+
+  // Save individual pages (packet mode)
+  if (competitorQuoteId && pages && pages.length > 0) {
+    const rows = pages.map((p, i) => ({
+      competitor_quote_id: competitorQuoteId,
+      page_number: i + 1,
+      image_url: p.image_url,
+      storage_path: p.storage_path ?? null,
+    }));
+    await (supabase as any).from("competitor_quote_pages").insert(rows);
+  }
+  return competitorQuoteId;
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      await worker(items[i], i);
+    }
+  });
+  await Promise.all(runners);
 }
 
 function mergeAnalyses(parts: any[]) {
