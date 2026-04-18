@@ -255,10 +255,15 @@ function PublicMenuPage() {
           })}
           <button
             onClick={resetFilters}
-            className="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors bg-card text-muted-foreground border-border hover:text-foreground inline-flex items-center gap-1.5"
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
+              activeFiltersCount > 0
+                ? "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
+                : "bg-card text-muted-foreground border-border hover:text-foreground"
+            }`}
             title="Reset all filters"
           >
-            <RotateCcw className="w-3 h-3" /> Reset
+            <RotateCcw className="w-3 h-3" />
+            Reset{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
           </button>
         </div>
         {loading ? (
