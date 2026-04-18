@@ -86,16 +86,19 @@ export type Database = {
       app_settings: {
         Row: {
           id: number
+          markup_multiplier: number
           revision_lock_days: number
           updated_at: string
         }
         Insert: {
           id?: number
+          markup_multiplier?: number
           revision_lock_days?: number
           updated_at?: string
         }
         Update: {
           id?: number
+          markup_multiplier?: number
           revision_lock_days?: number
           updated_at?: string
         }
