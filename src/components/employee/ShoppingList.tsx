@@ -144,12 +144,21 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         }
       }
 
+      // Collect supplier IDs from active sales too, so we can show their names
+      const saleSupplierIds = new Set<string>();
+      for (const r of agg.values()) {
+        if (!r.inventoryItemId) continue;
+        const sale = activeSales[r.inventoryItemId];
+        if (sale?.supplier_id) saleSupplierIds.add(sale.supplier_id);
+      }
+      const allSupIds = new Set<string>([...supplierIds, ...saleSupplierIds]);
+
       const supMap = new Map<string, string>();
-      if (supplierIds.size) {
+      if (allSupIds.size) {
         const { data: sups } = await (supabase as any)
           .from("suppliers")
           .select("id, name")
-          .in("id", Array.from(supplierIds));
+          .in("id", Array.from(allSupIds));
         for (const s of sups || []) supMap.set(s.id, s.name);
       }
 
@@ -157,7 +166,44 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         const inv = r.inventoryItemId ? invMap.get(r.inventoryItemId) : undefined;
         const inStock = inv?.current_stock || 0;
         const toBuy = Math.max(0, r.needed - inStock);
-        const supplierId = inv?.supplier_id || null;
+        const origSupplierId = inv?.supplier_id || null;
+        const origSupplierName = origSupplierId
+          ? supMap.get(origSupplierId) || "Unknown supplier"
+          : "Unassigned";
+        const avgCost = inv?.average_cost_per_unit || 0;
+
+        // Check for active sale that beats current avg cost
+        const sale = r.inventoryItemId ? activeSales[r.inventoryItemId] : undefined;
+        const saleBeats =
+          sale && sale.sale_price != null && (avgCost === 0 || sale.sale_price < avgCost);
+
+        if (saleBeats && sale) {
+          const saleSupId = sale.supplier_id || origSupplierId;
+          const saleSupName = saleSupId
+            ? supMap.get(saleSupId) || sale.supplier_name || "Unknown supplier"
+            : sale.supplier_name || "Unassigned";
+          const savingsPerUnit = avgCost > 0 ? avgCost - sale.sale_price! : 0;
+          return {
+            name: r.name,
+            unit: r.unit,
+            needed: r.needed,
+            inStock,
+            toBuy,
+            inventoryItemId: r.inventoryItemId,
+            unitCost: sale.sale_price!,
+            supplierId: saleSupId,
+            supplierName: saleSupName,
+            onSale: true,
+            salePrice: sale.sale_price,
+            regularPrice: sale.regular_price ?? avgCost ?? null,
+            packSize: sale.pack_size ?? null,
+            saleEndDate: sale.sale_end_date ?? null,
+            originalSupplierName: origSupplierName,
+            savingsPerUnit,
+            totalSavings: savingsPerUnit * toBuy,
+          };
+        }
+
         return {
           name: r.name,
           unit: r.unit,
@@ -165,9 +211,9 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
           inStock,
           toBuy,
           inventoryItemId: r.inventoryItemId,
-          unitCost: inv?.average_cost_per_unit || 0,
-          supplierId,
-          supplierName: supplierId ? supMap.get(supplierId) || "Unknown supplier" : "Unassigned",
+          unitCost: avgCost,
+          supplierId: origSupplierId,
+          supplierName: origSupplierName,
         };
       });
 
