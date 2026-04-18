@@ -187,11 +187,6 @@ function SuppliersPage() {
           ))}
         </div>
       )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
 
       <SupplierFlyersDialog
         supplierId={flyersFor?.id ?? null}
