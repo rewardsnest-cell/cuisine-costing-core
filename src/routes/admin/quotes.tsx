@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,28 @@ function QuotesPage() {
   const [saving, setSaving] = useState(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [draftQuoteId, setDraftQuoteId] = useState<string | null>(null);
+  const [recipeNames, setRecipeNames] = useState<string[]>([]);
+
+  // Load active recipe names whenever an analysis appears, to compute match preview
+  useEffect(() => {
+    if (!analysis) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("recipes").select("name").eq("active", true);
+      if (!cancelled) setRecipeNames((data ?? []).map((r: any) => r.name as string));
+    })();
+    return () => { cancelled = true; };
+  }, [analysis]);
+
+  const matchSummary = useMemo(() => {
+    const items = analysis?.lineItems ?? [];
+    const total = items.length;
+    if (total === 0 || recipeNames.length === 0) return { matched: 0, total };
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const set = new Set(recipeNames.map(norm));
+    const matched = items.filter((li: any) => li?.name && set.has(norm(li.name))).length;
+    return { matched, total };
+  }, [analysis, recipeNames]);
 
   // Search profiles when typing in account mode
   useEffect(() => {
@@ -762,6 +784,15 @@ function QuotesPage() {
                   {creatingDraft ? "Creating…" : draftQuoteId ? "Draft created ✓" : "Create draft counter-quote"}
                 </Button>
               </div>
+              {analysis && matchSummary.total > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Matched <span className="font-medium text-foreground">{matchSummary.matched}</span> of{" "}
+                  <span className="font-medium text-foreground">{matchSummary.total}</span> items to recipes.
+                  {matchSummary.matched > 0
+                    ? " Matched items will use our cost_per_serving as the unit price."
+                    : " Unmatched items keep the competitor's unit price."}
+                </p>
+              )}
               {savedCompetitorId && (
                 <p className="text-xs text-muted-foreground">
                   Saved as {linkMode === "account" ? "linked to account" : "guest"}.
