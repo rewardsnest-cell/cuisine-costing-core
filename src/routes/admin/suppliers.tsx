@@ -176,15 +176,17 @@ function SuppliersPage() {
                   <p className="text-sm text-muted-foreground">{s.phone}</p>
                 )}
                 <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 w-full"
-                    onClick={() => setFlyersFor(s)}
-                  >
-                    <Tag className="w-3.5 h-3.5" /> Sale Flyers
+                  <Button asChild variant="outline" size="sm" className="gap-1.5 w-full">
+                    <Link to="/admin/suppliers/$id" params={{ id: s.id }}>
+                      <Tag className="w-3.5 h-3.5" /> View & Sale Flyers
+                    </Link>
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
               </CardContent>
             </Card>
           ))}
