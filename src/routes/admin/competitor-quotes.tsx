@@ -377,9 +377,11 @@ function CompetitorQuotesPage() {
                             <RefreshCw className={`w-3.5 h-3.5 ${rebuilding === r.id ? "animate-spin" : ""}`} />
                             {r.counter_quote_id ? "Rebuild" : "Build"}
                           </Button>
-                          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setViewing(r)}>
-                            <Eye className="w-3.5 h-3.5" /> View
-                          </Button>
+                          <Link to="/admin/competitor-quotes/$id" params={{ id: r.id }}>
+                            <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </Button>
+                          </Link>
                           <Button
                             variant="outline"
                             size="sm"

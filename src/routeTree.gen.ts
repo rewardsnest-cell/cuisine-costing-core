@@ -45,6 +45,7 @@ import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/compet
 import { Route as AdminCompetitorQuotesRouteImport } from './routes/admin/competitor-quotes'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
+import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -226,6 +227,11 @@ const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminSuppliersRoute,
 } as any)
+const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminCompetitorQuotesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -241,7 +247,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
-  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRoute
+  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRoutesByTo {
@@ -278,7 +285,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
-  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRoute
+  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/event/$reference': typeof EventReferenceRoute
   '/quote/ai': typeof QuoteAiRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRoutesById {
@@ -317,7 +325,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin/access': typeof AdminAccessRoute
-  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRoute
+  '/admin/competitor-quotes': typeof AdminCompetitorQuotesRouteWithChildren
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
 }
 export interface FileRouteTypes {
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/admin/'
+    | '/admin/competitor-quotes/$id'
     | '/admin/suppliers/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote/ai'
     | '/admin'
+    | '/admin/competitor-quotes/$id'
     | '/admin/suppliers/$id'
   id:
     | '__root__'
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/quote_/ai'
     | '/admin/'
+    | '/admin/competitor-quotes/$id'
     | '/admin/suppliers/$id'
   fileRoutesById: FileRoutesById
 }
@@ -728,8 +740,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSuppliersIdRouteImport
       parentRoute: typeof AdminSuppliersRoute
     }
+    '/admin/competitor-quotes/$id': {
+      id: '/admin/competitor-quotes/$id'
+      path: '/$id'
+      fullPath: '/admin/competitor-quotes/$id'
+      preLoaderRoute: typeof AdminCompetitorQuotesIdRouteImport
+      parentRoute: typeof AdminCompetitorQuotesRoute
+    }
   }
 }
+
+interface AdminCompetitorQuotesRouteChildren {
+  AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
+}
+
+const AdminCompetitorQuotesRouteChildren: AdminCompetitorQuotesRouteChildren = {
+  AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
+}
+
+const AdminCompetitorQuotesRouteWithChildren =
+  AdminCompetitorQuotesRoute._addFileChildren(
+    AdminCompetitorQuotesRouteChildren,
+  )
 
 interface AdminSuppliersRouteChildren {
   AdminSuppliersIdRoute: typeof AdminSuppliersIdRoute
@@ -745,7 +777,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
-  AdminCompetitorQuotesRoute: typeof AdminCompetitorQuotesRoute
+  AdminCompetitorQuotesRoute: typeof AdminCompetitorQuotesRouteWithChildren
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
@@ -769,7 +801,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
-  AdminCompetitorQuotesRoute: AdminCompetitorQuotesRoute,
+  AdminCompetitorQuotesRoute: AdminCompetitorQuotesRouteWithChildren,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
