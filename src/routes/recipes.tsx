@@ -16,10 +16,10 @@ type Recipe = {
 export const Route = createFileRoute("/recipes")({
   head: () => ({
     meta: [
-      { title: "Recipes — VPS Finest" },
-      { name: "description", content: "Calm, reliable recipes for everyday cooking. Browse our seasonal collection." },
+      { title: "Recipes — VPS Finest, Aurora Ohio" },
+      { name: "description", content: "A small, growing library of calm, reliable recipes from VPS Finest in Aurora, Ohio. Weeknight meals, make-ahead dishes, and food for gatherings." },
       { property: "og:title", content: "Recipes — VPS Finest" },
-      { property: "og:description", content: "Calm, reliable recipes for everyday cooking." },
+      { property: "og:description", content: "Calm, reliable recipes for everyday cooking and gatherings." },
     ],
   }),
   component: RecipesPage,
@@ -53,10 +53,11 @@ function RecipesPage() {
             Cook calmly.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed font-light">
-            Reliable recipes that work the first time. Updated as we cook them.
+            A small, growing library of reliable recipes from our kitchen in Aurora, Ohio — the ones we cook on weeknights and bring to gatherings.
           </p>
         </div>
       </section>
+
 
       <section className="pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {loading ? (

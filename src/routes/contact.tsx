@@ -10,10 +10,10 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — VPS Finest, Aurora Ohio" },
-      { name: "description", content: "Get in touch with VPS Finest for catering, weddings, and tastings." },
-      { property: "og:title", content: "Contact — VPS Finest" },
-      { property: "og:description", content: "Get in touch for catering, weddings, and tastings." },
+      { title: "Contact VPS Finest — Catering in Aurora, Ohio" },
+      { name: "description", content: "Contact VPS Finest about wedding catering, event catering, or a tasting in Aurora, Ohio and Northeast Ohio. We reply within one business day." },
+      { property: "og:title", content: "Contact VPS Finest — Catering in Aurora, Ohio" },
+      { property: "og:description", content: "Reach out about weddings, event catering, or a tasting. We reply within one business day." },
     ],
   }),
   component: ContactPage,
@@ -63,13 +63,14 @@ function ContactPage() {
             Let's talk.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed font-light">
-            For catering, weddings, or tastings — reach out and we'll be in touch within one business day.
+            For wedding catering, event catering, or a tasting in Aurora, Ohio and Northeast Ohio — send us a note and we'll reply within one business day.
           </p>
         </div>
       </section>
 
       <section className="pb-16">
         <div className="max-w-xl mx-auto px-6">
+          <h2 className="sr-only">Send us a message</h2>
           {sent ? (
             <div className="border-t border-border pt-10 text-center">
               <p className="font-display text-2xl text-foreground mb-3">Thank you.</p>
@@ -87,7 +88,7 @@ function ContactPage() {
               </div>
               <div>
                 <label htmlFor="message" className="block text-xs tracking-[0.25em] uppercase text-muted-foreground mb-3">Message</label>
-                <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} required disabled={submitting} rows={5} className="bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-foreground resize-none" />
+                <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} required disabled={submitting} rows={5} className="bg-transparent border-0 border-b border-border rounded-none px-0 focus-visible:ring-0 focus-visible:border-foreground resize-none" placeholder="Date, venue, guest count, and anything else that helps." />
               </div>
               <div className="pt-4">
                 <Button type="submit" disabled={submitting} className="rounded-none px-8">
@@ -103,7 +104,7 @@ function ContactPage() {
         <div className="max-w-3xl mx-auto px-6 grid gap-10 md:grid-cols-2 text-center">
           {[
             { k: "Email", v: "hello@vpsfinest.com", href: "mailto:hello@vpsfinest.com" },
-            { k: "Service area", v: "Aurora, Ohio & Northeast Ohio", href: null },
+            { k: "Service area", v: "Aurora, Ohio · Northeast Ohio", href: null },
           ].map((c) => (
             <div key={c.k} className="border-t border-border pt-8">
               <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-3">{c.k}</p>
