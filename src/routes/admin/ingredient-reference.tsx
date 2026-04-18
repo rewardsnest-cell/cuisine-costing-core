@@ -122,9 +122,12 @@ function IngredientReferencePage() {
   const [suggestRefName, setSuggestRefName] = useState<string>("");
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestAttaching, setSuggestAttaching] = useState(false);
-  const [suggestions, setSuggestions] = useState<
-    Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }>
-  >([]);
+  type Suggestion = { alias: string; alias_normalized: string; score: number; usage: number; selected: boolean };
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // Per-session cache of scan results, keyed by reference id.
+  // Survives dialog close/reopen; cleared on full page reload.
+  const [suggestionCache, setSuggestionCache] = useState<Map<string, Suggestion[]>>(new Map());
+  const [suggestFromCache, setSuggestFromCache] = useState(false);
 
   const resetCreateDraft = () => {
     setCreateDraft({
