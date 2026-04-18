@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 export const Route = createFileRoute("/admin/competitor-quotes")({
   head: () => ({
@@ -146,6 +148,8 @@ function CompetitorQuotesPage() {
         />
       </div>
 
+      <PriceGapChart rows={filtered} />
+
       <Card>
         <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -258,6 +262,54 @@ function StatCard({ label, value, tone }: { label: string; value: string; tone?:
       <CardContent className="p-4">
         <div className="text-xs text-muted-foreground">{label}</div>
         <div className={`text-2xl font-semibold mt-1 ${toneClass}`}>{value}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const gapChartConfig = {
+  competitor: { label: "Competitor", color: "hsl(var(--chart-1, 12 76% 61%))" },
+  counter: { label: "Our counter", color: "hsl(var(--chart-2, 173 58% 39%))" },
+} satisfies ChartConfig;
+
+function PriceGapChart({ rows }: { rows: Row[] }) {
+  const data = useMemo(() => {
+    return rows
+      .filter((r) => Number(r.total ?? 0) > 0 && Number(r.counter_total ?? 0) > 0)
+      .map((r) => ({
+        date: new Date(r.created_at).getTime(),
+        label: new Date(r.created_at).toLocaleDateString(),
+        competitor: Number(r.total),
+        counter: Number(r.counter_total),
+        gap: Number(r.counter_total) - Number(r.total),
+      }))
+      .sort((a, b) => a.date - b.date);
+  }, [rows]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Price gap over time</CardTitle>
+        <p className="text-xs text-muted-foreground">Competitor total vs our counter-quote total ({data.length} pairs)</p>
+      </CardHeader>
+      <CardContent>
+        {data.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            No analyses with linked counter-quotes yet. Create a draft counter from an analysis to see the gap here.
+          </div>
+        ) : (
+          <ChartContainer config={gapChartConfig} className="h-[280px] w-full">
+            <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={11} />
+              <YAxis tickLine={false} axisLine={false} tickMargin={8} fontSize={11} tickFormatter={(v) => `$${Math.round(Number(v) / 1000)}k`} />
+              <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Line type="monotone" dataKey="competitor" stroke="var(--color-competitor)" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="counter" stroke="var(--color-counter)" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   );
