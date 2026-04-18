@@ -11,6 +11,7 @@ import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
