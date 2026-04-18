@@ -44,50 +44,63 @@ function RecipesPage() {
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
-      <section className="pt-24 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-primary text-xs tracking-widest uppercase mb-3">Recipes</p>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-primary mb-4">Cook calmly.</h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          Reliable recipes that work the first time. Updated as we cook them.
-        </p>
+
+      {/* Page heading */}
+      <section className="pt-32 pb-16 text-center">
+        <div className="max-w-3xl mx-auto px-6">
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-5">Recipes</p>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1]">
+            Cook calmly.
+          </h1>
+          <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed font-light">
+            Reliable recipes that work the first time. Updated as we cook them.
+          </p>
+        </div>
       </section>
 
-      <section className="pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {loading ? (
-          <p className="text-muted-foreground">Loading recipes…</p>
+          <p className="text-center text-muted-foreground">Loading recipes…</p>
         ) : recipes.length === 0 ? (
-          <p className="text-muted-foreground">No recipes yet.</p>
+          <p className="text-center text-muted-foreground">No recipes yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
             {recipes.map((r) => (
               <Link
                 key={r.id}
                 to="/recipes/$id"
                 params={{ id: r.id }}
-                className="block bg-card rounded-xl overflow-hidden border border-border hover:shadow-warm transition-shadow"
+                className="group block"
               >
-                <div className="aspect-[4/3] bg-secondary overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                   {r.image_url ? (
-                    <img src={r.image_url} alt={r.name} loading="lazy" className="w-full h-full object-cover" />
+                    <img
+                      src={r.image_url}
+                      alt={r.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No photo</div>
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs tracking-widest uppercase">No photo</div>
                   )}
                 </div>
-                <div className="p-5">
-                  <h3 className="font-display text-lg font-semibold text-primary">{r.name}</h3>
-                  {r.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
+                <div className="pt-5 text-center">
+                  {(r.category || r.cuisine) && (
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+                      {[r.category, r.cuisine].filter(Boolean).join(" · ")}
+                    </p>
                   )}
-                  <div className="flex gap-2 mt-3 text-xs text-muted-foreground">
-                    {r.category && <span>{r.category}</span>}
-                    {r.cuisine && <span>· {r.cuisine}</span>}
-                  </div>
+                  <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                  {r.description && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed">{r.description}</p>
+                  )}
                 </div>
               </Link>
             ))}
           </div>
         )}
       </section>
+
       <PublicFooter />
     </div>
   );
