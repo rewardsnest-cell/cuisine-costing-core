@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package } from "lucide-react";
+import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package, FileText } from "lucide-react";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 
 type Flyer = {
   id: string;
