@@ -41,7 +41,7 @@ export function QuoteStepExtras({ selections, setSelections, setStep }: Props) {
         ))}
       </div>
       <div className="flex gap-3 mt-8">
-        <Button variant="outline" onClick={() => setStep("service")}>Back</Button>
+        <Button variant="outline" onClick={() => setStep("recipes")}>Back</Button>
         <Button onClick={() => setStep("addons")} className="bg-gradient-warm text-primary-foreground">Next</Button>
       </div>
     </div>

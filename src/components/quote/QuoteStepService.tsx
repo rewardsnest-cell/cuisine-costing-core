@@ -18,7 +18,7 @@ export function QuoteStepService({ selections, setSelections, setStep }: Props) 
           <Card
             key={s.id}
             className={`cursor-pointer transition-all hover:shadow-warm ${selections.serviceStyle === s.id ? "ring-2 ring-primary shadow-warm" : "hover:border-primary/30"}`}
-            onClick={() => { setSelections((prev) => ({ ...prev, serviceStyle: s.id })); setStep("extras"); }}
+            onClick={() => { setSelections((prev) => ({ ...prev, serviceStyle: s.id })); setStep("recipes"); }}
           >
             <CardContent className="p-6">
               <div className="text-3xl mb-3">{s.icon}</div>
