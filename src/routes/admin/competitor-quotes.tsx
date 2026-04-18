@@ -60,6 +60,7 @@ const OUTCOME_META: Record<Outcome, { label: string; className: string; icon: an
 function CompetitorQuotesPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewing, setViewing] = useState<Row | null>(null);
   const [clientFilter, setClientFilter] = useState("");
   const [outcomeFilter, setOutcomeFilter] = useState<"all" | Outcome>("all");
   const [fromDate, setFromDate] = useState("");
