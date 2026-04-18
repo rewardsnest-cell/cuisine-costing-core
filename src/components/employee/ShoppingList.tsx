@@ -250,6 +250,10 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
 
   const fmt = (n: number) => n.toFixed(n < 1 && n > 0 ? 2 : 1);
   const grandTotal = groups.reduce((s, g) => s + g.estCost, 0);
+  const grandSavings = groups.reduce(
+    (s, g) => s + g.rows.reduce((rs, r) => rs + (r.totalSavings || 0), 0),
+    0,
+  );
 
   return (
     <div className="space-y-4">
