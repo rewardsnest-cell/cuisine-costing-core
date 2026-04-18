@@ -24,6 +24,7 @@ import {
   Upload,
 } from "lucide-react";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
+import { compressImageBlob } from "@/lib/compress-image";
 
 type Supplier = { id: string; name: string };
 
@@ -98,22 +99,24 @@ function ScanFlyerPage() {
         if (isPdf) {
           setStatus(`Rendering PDF ${i + 1}/${files.length}…`);
           const blobs = await pdfFileToImageBlobs(file);
-          blobs.forEach((b, idx) =>
+          for (let idx = 0; idx < blobs.length; idx++) {
+            const { blob, ext } = await compressImageBlob(blobs[idx]);
             newPages.push({
               id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              blob: b,
-              ext: "jpg",
-              previewUrl: URL.createObjectURL(b),
+              blob,
+              ext,
+              previewUrl: URL.createObjectURL(blob),
               fromPdfPage: idx + 1,
-            }),
-          );
+            });
+          }
         } else {
-          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+          setStatus(`Compressing photo ${i + 1}/${files.length}…`);
+          const { blob, ext } = await compressImageBlob(file);
           newPages.push({
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            blob: file,
+            blob,
             ext,
-            previewUrl: URL.createObjectURL(file),
+            previewUrl: URL.createObjectURL(blob),
           });
         }
       }
