@@ -363,6 +363,7 @@ function QuotePage() {
           )}
 
           {step === "service" && <QuoteStepService selections={selections} setSelections={setSelections} setStep={setStep} />}
+          {step === "recipes" && <QuoteStepRecipes selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "extras" && <QuoteStepExtras selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "addons" && <QuoteStepAddons selections={selections} setSelections={setSelections} setStep={setStep} />}
           {step === "tier" && <QuoteStepTier selections={selections} setSelections={setSelections} setStep={setStep} />}
