@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, ChefHat, ImageOff, Sparkles, Loader2 } from "lucide-react";
+import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
@@ -201,9 +201,30 @@ function AdminMenuPage() {
             const priceValue = draft !== undefined ? draft : (r.menu_price != null ? String(r.menu_price) : "");
             return (
               <Card key={r.id} className="shadow-warm border-border/50 overflow-hidden">
-                <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative group">
                   {r.image_url ? (
-                    <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                    <>
+                      <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="absolute top-2 right-2 gap-1.5 h-7 text-xs opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shadow-md"
+                        disabled={generatingId === r.id || bulkRunning}
+                        onClick={() => {
+                          if (confirm(`Regenerate AI photo for "${r.name}"? This will replace the current image.`)) {
+                            generateOne(r.id);
+                          }
+                        }}
+                        title="Regenerate photo"
+                      >
+                        {generatingId === r.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3" />
+                        )}
+                        {generatingId === r.id ? "Regenerating…" : "Regenerate"}
+                      </Button>
+                    </>
                   ) : (
                     <div className="flex flex-col items-center text-muted-foreground/60 gap-2">
                       <ImageOff className="w-8 h-8" />
