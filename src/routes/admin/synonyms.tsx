@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Save, Search, Download, Upload, Sparkles, X, RefreshCw, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Save, Search, Download, Upload, Sparkles, X, RefreshCw, Check, ChevronsUpDown, Link2, ListPlus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,34 +234,47 @@ function SynonymsPage() {
 
   // ---------- Auto-relink + recompute when a synonym is added ----------
   // Finds recipe_ingredients whose normalized name matches `aliasNormalized`,
-  // links them to the inventory item matching `canonical`, then recomputes
-  // total_cost + cost_per_serving for affected recipes.
+  // links them to the inventory item matching `canonical`, seeds their
+  // cost_per_unit from inventory's average_cost_per_unit (using unit-aware
+  // conversion when possible), then recomputes affected recipes' totals.
   const relinkAndRecompute = async (aliasNormalized: string, canonical: string) => {
     const invItem = inventoryByNormName.get(normalize(canonical));
     if (!invItem) {
-      // Canonical doesn't match any inventory item — nothing to relink
       return { linked: 0, recipesUpdated: 0 };
     }
 
-    // Pull unmatched ingredients (limit large but bounded)
+    // Pull ALL ingredients matching this alias (linked or not) so we can
+    // refresh stale fallback cost_per_unit values too.
     const { data: ings, error: ingsErr } = await (supabase as any)
       .from("recipe_ingredients")
-      .select("id, recipe_id, name, quantity, unit, cost_per_unit")
-      .is("inventory_item_id", null)
-      .limit(5000);
+      .select("id, recipe_id, name, quantity, unit, cost_per_unit, inventory_item_id")
+      .limit(10000);
     if (ingsErr) return { linked: 0, recipesUpdated: 0 };
 
     const matching = (ings || []).filter((r: any) => normalize(r.name) === aliasNormalized);
     if (matching.length === 0) return { linked: 0, recipesUpdated: 0 };
 
-    const ids = matching.map((m: any) => m.id);
     const recipeIds = Array.from(new Set(matching.map((m: any) => m.recipe_id)));
 
-    const { error: updErr } = await (supabase as any)
-      .from("recipe_ingredients")
-      .update({ inventory_item_id: invItem.id })
-      .in("id", ids);
-    if (updErr) return { linked: 0, recipesUpdated: 0 };
+    // Seed cost_per_unit from inventory using unit-aware conversion.
+    // Falls back to raw avg cost when units aren't convertible.
+    const avgCost = Number(invItem.average_cost_per_unit) || 0;
+    let linked = 0;
+    for (const m of matching as any[]) {
+      const conv = getIngredientCostMetrics({
+        quantity: 1,
+        unit: m.unit,
+        fallbackCostPerUnit: avgCost,
+        inventoryItem: invItem,
+      });
+      const seededCost = conv.usedInventoryConversion ? conv.unitCost : avgCost;
+      const { error: uErr } = await (supabase as any)
+        .from("recipe_ingredients")
+        .update({ inventory_item_id: invItem.id, cost_per_unit: seededCost })
+        .eq("id", m.id);
+      if (!uErr) linked++;
+    }
+    if (linked === 0) return { linked: 0, recipesUpdated: 0 };
 
     // Recompute affected recipes' costs
     const { data: recipesData } = await (supabase as any)
@@ -354,6 +368,15 @@ function SynonymsPage() {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 
+  const [relinkingId, setRelinkingId] = useState<string | null>(null);
+  const relinkRow = async (row: SynonymRow) => {
+    setRelinkingId(row.id);
+    const res = await relinkAndRecompute(row.alias_normalized, row.canonical);
+    setRelinkingId(null);
+    if (res.linked === 0) toast.info("No matching recipe ingredients found");
+    else announceRelink(res);
+  };
+
   const [draftCanonical, setDraftCanonical] = useState<Record<string, string>>({});
 
   const acceptSuggestion = async (s: Suggestion) => {
@@ -379,6 +402,59 @@ function SynonymsPage() {
       .insert({ alias_normalized: s.alias_normalized });
     if (error) { toast.error(error.message); return; }
     setSuggestions((prev) => prev.filter((x) => x.alias_normalized !== s.alias_normalized));
+  };
+
+  // ---------- Bulk add (textarea) ----------
+  const [bulkText, setBulkText] = useState("");
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const handleBulkAdd = async () => {
+    const lines = bulkText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      toast.error("Paste one synonym per line");
+      return;
+    }
+    setBulkAdding(true);
+    const existing = new Map(rows.map((r) => [r.alias_normalized, r] as const));
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    let totalLinked = 0;
+    let totalRecipes = 0;
+    for (const raw of lines) {
+      // Accept "alias => canonical", "alias -> canonical", "alias = canonical", or "alias,canonical"
+      const m = raw.match(/^(.+?)\s*(?:=>|->|→|=|,|\t)\s*(.+)$/);
+      if (!m) { skipped++; continue; }
+      const alias = m[1].trim();
+      const canonical = m[2].trim();
+      if (!alias || !canonical) { skipped++; continue; }
+      const aliasNorm = normalize(alias);
+      const ex = existing.get(aliasNorm);
+      if (ex) {
+        const { error } = await (supabase as any)
+          .from("ingredient_synonyms")
+          .update({ alias, canonical })
+          .eq("id", ex.id);
+        if (!error) updated++;
+      } else {
+        const { error } = await (supabase as any)
+          .from("ingredient_synonyms")
+          .insert({ alias, canonical, alias_normalized: aliasNorm });
+        if (!error) added++;
+      }
+      const res = await relinkAndRecompute(aliasNorm, canonical);
+      totalLinked += res.linked;
+      totalRecipes += res.recipesUpdated;
+    }
+    setBulkAdding(false);
+    setBulkText("");
+    toast.success(
+      `Bulk add: ${added} added, ${updated} updated${skipped ? `, ${skipped} skipped` : ""}` +
+        (totalLinked ? ` · re-linked ${totalLinked} ingredients in ${totalRecipes} recipes` : ""),
+    );
+    load();
   };
 
   // ---------- CSV import / export ----------
@@ -580,6 +656,36 @@ function SynonymsPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk add */}
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ListPlus className="w-4 h-4 text-primary" />
+            <p className="font-semibold">Bulk add synonyms</p>
+            <span className="text-xs text-muted-foreground">
+              One per line. Separator can be <code>=&gt;</code>, <code>-&gt;</code>, <code>=</code>, comma, or tab.
+            </span>
+          </div>
+          <Textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={"EVOO => Extra Virgin Olive Oil\nsalt => Kosher Salt\ngarlic clove, Garlic\nmaldon = Kosher Salt"}
+            rows={6}
+            className="font-mono text-sm"
+          />
+          <div className="flex justify-end">
+            <Button
+              onClick={handleBulkAdd}
+              disabled={bulkAdding || !bulkText.trim()}
+              className="bg-gradient-warm text-primary-foreground gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              {bulkAdding ? "Adding…" : "Add all"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Existing synonyms */}
       <Card className="shadow-warm border-border/50">
         <CardContent className="p-5">
@@ -607,13 +713,24 @@ function SynonymsPage() {
               {filtered.map((row) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2 items-center p-2 rounded-lg hover:bg-muted/40"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto_auto] gap-2 items-center p-2 rounded-lg hover:bg-muted/40"
                 >
                   <Input value={row.alias} onChange={(e) => updateRow(row, "alias", e.target.value)} />
                   <Input value={row.canonical} onChange={(e) => updateRow(row, "canonical", e.target.value)} />
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={() => saveRow(row)}>
                     <Save className="w-3.5 h-3.5" />
                     Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => relinkRow(row)}
+                    disabled={relinkingId === row.id}
+                    title="Re-link matching recipe ingredients and recompute affected recipe costs"
+                  >
+                    <Link2 className={`w-3.5 h-3.5 ${relinkingId === row.id ? "animate-pulse" : ""}`} />
+                    {relinkingId === row.id ? "Relinking…" : "Relink"}
                   </Button>
                   <Button
                     size="sm"
