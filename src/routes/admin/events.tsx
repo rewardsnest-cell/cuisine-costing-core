@@ -5,10 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { CalendarDays, MapPin, Search, Pencil, Lock, ExternalLink } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  CalendarDays, MapPin, Search, Pencil, Lock, ExternalLink, Eye, Users, DollarSign,
+  Mail, Phone, User, FileText, Utensils, ClipboardList, Tag,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/events")({
@@ -21,6 +27,7 @@ type Event = {
   reference_number: string | null;
   client_name: string | null;
   client_email: string | null;
+  client_phone: string | null;
   event_type: string | null;
   event_date: string | null;
   guest_count: number;
@@ -28,15 +35,68 @@ type Event = {
   location_address: string | null;
   status: string;
   total: number | null;
+  subtotal: number | null;
+  tax_rate: number | null;
+  theoretical_cost: number | null;
+  actual_cost: number | null;
+  notes: string | null;
+  dietary_preferences: any;
   user_id: string | null;
 };
+
+type QuoteItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+};
+
+type Assignment = {
+  id: string;
+  role: string;
+  employee_user_id: string;
+  notes: string | null;
+  profile?: { full_name: string | null; email: string | null } | null;
+};
+
+const STATUS_OPTIONS = ["draft", "pending", "confirmed", "in_progress", "completed", "cancelled"];
+
+function fmtMoney(n: number | null | undefined) {
+  return `$${Number(n ?? 0).toFixed(2)}`;
+}
+
+function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "confirmed" || status === "completed") return "default";
+  if (status === "cancelled") return "destructive";
+  if (status === "in_progress") return "secondary";
+  return "outline";
+}
 
 function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [lockDays, setLockDays] = useState(7);
   const [search, setSearch] = useState("");
+
   const [editing, setEditing] = useState<Event | null>(null);
-  const [form, setForm] = useState({ location_name: "", location_address: "", event_date: "" });
+  const [viewing, setViewing] = useState<Event | null>(null);
+  const [items, setItems] = useState<QuoteItem[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const [form, setForm] = useState({
+    client_name: "",
+    client_email: "",
+    client_phone: "",
+    event_type: "",
+    event_date: "",
+    guest_count: 1,
+    location_name: "",
+    location_address: "",
+    status: "draft",
+    notes: "",
+    dietary_preferences: "",
+  });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -49,22 +109,79 @@ function EventsPage() {
   };
   useEffect(() => { load(); }, []);
 
-  const openEdit = (e: Event) => {
+  const loadDetails = async (eventId: string) => {
+    setDetailsLoading(true);
+    const [{ data: it }, { data: as }] = await Promise.all([
+      (supabase as any).from("quote_items").select("id, name, quantity, unit_price, total_price").eq("quote_id", eventId),
+      (supabase as any).from("event_assignments").select("id, role, employee_user_id, notes").eq("quote_id", eventId),
+    ]);
+    setItems((it ?? []) as QuoteItem[]);
+    // Fetch profiles for assignment user ids
+    const ids = Array.from(new Set(((as ?? []) as Assignment[]).map((a) => a.employee_user_id)));
+    let profiles: any[] = [];
+    if (ids.length) {
+      const { data: profs } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ids);
+      profiles = profs ?? [];
+    }
+    const enriched = ((as ?? []) as Assignment[]).map((a) => ({
+      ...a,
+      profile: profiles.find((p) => p.user_id === a.employee_user_id) ?? null,
+    }));
+    setAssignments(enriched);
+    setDetailsLoading(false);
+  };
+
+  const openView = async (e: Event) => {
+    setViewing(e);
+    await loadDetails(e.id);
+  };
+
+  const openEdit = async (e: Event) => {
     setEditing(e);
     setForm({
+      client_name: e.client_name ?? "",
+      client_email: e.client_email ?? "",
+      client_phone: e.client_phone ?? "",
+      event_type: e.event_type ?? "",
+      event_date: e.event_date ?? "",
+      guest_count: e.guest_count ?? 1,
       location_name: e.location_name ?? "",
       location_address: e.location_address ?? "",
-      event_date: e.event_date ?? "",
+      status: e.status ?? "draft",
+      notes: e.notes ?? "",
+      dietary_preferences: Array.isArray(e.dietary_preferences)
+        ? (e.dietary_preferences as string[]).join(", ")
+        : typeof e.dietary_preferences === "string"
+          ? e.dietary_preferences
+          : e.dietary_preferences && typeof e.dietary_preferences === "object"
+            ? JSON.stringify(e.dietary_preferences)
+            : "",
     });
+    await loadDetails(e.id);
   };
 
   const save = async () => {
     if (!editing) return;
     setSaving(true);
+    const dietaryArr = form.dietary_preferences
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const { error } = await (supabase as any).from("quotes").update({
+      client_name: form.client_name || null,
+      client_email: form.client_email || null,
+      client_phone: form.client_phone || null,
+      event_type: form.event_type || null,
+      event_date: form.event_date || null,
+      guest_count: Number(form.guest_count) || 1,
       location_name: form.location_name || null,
       location_address: form.location_address || null,
-      event_date: form.event_date || null,
+      status: form.status || "draft",
+      notes: form.notes || null,
+      dietary_preferences: dietaryArr.length ? dietaryArr : [],
     }).eq("id", editing.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -93,6 +210,16 @@ function EventsPage() {
     return today > cutoff;
   };
 
+  const dietaryArrFor = (e: Event): string[] => {
+    if (Array.isArray(e.dietary_preferences)) return e.dietary_preferences as string[];
+    if (e.dietary_preferences && typeof e.dietary_preferences === "object") {
+      return Object.entries(e.dietary_preferences)
+        .filter(([, v]) => v === true)
+        .map(([k]) => k);
+    }
+    return [];
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
@@ -109,29 +236,57 @@ function EventsPage() {
         <div className="space-y-3">
           {filtered.map((e) => {
             const locked = isLocked(e.event_date);
+            const dietary = dietaryArrFor(e);
             return (
               <Card key={e.id}>
                 <CardContent className="p-4 flex items-start gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
+                  <div className="flex-1 min-w-[260px] space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold">{e.client_name || "Unnamed"} — {e.event_type || "Event"}</p>
+                      <Badge variant={statusVariant(e.status)} className="capitalize">{e.status.replace("_", " ")}</Badge>
                       {locked && <span className="inline-flex items-center gap-1 text-xs text-destructive"><Lock className="w-3 h-3" />Locked</span>}
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">Ref: {e.reference_number || e.id.slice(0, 8)}</p>
-                    <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{e.event_date || "TBD"}</span>
-                      <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{e.location_name || "No venue"}</span>
-                      <span>{e.guest_count} guests</span>
-                      <span>${Number(e.total ?? 0).toFixed(2)}</span>
+                      <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{e.guest_count} guests</span>
+                      <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" />{fmtMoney(e.total)}</span>
+                      {e.client_email && <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{e.client_email}</span>}
+                      {e.client_phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{e.client_phone}</span>}
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {e.reference_number && (
-                      <Link to="/event/$reference" params={{ reference: e.reference_number }}>
-                        <Button size="sm" variant="ghost" className="gap-1"><ExternalLink className="w-3.5 h-3.5" />View</Button>
-                      </Link>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{e.location_name || "No venue"}{e.location_address ? ` · ${e.location_address}` : ""}</span>
+                    </div>
+
+                    {dietary.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {dietary.map((d) => (
+                          <Badge key={d} variant="secondary" className="text-xs gap-1"><Utensils className="w-3 h-3" />{d}</Badge>
+                        ))}
+                      </div>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => openEdit(e)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Edit</Button>
+
+                    {e.notes && (
+                      <p className="text-xs text-muted-foreground line-clamp-2"><FileText className="inline w-3 h-3 mr-1" />{e.notes}</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-right text-xs text-muted-foreground">
+                      <p>Subtotal: {fmtMoney(e.subtotal)}</p>
+                      <p>Cost (theo): {fmtMoney(e.theoretical_cost)}</p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => openView(e)} className="gap-1"><Eye className="w-3.5 h-3.5" />Details</Button>
+                      {e.reference_number && (
+                        <Link to="/event/$reference" params={{ reference: e.reference_number }}>
+                          <Button size="sm" variant="ghost" className="gap-1"><ExternalLink className="w-3.5 h-3.5" />Public</Button>
+                        </Link>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => openEdit(e)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Edit</Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -140,15 +295,246 @@ function EventsPage() {
         </div>
       )}
 
+      {/* View / Details Dialog */}
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          {viewing && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 flex-wrap">
+                  {viewing.client_name || "Unnamed"} — {viewing.event_type || "Event"}
+                  <Badge variant={statusVariant(viewing.status)} className="capitalize">{viewing.status.replace("_", " ")}</Badge>
+                </DialogTitle>
+                <DialogDescription className="font-mono text-xs">
+                  Ref: {viewing.reference_number || viewing.id.slice(0, 8)}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 text-sm">
+                {/* Client */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><User className="w-4 h-4" />Client</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-muted-foreground">
+                    <p><span className="font-medium text-foreground">Name:</span> {viewing.client_name || "—"}</p>
+                    <p><span className="font-medium text-foreground">Email:</span> {viewing.client_email || "—"}</p>
+                    <p><span className="font-medium text-foreground">Phone:</span> {viewing.client_phone || "—"}</p>
+                  </div>
+                </section>
+
+                {/* Event basics */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />Event</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-muted-foreground">
+                    <p><span className="font-medium text-foreground">Type:</span> {viewing.event_type || "—"}</p>
+                    <p><span className="font-medium text-foreground">Date:</span> {viewing.event_date || "TBD"}</p>
+                    <p><span className="font-medium text-foreground">Guests:</span> {viewing.guest_count}</p>
+                  </div>
+                </section>
+
+                {/* Location */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><MapPin className="w-4 h-4" />Location</h4>
+                  <div className="text-muted-foreground space-y-1">
+                    <p><span className="font-medium text-foreground">Venue:</span> {viewing.location_name || "—"}</p>
+                    <p><span className="font-medium text-foreground">Address:</span> {viewing.location_address || "—"}</p>
+                  </div>
+                </section>
+
+                {/* Costs */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><DollarSign className="w-4 h-4" />Costs & Totals</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-muted-foreground">
+                    <p><span className="font-medium text-foreground">Subtotal:</span> {fmtMoney(viewing.subtotal)}</p>
+                    <p><span className="font-medium text-foreground">Tax rate:</span> {((viewing.tax_rate ?? 0) * 100).toFixed(1)}%</p>
+                    <p><span className="font-medium text-foreground">Total:</span> {fmtMoney(viewing.total)}</p>
+                    <p><span className="font-medium text-foreground">Theo. cost:</span> {fmtMoney(viewing.theoretical_cost)}</p>
+                    <p><span className="font-medium text-foreground">Actual cost:</span> {fmtMoney(viewing.actual_cost)}</p>
+                  </div>
+                </section>
+
+                {/* Menu items */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><ClipboardList className="w-4 h-4" />Menu items</h4>
+                  {detailsLoading ? (
+                    <p className="text-muted-foreground">Loading…</p>
+                  ) : items.length === 0 ? (
+                    <p className="text-muted-foreground">No items.</p>
+                  ) : (
+                    <div className="border rounded-lg divide-y">
+                      {items.map((it) => (
+                        <div key={it.id} className="p-2 flex items-center justify-between gap-2 text-sm">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{it.name}</p>
+                            <p className="text-xs text-muted-foreground">Qty {it.quantity} × {fmtMoney(it.unit_price)}</p>
+                          </div>
+                          <p className="font-mono">{fmtMoney(it.total_price)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Dietary */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><Utensils className="w-4 h-4" />Dietary preferences</h4>
+                  {dietaryArrFor(viewing).length === 0 ? (
+                    <p className="text-muted-foreground">None recorded.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {dietaryArrFor(viewing).map((d) => (
+                        <Badge key={d} variant="secondary" className="gap-1"><Tag className="w-3 h-3" />{d}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Assignments */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><Users className="w-4 h-4" />Assigned staff</h4>
+                  {detailsLoading ? (
+                    <p className="text-muted-foreground">Loading…</p>
+                  ) : assignments.length === 0 ? (
+                    <p className="text-muted-foreground">No staff assigned.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {assignments.map((a) => (
+                        <div key={a.id} className="flex items-center gap-2 text-sm">
+                          <Badge variant="outline">{a.role}</Badge>
+                          <span>{a.profile?.full_name || a.profile?.email || a.employee_user_id.slice(0, 8)}</span>
+                          {a.notes && <span className="text-xs text-muted-foreground">· {a.notes}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Notes */}
+                <section>
+                  <h4 className="font-semibold mb-2 flex items-center gap-1.5"><FileText className="w-4 h-4" />Notes</h4>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{viewing.notes || "—"}</p>
+                </section>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
+                <Button onClick={() => { const v = viewing; setViewing(null); openEdit(v); }} className="gap-1">
+                  <Pencil className="w-3.5 h-3.5" />Edit
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit Event</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Venue / Location Name</Label><Input value={form.location_name} onChange={(e) => setForm({ ...form, location_name: e.target.value })} /></div>
-            <div><Label>Venue Address</Label><Input value={form.location_address} onChange={(e) => setForm({ ...form, location_address: e.target.value })} /></div>
-            <div><Label>Event Date</Label><Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></div>
-            <p className="text-xs text-muted-foreground">Admins can edit any event regardless of the revision lock.</p>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+            <DialogDescription>Admins can edit any event regardless of the revision lock.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Client */}
+            <section className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-1.5"><User className="w-4 h-4" />Client contact</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><Label>Name</Label><Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} /></div>
+                <div><Label>Email</Label><Input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} /></div>
+                <div><Label>Phone</Label><Input value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} /></div>
+              </div>
+            </section>
+
+            {/* Event basics */}
+            <section className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-1.5"><CalendarDays className="w-4 h-4" />Event basics</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="sm:col-span-2"><Label>Event type</Label><Input value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} /></div>
+                <div><Label>Event date</Label><Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></div>
+                <div><Label>Guests</Label><Input type="number" min={1} value={form.guest_count} onChange={(e) => setForm({ ...form, guest_count: Number(e.target.value) })} /></div>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </section>
+
+            {/* Location */}
+            <section className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-1.5"><MapPin className="w-4 h-4" />Location</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Venue name</Label><Input value={form.location_name} onChange={(e) => setForm({ ...form, location_name: e.target.value })} /></div>
+                <div><Label>Address</Label><Input value={form.location_address} onChange={(e) => setForm({ ...form, location_address: e.target.value })} /></div>
+              </div>
+            </section>
+
+            {/* Notes & dietary */}
+            <section className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-1.5"><FileText className="w-4 h-4" />Notes & dietary</h4>
+              <div>
+                <Label>Dietary preferences <span className="text-xs text-muted-foreground">(comma-separated)</span></Label>
+                <Input
+                  value={form.dietary_preferences}
+                  onChange={(e) => setForm({ ...form, dietary_preferences: e.target.value })}
+                  placeholder="vegetarian, gluten-free, nut allergy"
+                />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </div>
+            </section>
+
+            {/* Read-only menu/cost summary */}
+            {editing && (
+              <section className="space-y-2 rounded-lg bg-muted/40 p-3">
+                <h4 className="font-semibold text-sm flex items-center gap-1.5"><ClipboardList className="w-4 h-4" />Menu & costs (read-only)</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Subtotal:</span> {fmtMoney(editing.subtotal)}</p>
+                  <p><span className="font-medium text-foreground">Total:</span> {fmtMoney(editing.total)}</p>
+                  <p><span className="font-medium text-foreground">Theo. cost:</span> {fmtMoney(editing.theoretical_cost)}</p>
+                  <p><span className="font-medium text-foreground">Actual cost:</span> {fmtMoney(editing.actual_cost)}</p>
+                </div>
+                {detailsLoading ? (
+                  <p className="text-xs text-muted-foreground">Loading items…</p>
+                ) : items.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No menu items.</p>
+                ) : (
+                  <ul className="text-xs space-y-0.5">
+                    {items.map((it) => (
+                      <li key={it.id} className="flex justify-between gap-2">
+                        <span className="truncate">{it.quantity}× {it.name}</span>
+                        <span className="font-mono text-muted-foreground">{fmtMoney(it.total_price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {assignments.length > 0 && (
+                  <div className="pt-2 border-t border-border/50">
+                    <p className="text-xs font-medium mb-1">Assigned:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {assignments.map((a) => (
+                        <Badge key={a.id} variant="outline" className="text-xs">
+                          {a.role}: {a.profile?.full_name || a.profile?.email || a.employee_user_id.slice(0, 8)}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground pt-1">
+                  Edit menu items on the Quotes page.
+                </p>
+              </section>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
