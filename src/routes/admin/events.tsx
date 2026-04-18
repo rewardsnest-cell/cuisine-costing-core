@@ -936,6 +936,73 @@ function EventsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Recipe Picker Dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Pick from recipes</DialogTitle>
+            <DialogDescription>
+              Adds a menu item with name and unit price prefilled from <span className="font-mono">cost_per_serving × {markup.toFixed(2)}</span> markup. Quantity defaults to current guest count ({form.guest_count}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              placeholder="Search recipes by name, category, or cuisine..."
+              className="pl-9"
+              value={recipeSearch}
+              onChange={(e) => setRecipeSearch(e.target.value)}
+            />
+          </div>
+          <div className="overflow-y-auto flex-1 -mx-2 px-2">
+            {recipes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No active recipes.</p>
+            ) : (
+              <div className="divide-y border rounded-lg">
+                {recipes
+                  .filter((r) => {
+                    const q = recipeSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      r.name.toLowerCase().includes(q) ||
+                      (r.category || "").toLowerCase().includes(q) ||
+                      (r.cuisine || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .slice(0, 200)
+                  .map((r) => {
+                    const cost = Number(r.cost_per_serving) || 0;
+                    const unit = +(cost * markup).toFixed(2);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => addItemFromRecipe(r)}
+                        className="w-full text-left p-3 hover:bg-accent/60 flex items-center gap-3 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{r.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {r.category || "—"}{r.cuisine ? ` · ${r.cuisine}` : ""} · cost {fmtMoney(cost)}/serving
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-mono text-sm font-semibold">{fmtMoney(unit)}<span className="text-[10px] font-normal text-muted-foreground">/guest</span></p>
+                        </div>
+                        <Plus className="w-4 h-4 text-primary shrink-0" />
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
