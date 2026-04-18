@@ -120,6 +120,38 @@ export function UnlinkedIngredientsReview() {
     setUnlinked((rows) => rows.filter((r) => r.id !== ingId));
   };
 
+  const addToInventory = async (ing: Unlinked) => {
+    setBusy(ing.id);
+    const { data: newItem, error: invErr } = await (supabase as any)
+      .from("inventory_items")
+      .insert({
+        name: ing.name,
+        unit: ing.unit || "each",
+        current_stock: 0,
+        par_level: 0,
+        average_cost_per_unit: 0,
+      })
+      .select("id,name,unit,average_cost_per_unit")
+      .single();
+    if (invErr || !newItem) {
+      setBusy(null);
+      toast.error(invErr?.message || "Failed to create inventory item");
+      return;
+    }
+    const { error: linkErr } = await (supabase as any)
+      .from("recipe_ingredients")
+      .update({ inventory_item_id: newItem.id })
+      .eq("id", ing.id);
+    setBusy(null);
+    if (linkErr) {
+      toast.error(linkErr.message);
+      return;
+    }
+    toast.success(`Added "${ing.name}" to inventory`);
+    setInventory((prev) => [...prev, newItem as InvItem].sort((a, b) => a.name.localeCompare(b.name)));
+    setUnlinked((rows) => rows.filter((r) => r.id !== ing.id));
+  };
+
   if (!loading && unlinked.length === 0) return null;
 
   return (
