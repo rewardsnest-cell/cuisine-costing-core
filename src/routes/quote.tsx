@@ -51,6 +51,12 @@ function QuotePage() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [selections, setSelections] = useState({ ...INITIAL_SELECTIONS });
   const [aiTranscript, setAiTranscript] = useState<{ role: string; content: string }[] | null>(null);
+  const [markup, setMarkup] = useState(3.0);
+
+  useEffect(() => {
+    (supabase as any).from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle()
+      .then(({ data }: any) => { if (data?.markup_multiplier) setMarkup(Number(data.markup_multiplier)); });
+  }, []);
 
   // Hydrate from AI handoff
   useEffect(() => {
@@ -117,7 +123,14 @@ function QuotePage() {
     const item = ADDONS.find((a) => a.id === id);
     return sum + (item ? item.price * selections.guestCount : 0);
   }, 0);
-  const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier;
+  const recipesTotal = totalForRecipes(
+    selections.recipes || [],
+    selections.guestCount,
+    markup,
+    selections.tier,
+  );
+  // Recipes already include tier multiplier; tier multiplier applied to other lines below.
+  const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier + recipesTotal;
   const totalAmount = Math.round(subtotal);
 
   const handleDownloadPDF = () => {
