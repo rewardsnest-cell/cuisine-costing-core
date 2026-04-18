@@ -512,6 +512,27 @@ export type Database = {
           },
         ]
       }
+      ingredient_synonym_dismissed: {
+        Row: {
+          alias_normalized: string
+          created_at: string
+          dismissed_by: string | null
+          id: string
+        }
+        Insert: {
+          alias_normalized: string
+          created_at?: string
+          dismissed_by?: string | null
+          id?: string
+        }
+        Update: {
+          alias_normalized?: string
+          created_at?: string
+          dismissed_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       ingredient_synonyms: {
         Row: {
           alias: string
