@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, stripSearchParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,20 @@ import { useConfirm } from "@/components/ConfirmDialog";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
+const SORT_KEYS = ["name", "vendor", "current_stock", "unit", "par_level", "average_cost_per_unit", "last_receipt_cost", "status"] as const;
+type SortKey = (typeof SORT_KEYS)[number];
+
+const inventorySearchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
+  dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
+});
+
 export const Route = createFileRoute("/admin/inventory")({
+  validateSearch: zodValidator(inventorySearchSchema),
+  search: {
+    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc" })],
+  },
   component: InventoryPage,
 });
 
@@ -44,9 +59,12 @@ type PurchaseRow = {
 };
 
 function InventoryPage() {
+  const { q: search, sort: sortKey, dir: sortDir } = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/inventory" });
+  const setSearch = (v: string) =>
+    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, PurchaseRow[]>>({});
@@ -57,13 +75,18 @@ function InventoryPage() {
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
-  const [sortKey, setSortKey] = useState<"name" | "vendor" | "current_stock" | "unit" | "par_level" | "average_cost_per_unit" | "last_receipt_cost" | "status">("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const { byItemId: activeSales } = useActiveSales();
 
-  const toggleSort = (key: typeof sortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
+  const toggleSort = (key: SortKey) => {
+    navigate({
+      search: (prev: z.infer<typeof inventorySearchSchema>) => {
+        if (prev.sort === key) {
+          return { ...prev, dir: prev.dir === "asc" ? "desc" : "asc" };
+        }
+        return { ...prev, sort: key, dir: "asc" };
+      },
+      replace: true,
+    });
   };
 
   const openHistory = async (item: InventoryItem) => {
@@ -110,6 +133,7 @@ function InventoryPage() {
         case "average_cost_per_unit": return Number(it.average_cost_per_unit);
         case "last_receipt_cost": return it.last_receipt_cost == null ? -Infinity : Number(it.last_receipt_cost);
         case "status": return it.current_stock < it.par_level ? 0 : 1;
+        default: return 0;
       }
     };
     const av = get(a), bv = get(b);
