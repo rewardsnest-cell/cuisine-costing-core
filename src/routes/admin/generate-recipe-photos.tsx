@@ -87,10 +87,14 @@ function Page() {
           <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> Batch run</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={runAll} disabled={running || rows.length === 0} className="bg-gradient-warm text-primary-foreground">
               {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
               {running ? `Generating (${done}/${total})...` : `Generate all ${total} photos`}
+            </Button>
+            <Button onClick={runMissing} disabled={running || missingCount === 0} variant="secondary">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Regenerate missing/failed ({missingCount})
             </Button>
             {running && (
               <Button variant="outline" onClick={() => setStopRequested(true)}>Stop after current</Button>
