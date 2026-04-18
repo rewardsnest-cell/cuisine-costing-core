@@ -8,9 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users, Link2, AlertCircle } from "lucide-react";
+import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
-import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 
 export const Route = createFileRoute("/admin/recipes")({
