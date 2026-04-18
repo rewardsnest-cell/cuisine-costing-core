@@ -97,86 +97,32 @@ function norm(s: string) {
 }
 
 // ---------- Synonym map (AI ingredient name → canonical inventory name) ----------
-// Keys and values are normalized via norm(). Use this to bridge common chef shorthand
-// and abbreviations to the actual inventory item naming convention.
-const INGREDIENT_SYNONYMS: Record<string, string> = {
-  "evoo": "extra virgin olive oil",
-  "extra virgin olive oil": "extra virgin olive oil",
-  "olive oil": "extra virgin olive oil",
-  "salt": "kosher salt",
-  "table salt": "kosher salt",
-  "sea salt": "kosher salt",
-  "kosher salt": "kosher salt",
-  "garlic clove": "garlic",
-  "garlic cloves": "garlic",
-  "clove garlic": "garlic",
-  "fresh garlic": "garlic",
-  "minced garlic": "garlic",
-  "black pepper": "black pepper",
-  "freshly ground black pepper": "black pepper",
-  "ground black pepper": "black pepper",
-  "cracked black pepper": "black pepper",
-  "pepper": "black pepper",
-  "butter": "unsalted butter",
-  "unsalted butter": "unsalted butter",
-  "salted butter": "unsalted butter",
-  "yellow onion": "onion",
-  "white onion": "onion",
-  "spanish onion": "onion",
-  "sweet onion": "onion",
-  "lemon juice": "lemon",
-  "fresh lemon juice": "lemon",
-  "lime juice": "lime",
-  "fresh lime juice": "lime",
-  "parmesan": "parmesan cheese",
-  "parmigiano": "parmesan cheese",
-  "parmigiano reggiano": "parmesan cheese",
-  "mozzarella": "fresh mozzarella",
-  "fresh mozzarella": "fresh mozzarella",
-  "heavy cream": "heavy cream",
-  "heavy whipping cream": "heavy cream",
-  "whipping cream": "heavy cream",
-  "ap flour": "all purpose flour",
-  "all purpose flour": "all purpose flour",
-  "all-purpose flour": "all purpose flour",
-  "flour": "all purpose flour",
-  "granulated sugar": "sugar",
-  "white sugar": "sugar",
-  "cane sugar": "sugar",
-  "powdered sugar": "powdered sugar",
-  "confectioners sugar": "powdered sugar",
-  "balsamic": "balsamic vinegar",
-  "balsamic vinegar": "balsamic vinegar",
-  "soy sauce": "soy sauce",
-  "shoyu": "soy sauce",
-  "scallion": "green onion",
-  "scallions": "green onion",
-  "spring onion": "green onion",
-  "green onion": "green onion",
-  "cilantro": "cilantro",
-  "fresh cilantro": "cilantro",
-  "coriander leaves": "cilantro",
-  "parsley": "parsley",
-  "fresh parsley": "parsley",
-  "italian parsley": "parsley",
-  "flat leaf parsley": "parsley",
-  "basil": "fresh basil",
-  "fresh basil": "fresh basil",
-  "thyme": "fresh thyme",
-  "fresh thyme": "fresh thyme",
-  "rosemary": "fresh rosemary",
-  "fresh rosemary": "fresh rosemary",
-  "chicken breast": "chicken breast",
-  "boneless skinless chicken breast": "chicken breast",
-  "chicken thigh": "chicken thigh",
-  "boneless skinless chicken thigh": "chicken thigh",
-  "ground beef": "ground beef",
-  "beef mince": "ground beef",
-  "tomato": "tomato",
-  "fresh tomato": "tomato",
-  "roma tomato": "tomato",
-  "vine tomato": "tomato",
-};
+// Loaded from the public.ingredient_synonyms table at request time so admins can edit
+// the alias map without redeploying this function.
+let INGREDIENT_SYNONYMS: Record<string, string> = {};
+
+async function loadSynonyms(supabase: any) {
+  try {
+    const { data, error } = await supabase
+      .from("ingredient_synonyms")
+      .select("alias_normalized, canonical");
+    if (error) {
+      console.warn("loadSynonyms error", error.message);
+      INGREDIENT_SYNONYMS = {};
+      return;
+    }
+    const map: Record<string, string> = {};
+    for (const row of data || []) {
+      if (row?.alias_normalized && row?.canonical) {
+        map[String(row.alias_normalized)] = norm(String(row.canonical));
+      }
+    }
+    INGREDIENT_SYNONYMS = map;
+  } catch (e) {
+    console.warn("loadSynonyms threw", e);
+    INGREDIENT_SYNONYMS = {};
+  }
+}
 
 function applySynonym(name: string): string {
   const n = norm(name);
