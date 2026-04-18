@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, ImageOff, Sparkles, Crown, Search } from "lucide-react";
+import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
