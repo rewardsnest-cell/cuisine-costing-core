@@ -24,12 +24,13 @@ const inventorySearchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
+  category: fallback(z.string(), "all").default("all"),
 });
 
 export const Route = createFileRoute("/admin/inventory")({
   validateSearch: zodValidator(inventorySearchSchema),
   search: {
-    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc" })],
+    middlewares: [stripSearchParams({ q: "", sort: "name", dir: "asc", category: "all" })],
   },
   component: InventoryPage,
 });
@@ -59,10 +60,12 @@ type PurchaseRow = {
 };
 
 function InventoryPage() {
-  const { q: search, sort: sortKey, dir: sortDir } = Route.useSearch();
+  const { q: search, sort: sortKey, dir: sortDir, category: categoryFilter } = Route.useSearch();
   const navigate = useNavigate({ from: "/admin/inventory" });
   const setSearch = (v: string) =>
     navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, q: v }), replace: true });
+  const setCategoryFilter = (v: string) =>
+    navigate({ search: (prev: z.infer<typeof inventorySearchSchema>) => ({ ...prev, category: v }), replace: true });
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -120,7 +123,20 @@ function InventoryPage() {
 
   useEffect(() => { loadItems(); }, []);
 
-  const filteredBase = items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()));
+  const categories = Array.from(
+    new Set(items.map((i) => (i.category || "").trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredBase = items.filter((i) => {
+    const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all"
+        ? true
+        : categoryFilter === "__uncategorized__"
+        ? !i.category || !i.category.trim()
+        : (i.category || "").trim().toLowerCase() === categoryFilter.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
   const filtered = [...filteredBase].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     const get = (it: InventoryItem): string | number => {
@@ -317,6 +333,18 @@ function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search inventory..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+            <SelectItem value="__uncategorized__">Uncategorized</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={downloadTemplate}><Download className="w-4 h-4 mr-1" /> Template</Button>
           <label>
