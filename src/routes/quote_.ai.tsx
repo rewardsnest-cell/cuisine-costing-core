@@ -107,8 +107,11 @@ function suggestChipGroup(text: string): ChipGroup | null {
   const question = lastQuestion(text);
   if (!question) return null;
   for (const group of CHIP_GROUPS) {
-    if (group.match.test(question)) return group;
+    if (group.match && group.match.test(question)) return group;
   }
+  // Fallback: derive chips directly from the question wording.
+  const auto = autoChipsFromQuestion(question);
+  if (auto) return { kind: "text", chips: auto };
   return null;
 }
 
