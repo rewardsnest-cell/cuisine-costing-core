@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package, FileText } from "lucide-react";
+import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package, FileText, X } from "lucide-react";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 
 type Flyer = {
@@ -31,6 +31,14 @@ type FlyerItem = {
   savings: number | null;
 };
 
+type FlyerPage = {
+  id: string;
+  sale_flyer_id: string;
+  page_number: number;
+  image_url: string;
+  storage_path: string | null;
+};
+
 export function SupplierFlyersDialog({
   supplierId,
   supplierName,
@@ -44,6 +52,7 @@ export function SupplierFlyersDialog({
 }) {
   const [flyers, setFlyers] = useState<Flyer[]>([]);
   const [itemsByFlyer, setItemsByFlyer] = useState<Record<string, FlyerItem[]>>({});
+  const [pagesByFlyer, setPagesByFlyer] = useState<Record<string, FlyerPage[]>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -62,17 +71,27 @@ export function SupplierFlyersDialog({
 
     if (flyersData.length > 0) {
       const ids = flyersData.map((x) => x.id);
-      const { data: items } = await (supabase as any)
-        .from("sale_flyer_items")
-        .select("*")
-        .in("sale_flyer_id", ids);
-      const grouped: Record<string, FlyerItem[]> = {};
+      const [{ data: items }, { data: pages }] = await Promise.all([
+        (supabase as any).from("sale_flyer_items").select("*").in("sale_flyer_id", ids),
+        (supabase as any)
+          .from("sale_flyer_pages")
+          .select("*")
+          .in("sale_flyer_id", ids)
+          .order("page_number", { ascending: true }),
+      ]);
+      const groupedItems: Record<string, FlyerItem[]> = {};
       (items || []).forEach((it: FlyerItem) => {
-        (grouped[it.sale_flyer_id] ||= []).push(it);
+        (groupedItems[it.sale_flyer_id] ||= []).push(it);
       });
-      setItemsByFlyer(grouped);
+      const groupedPages: Record<string, FlyerPage[]> = {};
+      (pages || []).forEach((p: FlyerPage) => {
+        (groupedPages[p.sale_flyer_id] ||= []).push(p);
+      });
+      setItemsByFlyer(groupedItems);
+      setPagesByFlyer(groupedPages);
     } else {
       setItemsByFlyer({});
+      setPagesByFlyer({});
     }
   };
 
@@ -88,7 +107,7 @@ export function SupplierFlyersDialog({
       .upload(path, blob, { contentType: blob.type || `image/${ext}` });
     if (upErr) throw upErr;
     const { data: pub } = supabase.storage.from("sale-flyers").getPublicUrl(path);
-    return pub.publicUrl;
+    return { url: pub.publicUrl, path };
   };
 
   const handleUpload = async (files: File[]) => {
@@ -116,24 +135,34 @@ export function SupplierFlyersDialog({
 
       // Upload all pages in parallel
       setUploadStatus(`Uploading ${allBlobs.length} page${allBlobs.length === 1 ? "" : "s"}…`);
-      const imageUrls = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
+      const uploaded = await Promise.all(allBlobs.map((b) => uploadOneBlob(b.blob, b.ext)));
 
       // Create flyer record (cover = first page)
       const { data: inserted, error: insErr } = await (supabase as any)
         .from("sale_flyers")
         .insert({
           supplier_id: supplierId,
-          image_url: imageUrls[0],
+          image_url: uploaded[0].url,
           status: "pending",
-          notes: imageUrls.length > 1 ? `${imageUrls.length} pages` : null,
+          notes: uploaded.length > 1 ? `${uploaded.length} pages` : null,
         })
         .select()
         .single();
       if (insErr) throw insErr;
 
+      // Persist every page
+      const pageRows = uploaded.map((u, idx) => ({
+        sale_flyer_id: inserted.id,
+        page_number: idx + 1,
+        image_url: u.url,
+        storage_path: u.path,
+      }));
+      const { error: pagesErr } = await (supabase as any).from("sale_flyer_pages").insert(pageRows);
+      if (pagesErr) throw pagesErr;
+
       await load();
       setUploadStatus("Extracting with AI…");
-      await processFlyer(inserted.id, imageUrls);
+      await processFlyer(inserted.id);
     } catch (e: any) {
       setError(e.message || "Upload failed");
     } finally {
@@ -142,12 +171,13 @@ export function SupplierFlyersDialog({
     }
   };
 
-  const processFlyer = async (flyerId: string, imageUrls: string[]) => {
+  const processFlyer = async (flyerId: string) => {
     setProcessingId(flyerId);
     setError(null);
     try {
+      // Server fetches every page from sale_flyer_pages — no need to send URLs
       const { data, error: fnErr } = await supabase.functions.invoke("process-sale-flyer", {
-        body: { flyerId, imageUrls },
+        body: { flyerId },
       });
       if (fnErr) throw fnErr;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -162,6 +192,35 @@ export function SupplierFlyersDialog({
   const handleDelete = async (flyerId: string) => {
     if (!confirm("Delete this flyer and its extracted items?")) return;
     await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
+    load();
+  };
+
+  const handleDeletePage = async (flyerId: string, page: FlyerPage) => {
+    const remaining = (pagesByFlyer[flyerId] || []).length;
+    if (remaining <= 1) {
+      if (!confirm("This is the last page. Delete the entire flyer?")) return;
+      await (supabase as any).from("sale_flyers").delete().eq("id", flyerId);
+      load();
+      return;
+    }
+    if (!confirm(`Delete page ${page.page_number}? You'll need to re-extract afterwards.`)) return;
+    // Remove storage object (best-effort)
+    if (page.storage_path) {
+      await supabase.storage.from("sale-flyers").remove([page.storage_path]).catch(() => {});
+    }
+    await (supabase as any).from("sale_flyer_pages").delete().eq("id", page.id);
+
+    // If we deleted the cover, promote next page to cover
+    const flyer = flyers.find((f) => f.id === flyerId);
+    if (flyer && flyer.image_url === page.image_url) {
+      const next = (pagesByFlyer[flyerId] || []).find((p) => p.id !== page.id);
+      if (next) {
+        await (supabase as any)
+          .from("sale_flyers")
+          .update({ image_url: next.image_url })
+          .eq("id", flyerId);
+      }
+    }
     load();
   };
 
@@ -219,6 +278,7 @@ export function SupplierFlyersDialog({
             <div className="space-y-4">
               {flyers.map((fl) => {
                 const items = itemsByFlyer[fl.id] || [];
+                const pages = pagesByFlyer[fl.id] || [];
                 const isProcessing = processingId === fl.id;
                 return (
                   <Card key={fl.id} className="border-border/60">
@@ -245,7 +305,7 @@ export function SupplierFlyersDialog({
                                 {fl.title || "Untitled flyer"}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Uploaded {new Date(fl.created_at).toLocaleDateString()}
+                                Uploaded {new Date(fl.created_at).toLocaleDateString()} · {pages.length || 1} page{(pages.length || 1) === 1 ? "" : "s"}
                               </p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -268,12 +328,12 @@ export function SupplierFlyersDialog({
                             </p>
                           )}
                           <div className="flex flex-wrap gap-2 pt-1">
-                            {fl.status !== "processed" && fl.image_url && (
+                            {fl.status !== "processed" && pages.length > 0 && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 disabled={isProcessing}
-                                onClick={() => processFlyer(fl.id, [fl.image_url!])}
+                                onClick={() => processFlyer(fl.id)}
                                 className="gap-1.5"
                               >
                                 {isProcessing ? (
@@ -289,7 +349,7 @@ export function SupplierFlyersDialog({
                                 size="sm"
                                 variant="ghost"
                                 disabled={isProcessing}
-                                onClick={() => processFlyer(fl.id, [fl.image_url!])}
+                                onClick={() => processFlyer(fl.id)}
                                 className="gap-1.5"
                               >
                                 {isProcessing ? (
@@ -303,6 +363,45 @@ export function SupplierFlyersDialog({
                           </div>
                         </div>
                       </div>
+
+                      {pages.length > 1 && (
+                        <div className="border-t border-border/60 pt-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                            Pages ({pages.length})
+                          </p>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {pages.map((p) => (
+                              <div
+                                key={p.id}
+                                className="relative shrink-0 group"
+                              >
+                                <a
+                                  href={p.image_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-20 h-20 rounded overflow-hidden bg-muted border border-border/40"
+                                >
+                                  <img
+                                    src={p.image_url}
+                                    alt={`Page ${p.page_number}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </a>
+                                <span className="absolute bottom-0 left-0 text-[10px] bg-background/80 px-1 rounded-tr">
+                                  p{p.page_number}
+                                </span>
+                                <button
+                                  onClick={() => handleDeletePage(fl.id, p)}
+                                  className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  aria-label={`Delete page ${p.page_number}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {items.length > 0 && (
                         <div className="border-t border-border/60 pt-3">
