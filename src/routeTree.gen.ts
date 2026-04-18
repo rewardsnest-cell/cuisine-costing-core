@@ -48,6 +48,7 @@ import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/c
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
+import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -245,6 +246,11 @@ const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   path: '/competitor-quotes/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => AdminRecipesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -411,6 +420,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
+    | '/admin/recipes/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -451,6 +461,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes'
+    | '/admin/recipes/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -492,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/suppliers/$id'
     | '/admin/competitor-quotes/'
+    | '/admin/recipes/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -786,15 +798,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCompetitorQuotesIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/recipes/$id/edit': {
+      id: '/admin/recipes/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/admin/recipes/$id/edit'
+      preLoaderRoute: typeof AdminRecipesIdEditRouteImport
+      parentRoute: typeof AdminRecipesRoute
+    }
   }
 }
 
 interface AdminRecipesRouteChildren {
   AdminRecipesNewRoute: typeof AdminRecipesNewRoute
+  AdminRecipesIdEditRoute: typeof AdminRecipesIdEditRoute
 }
 
 const AdminRecipesRouteChildren: AdminRecipesRouteChildren = {
   AdminRecipesNewRoute: AdminRecipesNewRoute,
+  AdminRecipesIdEditRoute: AdminRecipesIdEditRoute,
 }
 
 const AdminRecipesRouteWithChildren = AdminRecipesRoute._addFileChildren(
