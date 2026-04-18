@@ -1257,6 +1257,20 @@ function IngredientReferencePage() {
           )}
 
           <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (suggestRefId) {
+                  const ref = rows.find((r) => r.id === suggestRefId);
+                  if (ref) scanSynonymSuggestions(ref.id, ref.canonical_name, ref.canonical_normalized, { force: true });
+                }
+              }}
+              disabled={suggestLoading || suggestAttaching || !suggestRefId}
+              title="Re-run the pg_trgm scan, ignoring the cached results"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${suggestLoading ? "animate-spin" : ""}`} />
+              Rescan
+            </Button>
             <Button variant="outline" onClick={() => setSuggestOpen(false)} disabled={suggestAttaching}>
               Skip
             </Button>
