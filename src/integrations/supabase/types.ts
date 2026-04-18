@@ -117,6 +117,7 @@ export type Database = {
           guest_count: number | null
           id: string
           notes: string | null
+          outcome: string
           per_guest_price: number | null
           service_style: string | null
           source_image_url: string | null
@@ -140,6 +141,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           notes?: string | null
+          outcome?: string
           per_guest_price?: number | null
           service_style?: string | null
           source_image_url?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           notes?: string | null
+          outcome?: string
           per_guest_price?: number | null
           service_style?: string | null
           source_image_url?: string | null

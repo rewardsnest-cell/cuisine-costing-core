@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download, ScanLine,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download, ScanLine, FileSearch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     label: "Operations",
     items: [
       { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
+      { to: "/admin/competitor-quotes", label: "Competitor Quotes", icon: FileSearch },
       { to: "/admin/events", label: "Events", icon: CalendarDays },
       { to: "/admin/schedule", label: "Schedule", icon: Calendar },
       { to: "/admin/timesheet", label: "Timesheet", icon: Clock },
