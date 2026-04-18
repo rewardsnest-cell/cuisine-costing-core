@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,7 @@ type Recipe = {
   allergens: string[] | null;
   instructions: string | null;
   active: boolean;
+  source_competitor_quote_id?: string | null;
 };
 
 type Ingredient = {
