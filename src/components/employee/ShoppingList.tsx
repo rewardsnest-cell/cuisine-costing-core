@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Printer, Truck, ShoppingCart, Loader2 } from "lucide-react";
+import { Printer, Truck, ShoppingCart, Loader2, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveSales } from "@/lib/use-active-sales";
 
 type Row = {
   name: string;
@@ -15,6 +16,15 @@ type Row = {
   unitCost: number;
   supplierId: string | null;
   supplierName: string;
+  // sale info (when a cheaper active sale exists)
+  onSale?: boolean;
+  salePrice?: number | null;
+  regularPrice?: number | null;
+  packSize?: string | null;
+  saleEndDate?: string | null;
+  originalSupplierName?: string;
+  savingsPerUnit?: number;
+  totalSavings?: number;
 };
 
 type Group = {
