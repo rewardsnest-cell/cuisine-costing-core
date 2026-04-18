@@ -162,7 +162,7 @@ function EventsPage() {
   const loadDetails = async (eventId: string) => {
     setDetailsLoading(true);
     const [{ data: it }, { data: as }] = await Promise.all([
-      (supabase as any).from("quote_items").select("id, name, quantity, unit_price, total_price").eq("quote_id", eventId),
+      (supabase as any).from("quote_items").select("id, name, quantity, unit_price, total_price, recipe_id").eq("quote_id", eventId),
       (supabase as any).from("event_assignments").select("id, role, employee_user_id, notes").eq("quote_id", eventId),
     ]);
     setItems((it ?? []) as QuoteItem[]);
