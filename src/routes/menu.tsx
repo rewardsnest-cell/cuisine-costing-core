@@ -80,6 +80,7 @@ function PublicMenuPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"price-asc" | "price-desc" | "name-asc">("name-asc");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [priceMax, setPriceMax] = useState(100);
 
   useEffect(() => {
     (async () => {
