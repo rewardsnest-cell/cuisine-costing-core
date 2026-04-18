@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { faqJsonLd } from "@/lib/seo/jsonld";
 
 function useAsset(slug: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/weddings/")({
       { property: "og:title", content: "Wedding Catering in Aurora, Ohio — VPS Finest" },
       { property: "og:description", content: "Stress-free wedding catering across Northeast Ohio. Tastings included. Built around your day." },
     ],
+    scripts: [faqJsonLd(FAQS)],
   }),
   component: WeddingsPage,
 });
