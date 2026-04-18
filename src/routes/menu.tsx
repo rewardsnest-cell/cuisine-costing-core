@@ -112,20 +112,27 @@ function PublicMenuPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return recipes.filter((r) => {
+    const list = recipes.filter((r) => {
       if (tier === "standard" && !r.is_standard) return false;
       if (tier === "premium" && !r.is_premium) return false;
       if (meat !== "all") {
         const k = detectMeat(r);
         if (k !== meat) return false;
       }
+      const p = resolvedPrice(r);
+      if (p < priceRange[0] || p > priceRange[1]) return false;
       if (q) {
         const hay = `${r.name} ${r.description || ""} ${r.category || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [recipes, tier, meat, search]);
+    const sorted = [...list];
+    if (sort === "price-asc") sorted.sort((a, b) => resolvedPrice(a) - resolvedPrice(b));
+    else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
+    else sorted.sort((a, b) => a.name.localeCompare(b.name));
+    return sorted;
+  }, [recipes, tier, meat, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
