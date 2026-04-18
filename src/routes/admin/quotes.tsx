@@ -815,6 +815,8 @@ function QuotesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={loadQuotes} />
     </div>
   );
 }
