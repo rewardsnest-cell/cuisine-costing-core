@@ -519,11 +519,17 @@ function QuotesPage() {
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(q.status)}`}>{q.status}</span>
                 <div className="text-right">
                   <p className="font-display text-lg font-bold leading-tight">${Number(q.total).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {q.guest_count > 0 && q.subtotal != null
-                      ? `${fmt(Number(q.subtotal) / q.guest_count)} / guest`
-                      : "—"}
-                  </p>
+                  {q.guest_count > 0 && q.subtotal != null ? (() => {
+                    const perGuest = Number(q.subtotal) / q.guest_count;
+                    const colorClass = perGuest < 50
+                      ? "text-success"
+                      : perGuest <= 100
+                        ? "text-warning"
+                        : "text-destructive";
+                    return <p className={`text-xs font-semibold ${colorClass}`}>{fmt(perGuest)} / guest</p>;
+                  })() : (
+                    <p className="text-xs text-muted-foreground">—</p>
+                  )}
                 </div>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => { setDetailsQuote(q); setDetailsOpen(true); }}>
                   <Eye className="w-3.5 h-3.5" /> Details
