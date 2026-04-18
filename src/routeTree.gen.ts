@@ -33,7 +33,7 @@ import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as CateringQuoteRouteImport } from './routes/catering.quote'
+import { Route as CateringQuoteRouteImport } from './routes/catering_.quote'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
@@ -195,9 +195,9 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CateringQuoteRoute = CateringQuoteRouteImport.update({
-  id: '/quote',
-  path: '/quote',
-  getParentRoute: () => CateringRoute,
+  id: '/catering_/quote',
+  path: '/catering/quote',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiContactRoute = ApiContactRouteImport.update({
   id: '/api/contact',
@@ -404,7 +404,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
-  '/catering': typeof CateringRouteWithChildren
+  '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
@@ -469,7 +469,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/catering': typeof CateringRouteWithChildren
+  '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
@@ -536,7 +536,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
-  '/catering': typeof CateringRouteWithChildren
+  '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
@@ -580,7 +580,7 @@ export interface FileRoutesById {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
-  '/catering/quote': typeof CateringQuoteRoute
+  '/catering_/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/quote_/ai': typeof QuoteAiRoute
@@ -779,7 +779,7 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
-    | '/catering/quote'
+    | '/catering_/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/quote_/ai'
@@ -802,7 +802,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
-  CateringRoute: typeof CateringRouteWithChildren
+  CateringRoute: typeof CateringRoute
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
@@ -819,6 +819,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WeddingsRoute: typeof WeddingsRoute
   ApiContactRoute: typeof ApiContactRoute
+  CateringQuoteRoute: typeof CateringQuoteRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
@@ -1000,12 +1001,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/catering/quote': {
-      id: '/catering/quote'
-      path: '/quote'
+    '/catering_/quote': {
+      id: '/catering_/quote'
+      path: '/catering/quote'
       fullPath: '/catering/quote'
       preLoaderRoute: typeof CateringQuoteRouteImport
-      parentRoute: typeof CateringRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/contact': {
       id: '/api/contact'
@@ -1377,18 +1378,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface CateringRouteChildren {
-  CateringQuoteRoute: typeof CateringQuoteRoute
-}
-
-const CateringRouteChildren: CateringRouteChildren = {
-  CateringQuoteRoute: CateringQuoteRoute,
-}
-
-const CateringRouteWithChildren = CateringRoute._addFileChildren(
-  CateringRouteChildren,
-)
-
 interface RecipesRouteChildren {
   RecipesIdRoute: typeof RecipesIdRoute
 }
@@ -1404,7 +1393,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
-  CateringRoute: CateringRouteWithChildren,
+  CateringRoute: CateringRoute,
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
@@ -1421,6 +1410,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WeddingsRoute: WeddingsRoute,
   ApiContactRoute: ApiContactRoute,
+  CateringQuoteRoute: CateringQuoteRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
