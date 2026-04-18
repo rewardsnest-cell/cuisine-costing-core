@@ -67,6 +67,26 @@ function CompetitorQuotesPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [rebuilding, setRebuilding] = useState<string | null>(null);
+
+  const rebuildCounter = async (id: string) => {
+    setRebuilding(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("build-counter-quote", {
+        body: { competitorQuoteId: id },
+      });
+      if (error) throw error;
+      const stats = (data as any)?.stats;
+      toast.success(
+        `Counter rebuilt${stats ? ` · ${stats.aiCreated ?? 0} new recipe${stats.aiCreated === 1 ? "" : "s"}` : ""}`,
+      );
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to rebuild counter quote");
+    } finally {
+      setRebuilding(null);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
