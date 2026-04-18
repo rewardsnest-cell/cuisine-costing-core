@@ -127,9 +127,14 @@ function RecipesPage() {
 
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => setSelectedRecipe(null)} className="gap-2 -ml-2">
-          <ArrowLeft className="w-4 h-4" /> Back to Recipes
-        </Button>
+        <div className="flex justify-between items-center gap-2">
+          <Button variant="ghost" onClick={() => setSelectedRecipe(null)} className="gap-2 -ml-2">
+            <ArrowLeft className="w-4 h-4" /> Back to Recipes
+          </Button>
+          <Link to="/admin/recipes/$id/edit" params={{ id: selectedRecipe.id }}>
+            <Button variant="outline" size="sm">Edit recipe</Button>
+          </Link>
+        </div>
 
         {/* Header */}
         <div>
