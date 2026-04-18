@@ -158,24 +158,144 @@ function IngredientReferencePage() {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from("ingredient_reference").insert({
-      canonical_name: name,
-      canonical_normalized: norm,
-      default_unit: createDraft.default_unit.trim() || "each",
-      density_g_per_ml: density,
-      waste_factor: waste,
-      category: createDraft.category.trim() || null,
-      notes: createDraft.notes.trim() || null,
-    });
+    const { data: inserted, error } = await supabase
+      .from("ingredient_reference")
+      .insert({
+        canonical_name: name,
+        canonical_normalized: norm,
+        default_unit: createDraft.default_unit.trim() || "each",
+        density_g_per_ml: density,
+        waste_factor: waste,
+        category: createDraft.category.trim() || null,
+        notes: createDraft.notes.trim() || null,
+      })
+      .select("id,canonical_name,canonical_normalized")
+      .single();
     setCreating(false);
-    if (error) {
-      toast.error(error.message);
+    if (error || !inserted) {
+      toast.error(error?.message ?? "Failed to create reference");
       return;
     }
     toast.success(`Created "${name}"`);
     resetCreateDraft();
     setCreateOpen(false);
     await load();
+    await scanSynonymSuggestions(inserted.id, inserted.canonical_name, inserted.canonical_normalized);
+  };
+
+  // ===== Synonym suggestion scan =====
+  const tokenize = (s: string) => normalizeName(s).split(" ").filter((t) => t.length >= 2);
+
+  const fuzzyScore = (a: string, b: string): number => {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 0.9;
+    const ta = new Set(tokenize(a));
+    const tb = new Set(tokenize(b));
+    if (ta.size === 0 || tb.size === 0) return 0;
+    let inter = 0;
+    for (const t of ta) if (tb.has(t)) inter++;
+    const jaccard = inter / (ta.size + tb.size - inter);
+    let sub = 0;
+    for (const x of ta) for (const y of tb) {
+      if (x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x))) {
+        sub = Math.max(sub, 0.4);
+      }
+    }
+    return Math.max(jaccard, sub);
+  };
+
+  const scanSynonymSuggestions = async (
+    refId: string,
+    refName: string,
+    refNormalized: string,
+  ) => {
+    setSuggestRefId(refId);
+    setSuggestRefName(refName);
+    setSuggestOpen(true);
+    setSuggestLoading(true);
+    setSuggestions([]);
+
+    const [ingRes, synRes, refsRes, dismissRes] = await Promise.all([
+      supabase.from("recipe_ingredients").select("name,reference_id"),
+      supabase.from("ingredient_synonyms").select("alias_normalized"),
+      supabase.from("ingredient_reference").select("canonical_normalized"),
+      supabase.from("ingredient_synonym_dismissed").select("alias_normalized"),
+    ]);
+    if (ingRes.error) {
+      toast.error(ingRes.error.message);
+      setSuggestLoading(false);
+      return;
+    }
+    const existingAliases = new Set<string>((synRes.data ?? []).map((s: any) => s.alias_normalized));
+    const existingRefs = new Set<string>((refsRes.data ?? []).map((r: any) => r.canonical_normalized));
+    const dismissed = new Set<string>((dismissRes.data ?? []).map((d: any) => d.alias_normalized));
+
+    const byNorm = new Map<string, { alias: string; usage: number; hasLink: boolean }>();
+    for (const ing of (ingRes.data ?? []) as any[]) {
+      const raw = String(ing.name ?? "").trim();
+      if (!raw) continue;
+      const n = normalizeName(raw);
+      if (!n || n === refNormalized) continue;
+      if (existingAliases.has(n) || existingRefs.has(n) || dismissed.has(n)) continue;
+      const cur = byNorm.get(n) ?? { alias: raw, usage: 0, hasLink: false };
+      cur.usage += 1;
+      if (ing.reference_id) cur.hasLink = true;
+      if (raw.length < cur.alias.length) cur.alias = raw;
+      byNorm.set(n, cur);
+    }
+
+    const scored: Array<{ alias: string; alias_normalized: string; score: number; usage: number; selected: boolean }> = [];
+    for (const [norm, info] of byNorm) {
+      if (info.hasLink) continue;
+      const score = fuzzyScore(refNormalized, norm);
+      if (score >= 0.35) {
+        scored.push({
+          alias: info.alias,
+          alias_normalized: norm,
+          score,
+          usage: info.usage,
+          selected: score >= 0.6,
+        });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score || b.usage - a.usage);
+    setSuggestions(scored.slice(0, 25));
+    setSuggestLoading(false);
+  };
+
+  const handleAttachSelected = async () => {
+    if (!suggestRefId) return;
+    const picks = suggestions.filter((s) => s.selected);
+    if (picks.length === 0) {
+      setSuggestOpen(false);
+      return;
+    }
+    setSuggestAttaching(true);
+    const { error } = await supabase.from("ingredient_synonyms").insert(
+      picks.map((p) => ({
+        alias: p.alias,
+        alias_normalized: p.alias_normalized,
+        canonical: suggestRefName,
+        reference_id: suggestRefId,
+      })),
+    );
+    setSuggestAttaching(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Attached ${picks.length} synonym${picks.length === 1 ? "" : "s"}`);
+    setSuggestOpen(false);
+    setSuggestions([]);
+    await load();
+  };
+
+  const handleDismissSuggestion = async (aliasNorm: string) => {
+    setSuggestions((prev) => prev.filter((s) => s.alias_normalized !== aliasNorm));
+    await supabase
+      .from("ingredient_synonym_dismissed")
+      .insert({ alias_normalized: aliasNorm });
   };
 
   const load = async () => {
