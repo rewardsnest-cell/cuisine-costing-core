@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, ImageOff, Sparkles, Crown, Search } from "lucide-react";
+import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -144,6 +144,14 @@ function PublicMenuPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
+  function resetFilters() {
+    setTier("all");
+    setMeat("all");
+    setSearch("");
+    setSort("name-asc");
+    setPriceRange([0, priceMax]);
+  }
+
   return (
     <div className="pt-24 pb-20 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -235,6 +243,13 @@ function PublicMenuPage() {
               </button>
             );
           })}
+          <button
+            onClick={resetFilters}
+            className="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors bg-card text-muted-foreground border-border hover:text-foreground inline-flex items-center gap-1.5"
+            title="Reset all filters"
+          >
+            <RotateCcw className="w-3 h-3" /> Reset
+          </button>
         </div>
         {loading ? (
           <p className="text-center text-muted-foreground">Loading menu…</p>
