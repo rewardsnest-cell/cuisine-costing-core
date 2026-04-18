@@ -39,6 +39,7 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
   const [loading, setLoading] = useState(true);
   const [creatingPOs, setCreatingPOs] = useState(false);
   const navigate = useNavigate();
+  const { byItemId: activeSales } = useActiveSales();
 
   const createPurchaseOrders = async () => {
     const eligible = groups.filter((g) => g.supplierId && g.rows.some((r) => r.toBuy > 0 && r.inventoryItemId));
