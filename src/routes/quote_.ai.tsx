@@ -85,6 +85,8 @@ const CHIP_GROUPS: ChipGroup[] = [
     chips: ["No alcohol", "Beer & wine only", "Full bar", "Signature cocktail"] },
   { kind: "text", match: /\b(event type|occasion type|kind of event|type of (event|celebration)|what are we celebrating)\b/i,
     chips: ["Wedding", "Birthday", "Corporate", "Anniversary", "Holiday party"] },
+  { kind: "text", match: /\b(venue|location|where (will|are|is)|hosting|setting up at|corporate offices?|office or)\b/i,
+    chips: ["Our office", "Private home", "Outdoor venue", "Banquet hall", "Restaurant", "Other venue"] },
   { kind: "text", match: /\b(which meats?|cuts? of (beef|meat)|beef cut|favorite meats?)\b/i,
     chips: ["Chicken", "Beef", "Pork", "Lamb", "Ribeye", "Filet", "Brisket"] },
   { kind: "text", match: /\b(which seafood|fish|shrimp|crab|lobster)\b/i,
