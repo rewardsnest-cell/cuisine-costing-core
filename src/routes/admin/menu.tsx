@@ -51,6 +51,7 @@ function AdminMenuPage() {
     current: "",
   });
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const genPhoto = useServerFn(generateRecipePhoto);
 
   const load = async () => {
