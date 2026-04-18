@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, Trash2, Tag, CalendarRange, Sparkles, Package, FileText, X } from "lucide-react";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
+import { compressImageBlob } from "@/lib/compress-image";
 
 type Flyer = {
   id: string;
@@ -131,10 +132,12 @@ export function SupplierFlyersDialog({
         if (isPdf) {
           setUploadStatus(`Rendering PDF ${i + 1}/${files.length}…`);
           const pageBlobs = await pdfFileToImageBlobs(file);
-          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+          for (const pb of pageBlobs) {
+            allBlobs.push(await compressImageBlob(pb));
+          }
         } else {
-          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-          allBlobs.push({ blob: file, ext });
+          setUploadStatus(`Compressing photo ${i + 1}/${files.length}…`);
+          allBlobs.push(await compressImageBlob(file));
         }
       }
 
@@ -209,10 +212,11 @@ export function SupplierFlyersDialog({
           file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         if (isPdf) {
           const pageBlobs = await pdfFileToImageBlobs(file);
-          pageBlobs.forEach((b) => allBlobs.push({ blob: b, ext: "jpg" }));
+          for (const pb of pageBlobs) {
+            allBlobs.push(await compressImageBlob(pb));
+          }
         } else {
-          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-          allBlobs.push({ blob: file, ext });
+          allBlobs.push(await compressImageBlob(file));
         }
       }
       if (allBlobs.length === 0) throw new Error("No pages to add");
