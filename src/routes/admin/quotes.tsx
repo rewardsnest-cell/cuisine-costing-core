@@ -18,6 +18,7 @@ import { FileText, Users, Trash2, MessageSquare, Eye, Upload, Sparkles, Loader2 
 import { toast } from "sonner";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 
 export const Route = createFileRoute("/admin/quotes")({
@@ -105,6 +106,7 @@ const fmt = (n: number | null | undefined) =>
   n == null || isNaN(Number(n)) ? "—" : `$${Number(n).toFixed(2)}`;
 
 function QuotesPage() {
+  const askConfirm = useConfirm();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -429,6 +431,12 @@ function QuotesPage() {
   };
 
   const removeAssignment = async (id: string) => {
+    const ok = await askConfirm({
+      title: "Remove this staff assignment?",
+      description: "The employee will no longer be assigned to this event.",
+      confirmText: "Remove",
+    });
+    if (!ok) return;
     const { error } = await (supabase as any).from("event_assignments").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     if (activeQuote) reloadAssignments(activeQuote.id);
