@@ -72,7 +72,7 @@ function AutoLink() {
     for (const i of ings || []) {
       const norm = normalize(i.name);
       if (!norm) continue;
-      const g = byNorm.get(norm) || {
+      const g: UnlinkedGroup = byNorm.get(norm) || {
         alias: i.name,
         alias_normalized: norm,
         count: 0,
@@ -83,6 +83,10 @@ function AutoLink() {
         done: false,
         dismissed: dismissedSet.has(norm),
         busy: false,
+        showAddForm: false,
+        newName: i.name,
+        newUnit: "each",
+        newCost: "",
       };
       g.count += 1;
       g.ingredient_ids.push(i.id);
