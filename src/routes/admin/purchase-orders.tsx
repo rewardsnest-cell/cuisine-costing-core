@@ -45,8 +45,13 @@ function PurchaseOrdersPage() {
   const [items, setItems] = useState<Record<string, POItem[]>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogStep, setDialogStep] = useState<1 | 2>(1);
   const [form, setForm] = useState({ notes: "", expected_delivery: "", supplier_id: "" });
   const [itemForm, setItemForm] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+  type DraftLine = { inventory_item_id: string | null; name: string; quantity: number; unit: string; unit_price: number };
+  const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
+  const [draftItem, setDraftItem] = useState({ inventory_item_id: "", name: "", quantity: "1", unit: "each", unit_price: "0" });
+  const [creatingDraft, setCreatingDraft] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [creatingSuggested, setCreatingSuggested] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
