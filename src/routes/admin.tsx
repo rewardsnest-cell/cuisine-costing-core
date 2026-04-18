@@ -23,7 +23,10 @@ export const Route = createFileRoute("/admin")({
 const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any; exact?: boolean }[] }[] = [
   {
     label: "Overview",
-    items: [{ to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true }],
+    items: [
+      { to: "/", label: "Home", icon: Home, exact: true },
+      { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    ],
   },
   {
     label: "Operations",
