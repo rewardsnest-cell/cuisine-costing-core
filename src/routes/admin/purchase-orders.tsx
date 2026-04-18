@@ -357,26 +357,162 @@ function PurchaseOrdersPage() {
             </span>
           </Button>
         </label>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(o) => {
+            setDialogOpen(o);
+            if (!o) resetDialog();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> New PO</Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">New Purchase Order</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Vendor</Label>
-                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-display">
+                New Purchase Order {dialogStep === 1 ? "— Select Vendor" : `— ${supplierName(form.supplier_id)}`}
+              </DialogTitle>
+            </DialogHeader>
+
+            {dialogStep === 1 ? (
+              <div className="space-y-3">
+                <div>
+                  <Label>Vendor *</Label>
+                  <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Expected Delivery</Label><Input type="date" value={form.expected_delivery} onChange={(e) => setForm({ ...form, expected_delivery: e.target.value })} /></div>
+                <div><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <Button
+                  onClick={() => {
+                    if (!form.supplier_id) { toast.error("Pick a vendor"); return; }
+                    setDialogStep(2);
+                  }}
+                  className="w-full bg-gradient-warm text-primary-foreground"
+                >
+                  Next: Add Items
+                </Button>
               </div>
-              <div><Label>Expected Delivery</Label><Input type="date" value={form.expected_delivery} onChange={(e) => setForm({ ...form, expected_delivery: e.target.value })} /></div>
-              <div><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground">Create PO</Button>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {draftLines.length > 0 ? (
+                  <div className="rounded-md border border-border/60 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs text-muted-foreground">
+                        <tr>
+                          <th className="text-left py-1.5 px-2">Item</th>
+                          <th className="text-right py-1.5 px-2">Qty</th>
+                          <th className="text-left py-1.5 px-2">Unit</th>
+                          <th className="text-right py-1.5 px-2">Price</th>
+                          <th className="text-right py-1.5 px-2">Total</th>
+                          <th className="w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {draftLines.map((l, i) => (
+                          <tr key={i} className="border-t border-border/40">
+                            <td className="py-1.5 px-2">{l.name}</td>
+                            <td className="py-1.5 px-2 text-right font-mono">{l.quantity}</td>
+                            <td className="py-1.5 px-2 text-muted-foreground">{l.unit}</td>
+                            <td className="py-1.5 px-2 text-right font-mono">${l.unit_price.toFixed(2)}</td>
+                            <td className="py-1.5 px-2 text-right font-mono">${(l.quantity * l.unit_price).toFixed(2)}</td>
+                            <td className="py-1.5 px-2">
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeDraftLine(i)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-border/60 bg-muted/30">
+                          <td colSpan={4} className="py-1.5 px-2 text-right text-xs text-muted-foreground">Total</td>
+                          <td className="py-1.5 px-2 text-right font-display font-bold">
+                            ${draftLines.reduce((s, l) => s + l.quantity * l.unit_price, 0).toFixed(2)}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No items yet — add your first line below.</p>
+                )}
+
+                <div className="rounded-md border border-dashed border-border/60 p-3 space-y-2">
+                  <Label className="text-xs">Add Line Item</Label>
+                  <Select
+                    value={draftItem.inventory_item_id || "__custom__"}
+                    onValueChange={(v) => {
+                      if (v === "__custom__") {
+                        setDraftItem({ ...draftItem, inventory_item_id: "" });
+                      } else {
+                        const inv = inventory.find((i) => i.id === v);
+                        setDraftItem({
+                          inventory_item_id: v,
+                          name: inv?.name || "",
+                          quantity: draftItem.quantity,
+                          unit: inv?.unit || "each",
+                          unit_price: inv ? String(inv.average_cost_per_unit || 0) : draftItem.unit_price,
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Pick from inventory or add custom" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__custom__">— Custom item —</SelectItem>
+                      {inventory
+                        .filter((i) => !form.supplier_id || !i.supplier_id || i.supplier_id === form.supplier_id)
+                        .map((i) => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.name} ({i.unit}) {i.current_stock < i.par_level ? "· low" : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {!draftItem.inventory_item_id && (
+                    <Input
+                      placeholder="Item name"
+                      value={draftItem.name}
+                      onChange={(e) => setDraftItem({ ...draftItem, name: e.target.value })}
+                    />
+                  )}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Qty</Label>
+                      <Input type="number" step="0.01" value={draftItem.quantity} onChange={(e) => setDraftItem({ ...draftItem, quantity: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Unit</Label>
+                      <Input value={draftItem.unit} onChange={(e) => setDraftItem({ ...draftItem, unit: e.target.value })} disabled={!!draftItem.inventory_item_id} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Unit Price</Label>
+                      <Input type="number" step="0.01" value={draftItem.unit_price} onChange={(e) => setDraftItem({ ...draftItem, unit_price: e.target.value })} />
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={addDraftLine} className="w-full">
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add to PO
+                  </Button>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setDialogStep(1)} disabled={creatingDraft}>Back</Button>
+                  <Button
+                    onClick={handleCreatePO}
+                    disabled={creatingDraft || draftLines.length === 0}
+                    className="flex-1 bg-gradient-warm text-primary-foreground"
+                  >
+                    {creatingDraft ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-1" />}
+                    Create PO ({draftLines.length} item{draftLines.length === 1 ? "" : "s"})
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
