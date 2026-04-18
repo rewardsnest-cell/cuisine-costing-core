@@ -162,10 +162,16 @@ function ScanAssetsPage() {
                 ))}
               </div>
             </div>
-            <Button onClick={copyManifest} variant="outline" disabled={!picked.size}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copy {picked.size} as JSON
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={copyManifest} variant="outline" disabled={!picked.size}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy JSON
+              </Button>
+              <Button onClick={handleImport} disabled={!picked.size || importing}>
+                {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                Import {picked.size} to site-assets
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -197,7 +203,16 @@ function ScanAssetsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="p-2 space-y-0.5">
+                    <div className="p-2 space-y-1">
+                      {isPicked && (
+                        <Input
+                          value={slugs[img.url] || ""}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setSlugs((s) => ({ ...s, [img.url]: e.target.value }))}
+                          placeholder="slug"
+                          className="h-7 text-xs"
+                        />
+                      )}
                       <p className="text-xs truncate" title={img.alt || ""}>{img.alt || <span className="text-muted-foreground italic">no alt</span>}</p>
                       <p className="text-[10px] text-muted-foreground truncate" title={img.sourcePage}>
                         {img.sourcePage.replace(SITE_PREFIX, "") || "/"}
