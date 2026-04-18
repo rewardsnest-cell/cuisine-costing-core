@@ -243,6 +243,13 @@ function PublicMenuPage() {
               </button>
             );
           })}
+          <button
+            onClick={resetFilters}
+            className="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors bg-card text-muted-foreground border-border hover:text-foreground inline-flex items-center gap-1.5"
+            title="Reset all filters"
+          >
+            <RotateCcw className="w-3 h-3" /> Reset
+          </button>
         </div>
         {loading ? (
           <p className="text-center text-muted-foreground">Loading menu…</p>
