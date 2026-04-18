@@ -402,6 +402,29 @@ function CompetitorQuotesPage() {
 
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
       <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete competitor quote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the analysis
+              {confirmDelete?.competitor_name ? ` from ${confirmDelete.competitor_name}` : ""}
+              {confirmDelete?.counter_quote_id ? " and its linked counter draft quote" : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (confirmDelete) deleteQuote(confirmDelete); }}
+              disabled={!!deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
