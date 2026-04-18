@@ -183,6 +183,9 @@ function QuotesPage() {
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(q.status)}`}>{q.status}</span>
                 <p className="font-display text-lg font-bold">${Number(q.total).toFixed(2)}</p>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setDetailsQuote(q); setDetailsOpen(true); }}>
+                  <Eye className="w-3.5 h-3.5" /> Details
+                </Button>
                 {q.conversation?.messages?.length ? (
                   <Button variant="outline" size="sm" className="gap-2" onClick={() => { setTranscriptQuote(q); setTranscriptOpen(true); }}>
                     <MessageSquare className="w-3.5 h-3.5" /> Transcript
@@ -196,6 +199,19 @@ function QuotesPage() {
           ))}
         </div>
       )}
+
+      {/* Quote details dialog: full selections + AI preferences */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quote Details — {detailsQuote?.client_name || "Quote"}</DialogTitle>
+          </DialogHeader>
+          {detailsQuote && <QuoteDetailsBody q={detailsQuote} />}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={transcriptOpen} onOpenChange={setTranscriptOpen}>
         <DialogContent className="max-w-2xl">
