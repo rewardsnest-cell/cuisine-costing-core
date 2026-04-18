@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download, ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
       { to: "/admin/receipts", label: "Receipts & Costing", icon: Receipt },
       { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },
+      { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
     ],
   },
@@ -164,6 +165,12 @@ function AdminLayout() {
           <h1 className="font-display text-lg font-semibold text-foreground truncate flex-1">
             {NAV_ITEMS.find((i) => isActive(i.to, i.exact))?.label || "Admin"}
           </h1>
+          <Link to="/admin/scan-flyer">
+            <Button size="sm" className="bg-gradient-warm text-primary-foreground gap-1.5">
+              <ScanLine className="w-4 h-4" />
+              <span className="hidden sm:inline">Scan Flyer</span>
+            </Button>
+          </Link>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
           <Outlet />
