@@ -192,8 +192,6 @@ function PublicMenuPage() {
             );
           })}
         </div>
-        </div>
-
         {loading ? (
           <p className="text-center text-muted-foreground">Loading menu…</p>
         ) : filtered.length === 0 ? (
