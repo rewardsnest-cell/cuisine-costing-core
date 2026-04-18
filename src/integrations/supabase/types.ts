@@ -101,6 +101,86 @@ export type Database = {
         }
         Relationships: []
       }
+      competitor_quotes: {
+        Row: {
+          analysis: Json
+          client_email: string | null
+          client_name: string | null
+          client_user_id: string | null
+          competitor_name: string | null
+          counter_quote_id: string | null
+          created_at: string
+          created_by: string | null
+          event_date: string | null
+          event_type: string | null
+          gratuity: number | null
+          guest_count: number | null
+          id: string
+          notes: string | null
+          per_guest_price: number | null
+          service_style: string | null
+          source_image_url: string | null
+          subtotal: number | null
+          taxes: number | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          analysis?: Json
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id?: string | null
+          competitor_name?: string | null
+          counter_quote_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          gratuity?: number | null
+          guest_count?: number | null
+          id?: string
+          notes?: string | null
+          per_guest_price?: number | null
+          service_style?: string | null
+          source_image_url?: string | null
+          subtotal?: number | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          analysis?: Json
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id?: string | null
+          competitor_name?: string | null
+          counter_quote_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          event_type?: string | null
+          gratuity?: number | null
+          guest_count?: number | null
+          id?: string
+          notes?: string | null
+          per_guest_price?: number | null
+          service_style?: string | null
+          source_image_url?: string | null
+          subtotal?: number | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_quotes_counter_quote_id_fkey"
+            columns: ["counter_quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invites: {
         Row: {
           accepted_at: string | null
