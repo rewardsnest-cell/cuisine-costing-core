@@ -77,6 +77,8 @@ function PublicMenuPage() {
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
   const [meat, setMeat] = useState<MeatKey>("all");
+  const [category, setCategory] = useState<string>("all");
+  const [dietary, setDietary] = useState<"all" | "vegetarian" | "vegan" | "gluten-free">("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"price-asc" | "price-desc" | "name-asc">("name-asc");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
