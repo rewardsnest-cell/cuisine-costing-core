@@ -28,7 +28,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
-export const Route = createFileRoute("/admin/competitor-quotes")({
+export const Route = createFileRoute("/admin/competitor-quotes/")({
   head: () => ({
     meta: [
       { title: "Competitor Quotes — Admin" },
