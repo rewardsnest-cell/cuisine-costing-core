@@ -33,7 +33,7 @@ async function fileToImageBlobs(file: File, opts: { maxPages?: number } = {}): P
   throw new Error("Unsupported file type — upload PDFs or images");
 }
 
-async function uploadToReceipts(blob: Blob): Promise<string> {
+async function uploadToReceipts(blob: Blob): Promise<{ url: string; path: string }> {
   const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
   const path = `competitor/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("receipts").upload(path, blob, {
@@ -41,7 +41,7 @@ async function uploadToReceipts(blob: Blob): Promise<string> {
     upsert: false,
   });
   if (error) throw error;
-  return supabase.storage.from("receipts").getPublicUrl(path).data.publicUrl;
+  return { url: supabase.storage.from("receipts").getPublicUrl(path).data.publicUrl, path };
 }
 
 async function analyzeBlob(blob: Blob) {
