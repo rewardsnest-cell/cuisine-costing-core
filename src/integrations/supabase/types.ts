@@ -599,6 +599,56 @@ export type Database = {
           },
         ]
       }
+      ingredient_reference: {
+        Row: {
+          canonical_name: string
+          canonical_normalized: string
+          category: string | null
+          created_at: string
+          default_unit: string
+          density_g_per_ml: number | null
+          id: string
+          inventory_item_id: string | null
+          notes: string | null
+          updated_at: string
+          waste_factor: number
+        }
+        Insert: {
+          canonical_name: string
+          canonical_normalized: string
+          category?: string | null
+          created_at?: string
+          default_unit?: string
+          density_g_per_ml?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          waste_factor?: number
+        }
+        Update: {
+          canonical_name?: string
+          canonical_normalized?: string
+          category?: string | null
+          created_at?: string
+          default_unit?: string
+          density_g_per_ml?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          waste_factor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_reference_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_synonym_dismissed: {
         Row: {
           alias_normalized: string
@@ -627,6 +677,7 @@ export type Database = {
           canonical: string
           created_at: string
           id: string
+          reference_id: string | null
           updated_at: string
         }
         Insert: {
@@ -635,6 +686,7 @@ export type Database = {
           canonical: string
           created_at?: string
           id?: string
+          reference_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -643,9 +695,18 @@ export type Database = {
           canonical?: string
           created_at?: string
           id?: string
+          reference_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_synonyms_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_reference"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_adjustments: {
         Row: {
@@ -1130,6 +1191,7 @@ export type Database = {
           notes: string | null
           quantity: number
           recipe_id: string
+          reference_id: string | null
           unit: string
         }
         Insert: {
@@ -1140,6 +1202,7 @@ export type Database = {
           notes?: string | null
           quantity: number
           recipe_id: string
+          reference_id?: string | null
           unit: string
         }
         Update: {
@@ -1150,6 +1213,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           recipe_id?: string
+          reference_id?: string | null
           unit?: string
         }
         Relationships: [
@@ -1165,6 +1229,13 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_reference"
             referencedColumns: ["id"]
           },
         ]
@@ -1636,6 +1707,10 @@ export type Database = {
     }
     Functions: {
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
+      convert_unit_factor: {
+        Args: { density_g_per_ml?: number; from_unit: string; to_unit: string }
+        Returns: number
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1650,6 +1725,7 @@ export type Database = {
           inventory_item_id: string
           inventory_name: string
           inventory_unit: string
+          reference_id: string
           similarity: number
           source: string
         }[]
@@ -1678,6 +1754,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_ingredient_name: { Args: { _name: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
