@@ -518,19 +518,28 @@ function IngredientReferencePage() {
             const linkedItem = row.inventory_item_id ? inventoryById.get(row.inventory_item_id) : null;
             const dirty = isDirty(row);
             return (
-              <Card key={row.id}>
+              <Card key={row.id} className={selected.has(row.id) ? "border-primary/50 ring-1 ring-primary/30" : undefined}>
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                    <div className="md:col-span-4">
-                      <Label className="text-xs">Canonical name</Label>
-                      <Input
-                        value={row.draft.canonical_name}
-                        onChange={(e) => updateDraft(row.id, { canonical_name: e.target.value })}
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                        norm: {row.canonical_normalized}
-                        {row.category ? ` · ${row.category}` : ""}
-                      </p>
+                    <div className="md:col-span-4 flex gap-2">
+                      <div className="pt-6">
+                        <Checkbox
+                          checked={selected.has(row.id)}
+                          onCheckedChange={() => toggleSelect(row.id)}
+                          aria-label={`Select ${row.canonical_name}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className="text-xs">Canonical name</Label>
+                        <Input
+                          value={row.draft.canonical_name}
+                          onChange={(e) => updateDraft(row.id, { canonical_name: e.target.value })}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                          norm: {row.canonical_normalized}
+                          {row.category ? ` · ${row.category}` : ""}
+                        </p>
+                      </div>
                     </div>
                     <div className="md:col-span-2">
                       <Label className="text-xs">Default unit</Label>
