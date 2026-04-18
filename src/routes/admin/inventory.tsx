@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
@@ -54,6 +55,7 @@ function InventoryPage() {
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [adjustments, setAdjustments] = useState<AdjustmentRow[]>([]);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const { byItemId: activeSales } = useActiveSales();
 
   const openHistory = async (item: InventoryItem) => {
     setHistoryItem(item);
@@ -314,7 +316,12 @@ function InventoryPage() {
                           {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                       </td>
-                      <td className="py-3 px-4 font-medium">{item.name}</td>
+                      <td className="py-3 px-4 font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>{item.name}</span>
+                          {activeSales[item.id] && <SaleBadge sale={activeSales[item.id]} />}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-muted-foreground">{supplierName(item.supplier_id)}</td>
                       <td className="py-3 px-4">{item.current_stock}</td>
                       <td className="py-3 px-4 text-muted-foreground">{item.unit}</td>

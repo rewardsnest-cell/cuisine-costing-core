@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Trash2, ChefHat, ArrowLeft, DollarSign, Clock, Users } from "lucide-react";
+import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -52,6 +53,7 @@ function RecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const { byItemId: activeSales } = useActiveSales();
 
   const load = async () => {
     const { data } = await supabase.from("recipes").select("*").order("name");
@@ -231,7 +233,14 @@ function RecipesPage() {
 
                       return (
                         <tr key={ing.id} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="py-3 px-4 font-medium">{ing.name}</td>
+                          <td className="py-3 px-4 font-medium">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span>{ing.name}</span>
+                              {ing.inventory_item_id && activeSales[ing.inventory_item_id] && (
+                                <SaleBadge sale={activeSales[ing.inventory_item_id]} compact />
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3 px-4">{ing.quantity}</td>
                           <td className="py-3 px-4 text-muted-foreground">{ing.unit}</td>
                           <td className="py-3 px-4 text-right">${unitCost.toFixed(2)}</td>
