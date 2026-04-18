@@ -323,11 +323,14 @@ function AutoLink() {
                   ) : g.matches.length === 0 ? (
                     <div className="bg-muted/30 rounded-lg p-3 text-center">
                       <p className="text-xs text-muted-foreground mb-2">No inventory match found.</p>
-                      <Link to="/admin/inventory">
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                          <Plus className="w-3 h-3" /> Add to Inventory
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs"
+                        onClick={() => updateGroup(g.alias_normalized, { showAddForm: !g.showAddForm })}
+                      >
+                        <PackagePlus className="w-3 h-3" /> Add as new inventory item
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -344,15 +347,7 @@ function AutoLink() {
                             type="radio"
                             name={`match-${g.alias_normalized}`}
                             checked={g.selected === m.inventory_item_id}
-                            onChange={() =>
-                              setGroups((prev) =>
-                                prev.map((x) =>
-                                  x.alias_normalized === g.alias_normalized
-                                    ? { ...x, selected: m.inventory_item_id }
-                                    : x
-                                )
-                              )
-                            }
+                            onChange={() => updateGroup(g.alias_normalized, { selected: m.inventory_item_id })}
                             className="accent-primary"
                           />
                           <span className="text-sm flex-1">{m.inventory_name}</span>
@@ -361,6 +356,49 @@ function AutoLink() {
                           </span>
                         </label>
                       ))}
+                    </div>
+                  )}
+
+                  {g.showAddForm && (
+                    <div className="mt-3 p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+                      <p className="text-xs font-semibold flex items-center gap-1.5">
+                        <PackagePlus className="w-3.5 h-3.5 text-primary" />
+                        New inventory item
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px] gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={g.newName}
+                          onChange={(e) => updateGroup(g.alias_normalized, { newName: e.target.value })}
+                          className="h-8 text-sm"
+                        />
+                        <Select
+                          value={g.newUnit}
+                          onValueChange={(v) => updateGroup(g.alias_normalized, { newUnit: v })}
+                        >
+                          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {COMMON_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Cost / unit"
+                          value={g.newCost}
+                          onChange={(e) => updateGroup(g.alias_normalized, { newCost: e.target.value })}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => createInventoryAndLink(g.alias_normalized)}
+                        disabled={g.busy || !g.newName.trim()}
+                        className="w-full bg-gradient-warm text-primary-foreground gap-1.5"
+                      >
+                        {g.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackagePlus className="w-3.5 h-3.5" />}
+                        Create & link {g.count} ingredient{g.count > 1 ? "s" : ""}
+                      </Button>
                     </div>
                   )}
 
@@ -374,6 +412,17 @@ function AutoLink() {
                       {g.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
                       Link & save synonym
                     </Button>
+                    {g.matches.length > 0 && !g.showAddForm && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateGroup(g.alias_normalized, { showAddForm: true })}
+                        title="Create new inventory item instead"
+                        className="gap-1"
+                      >
+                        <PackagePlus className="w-3.5 h-3.5" /> Add new
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
