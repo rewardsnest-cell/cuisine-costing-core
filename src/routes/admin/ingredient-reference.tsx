@@ -1172,7 +1172,12 @@ function IngredientReferencePage() {
       <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Suggested synonyms for "{suggestRefName}"</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Suggested synonyms for "{suggestRefName}"
+              {suggestFromCache && !suggestLoading && (
+                <Badge variant="outline" className="text-[10px] font-normal">cached</Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>
               Unlinked ingredient names from your recipes that look similar. Check the ones you want to attach as synonyms — future imports will auto-resolve them to this reference.
             </DialogDescription>
