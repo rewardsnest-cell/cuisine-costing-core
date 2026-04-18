@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
+import { PriceSparkline } from "@/components/PriceSparkline";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
@@ -299,6 +300,7 @@ function InventoryPage() {
                 <th className="py-3 px-4 font-semibold text-muted-foreground">Par</th>
                 <th className="py-3 px-4 font-semibold text-muted-foreground">Avg Cost</th>
                 <th className="py-3 px-4 font-semibold text-muted-foreground">Last Cost</th>
+                <th className="py-3 px-4 font-semibold text-muted-foreground">Trend</th>
                 <th className="py-3 px-4 font-semibold text-muted-foreground">Status</th>
                 <th className="py-3 px-4"></th>
               </tr>
@@ -328,6 +330,7 @@ function InventoryPage() {
                       <td className="py-3 px-4 text-muted-foreground">{item.par_level}</td>
                       <td className="py-3 px-4">${Number(item.average_cost_per_unit).toFixed(2)}</td>
                       <td className="py-3 px-4 text-muted-foreground">{item.last_receipt_cost != null ? `$${Number(item.last_receipt_cost).toFixed(2)}` : "—"}</td>
+                      <td className="py-3 px-4"><PriceSparkline inventoryItemId={item.id} /></td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isLow ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
                           {isLow ? "Low Stock" : "OK"}
