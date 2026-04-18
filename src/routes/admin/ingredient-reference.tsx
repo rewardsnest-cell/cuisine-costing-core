@@ -890,9 +890,26 @@ function IngredientReferencePage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={handleBulkScanAll}
+            disabled={bulkScanning || loading || rows.length === 0}
+            title="Run pg_trgm matching for every reference and queue suggestions in the cache"
+          >
+            {bulkScanning ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-1.5" />
+            )}
+            {bulkScanning
+              ? `Scanning ${bulkScanProgress.done}/${bulkScanProgress.total}…`
+              : `Scan all references${rows.length > 0 ? ` (${rows.length})` : ""}`}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               const count = suggestionCache.size;
               setSuggestionCache(new Map());
+              setBulkScanProgress({ done: 0, total: 0, withSuggestions: 0 });
               toast.success(count > 0 ? `Cleared ${count} cached scan${count === 1 ? "" : "s"}` : "Cache already empty");
             }}
             disabled={suggestionCache.size === 0}
