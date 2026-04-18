@@ -303,3 +303,74 @@ function QuotesPage() {
     </div>
   );
 }
+
+function Row({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-3 text-sm py-1">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="font-medium text-right capitalize">{value}</span>
+    </div>
+  );
+}
+
+function QuoteDetailsBody({ q }: { q: Quote }) {
+  const dp = q.dietary_preferences || {};
+  const p = dp.preferences || {};
+  const list = (arr?: string[]) => (arr && arr.length ? arr.join(", ") : "");
+
+  return (
+    <div className="space-y-5 pr-1">
+      <section className="space-y-1">
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Client & Event</h3>
+        <Row label="Client" value={q.client_name} />
+        <Row label="Email" value={q.client_email} />
+        <Row label="Event" value={q.event_type} />
+        <Row label="Date" value={q.event_date} />
+        <Row label="Guests" value={String(q.guest_count)} />
+        <Row label="Venue" value={q.location_name} />
+        <Row label="Address" value={q.location_address} />
+        <Row label="Total" value={`$${Number(q.total).toFixed(2)}`} />
+        <Row label="Status" value={q.status} />
+      </section>
+
+      <section className="space-y-1">
+        <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Menu & Service</h3>
+        <Row label="Style" value={dp.style} />
+        <Row label="Proteins" value={list(dp.proteins)} />
+        <Row label="Service" value={dp.serviceStyle} />
+        <Row label="Tier" value={dp.tier} />
+        <Row label="Allergies" value={list(dp.allergies)} />
+        <Row label="Extras" value={list(dp.extras)} />
+        <Row label="Add-ons" value={list(dp.addons)} />
+      </section>
+
+      {(p.proteinDetails || p.vegetableNotes || p.cuisineLean || p.spiceLevel || p.vibe || p.notes || p.alcohol) && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Chef Preferences</h3>
+          <Row label="Protein notes" value={p.proteinDetails} />
+          <Row label="Vegetables" value={p.vegetableNotes} />
+          <Row label="Cuisine lean" value={p.cuisineLean} />
+          <Row label="Spice" value={p.spiceLevel} />
+          <Row label="Vibe" value={p.vibe} />
+          {p.alcohol && (
+            <>
+              <Row label="Beer" value={p.alcohol.beer} />
+              <Row label="Wine" value={p.alcohol.wine} />
+              <Row label="Spirits" value={p.alcohol.spirits} />
+              <Row label="Signature cocktail" value={p.alcohol.signatureCocktail} />
+            </>
+          )}
+          <Row label="Notes" value={p.notes} />
+        </section>
+      )}
+
+      {q.notes && (
+        <section className="space-y-1">
+          <h3 className="font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground">Quote Notes</h3>
+          <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-md p-3">{q.notes}</p>
+        </section>
+      )}
+    </div>
+  );
+}
