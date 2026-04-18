@@ -61,6 +61,16 @@ interface RowState extends RefRow {
   linkResults: InventoryItem[];
   linking: boolean;
   showLinker: boolean;
+  expanded: boolean;
+}
+
+interface RecipeUsage {
+  recipe_id: string;
+  recipe_name: string;
+  cost_per_serving: number | null;
+  servings: number;
+  ingredient_name: string;
+  match: "reference" | "inventory" | "name";
 }
 
 function toDraft(r: RefRow): RowState["draft"] {
