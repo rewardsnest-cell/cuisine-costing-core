@@ -112,6 +112,25 @@ function PublicMenuPage() {
     return counts;
   }, [recipes]);
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: recipes.length };
+    for (const r of recipes) {
+      const cat = r.category?.trim() || "Other";
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [recipes]);
+
+  const dietaryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: recipes.length, vegetarian: 0, vegan: 0, "gluten-free": 0 };
+    for (const r of recipes) {
+      if (r.is_vegetarian) counts["vegetarian"]++;
+      if (r.is_vegan) counts["vegan"]++;
+      if (r.is_gluten_free) counts["gluten-free"]++;
+    }
+    return counts;
+  }, [recipes]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = recipes.filter((r) => {
@@ -120,6 +139,15 @@ function PublicMenuPage() {
       if (meat !== "all") {
         const k = detectMeat(r);
         if (k !== meat) return false;
+      }
+      if (category !== "all") {
+        const cat = r.category?.trim() || "Other";
+        if (cat !== category) return false;
+      }
+      if (dietary !== "all") {
+        if (dietary === "vegetarian" && !r.is_vegetarian) return false;
+        if (dietary === "vegan" && !r.is_vegan) return false;
+        if (dietary === "gluten-free" && !r.is_gluten_free) return false;
       }
       const p = resolvedPrice(r);
       if (p < priceRange[0] || p > priceRange[1]) return false;
@@ -134,7 +162,7 @@ function PublicMenuPage() {
     else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [recipes, tier, meat, search, priceRange, sort]);
+  }, [recipes, tier, meat, category, dietary, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
