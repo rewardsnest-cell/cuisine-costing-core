@@ -128,6 +128,7 @@ function QuotesPage() {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [savedCompetitorId, setSavedCompetitorId] = useState<string | null>(null);
+  const [uploadedReceipt, setUploadedReceipt] = useState<{ id: string; imageUrl: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [draftQuoteId, setDraftQuoteId] = useState<string | null>(null);
