@@ -75,6 +75,12 @@ function QuoteCompareView() {
     } else {
       setOurItems([]);
     }
+    const { data: recs } = await (supabase as any)
+      .from("recipes")
+      .select("id,name,category,cost_per_serving,created_at")
+      .eq("source_competitor_quote_id", id)
+      .order("created_at", { ascending: true });
+    setSourcedRecipes((recs ?? []) as any);
     setLoading(false);
   };
 
