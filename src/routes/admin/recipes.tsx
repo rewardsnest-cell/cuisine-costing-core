@@ -316,24 +316,9 @@ function RecipesPage() {
             ))}
           </div>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">Add Recipe</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Recipe Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} /></div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Entrée" /></div>
-                <div><Label>Cuisine</Label><Input value={form.cuisine} onChange={(e) => setForm({ ...form, cuisine: e.target.value })} placeholder="French" /></div>
-                <div><Label>Servings</Label><Input type="number" value={form.servings} onChange={(e) => setForm({ ...form, servings: e.target.value })} /></div>
-              </div>
-              <Button onClick={handleAdd} className="w-full bg-gradient-warm text-primary-foreground" disabled={!form.name}>Add Recipe</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Link to="/admin/recipes/new">
+          <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Recipe</Button>
+        </Link>
       </div>
 
       {filtered.length === 0 ? (
