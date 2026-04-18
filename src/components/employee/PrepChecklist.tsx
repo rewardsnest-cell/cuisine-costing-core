@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Task = {
   id: string;
@@ -14,6 +15,7 @@ type Task = {
 };
 
 export function PrepChecklist({ quoteId, userId }: { quoteId: string; userId: string }) {
+  const askConfirm = useConfirm();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,12 @@ export function PrepChecklist({ quoteId, userId }: { quoteId: string; userId: st
     load();
   };
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, title?: string) => {
+    const ok = await askConfirm({
+      title: "Delete this task?",
+      description: title ? `"${title}" will be removed from the checklist.` : "This task will be removed from the checklist.",
+    });
+    if (!ok) return;
     const { error } = await (supabase as any).from("event_prep_tasks").delete().eq("id", id);
     if (error) return toast.error(error.message);
     load();
