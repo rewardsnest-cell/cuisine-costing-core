@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Printer, Truck, ShoppingCart, Loader2 } from "lucide-react";
+import { Printer, Truck, ShoppingCart, Loader2, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useActiveSales } from "@/lib/use-active-sales";
 
 type Row = {
   name: string;
@@ -15,6 +16,15 @@ type Row = {
   unitCost: number;
   supplierId: string | null;
   supplierName: string;
+  // sale info (when a cheaper active sale exists)
+  onSale?: boolean;
+  salePrice?: number | null;
+  regularPrice?: number | null;
+  packSize?: string | null;
+  saleEndDate?: string | null;
+  originalSupplierName?: string;
+  savingsPerUnit?: number;
+  totalSavings?: number;
 };
 
 type Group = {
@@ -29,6 +39,7 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
   const [loading, setLoading] = useState(true);
   const [creatingPOs, setCreatingPOs] = useState(false);
   const navigate = useNavigate();
+  const { byItemId: activeSales } = useActiveSales();
 
   const createPurchaseOrders = async () => {
     const eligible = groups.filter((g) => g.supplierId && g.rows.some((r) => r.toBuy > 0 && r.inventoryItemId));
@@ -133,12 +144,21 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         }
       }
 
+      // Collect supplier IDs from active sales too, so we can show their names
+      const saleSupplierIds = new Set<string>();
+      for (const r of agg.values()) {
+        if (!r.inventoryItemId) continue;
+        const sale = activeSales[r.inventoryItemId];
+        if (sale?.supplier_id) saleSupplierIds.add(sale.supplier_id);
+      }
+      const allSupIds = new Set<string>([...supplierIds, ...saleSupplierIds]);
+
       const supMap = new Map<string, string>();
-      if (supplierIds.size) {
+      if (allSupIds.size) {
         const { data: sups } = await (supabase as any)
           .from("suppliers")
           .select("id, name")
-          .in("id", Array.from(supplierIds));
+          .in("id", Array.from(allSupIds));
         for (const s of sups || []) supMap.set(s.id, s.name);
       }
 
@@ -146,7 +166,44 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         const inv = r.inventoryItemId ? invMap.get(r.inventoryItemId) : undefined;
         const inStock = inv?.current_stock || 0;
         const toBuy = Math.max(0, r.needed - inStock);
-        const supplierId = inv?.supplier_id || null;
+        const origSupplierId = inv?.supplier_id || null;
+        const origSupplierName = origSupplierId
+          ? supMap.get(origSupplierId) || "Unknown supplier"
+          : "Unassigned";
+        const avgCost = inv?.average_cost_per_unit || 0;
+
+        // Check for active sale that beats current avg cost
+        const sale = r.inventoryItemId ? activeSales[r.inventoryItemId] : undefined;
+        const saleBeats =
+          sale && sale.sale_price != null && (avgCost === 0 || sale.sale_price < avgCost);
+
+        if (saleBeats && sale) {
+          const saleSupId = sale.supplier_id || origSupplierId;
+          const saleSupName = saleSupId
+            ? supMap.get(saleSupId) || sale.supplier_name || "Unknown supplier"
+            : sale.supplier_name || "Unassigned";
+          const savingsPerUnit = avgCost > 0 ? avgCost - sale.sale_price! : 0;
+          return {
+            name: r.name,
+            unit: r.unit,
+            needed: r.needed,
+            inStock,
+            toBuy,
+            inventoryItemId: r.inventoryItemId,
+            unitCost: sale.sale_price!,
+            supplierId: saleSupId,
+            supplierName: saleSupName,
+            onSale: true,
+            salePrice: sale.sale_price,
+            regularPrice: sale.regular_price ?? avgCost ?? null,
+            packSize: sale.pack_size ?? null,
+            saleEndDate: sale.sale_end_date ?? null,
+            originalSupplierName: origSupplierName,
+            savingsPerUnit,
+            totalSavings: savingsPerUnit * toBuy,
+          };
+        }
+
         return {
           name: r.name,
           unit: r.unit,
@@ -154,9 +211,9 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
           inStock,
           toBuy,
           inventoryItemId: r.inventoryItemId,
-          unitCost: inv?.average_cost_per_unit || 0,
-          supplierId,
-          supplierName: supplierId ? supMap.get(supplierId) || "Unknown supplier" : "Unassigned",
+          unitCost: avgCost,
+          supplierId: origSupplierId,
+          supplierName: origSupplierName,
         };
       });
 
@@ -187,24 +244,33 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
       setGroups(out);
       setLoading(false);
     })();
-  }, [quoteId]);
+  }, [quoteId, activeSales]);
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const fmt = (n: number) => n.toFixed(n < 1 && n > 0 ? 2 : 1);
   const grandTotal = groups.reduce((s, g) => s + g.estCost, 0);
+  const grandSavings = groups.reduce(
+    (s, g) => s + g.rows.reduce((rs, r) => rs + (r.totalSavings || 0), 0),
+    0,
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-2">
         <p className="text-xs text-muted-foreground">
-          Grouped by supplier. Costs use the linked inventory item's average cost.
+          Grouped by supplier. Items on active sale are switched to the cheapest supplier.
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm">
             Estimated total:{" "}
             <span className="font-display font-bold text-primary">${grandTotal.toFixed(2)}</span>
           </span>
+          {grandSavings > 0 && (
+            <span className="text-sm text-success">
+              Saving <span className="font-display font-bold">${grandSavings.toFixed(2)}</span> from sales
+            </span>
+          )}
           <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
             <Printer className="w-3.5 h-3.5" /> Print
           </Button>
@@ -237,6 +303,11 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                 <span className="text-xs text-muted-foreground shrink-0">
                   ({g.rows.length} item{g.rows.length === 1 ? "" : "s"})
                 </span>
+                {g.rows.some((r) => r.onSale) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/15 text-success border border-success/30 shrink-0">
+                    <Tag className="w-3 h-3" /> Sale
+                  </span>
+                )}
               </div>
               <span className="text-sm font-display font-bold shrink-0">
                 ${g.estCost.toFixed(2)}
@@ -263,12 +334,37 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                       className={`border-t border-border/40 ${covered ? "bg-success/5" : ""}`}
                     >
                       <td className="py-2 px-3">
-                        {r.name}
-                        {!r.inventoryItemId && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            unlinked
+                        <div className="flex flex-col gap-0.5">
+                          <span>
+                            {r.name}
+                            {!r.inventoryItemId && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                unlinked
+                              </span>
+                            )}
+                            {r.onSale && (
+                              <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-success/15 text-success border border-success/30">
+                                <Tag className="w-2.5 h-2.5" /> Sale ${r.salePrice?.toFixed(2)}
+                                {r.packSize ? ` / ${r.packSize}` : ""}
+                              </span>
+                            )}
                           </span>
-                        )}
+                          {r.onSale && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Switched from{" "}
+                              <span className="line-through">{r.originalSupplierName}</span>
+                              {r.savingsPerUnit && r.savingsPerUnit > 0 ? (
+                                <>
+                                  {" "}• save{" "}
+                                  <span className="text-success font-semibold">
+                                    ${r.savingsPerUnit.toFixed(2)}/{r.unit}
+                                  </span>
+                                </>
+                              ) : null}
+                              {r.saleEndDate && <> • ends {r.saleEndDate}</>}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-2 px-3 text-right font-mono">{fmt(r.needed)}</td>
                       <td className="py-2 px-3 text-right font-mono text-muted-foreground">
@@ -283,7 +379,18 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                       </td>
                       <td className="py-2 px-3 text-muted-foreground">{r.unit}</td>
                       <td className="py-2 px-3 text-right font-mono">
-                        {lineCost > 0 ? `$${lineCost.toFixed(2)}` : "—"}
+                        {lineCost > 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span>${lineCost.toFixed(2)}</span>
+                            {r.totalSavings && r.totalSavings > 0 ? (
+                              <span className="text-[10px] text-success">
+                                −${r.totalSavings.toFixed(2)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   );
