@@ -1,7 +1,8 @@
 // Build a counter quote from a competitor analysis:
 // 1. For each line item, fuzzy-match against recipes; AI-generate missing recipes (with ingredients costed against inventory)
-// 2. Create a draft quote + quote_items priced at cost_per_serving × qty × MARKUP
-// 3. Link via competitor_quotes.counter_quote_id
+// 2. Auto-link AI ingredients to inventory using trigram + Levenshtein fuzzy match
+// 3. Create a draft quote + quote_items priced at cost_per_serving × qty × MARKUP (configurable in app_settings)
+// 4. Link via competitor_quotes.counter_quote_id
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -9,8 +10,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MARKUP = 3.0; // 33% food cost target
+const DEFAULT_MARKUP = 3.0; // 33% food cost target — overridden by app_settings.markup_multiplier
 const TAX_RATE = 0.08;
+const FUZZY_MATCH_THRESHOLD = 0.55; // 0..1 combined trigram+levenshtein score
 
 const RECIPE_TOOL = {
   type: "function",
@@ -51,6 +53,65 @@ function norm(s: string) {
   return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+// ---------- Fuzzy matching helpers ----------
+function trigrams(s: string): Set<string> {
+  const padded = `  ${norm(s)} `;
+  const out = new Set<string>();
+  for (let i = 0; i < padded.length - 2; i++) out.add(padded.slice(i, i + 3));
+  return out;
+}
+
+function trigramSimilarity(a: string, b: string): number {
+  const A = trigrams(a);
+  const B = trigrams(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return inter / (A.size + B.size - inter);
+}
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1]
+        ? prev
+        : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+function combinedSimilarity(a: string, b: string): number {
+  const na = norm(a), nb = norm(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.92;
+  const tri = trigramSimilarity(na, nb);
+  const lev = 1 - levenshtein(na, nb) / Math.max(na.length, nb.length);
+  return tri * 0.6 + lev * 0.4;
+}
+
+type InvItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+
+function bestInventoryMatch(name: string, inventory: InvItem[]): { item: InvItem; score: number } | null {
+  let best: { item: InvItem; score: number } | null = null;
+  for (const inv of inventory) {
+    const score = combinedSimilarity(name, inv.name);
+    if (!best || score > best.score) best = { item: inv, score };
+  }
+  return best && best.score >= FUZZY_MATCH_THRESHOLD ? best : null;
+}
+// --------------------------------------------
+
 async function aiGenerateRecipe(
   itemName: string,
   context: { eventType?: string | null; cuisine?: string | null },
@@ -86,7 +147,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { competitorQuoteId } = await req.json();
+    const { competitorQuoteId, force } = await req.json();
     if (!competitorQuoteId) throw new Error("competitorQuoteId is required");
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -95,6 +156,14 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // 0. Load configurable markup
+    const { data: settings } = await sb
+      .from("app_settings")
+      .select("markup_multiplier")
+      .eq("id", 1)
+      .maybeSingle();
+    const MARKUP = Number(settings?.markup_multiplier ?? DEFAULT_MARKUP) || DEFAULT_MARKUP;
+
     // 1. Load competitor quote
     const { data: cq, error: cqErr } = await sb
       .from("competitor_quotes")
@@ -102,11 +171,7 @@ Deno.serve(async (req: Request) => {
       .eq("id", competitorQuoteId)
       .single();
     if (cqErr || !cq) throw new Error(cqErr?.message || "Competitor quote not found");
-    if (cq.counter_quote_id) {
-      return new Response(JSON.stringify({ skipped: true, reason: "already has counter quote", counterQuoteId: cq.counter_quote_id }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const previousCounterId: string | null = cq.counter_quote_id ?? null;
 
     const analysis = (cq.analysis ?? {}) as any;
     const lineItems: any[] = Array.isArray(analysis.lineItems) ? analysis.lineItems : [];
@@ -119,12 +184,13 @@ Deno.serve(async (req: Request) => {
     ]);
     const recipeMap = new Map<string, { id: string; name: string; cost_per_serving: number | null }>();
     (recipes ?? []).forEach((r: any) => recipeMap.set(norm(r.name), r));
-    const invMap = new Map<string, { id: string; unit: string; average_cost_per_unit: number }>();
-    (inventory ?? []).forEach((i: any) => invMap.set(norm(i.name), i));
+    const inventoryList: InvItem[] = (inventory ?? []) as InvItem[];
 
     let matchedExisting = 0;
     let aiCreated = 0;
     let aiFailed = 0;
+    let ingredientsLinked = 0;
+    let ingredientsUnlinked = 0;
     const itemsToInsert: any[] = [];
 
     // 3. For each line item, find or create a recipe
@@ -138,7 +204,6 @@ Deno.serve(async (req: Request) => {
       if (recipe) {
         matchedExisting++;
       } else {
-        // AI-generate the recipe
         const gen = await aiGenerateRecipe(
           itemName,
           { eventType: cq.event_type, cuisine: li.category },
@@ -146,7 +211,6 @@ Deno.serve(async (req: Request) => {
         );
         if (!gen || !Array.isArray(gen.ingredients) || gen.ingredients.length === 0) {
           aiFailed++;
-          // Fall back: insert quote item with competitor price
           itemsToInsert.push({
             recipe_id: null,
             name: itemName,
@@ -157,28 +221,32 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        // Compute cost_per_serving from inventory matches; fall back to estimated cost
+        // Compute cost_per_serving from inventory matches (fuzzy); fall back to estimated cost
         let costPerServing = 0;
         const ingredientsRows: any[] = [];
         for (const ing of gen.ingredients) {
           const ingName = String(ing.name || "").trim();
           if (!ingName) continue;
-          const invHit = invMap.get(norm(ingName));
+          const match = bestInventoryMatch(ingName, inventoryList);
+          const invHit = match?.item ?? null;
           const cpu = invHit && invHit.average_cost_per_unit > 0
             ? Number(invHit.average_cost_per_unit)
             : Number(ing.estimated_cost_per_unit ?? 0) || 0;
           const ingQty = Number(ing.quantity ?? 0) || 0;
           costPerServing += cpu * ingQty;
+          if (invHit) ingredientsLinked++;
+          else ingredientsUnlinked++;
           ingredientsRows.push({
             name: ingName,
             quantity: ingQty,
             unit: String(ing.unit ?? "each"),
             cost_per_unit: cpu,
             inventory_item_id: invHit?.id ?? null,
+            notes: invHit ? `auto-linked (score ${match!.score.toFixed(2)})` : null,
           });
         }
 
-        const totalCost = costPerServing; // per serving = total when servings=1
+        const totalCost = costPerServing;
         const { data: newRecipe, error: recErr } = await sb
           .from("recipes")
           .insert({
@@ -218,7 +286,6 @@ Deno.serve(async (req: Request) => {
         aiCreated++;
       }
 
-      // Price = cost_per_serving × qty × MARKUP (fallback to competitor price if zero cost)
       const cps = Number(recipe.cost_per_serving ?? 0) || 0;
       const ourUnit = cps > 0 ? cps * MARKUP : competitorUnit;
       itemsToInsert.push({
@@ -230,44 +297,66 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 4. Create the draft quote
+    // 4. Create the draft quote (or rebuild — replace previous if exists)
     const subtotal = itemsToInsert.reduce((s, it) => s + Number(it.total_price || 0), 0);
     const total = subtotal * (1 + TAX_RATE);
-    const { data: q, error: qErr } = await sb
-      .from("quotes")
-      .insert({
-        client_name: cq.client_name ?? analysis.clientName ?? null,
-        client_email: cq.client_email ?? null,
-        user_id: cq.client_user_id ?? null,
-        event_type: cq.event_type ?? analysis.eventType ?? null,
-        event_date: cq.event_date ?? analysis.eventDate ?? null,
-        guest_count: guests,
-        subtotal,
-        tax_rate: TAX_RATE,
-        total,
-        status: "draft",
-        notes: `Auto-built counter quote from competitor analysis${cq.competitor_name ? ` (${cq.competitor_name})` : ""}. ${aiCreated > 0 ? `${aiCreated} new recipe${aiCreated === 1 ? "" : "s"} generated.` : ""}`,
-        dietary_preferences: { serviceStyle: cq.service_style ?? null, addons: analysis.addons ?? [] },
-      })
-      .select("id")
-      .single();
-    if (qErr || !q) throw new Error(qErr?.message || "Failed to create quote");
+
+    let counterQuoteId: string;
+    if (previousCounterId && force !== false) {
+      // Rebuild: replace items + update totals on existing quote
+      await sb.from("quote_items").delete().eq("quote_id", previousCounterId);
+      const { error: updErr } = await sb
+        .from("quotes")
+        .update({
+          subtotal,
+          total,
+          guest_count: guests,
+          notes: `Re-built counter quote from competitor analysis${cq.competitor_name ? ` (${cq.competitor_name})` : ""}. ${aiCreated > 0 ? `${aiCreated} new recipe${aiCreated === 1 ? "" : "s"} generated.` : ""}`,
+        })
+        .eq("id", previousCounterId);
+      if (updErr) throw new Error(updErr.message);
+      counterQuoteId = previousCounterId;
+    } else {
+      const { data: q, error: qErr } = await sb
+        .from("quotes")
+        .insert({
+          client_name: cq.client_name ?? analysis.clientName ?? null,
+          client_email: cq.client_email ?? null,
+          user_id: cq.client_user_id ?? null,
+          event_type: cq.event_type ?? analysis.eventType ?? null,
+          event_date: cq.event_date ?? analysis.eventDate ?? null,
+          guest_count: guests,
+          subtotal,
+          tax_rate: TAX_RATE,
+          total,
+          status: "draft",
+          notes: `Auto-built counter quote from competitor analysis${cq.competitor_name ? ` (${cq.competitor_name})` : ""}. ${aiCreated > 0 ? `${aiCreated} new recipe${aiCreated === 1 ? "" : "s"} generated.` : ""}`,
+          dietary_preferences: { serviceStyle: cq.service_style ?? null, addons: analysis.addons ?? [] },
+        })
+        .select("id")
+        .single();
+      if (qErr || !q) throw new Error(qErr?.message || "Failed to create quote");
+      counterQuoteId = q.id;
+      await sb.from("competitor_quotes").update({ counter_quote_id: counterQuoteId }).eq("id", competitorQuoteId);
+    }
 
     if (itemsToInsert.length > 0) {
-      const rows = itemsToInsert.map((it) => ({ ...it, quote_id: q.id }));
+      const rows = itemsToInsert.map((it) => ({ ...it, quote_id: counterQuoteId }));
       const { error: itemsErr } = await sb.from("quote_items").insert(rows);
       if (itemsErr) console.warn("quote_items insert warning:", itemsErr.message);
     }
 
-    await sb.from("competitor_quotes").update({ counter_quote_id: q.id }).eq("id", competitorQuoteId);
-
     return new Response(JSON.stringify({
-      counterQuoteId: q.id,
+      counterQuoteId,
+      rebuilt: !!previousCounterId,
       stats: {
         lineItems: lineItems.length,
         matchedExisting,
         aiCreated,
         aiFailed,
+        ingredientsLinked,
+        ingredientsUnlinked,
+        markup: MARKUP,
         subtotal,
         total,
       },
