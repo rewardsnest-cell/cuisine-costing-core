@@ -142,6 +142,8 @@ export type Database = {
       competitor_quotes: {
         Row: {
           analysis: Json
+          archived: boolean
+          archived_at: string | null
           client_email: string | null
           client_name: string | null
           client_user_id: string | null
@@ -166,6 +168,8 @@ export type Database = {
         }
         Insert: {
           analysis?: Json
+          archived?: boolean
+          archived_at?: string | null
           client_email?: string | null
           client_name?: string | null
           client_user_id?: string | null
@@ -190,6 +194,8 @@ export type Database = {
         }
         Update: {
           analysis?: Json
+          archived?: boolean
+          archived_at?: string | null
           client_email?: string | null
           client_name?: string | null
           client_user_id?: string | null

@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
+import { Trophy, X as XIcon, Clock, FileSearch, ExternalLink, Eye, Download, Upload, RefreshCw, Archive, ArchiveRestore } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 import {
   AlertDialog,
@@ -60,6 +61,8 @@ type Row = {
   counter_total: number | null;
   analysis: any;
   source_image_url: string | null;
+  archived: boolean;
+  archived_at: string | null;
 };
 
 const OUTCOME_META: Record<Outcome, { label: string; className: string; icon: any }> = {
@@ -78,26 +81,42 @@ function CompetitorQuotesPage() {
   const [toDate, setToDate] = useState("");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
+  const [archiving, setArchiving] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<Row | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
-  const deleteQuote = async (row: Row) => {
-    setDeleting(row.id);
+  const archiveQuote = async (row: Row) => {
+    setArchiving(row.id);
     try {
-      if (row.counter_quote_id) {
-        await supabase.from("competitor_quotes").update({ counter_quote_id: null }).eq("id", row.id);
-        await supabase.from("quote_items").delete().eq("quote_id", row.counter_quote_id);
-        await supabase.from("quotes").delete().eq("id", row.counter_quote_id);
-      }
-      const { error } = await supabase.from("competitor_quotes").delete().eq("id", row.id);
+      const { error } = await supabase
+        .from("competitor_quotes")
+        .update({ archived: true, archived_at: new Date().toISOString() } as any)
+        .eq("id", row.id);
       if (error) throw error;
-      toast.success("Competitor quote deleted");
-      setRows((rs) => rs.filter((r) => r.id !== row.id));
-      setConfirmDelete(null);
+      toast.success("Archived — you can restore it from 'Show archived'");
+      setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, archived: true, archived_at: new Date().toISOString() } : r)));
+      setConfirmArchive(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete");
+      toast.error(e instanceof Error ? e.message : "Failed to archive");
     } finally {
-      setDeleting(null);
+      setArchiving(null);
+    }
+  };
+
+  const restoreQuote = async (row: Row) => {
+    setArchiving(row.id);
+    try {
+      const { error } = await supabase
+        .from("competitor_quotes")
+        .update({ archived: false, archived_at: null } as any)
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Restored");
+      setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, archived: false, archived_at: null } : r)));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to restore");
+    } finally {
+      setArchiving(null);
     }
   };
 
@@ -124,7 +143,7 @@ function CompetitorQuotesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("competitor_quotes")
-      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,subtotal,taxes,gratuity,service_style,outcome,counter_quote_id,notes,analysis,source_image_url,counter:quotes!competitor_quotes_counter_quote_id_fkey(total)")
+      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,subtotal,taxes,gratuity,service_style,outcome,counter_quote_id,notes,analysis,source_image_url,archived,archived_at,counter:quotes!competitor_quotes_counter_quote_id_fkey(total)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
@@ -142,6 +161,7 @@ function CompetitorQuotesPage() {
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
+      if (!showArchived && r.archived) return false;
       if (outcomeFilter !== "all" && r.outcome !== outcomeFilter) return false;
       if (clientFilter) {
         const q = clientFilter.toLowerCase();
@@ -152,7 +172,9 @@ function CompetitorQuotesPage() {
       if (toDate && r.created_at > `${toDate}T23:59:59`) return false;
       return true;
     });
-  }, [rows, clientFilter, outcomeFilter, fromDate, toDate]);
+  }, [rows, clientFilter, outcomeFilter, fromDate, toDate, showArchived]);
+
+  const archivedCount = useMemo(() => rows.filter((r) => r.archived).length, [rows]);
 
   const stats = useMemo(() => {
     const won = filtered.filter((r) => r.outcome === "won").length;
@@ -235,6 +257,13 @@ function CompetitorQuotesPage() {
           <p className="text-sm text-muted-foreground mt-1">All saved competitor analyses with win/loss tracking.</p>
         </div>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground border border-input rounded-md px-3 h-9">
+            <Switch checked={showArchived} onCheckedChange={setShowArchived} />
+            Show archived
+            {archivedCount > 0 && (
+              <Badge variant="outline" className="ml-1 text-[10px]">{archivedCount}</Badge>
+            )}
+          </label>
           <Button variant="outline" className="gap-2" onClick={exportCsv}>
             <Download className="w-4 h-4" />Export CSV
           </Button>
@@ -327,12 +356,15 @@ function CompetitorQuotesPage() {
                   const meta = OUTCOME_META[r.outcome];
                   const Icon = meta.icon;
                   return (
-                    <TableRow key={r.id}>
+                    <TableRow key={r.id} className={r.archived ? "opacity-60" : ""}>
                       <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.created_at)}</TableCell>
                       <TableCell className="text-sm">
                         <div className="font-medium">{r.client_name || "Guest"}</div>
                         {r.client_email && <div className="text-xs text-muted-foreground">{r.client_email}</div>}
-                        {r.client_user_id && <Badge variant="outline" className="mt-1 text-[10px]">linked</Badge>}
+                        <div className="flex gap-1 mt-1">
+                          {r.client_user_id && <Badge variant="outline" className="text-[10px]">linked</Badge>}
+                          {r.archived && <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-800">archived</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">{r.competitor_name || "—"}</TableCell>
                       <TableCell className="text-sm">
@@ -382,15 +414,29 @@ function CompetitorQuotesPage() {
                               <Eye className="w-3.5 h-3.5" /> View
                             </Button>
                           </Link>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 h-7 text-xs text-destructive hover:text-destructive"
-                            onClick={() => setConfirmDelete(r)}
-                            title="Delete competitor quote"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {r.archived ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-7 text-xs"
+                              onClick={() => restoreQuote(r)}
+                              disabled={archiving === r.id}
+                              title="Restore from archive"
+                            >
+                              <ArchiveRestore className="w-3.5 h-3.5" /> Restore
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-7 text-xs text-destructive hover:text-destructive"
+                              onClick={() => setConfirmArchive(r)}
+                              disabled={archiving === r.id}
+                              title="Archive (recoverable)"
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -405,24 +451,23 @@ function CompetitorQuotesPage() {
       <AnalysisDialog row={viewing} onOpenChange={(o) => !o && setViewing(null)} />
       <BulkCompetitorUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={load} />
 
-      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+      <AlertDialog open={!!confirmArchive} onOpenChange={(o) => !o && setConfirmArchive(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete competitor quote?</AlertDialogTitle>
+            <AlertDialogTitle>Archive competitor quote?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes the analysis
-              {confirmDelete?.competitor_name ? ` from ${confirmDelete.competitor_name}` : ""}
-              {confirmDelete?.counter_quote_id ? " and its linked counter draft quote" : ""}. This cannot be undone.
+              This hides the analysis
+              {confirmArchive?.competitor_name ? ` from ${confirmArchive.competitor_name}` : ""} from the list.
+              You can restore it any time using the <strong>Show archived</strong> toggle. The linked counter draft is kept intact.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!archiving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); if (confirmDelete) deleteQuote(confirmDelete); }}
-              disabled={!!deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => { e.preventDefault(); if (confirmArchive) archiveQuote(confirmArchive); }}
+              disabled={!!archiving}
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {archiving ? "Archiving…" : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
