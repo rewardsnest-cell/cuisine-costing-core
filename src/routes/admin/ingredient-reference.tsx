@@ -106,17 +106,72 @@ function IngredientReferencePage() {
   const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
   const [mergeRemoveId, setMergeRemoveId] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
+  const [usageByRef, setUsageByRef] = useState<Map<string, RecipeUsage[]>>(new Map());
 
   const load = async () => {
     setLoading(true);
-    const [refRes, invRes] = await Promise.all([
+    const [refRes, invRes, ingRes, recRes] = await Promise.all([
       supabase.from("ingredient_reference").select("*").order("canonical_name", { ascending: true }),
       supabase.from("inventory_items").select("id,name,unit").order("name", { ascending: true }),
+      supabase.from("recipe_ingredients").select("recipe_id,name,reference_id,inventory_item_id"),
+      supabase.from("recipes").select("id,name,cost_per_serving,servings,active").eq("active", true),
     ]);
     if (refRes.error) toast.error(refRes.error.message);
     if (invRes.error) toast.error(invRes.error.message);
     const refs = (refRes.data ?? []) as RefRow[];
     setInventory((invRes.data ?? []) as InventoryItem[]);
+
+    // Build usage map: refId -> RecipeUsage[]
+    const recipeById = new Map<string, { id: string; name: string; cost_per_serving: number | null; servings: number }>();
+    for (const r of (recRes.data ?? []) as any[]) recipeById.set(r.id, r);
+    const refByNorm = new Map<string, RefRow>();
+    const refByInv = new Map<string, RefRow>();
+    for (const r of refs) {
+      refByNorm.set(r.canonical_normalized, r);
+      if (r.inventory_item_id) refByInv.set(r.inventory_item_id, r);
+    }
+    const usage = new Map<string, RecipeUsage[]>();
+    const seen = new Set<string>(); // dedupe (refId|recipeId)
+    const push = (refId: string, recipeId: string, ingName: string, match: RecipeUsage["match"]) => {
+      const key = `${refId}|${recipeId}`;
+      if (seen.has(key)) return;
+      const rec = recipeById.get(recipeId);
+      if (!rec) return;
+      seen.add(key);
+      const arr = usage.get(refId) ?? [];
+      arr.push({
+        recipe_id: recipeId,
+        recipe_name: rec.name,
+        cost_per_serving: rec.cost_per_serving,
+        servings: rec.servings,
+        ingredient_name: ingName,
+        match,
+      });
+      usage.set(refId, arr);
+    };
+    for (const ing of (ingRes.data ?? []) as any[]) {
+      if (!ing.recipe_id) continue;
+      if (ing.reference_id && refs.some((r) => r.id === ing.reference_id)) {
+        push(ing.reference_id, ing.recipe_id, ing.name, "reference");
+        continue;
+      }
+      if (ing.inventory_item_id) {
+        const ref = refByInv.get(ing.inventory_item_id);
+        if (ref) {
+          push(ref.id, ing.recipe_id, ing.name, "inventory");
+          continue;
+        }
+      }
+      const norm = String(ing.name ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const ref = refByNorm.get(norm);
+      if (ref) push(ref.id, ing.recipe_id, ing.name, "name");
+    }
+    // Sort each list by cost_per_serving desc (outliers first)
+    for (const [, list] of usage) {
+      list.sort((a, b) => (b.cost_per_serving ?? -1) - (a.cost_per_serving ?? -1));
+    }
+    setUsageByRef(usage);
+
     setRows(
       refs.map((r) => ({
         ...r,
