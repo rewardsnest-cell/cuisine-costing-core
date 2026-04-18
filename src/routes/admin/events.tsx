@@ -352,6 +352,7 @@ function EventsPage() {
           quantity: Number(it.quantity) || 0,
           unit_price: Number(it.unit_price) || 0,
           total_price: Number(it.total_price) || 0,
+          recipe_id: it.recipe_id ?? null,
         })
         .eq("id", it.id);
       if (error) itemErrors.push(`update ${it.name}: ${error.message}`);
@@ -364,6 +365,7 @@ function EventsPage() {
           quantity: Number(it.quantity) || 0,
           unit_price: Number(it.unit_price) || 0,
           total_price: Number(it.total_price) || 0,
+          recipe_id: it.recipe_id ?? null,
         })),
       );
       if (error) itemErrors.push(`add items: ${error.message}`);
