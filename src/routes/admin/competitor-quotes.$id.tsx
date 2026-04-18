@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, ExternalLink, ImageIcon } from "lucide-react";
+import { ArrowLeft, RefreshCw, ExternalLink, ImageIcon, Receipt as ReceiptIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/competitor-quotes/$id")({
@@ -49,6 +49,7 @@ function QuoteCompareView() {
   const { id } = Route.useParams();
   const [loading, setLoading] = useState(true);
   const [rebuilding, setRebuilding] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [cq, setCq] = useState<any>(null);
   const [ourItems, setOurItems] = useState<OurItem[]>([]);
   const [sourcedRecipes, setSourcedRecipes] = useState<{ id: string; name: string; category: string | null; cost_per_serving: number | null; created_at: string }[]>([]);
@@ -134,6 +135,34 @@ function QuoteCompareView() {
     };
   }, [competitorLines, ourItems, cq]);
 
+  const convertToReceipt = async () => {
+    if (!cq?.source_image_url) {
+      toast.error("No source image to convert");
+      return;
+    }
+    setConverting(true);
+    try {
+      const { data, error } = await supabase
+        .from("receipts")
+        .insert({
+          image_url: cq.source_image_url,
+          status: "pending",
+          receipt_date: new Date().toISOString().split("T")[0],
+          raw_ocr_text: `Imported from competitor quote ${cq.competitor_name ? `(${cq.competitor_name})` : ""} on ${new Date().toLocaleDateString()}`,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      toast.success("Sent to Receipts. Open Receipts to run OCR.", {
+        action: { label: "Open Receipts", onClick: () => window.location.assign("/admin/receipts") },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to convert");
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const rebuild = async () => {
     setRebuilding(true);
     try {
@@ -182,6 +211,12 @@ function QuoteCompareView() {
             <a href={cq.source_image_url} target="_blank" rel="noreferrer">
               <Button variant="outline" className="gap-2"><ImageIcon className="w-4 h-4" /> Source image</Button>
             </a>
+          )}
+          {cq.source_image_url && (
+            <Button variant="outline" onClick={convertToReceipt} disabled={converting} className="gap-2">
+              {converting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ReceiptIcon className="w-4 h-4" />}
+              Convert to receipt
+            </Button>
           )}
           <Button onClick={rebuild} disabled={rebuilding} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${rebuilding ? "animate-spin" : ""}`} />
