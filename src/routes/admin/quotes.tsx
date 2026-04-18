@@ -79,6 +79,45 @@ function QuotesPage() {
   const [transcriptQuote, setTranscriptQuote] = useState<Quote | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsQuote, setDetailsQuote] = useState<Quote | null>(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
+  const [analysisFileName, setAnalysisFileName] = useState<string>("");
+
+  const onAnalyzeFile = async (file: File) => {
+    setAnalyzing(true);
+    setAnalysis(null);
+    setAnalysisFileName(file.name);
+    setAnalyzeOpen(true);
+    try {
+      // Convert PDF to first page image, or compress an image directly
+      let blob: Blob;
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        const pages = await pdfFileToImageBlobs(file, { scale: 1.8, maxPages: 1 });
+        if (!pages.length) throw new Error("Could not render PDF");
+        blob = pages[0];
+      } else if (file.type.startsWith("image/")) {
+        const c = await compressImageBlob(file, { maxEdge: 1800, quality: 0.85 });
+        blob = c.blob;
+      } else {
+        throw new Error("Upload a PDF or image file");
+      }
+
+      const base64 = await blobToBase64(blob);
+      const { data, error } = await supabase.functions.invoke("analyze-competitor-quote", {
+        body: { imageBase64: base64, mimeType: blob.type || "image/jpeg" },
+      });
+      if (error) throw error;
+      const result = (data as { result?: CompetitorAnalysis })?.result ?? null;
+      if (!result) throw new Error("No analysis returned");
+      setAnalysis(result);
+      toast.success("Competitor quote analyzed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const loadQuotes = async () => {
     const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
