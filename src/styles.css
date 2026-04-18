@@ -62,52 +62,51 @@
   --font-display: 'Libre Baskerville', Georgia, serif;
   --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* VPS Finest brand — Cream, Parchment & Walnut (sourced from vpsfinest.com) */
-  --background: oklch(0.971 0.011 85);         /* cream #F9F6F0 */
-  --foreground: oklch(0.51 0.012 60);          /* warm gray text #7A6F66 */
-  --card: oklch(0.971 0.011 85);
-  --card-foreground: oklch(0.51 0.012 60);
-  --popover: oklch(0.971 0.011 85);
-  --popover-foreground: oklch(0.51 0.012 60);
-  --primary: oklch(0.49 0.025 65);             /* walnut #7A6952 */
-  --primary-foreground: oklch(0.985 0.008 85);
-  --secondary: oklch(0.948 0.014 80);          /* parchment #F2EDE3 */
-  --secondary-foreground: oklch(0.49 0.025 65);
-  --muted: oklch(0.948 0.014 80);              /* parchment */
-  --muted-foreground: oklch(0.55 0.012 60);
-  --accent: oklch(0.49 0.025 65);              /* walnut accent #7A6952 */
-  --accent-foreground: oklch(0.985 0.008 85);
-  --destructive: oklch(0.5 0.18 25);
-  --destructive-foreground: oklch(0.985 0.008 85);
-  --border: oklch(0.876 0.018 80);             /* sand #DED6C9 */
-  --input: oklch(0.876 0.018 80);
-  --ring: oklch(0.49 0.025 65);
+  /* Bright & fun palette — sunny cream, coral, sunshine gold, fresh teal */
+  --background: oklch(0.985 0.025 95);          /* sunny cream */
+  --foreground: oklch(0.28 0.04 30);            /* deep cocoa text */
+  --card: oklch(1 0 0);                         /* pure white cards pop */
+  --card-foreground: oklch(0.28 0.04 30);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.28 0.04 30);
+  --primary: oklch(0.68 0.21 28);               /* vivid coral */
+  --primary-foreground: oklch(0.99 0.01 95);
+  --secondary: oklch(0.94 0.06 95);             /* soft buttercream */
+  --secondary-foreground: oklch(0.32 0.06 35);
+  --muted: oklch(0.95 0.03 90);                 /* gentle muted cream */
+  --muted-foreground: oklch(0.5 0.04 40);
+  --accent: oklch(0.78 0.16 195);               /* fresh teal pop */
+  --accent-foreground: oklch(0.2 0.04 220);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.99 0.01 95);
+  --border: oklch(0.9 0.04 85);                 /* warm sandy border */
+  --input: oklch(0.92 0.03 85);
+  --ring: oklch(0.68 0.21 28);                  /* coral focus ring */
 
   /* Custom tokens */
-  --warm: oklch(0.49 0.025 65);                /* walnut */
-  --warm-foreground: oklch(0.985 0.008 85);
-  --gold: oklch(0.876 0.018 80);               /* sand */
-  --gold-foreground: oklch(0.49 0.025 65);
-  --success: oklch(0.6 0.17 145);
-  --success-foreground: oklch(0.98 0.005 80);
-  --warning: oklch(0.75 0.15 75);
-  --warning-foreground: oklch(0.2 0.05 50);
+  --warm: oklch(0.72 0.18 50);                  /* tangerine warm */
+  --warm-foreground: oklch(0.99 0.01 95);
+  --gold: oklch(0.85 0.16 90);                  /* sunshine gold */
+  --gold-foreground: oklch(0.28 0.06 60);
+  --success: oklch(0.72 0.18 150);              /* lively mint green */
+  --success-foreground: oklch(0.16 0.04 150);
+  --warning: oklch(0.82 0.17 75);               /* bright amber */
+  --warning-foreground: oklch(0.22 0.05 50);
 
-  --chart-1: oklch(0.45 0.12 40);
-  --chart-2: oklch(0.6 0.17 145);
-  --chart-3: oklch(0.72 0.15 85);
-  --chart-4: oklch(0.55 0.15 45);
-  --chart-5: oklch(0.55 0.22 25);
+  --chart-1: oklch(0.68 0.21 28);               /* coral */
+  --chart-2: oklch(0.78 0.16 195);              /* teal */
+  --chart-3: oklch(0.85 0.16 90);               /* gold */
+  --chart-4: oklch(0.72 0.18 150);              /* mint */
+  --chart-5: oklch(0.62 0.22 305);              /* berry */
 
-  --sidebar: oklch(0.2 0.03 45);
-  --sidebar-foreground: oklch(0.9 0.01 75);
-  --sidebar-primary: oklch(0.72 0.15 85);
-  --sidebar-primary-foreground: oklch(0.15 0.03 50);
-  --sidebar-accent: oklch(0.28 0.04 45);
-  --sidebar-accent-foreground: oklch(0.92 0.01 75);
-  --sidebar-border: oklch(0.3 0.03 45);
-  --sidebar-ring: oklch(0.72 0.15 85);
-}
+  --sidebar: oklch(0.22 0.04 30);               /* deep cocoa */
+  --sidebar-foreground: oklch(0.94 0.02 90);
+  --sidebar-primary: oklch(0.85 0.16 90);       /* sunshine gold accent */
+  --sidebar-primary-foreground: oklch(0.18 0.04 60);
+  --sidebar-accent: oklch(0.3 0.05 30);
+  --sidebar-accent-foreground: oklch(0.96 0.02 90);
+  --sidebar-border: oklch(0.34 0.04 30);
+  --sidebar-ring: oklch(0.85 0.16 90);
 
 @layer base {
   * {
