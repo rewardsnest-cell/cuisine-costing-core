@@ -69,7 +69,7 @@ function CompetitorQuotesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("competitor_quotes")
-      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,service_style,outcome,counter_quote_id,notes,counter:quotes!competitor_quotes_counter_quote_id_fkey(total)")
+      .select("id,created_at,client_name,client_email,client_user_id,competitor_name,event_type,event_date,guest_count,per_guest_price,total,subtotal,taxes,gratuity,service_style,outcome,counter_quote_id,notes,analysis,source_image_url,counter:quotes!competitor_quotes_counter_quote_id_fkey(total)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
