@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { aiPost, AiGatewayError } from "./_ai-gateway";
 
+type Json = string | number | boolean | null | { [k: string]: Json } | Json[];
+
 const SYSTEM = `You are an expert catering pricing analyst. The user uploads a competitor's quote/proposal (image or screenshot). Extract all relevant pricing information so we can build a competitive counter-quote.
 
 Return ONLY valid JSON with this shape:
@@ -52,8 +54,8 @@ export const analyzeCompetitorQuote = createServerFn({ method: "POST" })
       });
       const aiData = await resp.json();
       const content = aiData.choices?.[0]?.message?.content ?? "{}";
-      let parsed: Record<string, unknown>;
-      try { parsed = JSON.parse(content) as Record<string, unknown>; } catch { parsed = { raw: content }; }
+      let parsed: Json;
+      try { parsed = JSON.parse(content) as Json; } catch { parsed = { raw: content }; }
       return { result: parsed };
     } catch (e) {
       if (e instanceof AiGatewayError) {
