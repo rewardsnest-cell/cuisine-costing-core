@@ -912,6 +912,47 @@ export type Database = {
           },
         ]
       }
+      national_price_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          month: string
+          price: number
+          region: string | null
+          source: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          month: string
+          price: number
+          region?: string | null
+          source: string
+          unit: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          month?: string
+          price?: number
+          region?: string | null
+          source?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "national_price_snapshots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           created_at: string
