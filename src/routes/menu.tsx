@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw, Plus, Minus, Check } from "lucide-react";
 import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTray";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -78,6 +79,7 @@ function PublicMenuPage() {
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
+  const [kind, setKind] = useState<RecipeKind>("food");
   const [meat, setMeat] = useState<MeatKey>("all");
   const [category, setCategory] = useState<string>("all");
   const [dietary, setDietary] = useState<"all" | "vegetarian" | "vegan" | "gluten-free">("all");
@@ -156,9 +158,19 @@ function PublicMenuPage() {
     return counts;
   }, [recipes]);
 
+  const kindCounts = useMemo(() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [recipes]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = recipes.filter((r) => {
+      // Food vs Cocktails split (always applied)
+      if (kind === "cocktail" && !isCocktail(r.category)) return false;
+      if (kind === "food" && isCocktail(r.category)) return false;
       if (tier === "standard" && !r.is_standard) return false;
       if (tier === "premium" && !r.is_premium) return false;
       if (meat !== "all") {
@@ -187,7 +199,7 @@ function PublicMenuPage() {
     else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [recipes, tier, meat, category, dietary, search, priceRange, sort]);
+  }, [recipes, kind, tier, meat, category, dietary, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
@@ -231,7 +243,25 @@ function PublicMenuPage() {
             transparent and honest.
           </p>
 
+          {/* Food vs Cocktails */}
           <div className="inline-flex mt-6 rounded-full border border-border bg-card p-1 text-sm">
+            {(["food", "cocktail"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setKind(k)}
+                className={`px-5 py-1.5 rounded-full transition-colors ${
+                  kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {k === "food" ? "Food" : "Cocktails"}
+                <span className="opacity-70 ml-1">
+                  ({k === "food" ? kindCounts.food : kindCounts.cocktail})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="inline-flex mt-3 ml-0 sm:ml-3 rounded-full border border-border bg-card p-1 text-sm">
             {(["all", "standard", "premium"] as const).map((t) => (
               <button
                 key={t}

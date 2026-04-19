@@ -13,6 +13,7 @@ import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -53,6 +54,7 @@ function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "off">("all");
+  const [kind, setKind] = useState<RecipeKind>("food");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", category: "", cuisine: "", servings: "4" });
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -79,8 +81,17 @@ function RecipesPage() {
     if (!r.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === "active" && r.active === false) return false;
     if (filter === "off" && r.active !== false) return false;
+    if (kind === "cocktail" && !isCocktail(r.category)) return false;
+    if (kind === "food" && isCocktail(r.category)) return false;
     return true;
   });
+
+  const kindCounts = (() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  })();
 
   const toggleActive = async (r: Recipe) => {
     await (supabase as any).from("recipes").update({ active: !r.active }).eq("id", r.id);
@@ -443,6 +454,25 @@ function RecipesPage() {
   return (
     <div className="space-y-6">
       <UnlinkedIngredientsReview />
+
+      {/* Food vs Cocktails kind switcher */}
+      <div className="inline-flex rounded-full border border-border bg-card p-1 text-xs">
+        {(["food", "cocktail"] as const).map((k) => (
+          <button
+            key={k}
+            onClick={() => setKind(k)}
+            className={`px-4 py-1.5 rounded-full transition-colors ${
+              kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {k === "food" ? "Food" : "Cocktails"}
+            <span className="opacity-70 ml-1">
+              ({k === "food" ? kindCounts.food : kindCounts.cocktail})
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex gap-2 flex-1 max-w-xl">
           <div className="relative flex-1">

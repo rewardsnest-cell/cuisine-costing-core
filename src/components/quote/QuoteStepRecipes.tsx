@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { QuoteSelections, Step, SelectedRecipe } from "./types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 interface Props {
   selections: QuoteSelections;
@@ -19,6 +20,7 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
   const [search, setSearch] = useState("");
+  const [kind, setKind] = useState<RecipeKind>("food");
 
   useEffect(() => {
     (async () => {
@@ -37,14 +39,23 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
     })();
   }, []);
 
+  const kindCounts = useMemo(() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of allRecipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [allRecipes]);
+
   const matched = useMemo(
     () =>
       filterRecipesForSelections(allRecipes, {
         style: selections.style,
         proteins: selections.proteins,
         allergies: selections.allergies,
-      }).filter((r) => (search.trim() ? r.name.toLowerCase().includes(search.toLowerCase()) : true)),
-    [allRecipes, selections.style, selections.proteins, selections.allergies, search],
+      })
+        .filter((r) => (kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category)))
+        .filter((r) => (search.trim() ? r.name.toLowerCase().includes(search.toLowerCase()) : true)),
+    [allRecipes, selections.style, selections.proteins, selections.allergies, search, kind],
   );
 
   const grouped = useMemo(() => {
@@ -87,14 +98,32 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
         Optional — you can skip and stay with the standard menu, or add chef-crafted dishes for a more accurate quote.
       </p>
 
-      <div className="relative mb-4">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search recipes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="inline-flex rounded-full border border-border bg-card p-1 text-xs">
+          {(["food", "cocktail"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => setKind(k)}
+              className={`px-4 py-1.5 rounded-full transition-colors ${
+                kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {k === "food" ? "Food" : "Cocktails"}
+              <span className="opacity-70 ml-1">
+                ({k === "food" ? kindCounts.food : kindCounts.cocktail})
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search recipes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       {loading ? (

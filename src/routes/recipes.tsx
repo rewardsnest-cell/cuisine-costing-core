@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 type Recipe = {
   id: string;
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/recipes")({
 function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [kind, setKind] = useState<RecipeKind>("food");
 
   useEffect(() => {
     (supabase as any)
@@ -38,6 +40,18 @@ function RecipesPage() {
         setLoading(false);
       });
   }, []);
+
+  const counts = useMemo(() => {
+    let cocktail = 0;
+    let food = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [recipes]);
+
+  const visible = useMemo(
+    () => recipes.filter((r) => (kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category))),
+    [recipes, kind],
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,13 +70,33 @@ function RecipesPage() {
 
 
       <section className="pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Food / Cocktails toggle */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex rounded-full border border-border bg-card p-1 text-sm">
+            {(["food", "cocktail"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setKind(k)}
+                className={`px-5 py-1.5 rounded-full transition-colors capitalize ${
+                  kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {k === "food" ? "Food" : "Cocktails"}{" "}
+                <span className="opacity-70 ml-1">({k === "food" ? counts.food : counts.cocktail})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {loading ? (
           <p className="text-center text-muted-foreground">Loading recipes…</p>
-        ) : recipes.length === 0 ? (
-          <p className="text-center text-muted-foreground">No recipes yet.</p>
+        ) : visible.length === 0 ? (
+          <p className="text-center text-muted-foreground">
+            No {kind === "cocktail" ? "cocktails" : "food recipes"} yet.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
-            {recipes.map((r) => (
+            {visible.map((r) => (
               <Link
                 key={r.id}
                 to="/recipes/$id"
