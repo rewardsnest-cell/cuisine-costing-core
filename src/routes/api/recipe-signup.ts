@@ -125,7 +125,7 @@ export const Route = createFileRoute('/api/recipe-signup')({
 })
 
 async function sendNow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   args: { templateName: string; recipientEmail: string; templateData: Record<string, any>; idempotencyKey: string }
 ) {
   const tmpl = TEMPLATES[args.templateName]

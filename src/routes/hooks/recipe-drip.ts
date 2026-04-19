@@ -129,7 +129,7 @@ export const Route = createFileRoute('/hooks/recipe-drip')({
 })
 
 async function sendOne(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   args: { templateName: string; recipientEmail: string; templateData: Record<string, any>; idempotencyKey: string }
 ) {
   const tmpl = TEMPLATES[args.templateName]

@@ -39,6 +39,7 @@ import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fa
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
 import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
+import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -46,6 +47,7 @@ import { Route as CateringQuoteRouteImport } from './routes/catering_.quote'
 import { Route as BlogWinterWeddingCateringGuideRouteImport } from './routes/blog.winter-wedding-catering-guide'
 import { Route as BlogSpringWeddingCateringGuideRouteImport } from './routes/blog.spring-wedding-catering-guide'
 import { Route as BlogFallWeddingCateringGuideRouteImport } from './routes/blog.fall-wedding-catering-guide'
+import { Route as ApiRecipeSignupRouteImport } from './routes/api/recipe-signup'
 import { Route as ApiQuoteAssistantRouteImport } from './routes/api/quote-assistant'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
@@ -100,6 +102,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const WeddingsRoute = WeddingsRouteImport.update({
@@ -254,6 +257,11 @@ const QuoteAiRoute = QuoteAiRouteImport.update({
   path: '/quote/ai',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HooksRecipeDripRoute = HooksRecipeDripRouteImport.update({
+  id: '/hooks/recipe-drip',
+  path: '/hooks/recipe-drip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HooksNationalPricesMonthlyRoute =
   HooksNationalPricesMonthlyRouteImport.update({
     id: '/hooks/national-prices-monthly',
@@ -293,6 +301,11 @@ const BlogFallWeddingCateringGuideRoute =
     path: '/blog/fall-wedding-catering-guide',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiRecipeSignupRoute = ApiRecipeSignupRouteImport.update({
+  id: '/api/recipe-signup',
+  path: '/api/recipe-signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiQuoteAssistantRoute = ApiQuoteAssistantRouteImport.update({
   id: '/api/quote-assistant',
   path: '/api/quote-assistant',
@@ -571,6 +584,11 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRecipesIdPrintableRoute = ApiRecipesIdPrintableRouteImport.update({
+  id: '/api/recipes/$id/printable',
+  path: '/api/recipes/$id/printable',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -638,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
+  '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -645,6 +664,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
+  '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -665,6 +685,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -730,6 +751,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
+  '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -737,6 +759,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
+  '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -757,6 +780,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -825,6 +849,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
+  '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
@@ -832,6 +857,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
+  '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -852,6 +878,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -921,6 +948,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/api/contact'
     | '/api/quote-assistant'
+    | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -928,6 +956,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
+    | '/hooks/recipe-drip'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -948,6 +977,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1013,6 +1043,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/api/contact'
     | '/api/quote-assistant'
+    | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -1020,6 +1051,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
+    | '/hooks/recipe-drip'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1040,6 +1072,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
+    | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1107,6 +1140,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/api/contact'
     | '/api/quote-assistant'
+    | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
@@ -1114,6 +1148,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
+    | '/hooks/recipe-drip'
     | '/quote_/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1134,6 +1169,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1165,6 +1201,7 @@ export interface RootRouteChildren {
   WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
   ApiQuoteAssistantRoute: typeof ApiQuoteAssistantRoute
+  ApiRecipeSignupRoute: typeof ApiRecipeSignupRoute
   BlogFallWeddingCateringGuideRoute: typeof BlogFallWeddingCateringGuideRoute
   BlogSpringWeddingCateringGuideRoute: typeof BlogSpringWeddingCateringGuideRoute
   BlogWinterWeddingCateringGuideRoute: typeof BlogWinterWeddingCateringGuideRoute
@@ -1172,9 +1209,11 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
+  HooksRecipeDripRoute: typeof HooksRecipeDripRoute
   QuoteAiRoute: typeof QuoteAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1394,6 +1433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuoteAiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hooks/recipe-drip': {
+      id: '/hooks/recipe-drip'
+      path: '/hooks/recipe-drip'
+      fullPath: '/hooks/recipe-drip'
+      preLoaderRoute: typeof HooksRecipeDripRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/hooks/national-prices-monthly': {
       id: '/hooks/national-prices-monthly'
       path: '/hooks/national-prices-monthly'
@@ -1441,6 +1487,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/fall-wedding-catering-guide'
       fullPath: '/blog/fall-wedding-catering-guide'
       preLoaderRoute: typeof BlogFallWeddingCateringGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recipe-signup': {
+      id: '/api/recipe-signup'
+      path: '/api/recipe-signup'
+      fullPath: '/api/recipe-signup'
+      preLoaderRoute: typeof ApiRecipeSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/quote-assistant': {
@@ -1821,6 +1874,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/recipes/$id/printable': {
+      id: '/api/recipes/$id/printable'
+      path: '/api/recipes/$id/printable'
+      fullPath: '/api/recipes/$id/printable'
+      preLoaderRoute: typeof ApiRecipesIdPrintableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recipes/$id/edit': {
       id: '/admin/recipes/$id/edit'
       path: '/$id/edit'
@@ -2030,6 +2090,7 @@ const rootRouteChildren: RootRouteChildren = {
   WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
   ApiQuoteAssistantRoute: ApiQuoteAssistantRoute,
+  ApiRecipeSignupRoute: ApiRecipeSignupRoute,
   BlogFallWeddingCateringGuideRoute: BlogFallWeddingCateringGuideRoute,
   BlogSpringWeddingCateringGuideRoute: BlogSpringWeddingCateringGuideRoute,
   BlogWinterWeddingCateringGuideRoute: BlogWinterWeddingCateringGuideRoute,
@@ -2037,9 +2098,11 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
+  HooksRecipeDripRoute: HooksRecipeDripRoute,
   QuoteAiRoute: QuoteAiRoute,
   BlogIndexRoute: BlogIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
