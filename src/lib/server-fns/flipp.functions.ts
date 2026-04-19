@@ -46,12 +46,16 @@ export const listFlippTemplates = createServerFn({ method: "GET" }).handler(asyn
   return { templates };
 });
 
-// Returns default template ids configured via env vars so the client can
-// pre-fill the picker without exposing secrets.
+// Returns default template ids: app_kv override (admin-editable) → env var fallback.
 export const getFlippDefaults = createServerFn({ method: "GET" }).handler(async () => {
+  const { data } = await supabaseAdmin
+    .from("app_kv")
+    .select("key,value")
+    .in("key", ["integration.flipp.recipe_template_id", "integration.flipp.flyer_template_id"]);
+  const kv = new Map<string, string | null>((data ?? []).map((r: any) => [r.key, r.value]));
   return {
-    recipe_template_id: process.env.FLIPP_RECIPE_TEMPLATE_ID || null,
-    flyer_template_id: process.env.FLIPP_FLYER_TEMPLATE_ID || null,
+    recipe_template_id: kv.get("integration.flipp.recipe_template_id") ?? process.env.FLIPP_RECIPE_TEMPLATE_ID ?? null,
+    flyer_template_id: kv.get("integration.flipp.flyer_template_id") ?? process.env.FLIPP_FLYER_TEMPLATE_ID ?? null,
   };
 });
 

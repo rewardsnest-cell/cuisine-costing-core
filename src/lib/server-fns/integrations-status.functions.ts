@@ -27,6 +27,14 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
     const firecrawlConfigured = !!process.env.FIRECRAWL_API_KEY;
     const supabaseConfigured = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    // Load editable config overrides from app_kv
+    const { data: kvRows } = await supabaseAdmin
+      .from("app_kv")
+      .select("key,value")
+      .like("key", "integration.%");
+    const kv = new Map<string, string | null>((kvRows ?? []).map((r: any) => [r.key, r.value]));
+    const cfg = (k: string, envVal?: string | null) => kv.get(k) ?? envVal ?? null;
+
     // Email log stats (last 7 days, dedup by message_id)
     let emailStats = { sent: 0, failed: 0, suppressed: 0, total: 0 };
     try {
@@ -69,21 +77,25 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
         label: "Flipp Image Generation",
         configured: flippConfigured,
         details: {
-          recipe_template_id: process.env.FLIPP_RECIPE_TEMPLATE_ID || null,
-          flyer_template_id: process.env.FLIPP_FLYER_TEMPLATE_ID || null,
+          recipe_template_id: cfg("integration.flipp.recipe_template_id", process.env.FLIPP_RECIPE_TEMPLATE_ID),
+          flyer_template_id: cfg("integration.flipp.flyer_template_id", process.env.FLIPP_FLYER_TEMPLATE_ID),
+          token_secret_name: "FLIPP_BEARER_TOKEN",
         },
       },
       {
         key: "lovable_ai",
         label: "Lovable AI Gateway",
         configured: lovableConfigured,
-        details: { models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5-mini"] },
+        details: {
+          models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5-mini"],
+          token_secret_name: "LOVABLE_API_KEY",
+        },
       },
       {
         key: "firecrawl",
         label: "Firecrawl",
         configured: firecrawlConfigured,
-        details: {},
+        details: { token_secret_name: "FIRECRAWL_API_KEY" },
       },
       {
         key: "email",
@@ -160,4 +172,40 @@ export const testFlipp = createServerFn({ method: "POST" })
     } catch (e: any) {
       return { ok: false, message: e?.message || "Request failed" };
     }
+  });
+
+// ---------- Editable config (stored in app_kv) ----------
+
+const ALLOWED_CONFIG_KEYS = new Set<string>([
+  "integration.flipp.recipe_template_id",
+  "integration.flipp.flyer_template_id",
+]);
+
+export const getIntegrationConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Record<string, string | null>> => {
+    await ensureAdmin(context.supabase, context.userId);
+    const { data } = await supabaseAdmin
+      .from("app_kv")
+      .select("key,value")
+      .like("key", "integration.%");
+    const out: Record<string, string | null> = {};
+    for (const row of data ?? []) out[(row as any).key] = (row as any).value ?? null;
+    return out;
+  });
+
+export const setIntegrationConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { key: string; value: string | null }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+    if (!ALLOWED_CONFIG_KEYS.has(data.key)) {
+      throw new Error(`Config key not allowed: ${data.key}`);
+    }
+    const value = (data.value ?? "").trim() || null;
+    const { error } = await supabaseAdmin
+      .from("app_kv")
+      .upsert({ key: data.key, value, updated_by: context.userId, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
