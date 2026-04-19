@@ -8,6 +8,7 @@ import {
   upsertStagingRows,
   activateNationalPrices,
 } from "@/lib/server-fns/national-pricing-activation.functions";
+import { getFeatureFlags } from "@/lib/server-fns/feature-flags.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Globe2, AlertCircle, CheckCircle2, Upload, ShieldCheck } from "lucide-react";
+import { Globe2, AlertCircle, CheckCircle2, Upload, ShieldCheck, Lock } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 
 export const Route = createFileRoute("/admin/pricing/national")({
@@ -61,10 +62,12 @@ function NationalPricingPage() {
   const previewFn = useServerFn(getNationalPricingPreview);
   const upsertFn = useServerFn(upsertStagingRows);
   const activateFn = useServerFn(activateNationalPrices);
+  const flagsFn = useServerFn(getFeatureFlags);
 
   const [month, setMonth] = useState(previousMonth());
   const [status, setStatus] = useState<Status | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [flagEnabled, setFlagEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,12 +79,14 @@ function NationalPricingPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, p] = await Promise.all([
+      const [s, p, f] = await Promise.all([
         statusFn({ data: { stagedMonth: targetMonth } }),
         previewFn({ data: { month: targetMonth } }),
+        flagsFn(),
       ]);
       setStatus(s);
       setPreview(p);
+      setFlagEnabled(!!f.national_pricing_enabled);
     } catch (e: any) {
       setError(e?.message || "Failed to load");
     } finally {
@@ -136,8 +141,12 @@ function NationalPricingPage() {
   }
 
   const canActivate = useMemo(
-    () => !!status && status.coverage >= (status.threshold ?? 0.85) && !busy,
-    [status, busy],
+    () =>
+      !!status &&
+      status.coverage >= (status.threshold ?? 0.85) &&
+      !busy &&
+      flagEnabled === true,
+    [status, busy, flagEnabled],
   );
 
   return (
@@ -161,6 +170,20 @@ function NationalPricingPage() {
         <Alert>
           <CheckCircle2 className="w-4 h-4" />
           <AlertDescription>{info}</AlertDescription>
+        </Alert>
+      )}
+      {flagEnabled === false && (
+        <Alert>
+          <Lock className="w-4 h-4" />
+          <AlertDescription>
+            National pricing is currently <strong>disabled</strong>. Activation and the
+            quote pricing floor are gated behind the <code>national_pricing_enabled</code>{" "}
+            feature flag. Enable it from{" "}
+            <a className="underline" href="/admin/margin-volatility">
+              Margin &amp; Volatility
+            </a>{" "}
+            to use this workflow.
+          </AlertDescription>
         </Alert>
       )}
 

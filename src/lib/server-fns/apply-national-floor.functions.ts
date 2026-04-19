@@ -24,6 +24,20 @@ export const applyNationalFloorPricing = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+
+    // Feature gate: national pricing must be enabled.
+    const { data: flagRow } = await sb
+      .from("app_kv")
+      .select("value")
+      .eq("key", "national_pricing_enabled")
+      .maybeSingle();
+    const enabled = String(flagRow?.value ?? "").toLowerCase() === "true";
+    if (!enabled) {
+      throw new Error(
+        "National pricing is disabled. Enable the 'national_pricing_enabled' feature flag to apply the national floor.",
+      );
+    }
+
     // Prefer admin-activated month from app_kv; fall back to caller-provided or current.
     let month = data.month || "";
     if (!month) {
