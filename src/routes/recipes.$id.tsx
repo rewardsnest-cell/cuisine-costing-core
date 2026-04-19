@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter, notFound } from "@tanstack/react-rout
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
+import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
 
 const SITE = "https://www.vpsfinest.com";
 
@@ -206,6 +207,14 @@ function RecipeDetailPage() {
             >
               Print recipe
             </button>
+            <a
+              href={`/api/recipes/${r.id}/printable`}
+              target="_blank"
+              rel="noopener"
+              className="px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition"
+            >
+              Download PDF
+            </a>
           </div>
         </header>
 
@@ -353,8 +362,13 @@ function RecipeDetailPage() {
           </section>
         )}
 
-        {/* 9. CTA */}
-        <section className="mb-12 rounded-2xl bg-primary/5 border border-primary/20 p-8 text-center">
+        {/* 9. EMAIL CAPTURE CTA */}
+        <section className="mb-8">
+          <RecipeEmailCTA recipeId={r.id} recipeName={r.name} />
+        </section>
+
+        {/* Secondary contextual CTA */}
+        <section className="mb-12 rounded-2xl bg-secondary/40 border border-border p-6 text-center">
           {r.cta_type === "menu" ? (
             <>
               <h3 className="font-display text-2xl text-primary mb-2">Hosting an event?</h3>
