@@ -67,7 +67,7 @@ function CateringQuoteChooser() {
 
             <Card
               className="cursor-pointer transition-all hover:shadow-warm hover:border-primary/40 group ring-1 ring-primary/20"
-              onClick={() => navigate({ to: "/quote/ai" })}
+              onClick={() => navigate({ to: "/quote/ai", search: { context: "" } })}
             >
               <CardContent className="p-7">
                 <div className="flex items-center gap-3 mb-4">

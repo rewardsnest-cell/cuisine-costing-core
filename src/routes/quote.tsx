@@ -87,7 +87,7 @@ export function QuotePage() {
 
   const switchToAI = () => {
     sessionStorage.setItem("quote_handoff", JSON.stringify(selections));
-    navigate({ to: "/quote/ai" });
+    navigate({ to: "/quote/ai", search: { context: "" } });
   };
 
   const toggleProtein = (p: string) => {
