@@ -62,6 +62,9 @@ function SaleFlyerDetailPage() {
   const [flyer, setFlyer] = useState<Flyer | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [editedItems, setEditedItems] = useState<Item[]>([]);
+  const [deletedItemIds, setDeletedItemIds] = useState<string[]>([]);
+  const [savingItems, setSavingItems] = useState(false);
   const [supplierName, setSupplierName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
