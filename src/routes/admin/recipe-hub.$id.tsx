@@ -6,9 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { parseYouTubeId, youtubeEmbedUrl } from "@/lib/recipe-video";
+
+function buildAmazonUrl(query: string, tag: string | null) {
+  const base = `https://www.amazon.com/s?k=${encodeURIComponent(query)}`;
+  return tag ? `${base}&tag=${encodeURIComponent(tag)}` : base;
+}
 
 export const Route = createFileRoute("/admin/recipe-hub/$id")({
   head: () => ({ meta: [{ title: "Edit recipe content — Admin" }] }),
