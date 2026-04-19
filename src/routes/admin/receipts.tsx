@@ -134,9 +134,25 @@ function ReceiptsPage() {
     );
   };
 
+  const addLineItem = () => {
+    setEditedLineItems((prev) => [
+      ...prev,
+      { item_name: "", quantity: 1, unit: "each", unit_price: 0, total_price: 0, matched_inventory_id: null, matched_inventory_name: null },
+    ]);
+  };
+
+  const removeLineItem = (idx: number) => {
+    setEditedLineItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
-    await supabase.from("receipts").update({ extracted_line_items: editedLineItems as any }).eq("id", reviewReceipt.id);
+    const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+    const { error } = await supabase
+      .from("receipts")
+      .update({ extracted_line_items: editedLineItems as any, total_amount: Math.round(newTotal * 100) / 100 })
+      .eq("id", reviewReceipt.id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Line items saved");
     load();
     setReviewReceipt(null);
