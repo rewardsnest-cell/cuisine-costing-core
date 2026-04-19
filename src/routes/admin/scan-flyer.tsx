@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 
 type Supplier = { id: string; name: string };
 
@@ -205,11 +206,18 @@ function ScanFlyerPage() {
       if (extractAfterSave) {
         setStatus("Extracting items with AI…");
         try {
-          const { processSaleFlyer } = await import("@/lib/server-fns/process-sale-flyer.functions");
           const result = await processSaleFlyer({ data: { flyerId: inserted.id } });
-          if (!result.success) setError(`Saved, but AI extract failed: ${result.error || "unknown error"}`);
+          if (!result.success) {
+            setError(`Saved, but AI extract failed: ${result.error || "unknown error"}`);
+            setBusy(false);
+            setStatus("");
+            return;
+          }
         } catch (fnErr: any) {
           setError(`Saved, but AI extract failed: ${fnErr?.message || fnErr}`);
+          setBusy(false);
+          setStatus("");
+          return;
         }
       }
 
