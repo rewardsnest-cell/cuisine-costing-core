@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
 import { FloatingQuoteCTA } from "@/components/FloatingQuoteCTA";
+import { PhotoGrid } from "@/components/PhotoGrid";
+import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 
 function useAsset(slug: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -56,6 +58,9 @@ function HomePage() {
           <p className="mt-6 text-xs tracking-[0.25em] uppercase text-background/75">
             Aurora, Ohio · Northeast Ohio
           </p>
+          <div className="mt-8">
+            <ServiceAreaBadges tone="light" />
+          </div>
         </div>
       </section>
 
@@ -142,6 +147,8 @@ function HomePage() {
           </Link>
         </div>
       </section>
+
+      <PhotoGrid />
 
       {/* CTA */}
       <section className="py-24 bg-secondary border-t border-border">

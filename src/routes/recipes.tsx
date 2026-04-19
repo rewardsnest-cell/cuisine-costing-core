@@ -5,6 +5,8 @@ import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 import { Input } from "@/components/ui/input";
 import { Search, Clock, Users, ChefHat } from "lucide-react";
+import { PhotoGrid } from "@/components/PhotoGrid";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 type Recipe = {
   id: string;
@@ -298,6 +300,14 @@ function RecipesPage() {
             })}
           </div>
         )}
+      </section>
+
+      <PhotoGrid heading="More from the kitchen" subhead="A small look at the food we've been cooking and serving lately." />
+
+      <section className="py-20 bg-secondary border-t border-border">
+        <div className="max-w-2xl mx-auto px-6">
+          <NewsletterSignup source="recipes_page" />
+        </div>
       </section>
     </div>
   );

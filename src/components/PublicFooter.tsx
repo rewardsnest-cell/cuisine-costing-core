@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, Instagram, Facebook } from "lucide-react";
 import logo from "@/assets/vpsfinest-logo.png";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 
 const EMAIL = "hello@vpsfinest.com";
 const PHONE_DISPLAY = "(330) 555-0199";
@@ -12,6 +14,15 @@ export function PublicFooter() {
   return (
     <footer className="bg-foreground text-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-12 pb-12 border-b border-background/10 grid gap-6 md:grid-cols-[1.4fr_1fr] items-center">
+          <div>
+            <h3 className="font-display text-2xl font-semibold mb-2">Free Weeknight Recipe Guide</h3>
+            <p className="text-sm text-background/70 leading-relaxed max-w-md">
+              Five reliable recipes we cook on busy nights. Plus one calm note a month — never spammy.
+            </p>
+          </div>
+          <NewsletterSignup variant="footer" source="footer" />
+        </div>
         <div className="grid gap-10 md:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
@@ -82,8 +93,11 @@ export function PublicFooter() {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-background/10 text-xs text-background/50 text-center">
-          © {new Date().getFullYear()} VPS Finest Catering. Crafted with care for unforgettable events.
+        <div className="mt-12 pt-6 border-t border-background/10 space-y-4">
+          <ServiceAreaBadges tone="light" />
+          <p className="text-xs text-background/50 text-center">
+            © {new Date().getFullYear()} VPS Finest Catering. Crafted with care for unforgettable events.
+          </p>
         </div>
       </div>
     </footer>

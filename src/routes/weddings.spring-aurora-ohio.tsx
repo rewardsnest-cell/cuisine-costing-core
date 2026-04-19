@@ -104,6 +104,8 @@ function SpringAuroraPage() {
       </section>
 
       <SeasonalCTA
+        season="spring"
+        location="Aurora, Ohio"
         heading="Tell us about your spring wedding."
         subhead="Share your date, venue, and a few details. We'll come back with a clear, itemized quote — no pressure, no hard sell."
       />

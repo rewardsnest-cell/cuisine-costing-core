@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { faqJsonLd } from "@/lib/seo/jsonld";
+import { BookingTimeline } from "@/components/BookingTimeline";
+import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 
 function useAsset(slug: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -183,6 +185,8 @@ function WeddingsPage() {
           </p>
         </div>
       </section>
+
+      <BookingTimeline variant="compact" />
 
       {/* FAQ */}
       <section className="py-24 bg-secondary border-t border-border">
