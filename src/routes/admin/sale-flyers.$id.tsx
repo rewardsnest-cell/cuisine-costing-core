@@ -14,7 +14,10 @@ import {
   Tag,
   Trash2,
   Save,
+  Plus,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 
 export const Route = createFileRoute("/admin/sale-flyers/$id")({
@@ -59,6 +62,9 @@ function SaleFlyerDetailPage() {
   const [flyer, setFlyer] = useState<Flyer | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [editedItems, setEditedItems] = useState<Item[]>([]);
+  const [deletedItemIds, setDeletedItemIds] = useState<string[]>([]);
+  const [savingItems, setSavingItems] = useState(false);
   const [supplierName, setSupplierName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -102,7 +108,10 @@ function SaleFlyerDetailPage() {
           : Promise.resolve({ data: null }),
       ]);
       setPages((p || []) as Page[]);
-      setItems((it || []) as Item[]);
+      const loaded = (it || []) as Item[];
+      setItems(loaded);
+      setEditedItems(loaded.map((i) => ({ ...i })));
+      setDeletedItemIds([]);
       setSupplierName((s as any)?.name ?? "");
     }
     setLoading(false);
@@ -160,6 +169,99 @@ function SaleFlyerDetailPage() {
     }
   };
 
+  const updateItem = (idx: number, patch: Partial<Item>) => {
+    setEditedItems((prev) => {
+      const next = [...prev];
+      const merged = { ...next[idx], ...patch };
+      const sp = merged.sale_price;
+      const rp = merged.regular_price;
+      if (sp != null && rp != null && rp >= sp) {
+        merged.savings = Number((rp - sp).toFixed(2));
+      }
+      next[idx] = merged;
+      return next;
+    });
+  };
+
+  const removeItem = (idx: number) => {
+    setEditedItems((prev) => {
+      const it = prev[idx];
+      if (it && !it.id.startsWith("new-")) {
+        setDeletedItemIds((d) => [...d, it.id]);
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const addItem = () => {
+    setEditedItems((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: "",
+        brand: null,
+        pack_size: null,
+        unit: null,
+        sale_price: null,
+        regular_price: null,
+        savings: null,
+        inventory_item_id: null,
+      },
+    ]);
+  };
+
+  const saveItems = async () => {
+    setSavingItems(true);
+    try {
+      if (deletedItemIds.length > 0) {
+        const { error: delErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .delete()
+          .in("id", deletedItemIds);
+        if (delErr) throw delErr;
+      }
+      const toInsert: any[] = [];
+      const toUpdate: any[] = [];
+      for (const it of editedItems) {
+        if (!it.name.trim()) continue;
+        const payload = {
+          name: it.name.trim(),
+          brand: it.brand?.toString().trim() || null,
+          pack_size: it.pack_size?.toString().trim() || null,
+          unit: it.unit?.toString().trim() || null,
+          sale_price: it.sale_price,
+          regular_price: it.regular_price,
+          savings: it.savings,
+        };
+        if (it.id.startsWith("new-")) {
+          toInsert.push({ ...payload, sale_flyer_id: id });
+        } else {
+          toUpdate.push({ id: it.id, ...payload });
+        }
+      }
+      if (toInsert.length > 0) {
+        const { error: insErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .insert(toInsert);
+        if (insErr) throw insErr;
+      }
+      for (const u of toUpdate) {
+        const { id: uid, ...rest } = u;
+        const { error: upErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .update(rest)
+          .eq("id", uid);
+        if (upErr) throw upErr;
+      }
+      toast.success("Items saved");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save items");
+    } finally {
+      setSavingItems(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -186,7 +288,22 @@ function SaleFlyerDetailPage() {
     );
   }
 
-  const matched = items.filter((i) => i.inventory_item_id).length;
+  const matched = editedItems.filter((i) => i.inventory_item_id).length;
+  const itemsDirty =
+    deletedItemIds.length > 0 ||
+    editedItems.length !== items.length ||
+    editedItems.some((e, i) => {
+      const o = items[i];
+      if (!o || o.id !== e.id) return true;
+      return (
+        o.name !== e.name ||
+        (o.brand ?? "") !== (e.brand ?? "") ||
+        (o.pack_size ?? "") !== (e.pack_size ?? "") ||
+        (o.unit ?? "") !== (e.unit ?? "") ||
+        (o.sale_price ?? null) !== (e.sale_price ?? null) ||
+        (o.regular_price ?? null) !== (e.regular_price ?? null)
+      );
+    });
 
   return (
     <div className="space-y-6">
@@ -329,56 +446,131 @@ function SaleFlyerDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="font-medium">Extracted items</p>
-            <span className="text-xs text-muted-foreground">
-              {items.length} item{items.length === 1 ? "" : "s"}
-              {items.length > 0 && ` · ${matched} matched to inventory`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {editedItems.length} item{editedItems.length === 1 ? "" : "s"}
+                {editedItems.length > 0 && ` · ${matched} matched`}
+              </span>
+              <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveItems}
+                disabled={savingItems || !itemsDirty}
+                className="gap-1"
+              >
+                {savingItems ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Save items
+              </Button>
+            </div>
           </div>
-          {items.length === 0 ? (
+          {editedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {flyer.status === "processed"
-                ? "No items extracted."
-                : "Tap Extract with AI to read items from the pages."}
+                ? "No items. Tap Add to create one."
+                : "Tap Extract with AI to read items from the pages, or Add to enter manually."}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-xs text-muted-foreground">
                   <tr className="border-b border-border/60">
-                    <th className="text-left py-2 pr-2">Item</th>
-                    <th className="text-left py-2 pr-2">Pack</th>
-                    <th className="text-right py-2 pr-2">Sale</th>
-                    <th className="text-right py-2 pr-2">Reg</th>
-                    <th className="text-right py-2">Save</th>
+                    <th className="text-left py-2 pr-2 min-w-[180px]">Name</th>
+                    <th className="text-left py-2 pr-2 min-w-[120px]">Brand</th>
+                    <th className="text-left py-2 pr-2 min-w-[110px]">Pack</th>
+                    <th className="text-left py-2 pr-2 min-w-[80px]">Unit</th>
+                    <th className="text-right py-2 pr-2 min-w-[90px]">Sale</th>
+                    <th className="text-right py-2 pr-2 min-w-[90px]">Reg</th>
+                    <th className="text-right py-2 pr-2 min-w-[80px]">Save</th>
+                    <th className="py-2 w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
-                    <tr key={it.id} className="border-b border-border/30">
-                      <td className="py-2 pr-2">
-                        <div className="font-medium">{it.name}</div>
-                        {it.brand && (
-                          <div className="text-xs text-muted-foreground">{it.brand}</div>
-                        )}
+                  {editedItems.map((it, idx) => (
+                    <tr key={it.id} className="border-b border-border/30 align-top">
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.name}
+                          onChange={(e) => updateItem(idx, { name: e.target.value })}
+                          placeholder="Item name"
+                          className="h-8"
+                        />
                         {it.inventory_item_id && (
                           <Badge className="mt-1 bg-primary/15 text-primary border-primary/30 text-[10px]">
                             matched
                           </Badge>
                         )}
                       </td>
-                      <td className="py-2 pr-2 text-muted-foreground">
-                        {[it.pack_size, it.unit].filter(Boolean).join(" / ") || "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.brand ?? ""}
+                          onChange={(e) => updateItem(idx, { brand: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 pr-2 text-right">
-                        {it.sale_price != null ? `$${Number(it.sale_price).toFixed(2)}` : "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.pack_size ?? ""}
+                          onChange={(e) => updateItem(idx, { pack_size: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 pr-2 text-right text-muted-foreground">
-                        {it.regular_price != null ? `$${Number(it.regular_price).toFixed(2)}` : "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.unit ?? ""}
+                          onChange={(e) => updateItem(idx, { unit: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 text-right text-emerald-600 dark:text-emerald-400">
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={it.sale_price ?? ""}
+                          onChange={(e) =>
+                            updateItem(idx, {
+                              sale_price: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 text-right"
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={it.regular_price ?? ""}
+                          onChange={(e) =>
+                            updateItem(idx, {
+                              regular_price: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 text-right"
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2 text-right text-emerald-600 dark:text-emerald-400 text-xs">
                         {it.savings != null ? `$${Number(it.savings).toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-1.5 text-right">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeItem(idx)}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
