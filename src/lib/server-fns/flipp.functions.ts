@@ -227,3 +227,100 @@ export const generateFlippImage = createServerFn({ method: "POST" })
 
     return { image_url: finalUrl, source_url: url, width, height };
   });
+
+// ---------- Trackable short links ----------
+
+type LinkTarget =
+  | { kind: "sale_flyer_item"; id: string }
+  | { kind: "sale_flyer"; id: string }
+  | { kind: "none" };
+
+type CreateLinkInput = {
+  template_id?: string;
+  values: FlippValue[];
+  destination_url: string;
+  target?: LinkTarget;
+  campaign?: string;
+};
+
+function extractShortLink(payload: any): string | null {
+  return (
+    payload?.fallback_url ??
+    payload?.short_url ??
+    payload?.url ??
+    payload?.data?.fallback_url ??
+    payload?.data?.short_url ??
+    payload?.data?.url ??
+    null
+  );
+}
+
+export const createFlippLink = createServerFn({ method: "POST" })
+  .inputValidator((input: CreateLinkInput) => {
+    if (!input?.destination_url || typeof input.destination_url !== "string") {
+      throw new Error("destination_url is required");
+    }
+    if (!Array.isArray(input.values)) throw new Error("values must be an array");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const templateId = data.template_id || getDefaultTemplateId();
+    if (!templateId) {
+      throw new Error("FLIPP_TEMPLATE_ID is not configured and no template_id was provided");
+    }
+
+    const target: LinkTarget = data.target ?? { kind: "none" };
+    const campaign =
+      data.campaign ||
+      (target.kind !== "none" ? `${target.kind}_${target.id}` : "share");
+    const destination = withUtm(data.destination_url, campaign);
+
+    const created = await flipp("/links", {
+      method: "POST",
+      body: JSON.stringify({
+        template_id: templateId,
+        values: data.values,
+        destination_url: destination,
+      }),
+    });
+
+    const shortLink = extractShortLink(created);
+    const { url: imageUrl } = extractImageUrl(created);
+    if (!shortLink) throw new Error("Flipp returned no short link");
+
+    // Persist to the originating row when possible.
+    if (target.kind !== "none") {
+      const table = target.kind === "sale_flyer_item" ? "sale_flyer_items" : "sale_flyers";
+      const patch: Record<string, any> = {
+        flipp_short_link: shortLink,
+        flipp_generated_at: new Date().toISOString(),
+      };
+      if (imageUrl) patch.flipp_image_url = imageUrl;
+      const { error: updErr } = await supabaseAdmin
+        .from(table)
+        .update(patch)
+        .eq("id", target.id);
+      if (updErr) console.error("[flipp] persist short link failed:", updErr.message);
+
+      // Audit log for attribution dashboards.
+      await supabaseAdmin.from("access_audit_log").insert({
+        action: "flipp.link_generated",
+        details: {
+          target_kind: target.kind,
+          target_id: target.id,
+          short_link: shortLink,
+          destination_url: destination,
+          template_id: templateId,
+        },
+      } as any).then(({ error }) => {
+        if (error) console.error("[flipp] audit insert failed:", error.message);
+      });
+    }
+
+    return {
+      short_link: shortLink,
+      image_url: imageUrl,
+      destination_url: destination,
+      raw: created,
+    };
+  });
