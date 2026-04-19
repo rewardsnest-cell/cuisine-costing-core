@@ -1898,6 +1898,9 @@ export type Database = {
         Row: {
           brand: string | null
           created_at: string
+          flipp_generated_at: string | null
+          flipp_image_url: string | null
+          flipp_short_link: string | null
           id: string
           inventory_item_id: string | null
           name: string
@@ -1913,6 +1916,9 @@ export type Database = {
         Insert: {
           brand?: string | null
           created_at?: string
+          flipp_generated_at?: string | null
+          flipp_image_url?: string | null
+          flipp_short_link?: string | null
           id?: string
           inventory_item_id?: string | null
           name: string
@@ -1928,6 +1934,9 @@ export type Database = {
         Update: {
           brand?: string | null
           created_at?: string
+          flipp_generated_at?: string | null
+          flipp_image_url?: string | null
+          flipp_short_link?: string | null
           id?: string
           inventory_item_id?: string | null
           name?: string
@@ -1995,6 +2004,9 @@ export type Database = {
       sale_flyers: {
         Row: {
           created_at: string
+          flipp_generated_at: string | null
+          flipp_image_url: string | null
+          flipp_short_link: string | null
           id: string
           image_url: string | null
           notes: string | null
@@ -2010,6 +2022,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          flipp_generated_at?: string | null
+          flipp_image_url?: string | null
+          flipp_short_link?: string | null
           id?: string
           image_url?: string | null
           notes?: string | null
@@ -2025,6 +2040,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          flipp_generated_at?: string | null
+          flipp_image_url?: string | null
+          flipp_short_link?: string | null
           id?: string
           image_url?: string | null
           notes?: string | null
