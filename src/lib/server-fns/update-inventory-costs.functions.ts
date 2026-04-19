@@ -1,13 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const updateInventoryCosts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { receiptId: string }) => {
     if (!input?.receiptId) throw new Error("receiptId required");
     return input;
   })
-  .handler(async ({ data }) => {
-    const { data: receipt, error: receiptErr } = await supabaseAdmin
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    const { data: receipt, error: receiptErr } = await sb
       .from("receipts")
       .select("*")
       .eq("id", data.receiptId)
@@ -18,16 +20,17 @@ export const updateInventoryCosts = createServerFn({ method: "POST" })
     const observedAt = receipt.receipt_date
       ? new Date(receipt.receipt_date).toISOString()
       : new Date().toISOString();
-    const lineItems = (receipt.extracted_line_items as any[]) || [];
+    const lineItems = (receipt.extracted_line_items as Array<Record<string, unknown>>) || [];
     const updates: { name: string; oldCost: number; newCost: number }[] = [];
 
     for (const item of lineItems) {
-      if (!item?.matched_inventory_id) continue;
+      const matchedId = item?.matched_inventory_id as string | undefined;
+      if (!matchedId) continue;
 
-      const { data: inv } = await supabaseAdmin
+      const { data: inv } = await sb
         .from("inventory_items")
         .select("*")
-        .eq("id", item.matched_inventory_id)
+        .eq("id", matchedId)
         .maybeSingle();
       if (!inv) continue;
 
@@ -41,22 +44,22 @@ export const updateInventoryCosts = createServerFn({ method: "POST" })
           ? (oldStock * oldAvgCost + newQty * newUnitPrice) / (oldStock + newQty)
           : newUnitPrice;
 
-      await supabaseAdmin
+      await sb
         .from("inventory_items")
         .update({
           current_stock: oldStock + newQty,
           average_cost_per_unit: Math.round(newAvgCost * 100) / 100,
           last_receipt_cost: newUnitPrice,
         })
-        .eq("id", item.matched_inventory_id);
+        .eq("id", matchedId);
 
-      await supabaseAdmin.from("price_history").insert({
-        inventory_item_id: item.matched_inventory_id,
+      await sb.from("price_history").insert({
+        inventory_item_id: matchedId,
         source: "receipt",
         source_id: data.receiptId,
         supplier_id: supplierId,
         unit_price: newUnitPrice,
-        unit: item.unit || null,
+        unit: (item.unit as string) || null,
         observed_at: observedAt,
       });
 
@@ -67,7 +70,7 @@ export const updateInventoryCosts = createServerFn({ method: "POST" })
       });
     }
 
-    await supabaseAdmin
+    await sb
       .from("receipts")
       .update({ status: "processed" })
       .eq("id", data.receiptId);
