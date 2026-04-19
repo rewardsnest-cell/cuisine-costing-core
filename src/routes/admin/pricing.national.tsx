@@ -141,8 +141,12 @@ function NationalPricingPage() {
   }
 
   const canActivate = useMemo(
-    () => !!status && status.coverage >= (status.threshold ?? 0.85) && !busy,
-    [status, busy],
+    () =>
+      !!status &&
+      status.coverage >= (status.threshold ?? 0.85) &&
+      !busy &&
+      flagEnabled === true,
+    [status, busy, flagEnabled],
   );
 
   return (
