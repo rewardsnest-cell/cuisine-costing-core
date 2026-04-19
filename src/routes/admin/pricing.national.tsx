@@ -172,6 +172,20 @@ function NationalPricingPage() {
           <AlertDescription>{info}</AlertDescription>
         </Alert>
       )}
+      {flagEnabled === false && (
+        <Alert>
+          <Lock className="w-4 h-4" />
+          <AlertDescription>
+            National pricing is currently <strong>disabled</strong>. Activation and the
+            quote pricing floor are gated behind the <code>national_pricing_enabled</code>{" "}
+            feature flag. Enable it from{" "}
+            <a className="underline" href="/admin/margin-volatility">
+              Margin &amp; Volatility
+            </a>{" "}
+            to use this workflow.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Status header */}
       <Card>
