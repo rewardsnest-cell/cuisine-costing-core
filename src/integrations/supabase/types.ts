@@ -104,6 +104,47 @@ export type Database = {
         }
         Relationships: []
       }
+      change_impact_analyses: {
+        Row: {
+          audit_export_id: string | null
+          change_description: string
+          executed_at: string
+          executed_by: string | null
+          id: string
+          output_content: string
+          output_filename: string
+          prompt_version: string
+        }
+        Insert: {
+          audit_export_id?: string | null
+          change_description: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          output_content: string
+          output_filename: string
+          prompt_version: string
+        }
+        Update: {
+          audit_export_id?: string | null
+          change_description?: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          output_content?: string
+          output_filename?: string
+          prompt_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_impact_analyses_audit_export_id_fkey"
+            columns: ["audit_export_id"]
+            isOneToOne: false
+            referencedRelation: "project_audit_exports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitor_quote_pages: {
         Row: {
           competitor_quote_id: string
@@ -277,6 +318,45 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      decision_logs: {
+        Row: {
+          created_at: string
+          decision_rationale: string
+          decision_title: string
+          expected_impact: string
+          final_decision: string
+          id: string
+          options_considered: string
+          owner: string | null
+          problem_statement: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decision_rationale: string
+          decision_title: string
+          expected_impact: string
+          final_decision: string
+          id?: string
+          options_considered: string
+          owner?: string | null
+          problem_statement: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decision_rationale?: string
+          decision_title?: string
+          expected_impact?: string
+          final_decision?: string
+          id?: string
+          options_considered?: string
+          owner?: string | null
+          problem_statement?: string
+          status?: string
         }
         Relationships: []
       }
@@ -599,6 +679,36 @@ export type Database = {
           },
         ]
       }
+      governance_prompts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          prompt_content: string
+          prompt_name: string
+          prompt_status: string
+          prompt_version: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          prompt_content: string
+          prompt_name: string
+          prompt_status?: string
+          prompt_version: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          prompt_content?: string
+          prompt_name?: string
+          prompt_status?: string
+          prompt_version?: string
+        }
+        Relationships: []
+      }
       ingredient_reference: {
         Row: {
           canonical_name: string
@@ -910,6 +1020,33 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      project_audit_exports: {
+        Row: {
+          executed_at: string
+          executed_by: string | null
+          id: string
+          output_content: string
+          output_filename: string
+          prompt_version: string
+        }
+        Insert: {
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          output_content: string
+          output_filename: string
+          prompt_version: string
+        }
+        Update: {
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          output_content?: string
+          output_filename?: string
+          prompt_version?: string
         }
         Relationships: []
       }
