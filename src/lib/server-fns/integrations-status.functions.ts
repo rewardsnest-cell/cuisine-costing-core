@@ -2,8 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-async function ensureAdmin(userId: string) {
-  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
+async function ensureAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw new Error(`Role check failed: ${error.message}`);
   if (!(data ?? []).some((r: any) => r.role === "admin")) {
     throw new Error("Forbidden: admin only");
   }
