@@ -243,7 +243,25 @@ function PublicMenuPage() {
             transparent and honest.
           </p>
 
+          {/* Food vs Cocktails */}
           <div className="inline-flex mt-6 rounded-full border border-border bg-card p-1 text-sm">
+            {(["food", "cocktail"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setKind(k)}
+                className={`px-5 py-1.5 rounded-full transition-colors ${
+                  kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {k === "food" ? "Food" : "Cocktails"}
+                <span className="opacity-70 ml-1">
+                  ({k === "food" ? kindCounts.food : kindCounts.cocktail})
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="inline-flex mt-3 ml-0 sm:ml-3 rounded-full border border-border bg-card p-1 text-sm">
             {(["all", "standard", "premium"] as const).map((t) => (
               <button
                 key={t}
