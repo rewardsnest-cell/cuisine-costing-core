@@ -461,8 +461,9 @@ function ScanFlyerPage() {
               <Link to="/admin/suppliers">Cancel</Link>
             </Button>
             <Button
+              type="button"
               onClick={handleSave}
-              disabled={busy || pages.length === 0 || !supplierId}
+              disabled={busy}
               className="bg-gradient-warm text-primary-foreground gap-2"
             >
               {busy ? (
@@ -474,10 +475,10 @@ function ScanFlyerPage() {
             </Button>
           </div>
           {!supplierId && (
-            <p className="text-xs text-muted-foreground">Pick a supplier to enable Save.</p>
+            <p className="text-xs text-muted-foreground">Pick a supplier before saving.</p>
           )}
           {supplierId && pages.length === 0 && (
-            <p className="text-xs text-muted-foreground">Add at least one picture to enable Save.</p>
+            <p className="text-xs text-muted-foreground">Add at least one picture before saving.</p>
           )}
         </div>
       </div>
