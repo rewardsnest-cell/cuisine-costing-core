@@ -4,6 +4,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -104,7 +105,7 @@ export function MarginVolatilityChart() {
                   />
                   <Bar dataKey="pct" radius={[6, 6, 0, 0]}>
                     {vol.map((entry, i) => (
-                      <CellColored key={i} value={entry.pct} />
+                      <Cell key={i} fill={entry.pct >= 0 ? "hsl(var(--destructive))" : "hsl(var(--success))"} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -146,8 +147,3 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-// recharts Cell would normally come from recharts; emulate via shape
-function CellColored({ value }: { value: number }) {
-  const fill = value >= 0 ? "hsl(var(--destructive))" : "hsl(var(--success))";
-  return <rect fill={fill} />;
-}
