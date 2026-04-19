@@ -117,6 +117,8 @@ function IntegrationsPage() {
         </div>
       )}
 
+      <FlippAttributionPanel />
+
       <EditConfigDialog
         item={editing}
         onClose={() => setEditing(null)}
