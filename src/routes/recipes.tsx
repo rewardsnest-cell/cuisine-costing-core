@@ -27,6 +27,7 @@ export const Route = createFileRoute("/recipes")({
 function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [kind, setKind] = useState<RecipeKind>("food");
 
   useEffect(() => {
     (supabase as any)
@@ -39,6 +40,18 @@ function RecipesPage() {
         setLoading(false);
       });
   }, []);
+
+  const counts = useMemo(() => {
+    let cocktail = 0;
+    let food = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [recipes]);
+
+  const visible = useMemo(
+    () => recipes.filter((r) => (kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category))),
+    [recipes, kind],
+  );
 
   return (
     <div className="min-h-screen bg-background">
