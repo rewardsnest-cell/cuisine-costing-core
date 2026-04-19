@@ -135,9 +135,6 @@ function HomePage() {
       {/* Recipes strip */}
       <section className="py-24 bg-background">
         <div className="max-w-2xl mx-auto px-6 text-center">
-      {/* Recipes strip */}
-      <section className="py-24 bg-background">
-        <div className="max-w-2xl mx-auto px-6 text-center">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-6">Also from our kitchen</p>
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-6">
             Recipes we cook at home.
