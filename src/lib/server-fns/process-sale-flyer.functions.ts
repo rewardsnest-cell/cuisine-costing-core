@@ -1,13 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { aiPost, AiGatewayError } from "./_ai-gateway";
 
 export const processSaleFlyer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { flyerId: string; imageUrls?: string[]; imageUrl?: string }) => {
     if (!input?.flyerId) throw new Error("flyerId required");
     return input;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = context.supabase;
     let imageUrls: string[] = Array.isArray(data.imageUrls)
       ? data.imageUrls.filter((u) => typeof u === "string" && u.length > 0)
       : data.imageUrl
