@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
+import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -279,6 +280,17 @@ function RecipesPage() {
               <RefreshCw className={`w-4 h-4 ${recomputing ? "animate-spin" : ""}`} />
               {recomputing ? "Recomputing…" : "Recompute cost"}
             </Button>
+            <FlippGenerateButton
+              target={{ kind: "recipe", id: selectedRecipe.id }}
+              values={[
+                { name: "name", value: selectedRecipe.name },
+                { name: "description", value: selectedRecipe.description ?? null },
+                { name: "category", value: selectedRecipe.category ?? null },
+                { name: "cuisine", value: selectedRecipe.cuisine ?? null },
+                { name: "price", value: selectedRecipe.cost_per_serving ? `$${Number(selectedRecipe.cost_per_serving).toFixed(2)}` : null },
+              ]}
+              onGenerated={(url) => setSelectedRecipe({ ...selectedRecipe, ...({ image_url: url } as any) })}
+            />
             <Link to="/admin/recipes/$id/edit" params={{ id: selectedRecipe.id }}>
               <Button variant="outline" size="sm">Edit recipe</Button>
             </Link>
