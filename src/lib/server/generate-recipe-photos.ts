@@ -37,15 +37,23 @@ function dataUrlToBytes(dataUrl: string): { bytes: Uint8Array; contentType: stri
   return { bytes, contentType };
 }
 
-async function generateOne(name: string, desc: string, category: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+async function generateOne(
+  name: string,
+  desc: string,
+  category: string,
+  variant: "editorial" | "social" = "editorial",
+): Promise<{ bytes: Uint8Array; contentType: string }> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
+  const prompt = variant === "social"
+    ? SOCIAL_PROMPT_TPL(name, desc, category)
+    : PROMPT_TPL(name, desc, category);
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: MODEL,
-      messages: [{ role: "user", content: PROMPT_TPL(name, desc, category) }],
+      messages: [{ role: "user", content: prompt }],
       modalities: ["image", "text"],
     }),
   });
@@ -62,7 +70,7 @@ async function generateOne(name: string, desc: string, category: string): Promis
 export const listRecipesForPhotoGen = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await supabaseAdmin
     .from("recipes")
-    .select("id,name,description,category,image_url")
+    .select("id,name,description,category,image_url,social_image_url")
     .eq("active", true)
     .order("name");
   if (error) throw new Error(error.message);
