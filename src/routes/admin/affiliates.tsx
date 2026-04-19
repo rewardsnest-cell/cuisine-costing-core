@@ -215,12 +215,41 @@ function StatCard({ label, value, sub, icon }: { label: string; value: string; s
   );
 }
 
-function ProgramDialog({ onSaved }: { onSaved: () => void }) {
+const NETWORK_PRESETS = ["Amazon Associates", "ShareASale", "Impact", "CJ Affiliate", "Rakuten", "Awin", "Skimlinks", "Direct", "Other"];
+const STATUS_OPTIONS = ["active", "paused", "ended", "pending_approval"];
+
+const blankProgram = {
+  name: "", network: "", affiliate_id: "", referral_link: "",
+  commission_rate: "", commission_type: "percent", status: "active", notes: "",
+};
+
+function ProgramDialog({ program, onSaved }: { program?: Program; onSaved: () => void }) {
+  const isEdit = !!program;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", network: "", affiliate_id: "", referral_link: "", commission_rate: "", commission_type: "percent", status: "active", notes: "" });
+  const [form, setForm] = useState(blankProgram);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && program) {
+      setForm({
+        name: program.name || "",
+        network: program.network || "",
+        affiliate_id: program.affiliate_id || "",
+        referral_link: program.referral_link || "",
+        commission_rate: program.commission_rate != null ? String(program.commission_rate) : "",
+        commission_type: program.commission_type || "percent",
+        status: program.status || "active",
+        notes: program.notes || "",
+      });
+    } else if (open && !program) {
+      setForm(blankProgram);
+    }
+  }, [open, program]);
+
   const submit = async () => {
     if (!form.name.trim()) return toast.error("Name required");
-    const { error } = await supabase.from("affiliate_programs").insert({
+    setSaving(true);
+    const payload = {
       name: form.name.trim(),
       network: form.network || null,
       affiliate_id: form.affiliate_id || null,
@@ -229,45 +258,89 @@ function ProgramDialog({ onSaved }: { onSaved: () => void }) {
       commission_type: form.commission_type,
       status: form.status,
       notes: form.notes || null,
-    });
+    };
+    const { error } = isEdit
+      ? await supabase.from("affiliate_programs").update(payload).eq("id", program!.id)
+      : await supabase.from("affiliate_programs").insert(payload);
+    setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Program added");
+    toast.success(isEdit ? "Program updated" : "Program added");
     setOpen(false);
-    setForm({ name: "", network: "", affiliate_id: "", referral_link: "", commission_rate: "", commission_type: "percent", status: "active", notes: "" });
     onSaved();
   };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="w-4 h-4" />Add Program</Button></DialogTrigger>
-      <DialogContent><DialogHeader><DialogTitle>New Affiliate Program</DialogTitle></DialogHeader>
+      <DialogTrigger asChild>
+        {isEdit
+          ? <Button size="sm" variant="ghost"><Pencil className="w-3.5 h-3.5" /></Button>
+          : <Button size="sm" className="gap-1.5"><Plus className="w-4 h-4" />Add Program</Button>}
+      </DialogTrigger>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>{isEdit ? `Edit ${program!.name}` : "New Affiliate Program"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Amazon Associates" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Network</Label><Input value={form.network} onChange={e => setForm({ ...form, network: e.target.value })} placeholder="Amazon, ShareASale" /></div>
-            <div><Label>Your Affiliate ID</Label><Input value={form.affiliate_id} onChange={e => setForm({ ...form, affiliate_id: e.target.value })} /></div>
+          <div>
+            <Label>Program Name *</Label>
+            <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Amazon Associates" />
           </div>
-          <div><Label>Referral Link</Label><Input value={form.referral_link} onChange={e => setForm({ ...form, referral_link: e.target.value })} placeholder="https://…" /></div>
-          <div className="grid grid-cols-3 gap-3">
-            <div><Label>Rate</Label><Input type="number" step="0.01" value={form.commission_rate} onChange={e => setForm({ ...form, commission_rate: e.target.value })} /></div>
-            <div><Label>Type</Label>
-              <Select value={form.commission_type} onValueChange={v => setForm({ ...form, commission_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="percent">%</SelectItem><SelectItem value="flat">flat $</SelectItem></SelectContent>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Network / Platform</Label>
+              <Select value={form.network || "__none"} onValueChange={v => setForm({ ...form, network: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">— none —</SelectItem>
+                  {NETWORK_PRESETS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
-            <div><Label>Status</Label>
+            <div>
+              <Label>Status</Label>
               <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Your Affiliate / Tracking ID</Label>
+            <Input value={form.affiliate_id} onChange={e => setForm({ ...form, affiliate_id: e.target.value })} placeholder="e.g. vpsfinest-20" />
+            <p className="text-xs text-muted-foreground mt-1">For Amazon, this is your <code>tag=</code> parameter.</p>
+          </div>
+          <div>
+            <Label>Referral / Dashboard Link</Label>
+            <Input value={form.referral_link} onChange={e => setForm({ ...form, referral_link: e.target.value })} placeholder="https://…" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Commission Rate</Label>
+              <Input type="number" step="0.01" value={form.commission_rate} onChange={e => setForm({ ...form, commission_rate: e.target.value })} placeholder="4" />
+            </div>
+            <div>
+              <Label>Commission Type</Label>
+              <Select value={form.commission_type} onValueChange={v => setForm({ ...form, commission_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">active</SelectItem>
-                  <SelectItem value="paused">paused</SelectItem>
-                  <SelectItem value="ended">ended</SelectItem>
+                  <SelectItem value="percent">Percent (%)</SelectItem>
+                  <SelectItem value="flat">Flat ($)</SelectItem>
+                  <SelectItem value="tiered">Tiered</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div><Label>Notes</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
-          <Button onClick={submit} className="w-full">Save Program</Button>
+          <div>
+            <Label>Notes</Label>
+            <Textarea
+              value={form.notes}
+              onChange={e => setForm({ ...form, notes: e.target.value })}
+              rows={4}
+              placeholder="Login email, payout schedule, payout method, contact, special terms…"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Use this for login email, payout method, contact name/email, payment terms, and any custom tracking notes.</p>
+          </div>
+          <Button onClick={submit} disabled={saving} className="w-full">
+            {saving ? "Saving…" : isEdit ? "Save Changes" : "Save Program"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
