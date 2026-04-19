@@ -246,6 +246,19 @@ function MyQuotesPage() {
                         <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
+                    <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/60">
+                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handleDownloadPDF(q)}>
+                        <Download className="w-3.5 h-3.5" /> PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => { setRequestQuote(q); setRequestText(""); }}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" /> Request Changes
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -253,6 +266,34 @@ function MyQuotesPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!requestQuote} onOpenChange={(o) => !o && setRequestQuote(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request changes</DialogTitle>
+            <DialogDescription>
+              Tell us what to adjust on quote{" "}
+              <span className="font-mono">{requestQuote?.reference_number}</span>. We'll review and reply by email.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={requestText}
+            onChange={(e) => setRequestText(e.target.value)}
+            placeholder="e.g. Bump guest count to 120, swap chicken for salmon, add a vegan option…"
+            rows={5}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRequestQuote(null)}>Cancel</Button>
+            <Button
+              onClick={submitChangeRequest}
+              disabled={submittingRequest || !requestText.trim()}
+              className="bg-gradient-warm text-primary-foreground"
+            >
+              {submittingRequest ? "Sending…" : "Send request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
