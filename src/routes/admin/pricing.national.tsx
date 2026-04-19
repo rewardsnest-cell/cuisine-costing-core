@@ -62,10 +62,12 @@ function NationalPricingPage() {
   const previewFn = useServerFn(getNationalPricingPreview);
   const upsertFn = useServerFn(upsertStagingRows);
   const activateFn = useServerFn(activateNationalPrices);
+  const flagsFn = useServerFn(getFeatureFlags);
 
   const [month, setMonth] = useState(previousMonth());
   const [status, setStatus] = useState<Status | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [flagEnabled, setFlagEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,12 +79,14 @@ function NationalPricingPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, p] = await Promise.all([
+      const [s, p, f] = await Promise.all([
         statusFn({ data: { stagedMonth: targetMonth } }),
         previewFn({ data: { month: targetMonth } }),
+        flagsFn(),
       ]);
       setStatus(s);
       setPreview(p);
+      setFlagEnabled(!!f.national_pricing_enabled);
     } catch (e: any) {
       setError(e?.message || "Failed to load");
     } finally {
