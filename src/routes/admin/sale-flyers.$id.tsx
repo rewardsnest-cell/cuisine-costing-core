@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
+import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
 
 export const Route = createFileRoute("/admin/sale-flyers/$id")({
   component: SaleFlyerDetailPage,
@@ -339,6 +340,17 @@ function SaleFlyerDetailPage() {
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Delete
           </Button>
+          <FlippGenerateButton
+            target={{ kind: "sale_flyer", id: flyer.id }}
+            values={[
+              { name: "title", value: flyer.title ?? null },
+              { name: "supplier", value: supplierName || null },
+              { name: "sale_start_date", value: flyer.sale_start_date ?? null },
+              { name: "sale_end_date", value: flyer.sale_end_date ?? null },
+              { name: "item_count", value: String(editedItems.length) },
+            ]}
+            onGenerated={(url) => setFlyer({ ...flyer, image_url: url })}
+          />
           <Button
             type="button"
             onClick={runExtract}
