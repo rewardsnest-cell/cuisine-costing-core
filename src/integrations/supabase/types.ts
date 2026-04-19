@@ -1511,6 +1511,107 @@ export type Database = {
           },
         ]
       }
+      recipe_drip_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string
+          id: string
+          last_error: string | null
+          recipe_id: string | null
+          send_after: string
+          sent_at: string | null
+          signup_id: string
+          status: string
+          step: number
+          template_name: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email: string
+          id?: string
+          last_error?: string | null
+          recipe_id?: string | null
+          send_after: string
+          sent_at?: string | null
+          signup_id: string
+          status?: string
+          step: number
+          template_name: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string
+          id?: string
+          last_error?: string | null
+          recipe_id?: string | null
+          send_after?: string
+          sent_at?: string | null
+          signup_id?: string
+          status?: string
+          step?: number
+          template_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_drip_jobs_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_drip_jobs_signup_id_fkey"
+            columns: ["signup_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_email_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_email_signups: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          ip_hash: string | null
+          lead_magnet: string
+          recipe_id: string | null
+          source: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          ip_hash?: string | null
+          lead_magnet?: string
+          recipe_id?: string | null
+          source?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          ip_hash?: string | null
+          lead_magnet?: string
+          recipe_id?: string | null
+          source?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_email_signups_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_ingredients: {
         Row: {
           cost_per_unit: number | null
