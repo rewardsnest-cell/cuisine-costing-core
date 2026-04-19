@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tag, Search, ArrowUpDown, Truck, Calendar, Package, ExternalLink } from "lucide-react";
+import { Tag, Search, ArrowUpDown, Truck, Calendar, Package, ExternalLink, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/sales")({
   head: () => ({
@@ -176,6 +177,19 @@ function SalesDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Header with upload CTA */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Sales Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Currently active supplier sale prices.</p>
+        </div>
+        <Button asChild className="bg-gradient-warm text-primary-foreground gap-2 w-full sm:w-auto">
+          <Link to="/admin/scan-flyer">
+            <Upload className="w-4 h-4" /> Upload flyer
+          </Link>
+        </Button>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryCard label="Active sale items" value={rows.length.toString()} icon={<Tag className="w-4 h-4 text-warm" />} />
