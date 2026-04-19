@@ -523,7 +523,7 @@ function PublicMenuPage() {
                         </Link>
                         <CardContent className="p-4 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-display text-lg font-semibold leading-tight">{r.name}</h3>
+                            <Link to="/recipes/$id" params={{ id: r.id }} className="font-display text-lg font-semibold leading-tight hover:text-primary transition-colors">{r.name}</Link>
                             <div className="text-right shrink-0">
                               <div className="font-display text-lg font-bold text-gradient-gold">
                                 ${price.toFixed(2)}
