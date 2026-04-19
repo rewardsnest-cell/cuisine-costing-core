@@ -153,7 +153,7 @@ export const buildCounterQuote = createServerFn({ method: "POST" })
         .select("id,name,cost_per_serving")
         .eq("active", true);
       const recipeMap = new Map<string, { id: string; name: string; cost_per_serving: number | null }>();
-      (recipes ?? []).forEach((r) => recipeMap.set(norm(r.name), r));
+      (recipes ?? []).forEach((r: { id: string; name: string; cost_per_serving: number | null }) => recipeMap.set(norm(r.name), r));
 
       let matchedExisting = 0;
       let aiCreated = 0;
