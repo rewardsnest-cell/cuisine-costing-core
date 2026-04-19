@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { FredPullPanel } from "@/components/admin/FredPullPanel";
 
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
@@ -340,6 +341,7 @@ function InventoryPage() {
 
   return (
     <div className="space-y-6">
+      <FredPullPanel onApplied={loadItems} />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
