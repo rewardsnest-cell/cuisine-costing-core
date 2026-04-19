@@ -83,6 +83,92 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          earned_on: string
+          id: string
+          notes: string | null
+          paid_on: string | null
+          program_id: string
+          reference: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          earned_on?: string
+          id?: string
+          notes?: string | null
+          paid_on?: string | null
+          program_id: string
+          reference?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          earned_on?: string
+          id?: string
+          notes?: string | null
+          paid_on?: string | null
+          program_id?: string
+          reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_earnings_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_programs: {
+        Row: {
+          affiliate_id: string | null
+          commission_rate: number | null
+          commission_type: string
+          created_at: string
+          id: string
+          name: string
+          network: string | null
+          notes: string | null
+          referral_link: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          commission_rate?: number | null
+          commission_type?: string
+          created_at?: string
+          id?: string
+          name: string
+          network?: string | null
+          notes?: string | null
+          referral_link?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          commission_rate?: number | null
+          commission_type?: string
+          created_at?: string
+          id?: string
+          name?: string
+          network?: string | null
+          notes?: string | null
+          referral_link?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_kv: {
         Row: {
           key: string
@@ -1804,6 +1890,63 @@ export type Database = {
           storage_path?: string
           updated_at?: string
           width?: number | null
+        }
+        Relationships: []
+      }
+      sponsorship_deals: {
+        Row: {
+          brand_name: string
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          currency: string
+          deal_type: string | null
+          deal_value: number
+          delivered_on: string | null
+          id: string
+          invoiced_on: string | null
+          notes: string | null
+          paid_on: string | null
+          pitched_on: string | null
+          signed_on: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand_name: string
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string
+          deal_type?: string | null
+          deal_value?: number
+          delivered_on?: string | null
+          id?: string
+          invoiced_on?: string | null
+          notes?: string | null
+          paid_on?: string | null
+          pitched_on?: string | null
+          signed_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string
+          deal_type?: string | null
+          deal_value?: number
+          delivered_on?: string | null
+          id?: string
+          invoiced_on?: string | null
+          notes?: string | null
+          paid_on?: string | null
+          pitched_on?: string | null
+          signed_on?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
