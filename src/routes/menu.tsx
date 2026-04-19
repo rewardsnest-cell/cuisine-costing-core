@@ -158,9 +158,19 @@ function PublicMenuPage() {
     return counts;
   }, [recipes]);
 
+  const kindCounts = useMemo(() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [recipes]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = recipes.filter((r) => {
+      // Food vs Cocktails split (always applied)
+      if (kind === "cocktail" && !isCocktail(r.category)) return false;
+      if (kind === "food" && isCocktail(r.category)) return false;
       if (tier === "standard" && !r.is_standard) return false;
       if (tier === "premium" && !r.is_premium) return false;
       if (meat !== "all") {
@@ -189,7 +199,7 @@ function PublicMenuPage() {
     else if (sort === "price-desc") sorted.sort((a, b) => resolvedPrice(b) - resolvedPrice(a));
     else sorted.sort((a, b) => a.name.localeCompare(b.name));
     return sorted;
-  }, [recipes, tier, meat, category, dietary, search, priceRange, sort]);
+  }, [recipes, kind, tier, meat, category, dietary, search, priceRange, sort]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, MenuRecipe[]>();
