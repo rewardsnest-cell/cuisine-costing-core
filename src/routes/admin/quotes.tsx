@@ -20,6 +20,7 @@ import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
+import { roundUpToNext5 } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
@@ -520,7 +521,7 @@ function QuotesPage() {
                 <div className="text-right">
                   <p className="font-display text-lg font-bold leading-tight">${Number(q.total).toFixed(2)}</p>
                   {q.guest_count > 0 && q.subtotal != null ? (() => {
-                    const perGuest = Number(q.subtotal) / q.guest_count;
+                    const perGuest = roundUpToNext5(Number(q.subtotal) / q.guest_count);
                     const colorClass = perGuest < 50
                       ? "text-success"
                       : perGuest <= 100
