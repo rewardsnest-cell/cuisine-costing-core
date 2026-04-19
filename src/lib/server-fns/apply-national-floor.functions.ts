@@ -24,7 +24,16 @@ export const applyNationalFloorPricing = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
-    const month = data.month || new Date().toISOString().slice(0, 7);
+    // Prefer admin-activated month from app_kv; fall back to caller-provided or current.
+    let month = data.month || "";
+    if (!month) {
+      const { data: kv } = await sb
+        .from("app_kv")
+        .select("value")
+        .eq("key", "active_national_price_month")
+        .maybeSingle();
+      month = (kv?.value as string | null) || new Date().toISOString().slice(0, 7);
+    }
 
     const { data: settings } = await sb
       .from("app_settings")
