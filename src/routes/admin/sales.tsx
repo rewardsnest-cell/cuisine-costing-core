@@ -344,11 +344,11 @@ function SalesDashboard() {
                       <span className="italic text-muted-foreground">Not linked to inventory</span>
                     )}
                     <Link
-                      to="/admin/suppliers/$id"
-                      params={{ id: r.supplier_id || "" }}
+                      to="/admin/sale-flyers/$id"
+                      params={{ id: r.flyer_id }}
                       className="text-primary font-medium hover:underline inline-flex items-center gap-1 shrink-0"
                     >
-                      Flyer <ExternalLink className="w-3 h-3" />
+                      Open flyer <ExternalLink className="w-3 h-3" />
                     </Link>
                   </div>
                 </CardContent>
