@@ -81,6 +81,7 @@ import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
+import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -459,6 +460,11 @@ const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminSuppliersRoute,
 } as any)
+const AdminSaleFlyersIdRoute = AdminSaleFlyersIdRouteImport.update({
+  id: '/sale-flyers/$id',
+  path: '/sale-flyers/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRecipesNewRoute = AdminRecipesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -575,6 +581,7 @@ export interface FileRoutesByFullPath {
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
+  '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
@@ -655,6 +662,7 @@ export interface FileRoutesByTo {
   '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
+  '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
@@ -738,6 +746,7 @@ export interface FileRoutesById {
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
+  '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
@@ -822,6 +831,7 @@ export interface FileRouteTypes {
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
+    | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
@@ -902,6 +912,7 @@ export interface FileRouteTypes {
     | '/weddings'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
+    | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
@@ -984,6 +995,7 @@ export interface FileRouteTypes {
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/recipes/new'
+    | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
@@ -1541,6 +1553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSuppliersIdRouteImport
       parentRoute: typeof AdminSuppliersRoute
     }
+    '/admin/sale-flyers/$id': {
+      id: '/admin/sale-flyers/$id'
+      path: '/sale-flyers/$id'
+      fullPath: '/admin/sale-flyers/$id'
+      preLoaderRoute: typeof AdminSaleFlyersIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/recipes/new': {
       id: '/admin/recipes/new'
       path: '/new'
@@ -1660,6 +1679,7 @@ interface AdminRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
+  AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
 }
 
@@ -1697,6 +1717,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
+  AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
 }
 
