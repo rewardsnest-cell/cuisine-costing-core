@@ -173,3 +173,39 @@ export const testFlipp = createServerFn({ method: "POST" })
       return { ok: false, message: e?.message || "Request failed" };
     }
   });
+
+// ---------- Editable config (stored in app_kv) ----------
+
+const ALLOWED_CONFIG_KEYS = new Set<string>([
+  "integration.flipp.recipe_template_id",
+  "integration.flipp.flyer_template_id",
+]);
+
+export const getIntegrationConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<Record<string, string | null>> => {
+    await ensureAdmin(context.supabase, context.userId);
+    const { data } = await supabaseAdmin
+      .from("app_kv")
+      .select("key,value")
+      .like("key", "integration.%");
+    const out: Record<string, string | null> = {};
+    for (const row of data ?? []) out[(row as any).key] = (row as any).value ?? null;
+    return out;
+  });
+
+export const setIntegrationConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { key: string; value: string | null }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+    if (!ALLOWED_CONFIG_KEYS.has(data.key)) {
+      throw new Error(`Config key not allowed: ${data.key}`);
+    }
+    const value = (data.value ?? "").trim() || null;
+    const { error } = await supabaseAdmin
+      .from("app_kv")
+      .upsert({ key: data.key, value, updated_by: context.userId, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
