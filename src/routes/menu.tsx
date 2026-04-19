@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw, Plus, Minus, Check } from "lucide-react";
 import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTray";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
