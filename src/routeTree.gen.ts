@@ -67,6 +67,7 @@ import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
+import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
@@ -386,6 +387,11 @@ const AdminInventoryRoute = AdminInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIntelligenceRoute = AdminIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIngredientReferenceRoute =
   AdminIngredientReferenceRouteImport.update({
     id: '/ingredient-reference',
@@ -542,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -623,6 +630,7 @@ export interface FileRoutesByTo {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -707,6 +715,7 @@ export interface FileRoutesById {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -792,6 +801,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
     | '/admin/purchase-orders'
@@ -873,6 +883,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
     | '/admin/purchase-orders'
@@ -956,6 +967,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
     | '/admin/purchase-orders'
@@ -1455,6 +1467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/intelligence': {
+      id: '/admin/intelligence'
+      path: '/intelligence'
+      fullPath: '/admin/intelligence'
+      preLoaderRoute: typeof AdminIntelligenceRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ingredient-reference': {
       id: '/admin/ingredient-reference'
       path: '/ingredient-reference'
@@ -1657,6 +1676,7 @@ interface AdminRouteChildren {
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
+  AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
@@ -1695,6 +1715,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
+  AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
