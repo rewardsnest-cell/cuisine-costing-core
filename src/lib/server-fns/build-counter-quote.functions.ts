@@ -5,7 +5,7 @@
 // 3. Create a draft quote + quote_items priced at cost_per_serving × qty × MARKUP
 // 4. Link via competitor_quotes.counter_quote_id
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { aiPost, AiGatewayError } from "./_ai-gateway";
 
 const DEFAULT_MARKUP = 3.0;
