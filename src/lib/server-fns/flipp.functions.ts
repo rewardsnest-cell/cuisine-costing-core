@@ -6,9 +6,26 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const FLIPP_BASE = "https://api.useflipp.com/v1";
 
 function getToken(): string {
-  const t = process.env.FLIPP_BEARER_TOKEN;
-  if (!t) throw new Error("FLIPP_BEARER_TOKEN is not configured");
+  const t = process.env.FLIPP_API_KEY || process.env.FLIPP_BEARER_TOKEN;
+  if (!t) throw new Error("FLIPP_API_KEY (or legacy FLIPP_BEARER_TOKEN) is not configured");
   return t;
+}
+
+function getDefaultTemplateId(): string | null {
+  return process.env.FLIPP_TEMPLATE_ID || null;
+}
+
+/** Append UTM params to an absolute URL without clobbering existing ones. */
+function withUtm(rawUrl: string, campaign: string): string {
+  try {
+    const u = new URL(rawUrl);
+    if (!u.searchParams.has("utm_source")) u.searchParams.set("utm_source", "flipp");
+    if (!u.searchParams.has("utm_medium")) u.searchParams.set("utm_medium", "social");
+    if (!u.searchParams.has("utm_campaign")) u.searchParams.set("utm_campaign", campaign);
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
 }
 
 async function flipp<T = any>(path: string, init: RequestInit = {}): Promise<T> {
