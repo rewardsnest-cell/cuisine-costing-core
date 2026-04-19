@@ -81,6 +81,7 @@ import { Route as AdminIntegrationsRouteImport } from './routes/admin/integratio
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
+import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
@@ -476,6 +477,11 @@ const AdminGenerateRecipePhotosRoute =
     path: '/generate-recipe-photos',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminExportsRoute = AdminExportsRouteImport.update({
   id: '/exports',
   path: '/exports',
@@ -644,6 +650,7 @@ export interface FileRoutesByFullPath {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
@@ -742,6 +749,7 @@ export interface FileRoutesByTo {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
@@ -843,6 +851,7 @@ export interface FileRoutesById {
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
@@ -945,6 +954,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/feedback'
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
@@ -1043,6 +1053,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/feedback'
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
@@ -1143,6 +1154,7 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
+    | '/admin/feedback'
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
@@ -1765,6 +1777,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGenerateRecipePhotosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/feedback': {
+      id: '/admin/feedback'
+      path: '/feedback'
+      fullPath: '/admin/feedback'
+      preLoaderRoute: typeof AdminFeedbackRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/exports': {
       id: '/admin/exports'
       path: '/exports'
@@ -2010,6 +2029,7 @@ interface AdminRouteChildren {
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
+  AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
@@ -2057,6 +2077,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
+  AdminFeedbackRoute: AdminFeedbackRoute,
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,

@@ -4,6 +4,8 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { FeedbackButton } from "@/components/FeedbackButton";
+import { SkipToContent } from "@/components/SkipToContent";
 import "@/styles.css";
 
 // Routes that manage their own chrome — no global PublicHeader/Footer
@@ -96,17 +98,21 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ConfirmProvider>
+          <SkipToContent />
           {showChrome ? (
             <div className="min-h-screen bg-background flex flex-col">
               <PublicHeader />
-              <div className="flex-1">
+              <main id="main-content" className="flex-1" tabIndex={-1}>
                 <Outlet />
-              </div>
+              </main>
               <PublicFooter />
             </div>
           ) : (
-            <Outlet />
+            <main id="main-content" tabIndex={-1}>
+              <Outlet />
+            </main>
           )}
+          <FeedbackButton />
         </ConfirmProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { BRAND, drawBrandedHeader, drawBrandedFooter } from "@/lib/pdf-brand";
 
 export interface GuideRecipe {
   name: string;
@@ -16,69 +17,50 @@ export interface GuideOptions {
   recipes: GuideRecipe[];
 }
 
-const BRAND = "VPS Finest";
-const SITE = "vpsfinest.com";
-
-/**
- * Generate a calm, branded "Free Weeknight Recipe Guide" PDF using jsPDF.
- * Pure JS — runs in browser AND in the Worker SSR environment.
- */
+/** Generate the calm, branded "Free Weeknight Recipe Guide" PDF. */
 export function generateNewsletterGuidePDF(opts: GuideOptions): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 56;
-  const contentW = pageW - margin * 2;
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 56;
 
   const title = opts.title || "Weeknight Recipe Guide";
   const subtitle = opts.subtitle || "Five reliable recipes we cook on busy nights.";
 
   // ───── Cover ─────
-  doc.setFillColor(245, 240, 232);
-  doc.rect(0, 0, pageW, pageH, "F");
-
-  doc.setFont("times", "italic");
-  doc.setFontSize(11);
-  doc.setTextColor(140, 110, 60);
-  doc.text(BRAND.toUpperCase(), margin, margin);
-  doc.text(SITE, pageW - margin, margin, { align: "right" });
+  drawBrandedHeader(doc, { rightText: "Recipe Guide" });
+  doc.setFillColor(...BRAND.cream);
+  doc.rect(0, 80, W, H - 80, "F");
 
   doc.setFont("times", "bold");
-  doc.setTextColor(40, 30, 20);
-  doc.setFontSize(40);
-  const titleLines = doc.splitTextToSize(title, contentW);
-  doc.text(titleLines, margin, pageH / 2 - 30);
+  doc.setTextColor(...BRAND.ink);
+  doc.setFontSize(38);
+  const titleLines = doc.splitTextToSize(title, W - M * 2);
+  doc.text(titleLines, M, H / 2 - 30);
 
-  doc.setFont("times", "normal");
+  doc.setFont("times", "italic");
   doc.setFontSize(14);
-  doc.setTextColor(90, 80, 70);
-  const subLines = doc.splitTextToSize(subtitle, contentW);
-  doc.text(subLines, margin, pageH / 2 + 10);
+  doc.setTextColor(...BRAND.body);
+  const subLines = doc.splitTextToSize(subtitle, W - M * 2);
+  doc.text(subLines, M, H / 2 + 14);
 
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(140, 110, 60);
-  doc.text("A small gift from our kitchen in Aurora, Ohio.", margin, pageH - margin);
+  doc.setTextColor(...BRAND.gold);
+  doc.text("A small gift from our kitchen in Aurora, Ohio.", M, H - 80);
 
   // ───── Recipes ─────
   for (const r of opts.recipes) {
     doc.addPage();
-    let y = margin;
-
-    doc.setFont("times", "italic");
-    doc.setFontSize(9);
-    doc.setTextColor(140, 110, 60);
-    doc.text(BRAND.toUpperCase(), margin, y);
-    doc.text(SITE, pageW - margin, y, { align: "right" });
-    y += 30;
+    let y = drawBrandedHeader(doc, { rightText: "Recipe" });
 
     doc.setFont("times", "bold");
     doc.setFontSize(24);
-    doc.setTextColor(40, 30, 20);
-    const nameLines = doc.splitTextToSize(r.name, contentW);
-    doc.text(nameLines, margin, y);
-    y += nameLines.length * 26 + 6;
+    doc.setTextColor(...BRAND.ink);
+    const nameLines = doc.splitTextToSize(r.name, W - M * 2);
+    doc.text(nameLines, M, (y += 6));
+    y += nameLines.length * 24 + 4;
 
-    // Meta row
     const meta: string[] = [];
     const total = (r.prep_time || 0) + (r.cook_time || 0);
     if (total > 0) meta.push(`${total} min total`);
@@ -86,85 +68,75 @@ export function generateNewsletterGuidePDF(opts: GuideOptions): jsPDF {
     if (meta.length) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.setTextColor(120, 110, 100);
-      doc.text(meta.join("  ·  "), margin, y);
-      y += 18;
+      doc.setTextColor(...BRAND.muted);
+      doc.text(meta.join("  ·  "), M, y);
+      y += 16;
     }
 
-    // Description
     if (r.description) {
       doc.setFont("times", "italic");
       doc.setFontSize(11);
-      doc.setTextColor(80, 70, 60);
-      const descLines = doc.splitTextToSize(r.description, contentW);
-      doc.text(descLines, margin, y);
-      y += descLines.length * 14 + 14;
+      doc.setTextColor(...BRAND.body);
+      const descLines = doc.splitTextToSize(r.description, W - M * 2);
+      doc.text(descLines, M, y);
+      y += descLines.length * 14 + 12;
     }
 
-    // Divider
-    doc.setDrawColor(220, 210, 195);
-    doc.line(margin, y, pageW - margin, y);
-    y += 20;
+    doc.setDrawColor(...BRAND.rule);
+    doc.line(M, y, W - M, y);
+    y += 18;
+
+    const colW = (W - M * 2) / 2;
+    const leftX = M;
+    const rightX = M + colW + 12;
+    const sectionTop = y;
 
     // Ingredients
     doc.setFont("times", "bold");
     doc.setFontSize(13);
-    doc.setTextColor(40, 30, 20);
-    doc.text("Ingredients", margin, y);
-    y += 18;
-
+    doc.setTextColor(...BRAND.ink);
+    doc.text("Ingredients", leftX, y);
+    let leftY = y + 16;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
-    doc.setTextColor(50, 45, 40);
-    const ingW = contentW * 0.45;
-    let ingY = y;
+    doc.setTextColor(...BRAND.body);
     for (const ing of r.ingredients) {
       const qty = ing.quantity ? `${stripTrailingZero(ing.quantity)} ` : "";
       const unit = ing.unit ? `${ing.unit} ` : "";
       const line = `• ${qty}${unit}${ing.name}`;
-      const lines = doc.splitTextToSize(line, ingW);
-      if (ingY + lines.length * 14 > pageH - margin) {
+      const wrapped = doc.splitTextToSize(line, colW - 16);
+      if (leftY + wrapped.length * 14 > H - 56) {
         doc.addPage();
-        ingY = margin;
+        leftY = drawBrandedHeader(doc, { rightText: "Recipe (cont.)" }) + 12;
       }
-      doc.text(lines, margin, ingY);
-      ingY += lines.length * 14 + 2;
+      doc.text(wrapped, leftX, leftY);
+      leftY += wrapped.length * 14 + 2;
     }
 
-    // Instructions on the right
+    // Method
     if (r.instructions) {
       doc.setFont("times", "bold");
       doc.setFontSize(13);
-      doc.setTextColor(40, 30, 20);
-      const instX = margin + contentW * 0.5;
-      let instY = y;
-      doc.text("Method", instX, instY);
-      instY += 18;
-
+      doc.setTextColor(...BRAND.ink);
+      doc.text("Method", rightX, sectionTop);
+      let rightY = sectionTop + 16;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10.5);
-      doc.setTextColor(50, 45, 40);
+      doc.setTextColor(...BRAND.body);
       const steps = r.instructions.split(/\n+/).filter(Boolean);
-      const stepW = contentW * 0.5;
-      for (let i = 0; i < steps.length; i++) {
-        const text = `${i + 1}. ${steps[i].trim()}`;
-        const lines = doc.splitTextToSize(text, stepW);
-        if (instY + lines.length * 13 > pageH - margin) {
+      steps.forEach((step, i) => {
+        const wrapped = doc.splitTextToSize(`${i + 1}. ${step.trim()}`, colW - 16);
+        if (rightY + wrapped.length * 13 > H - 56) {
           doc.addPage();
-          instY = margin;
+          rightY = drawBrandedHeader(doc, { rightText: "Recipe (cont.)" }) + 12;
         }
-        doc.text(lines, instX, instY);
-        instY += lines.length * 13 + 6;
-      }
+        doc.text(wrapped, rightX, rightY);
+        rightY += wrapped.length * 13 + 6;
+      });
     }
-
-    // Footer
-    doc.setFont("times", "italic");
-    doc.setFontSize(9);
-    doc.setTextColor(140, 110, 60);
-    doc.text(`Thoughtful catering & calm recipes · ${SITE}`, pageW / 2, pageH - 30, { align: "center" });
   }
 
+  drawBrandedFooter(doc, { extra: "Weeknight Recipe Guide" });
   return doc;
 }
 
