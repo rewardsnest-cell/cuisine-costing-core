@@ -6,7 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Plus, LinkIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileText, Plus, LinkIcon, Download, MessageSquare } from "lucide-react";
+import { generateQuotePDF } from "@/lib/generate-quote-pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/my-quotes")({
   head: () => ({
@@ -26,6 +30,9 @@ function MyQuotesPage() {
   const [linkMsg, setLinkMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [linking, setLinking] = useState(false);
   const [autoLinkedCount, setAutoLinkedCount] = useState(0);
+  const [requestQuote, setRequestQuote] = useState<any | null>(null);
+  const [requestText, setRequestText] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   const loadQuotes = useCallback(async () => {
     if (!user) return;
@@ -103,6 +110,56 @@ function MyQuotesPage() {
       await loadQuotes();
     }
     setLinking(false);
+  };
+
+  const handleDownloadPDF = async (q: any) => {
+    try {
+      const { data: items } = await supabase
+        .from("quote_items")
+        .select("name, quantity, unit_price")
+        .eq("quote_id", q.id);
+      const proteins = (items ?? []).map((i: any) => i.name);
+      const guestCount = q.guest_count || 1;
+      const pricePerDish =
+        proteins.length > 0
+          ? (q.subtotal || q.total || 0) / Math.max(guestCount * proteins.length, 1)
+          : 0;
+      const doc = generateQuotePDF({
+        clientName: q.client_name || user?.email || "",
+        clientEmail: q.client_email || user?.email || "",
+        eventType: q.event_type || "",
+        eventDate: q.event_date || "",
+        guestCount,
+        menuStyle: "buffet",
+        proteins: proteins.length ? proteins : ["Custom Menu"],
+        allergies: [],
+        pricePerDish: pricePerDish || 0,
+      });
+      doc.save(`quote-${q.reference_number || q.id.slice(0, 8)}.pdf`);
+    } catch (e: any) {
+      toast.error("Couldn't generate PDF", { description: e.message });
+    }
+  };
+
+  const submitChangeRequest = async () => {
+    if (!user || !requestQuote || !requestText.trim()) return;
+    setSubmittingRequest(true);
+    const { error } = await (supabase as any).from("admin_requests").insert({
+      user_id: user.id,
+      email: user.email,
+      full_name: requestText.trim().slice(0, 200),
+      status: "pending",
+    });
+    setSubmittingRequest(false);
+    if (error) {
+      toast.error("Couldn't send request", { description: error.message });
+    } else {
+      toast.success("Change request sent", {
+        description: `We'll review your notes for ${requestQuote.reference_number || "your quote"} and reply soon.`,
+      });
+      setRequestQuote(null);
+      setRequestText("");
+    }
   };
 
   if (loading) return null;
