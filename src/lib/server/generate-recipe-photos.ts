@@ -12,6 +12,16 @@ const PROMPT_TPL = (name: string, desc: string, category: string) =>
   ` tones of walnut brown, warm amber, sage green and cream. Magazine quality,` +
   ` photorealistic, no text, no watermarks, no people, no utensils in frame.`;
 
+const SOCIAL_PROMPT_TPL = (name: string, desc: string, category: string) =>
+  `Scroll-stopping social media food photograph of ${name}. ${desc || `A vibrant, beautifully styled ${category || "dish"}.`}` +
+  ` Slight 3/4 hero angle, dramatic natural light with soft shadows, rich saturated colors,` +
+  ` shallow depth of field, steam or fresh garnish for life and texture.` +
+  ` Styled on warm wood, linen, or ceramic with complementary props off to the side.` +
+  ` Composition leaves clean negative space at the top for potential headlines but contains NO text itself.` +
+  ` ABSOLUTELY NO text, NO captions, NO logos, NO watermarks, NO price tags, NO coupons, NO buttons,` +
+  ` NO badges, NO call-to-action graphics, NO UI elements, NO borders, NO frames, NO people.` +
+  ` Pure photographic image only. Square 1:1 framing, magazine-quality, photorealistic.`;
+
 function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "recipe";
 }
