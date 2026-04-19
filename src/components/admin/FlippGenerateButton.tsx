@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,35 +9,62 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { listFlippTemplates, generateFlippImage } from "@/lib/server-fns/flipp.functions";
-
-const LS_KEY = "flipp.template_id";
+import { listFlippTemplates, generateFlippImage, getFlippDefaults } from "@/lib/server-fns/flipp.functions";
 
 type Target =
-  | { kind: "recipe"; id: string }
-  | { kind: "sale_flyer"; id: string };
+  | { kind: "recipe"; id: string; column?: "image_url" | "coupon_image_url" }
+  | { kind: "sale_flyer"; id: string; column?: "image_url" }
+  | { kind: "sale_flyer_item"; id: string; column?: "promo_image_url" };
 
 type Props = {
   target: Target;
   values: { name: string; value: string | null }[];
   onGenerated?: (imageUrl: string) => void;
   size?: "sm" | "default";
-  variant?: "default" | "outline" | "secondary";
+  variant?: "default" | "outline" | "secondary" | "ghost";
   label?: string;
+  /** localStorage key suffix to remember the chosen template per use-case */
+  templateKey?: string;
 };
 
-export function FlippGenerateButton({ target, values, onGenerated, size = "sm", variant = "outline", label = "Generate Flipp Image" }: Props) {
+export function FlippGenerateButton({
+  target,
+  values,
+  onGenerated,
+  size = "sm",
+  variant = "outline",
+  label = "Generate Flipp Image",
+  templateKey,
+}: Props) {
   const list = useServerFn(listFlippTemplates);
   const generate = useServerFn(generateFlippImage);
+  const defaults = useServerFn(getFlippDefaults);
+
+  const lsKey = `flipp.template_id.${templateKey ?? target.kind}`;
 
   const [open, setOpen] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
   const [templateId, setTemplateId] = useState<string>(
-    typeof window !== "undefined" ? localStorage.getItem(LS_KEY) || "" : ""
+    typeof window !== "undefined" ? localStorage.getItem(lsKey) || "" : ""
   );
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<string>("");
+
+  // Pre-fetch defaults to seed templateId if user has no preference yet
+  useEffect(() => {
+    if (templateId) return;
+    let cancelled = false;
+    defaults().then((d) => {
+      if (cancelled) return;
+      const fallback =
+        target.kind === "recipe" ? d.recipe_template_id :
+        target.kind === "sale_flyer" || target.kind === "sale_flyer_item" ? d.flyer_template_id :
+        null;
+      if (fallback) setTemplateId(fallback);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [target.kind, templateId, defaults]);
 
   const openDialog = async () => {
     setOpen(true);
@@ -56,7 +83,7 @@ export function FlippGenerateButton({ target, values, onGenerated, size = "sm", 
 
   const run = async () => {
     if (!templateId) { toast.error("Pick a template"); return; }
-    localStorage.setItem(LS_KEY, templateId);
+    localStorage.setItem(lsKey, templateId);
     setRunning(true);
     setStatus("Sending to Flipp…");
     try {
@@ -73,6 +100,10 @@ export function FlippGenerateButton({ target, values, onGenerated, size = "sm", 
     }
   };
 
+  const targetLabel =
+    target.kind === "recipe" ? "recipe" :
+    target.kind === "sale_flyer" ? "flyer" : "item";
+
   return (
     <>
       <Button type="button" size={size} variant={variant} onClick={openDialog} className="gap-1.5">
@@ -81,9 +112,9 @@ export function FlippGenerateButton({ target, values, onGenerated, size = "sm", 
       <Dialog open={open} onOpenChange={(v) => !running && setOpen(v)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Generate Flipp Image</DialogTitle>
+            <DialogTitle>{label}</DialogTitle>
             <DialogDescription>
-              Pick a Flipp template. Values are auto-filled from this {target.kind === "recipe" ? "recipe" : "flyer"}.
+              Pick a Flipp template. Values are auto-filled from this {targetLabel}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
