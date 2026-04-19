@@ -446,56 +446,131 @@ function SaleFlyerDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="font-medium">Extracted items</p>
-            <span className="text-xs text-muted-foreground">
-              {items.length} item{items.length === 1 ? "" : "s"}
-              {items.length > 0 && ` · ${matched} matched to inventory`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {editedItems.length} item{editedItems.length === 1 ? "" : "s"}
+                {editedItems.length > 0 && ` · ${matched} matched`}
+              </span>
+              <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={saveItems}
+                disabled={savingItems || !itemsDirty}
+                className="gap-1"
+              >
+                {savingItems ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Save items
+              </Button>
+            </div>
           </div>
-          {items.length === 0 ? (
+          {editedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {flyer.status === "processed"
-                ? "No items extracted."
-                : "Tap Extract with AI to read items from the pages."}
+                ? "No items. Tap Add to create one."
+                : "Tap Extract with AI to read items from the pages, or Add to enter manually."}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-xs text-muted-foreground">
                   <tr className="border-b border-border/60">
-                    <th className="text-left py-2 pr-2">Item</th>
-                    <th className="text-left py-2 pr-2">Pack</th>
-                    <th className="text-right py-2 pr-2">Sale</th>
-                    <th className="text-right py-2 pr-2">Reg</th>
-                    <th className="text-right py-2">Save</th>
+                    <th className="text-left py-2 pr-2 min-w-[180px]">Name</th>
+                    <th className="text-left py-2 pr-2 min-w-[120px]">Brand</th>
+                    <th className="text-left py-2 pr-2 min-w-[110px]">Pack</th>
+                    <th className="text-left py-2 pr-2 min-w-[80px]">Unit</th>
+                    <th className="text-right py-2 pr-2 min-w-[90px]">Sale</th>
+                    <th className="text-right py-2 pr-2 min-w-[90px]">Reg</th>
+                    <th className="text-right py-2 pr-2 min-w-[80px]">Save</th>
+                    <th className="py-2 w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
-                    <tr key={it.id} className="border-b border-border/30">
-                      <td className="py-2 pr-2">
-                        <div className="font-medium">{it.name}</div>
-                        {it.brand && (
-                          <div className="text-xs text-muted-foreground">{it.brand}</div>
-                        )}
+                  {editedItems.map((it, idx) => (
+                    <tr key={it.id} className="border-b border-border/30 align-top">
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.name}
+                          onChange={(e) => updateItem(idx, { name: e.target.value })}
+                          placeholder="Item name"
+                          className="h-8"
+                        />
                         {it.inventory_item_id && (
                           <Badge className="mt-1 bg-primary/15 text-primary border-primary/30 text-[10px]">
                             matched
                           </Badge>
                         )}
                       </td>
-                      <td className="py-2 pr-2 text-muted-foreground">
-                        {[it.pack_size, it.unit].filter(Boolean).join(" / ") || "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.brand ?? ""}
+                          onChange={(e) => updateItem(idx, { brand: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 pr-2 text-right">
-                        {it.sale_price != null ? `$${Number(it.sale_price).toFixed(2)}` : "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.pack_size ?? ""}
+                          onChange={(e) => updateItem(idx, { pack_size: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 pr-2 text-right text-muted-foreground">
-                        {it.regular_price != null ? `$${Number(it.regular_price).toFixed(2)}` : "—"}
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          value={it.unit ?? ""}
+                          onChange={(e) => updateItem(idx, { unit: e.target.value || null })}
+                          className="h-8"
+                        />
                       </td>
-                      <td className="py-2 text-right text-emerald-600 dark:text-emerald-400">
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={it.sale_price ?? ""}
+                          onChange={(e) =>
+                            updateItem(idx, {
+                              sale_price: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 text-right"
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={it.regular_price ?? ""}
+                          onChange={(e) =>
+                            updateItem(idx, {
+                              regular_price: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 text-right"
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2 text-right text-emerald-600 dark:text-emerald-400 text-xs">
                         {it.savings != null ? `$${Number(it.savings).toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-1.5 text-right">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeItem(idx)}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
