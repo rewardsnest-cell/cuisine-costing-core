@@ -122,6 +122,23 @@
   }
 }
 
+/* Global a11y: visible focus ring on every interactive element when reached via keyboard. */
+:where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Respect users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer utilities {
   .text-gradient-gold {
     background: linear-gradient(135deg, oklch(0.72 0.15 85), oklch(0.55 0.15 45));
