@@ -60,6 +60,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
       { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
       { to: "/admin/auto-link-ingredients", label: "Auto-Link Ingredients", icon: Sparkles },
+      { to: "/admin/ingredients/review-unlinked", label: "Review Unlinked", icon: BookOpen },
       { to: "/admin/servings-review", label: "Servings Review", icon: Activity },
       { to: "/admin/import-recipes", label: "Import from vpsfinest.com", icon: Globe },
       { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
