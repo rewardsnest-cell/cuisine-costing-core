@@ -828,6 +828,87 @@ export type Database = {
         }
         Relationships: []
       }
+      fred_pull_log: {
+        Row: {
+          applied_count: number
+          created_count: number
+          errors: Json
+          id: string
+          matched_count: number
+          notes: string | null
+          pulled_at: string
+          pulled_by: string | null
+          series_count: number
+          skipped_count: number
+        }
+        Insert: {
+          applied_count?: number
+          created_count?: number
+          errors?: Json
+          id?: string
+          matched_count?: number
+          notes?: string | null
+          pulled_at?: string
+          pulled_by?: string | null
+          series_count?: number
+          skipped_count?: number
+        }
+        Update: {
+          applied_count?: number
+          created_count?: number
+          errors?: Json
+          id?: string
+          matched_count?: number
+          notes?: string | null
+          pulled_at?: string
+          pulled_by?: string | null
+          series_count?: number
+          skipped_count?: number
+        }
+        Relationships: []
+      }
+      fred_series_map: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          id: string
+          label: string
+          match_keywords: string[]
+          notes: string | null
+          series_id: string
+          unit: string
+          unit_conversion: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          match_keywords?: string[]
+          notes?: string | null
+          series_id: string
+          unit?: string
+          unit_conversion?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          match_keywords?: string[]
+          notes?: string | null
+          series_id?: string
+          unit?: string
+          unit_conversion?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       governance_prompts: {
         Row: {
           created_at: string
@@ -866,6 +947,8 @@ export type Database = {
           created_at: string
           default_unit: string
           density_g_per_ml: number | null
+          fred_series_id: string | null
+          fred_unit: string | null
           id: string
           inventory_item_id: string | null
           notes: string | null
@@ -879,6 +962,8 @@ export type Database = {
           created_at?: string
           default_unit?: string
           density_g_per_ml?: number | null
+          fred_series_id?: string | null
+          fred_unit?: string | null
           id?: string
           inventory_item_id?: string | null
           notes?: string | null
@@ -892,6 +977,8 @@ export type Database = {
           created_at?: string
           default_unit?: string
           density_g_per_ml?: number | null
+          fred_series_id?: string | null
+          fred_unit?: string | null
           id?: string
           inventory_item_id?: string | null
           notes?: string | null
@@ -1019,11 +1106,13 @@ export type Database = {
           average_cost_per_unit: number
           category: string | null
           created_at: string
+          created_source: string
           current_stock: number
           id: string
           last_receipt_cost: number | null
           name: string
           par_level: number
+          pending_review: boolean
           supplier_id: string | null
           unit: string
           updated_at: string
@@ -1032,11 +1121,13 @@ export type Database = {
           average_cost_per_unit?: number
           category?: string | null
           created_at?: string
+          created_source?: string
           current_stock?: number
           id?: string
           last_receipt_cost?: number | null
           name: string
           par_level?: number
+          pending_review?: boolean
           supplier_id?: string | null
           unit?: string
           updated_at?: string
@@ -1045,11 +1136,13 @@ export type Database = {
           average_cost_per_unit?: number
           category?: string | null
           created_at?: string
+          created_source?: string
           current_stock?: number
           id?: string
           last_receipt_cost?: number | null
           name?: string
           par_level?: number
+          pending_review?: boolean
           supplier_id?: string | null
           unit?: string
           updated_at?: string
