@@ -54,6 +54,7 @@ function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "off">("all");
+  const [kind, setKind] = useState<RecipeKind>("food");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", category: "", cuisine: "", servings: "4" });
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
