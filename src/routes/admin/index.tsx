@@ -8,6 +8,7 @@ import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, Shoppin
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
+import { CoverageBadges } from "@/components/admin/CoverageBadges";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -186,6 +187,8 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((s) => <StatCard key={s.label} stat={s} />)}
       </div>
+
+      <CoverageBadges />
 
       <CostHealthWidget />
 
