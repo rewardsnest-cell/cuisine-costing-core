@@ -56,6 +56,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
       { to: "/admin/national-prices", label: "National Prices", icon: Globe2 },
+      { to: "/admin/pricing/national", label: "National Pricing (Activate)", icon: ShieldCheck },
       { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
       { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
       { to: "/admin/auto-link-ingredients", label: "Auto-Link Ingredients", icon: Sparkles },
