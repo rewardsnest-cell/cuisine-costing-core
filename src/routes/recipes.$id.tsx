@@ -9,7 +9,7 @@ export const Route = createFileRoute("/recipes/$id")({
     const { data: recipe, error } = await (supabase as any)
       .from("recipes")
       .select(
-        "id, name, description, image_url, category, cuisine, servings, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active",
+        "id, name, description, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -162,7 +162,23 @@ function RecipeDetailPage() {
           )}
         </header>
 
-        {r.image_url && (
+        {r.coupon_image_url && (
+          <figure className="mb-10">
+            <div className="aspect-[16/9] bg-secondary rounded-2xl overflow-hidden ring-1 ring-primary/20 shadow-lg">
+              <img
+                src={r.coupon_image_url}
+                alt={`${r.name} — special offer`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <figcaption className="text-xs text-muted-foreground mt-2 text-center">
+              {r.coupon_text || "Special offer"}
+              {r.coupon_valid_until ? ` · valid until ${r.coupon_valid_until}` : ""}
+            </figcaption>
+          </figure>
+        )}
+
+        {r.image_url && !r.coupon_image_url && (
           <div className="aspect-[16/9] bg-secondary rounded-2xl overflow-hidden mb-10">
             <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
           </div>

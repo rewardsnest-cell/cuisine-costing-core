@@ -1490,6 +1490,9 @@ export type Database = {
           category: string | null
           cook_time: number | null
           cost_per_serving: number | null
+          coupon_image_url: string | null
+          coupon_text: string | null
+          coupon_valid_until: string | null
           created_at: string
           cuisine: string | null
           description: string | null
@@ -1516,6 +1519,9 @@ export type Database = {
           category?: string | null
           cook_time?: number | null
           cost_per_serving?: number | null
+          coupon_image_url?: string | null
+          coupon_text?: string | null
+          coupon_valid_until?: string | null
           created_at?: string
           cuisine?: string | null
           description?: string | null
@@ -1542,6 +1548,9 @@ export type Database = {
           category?: string | null
           cook_time?: number | null
           cost_per_serving?: number | null
+          coupon_image_url?: string | null
+          coupon_text?: string | null
+          coupon_valid_until?: string | null
           created_at?: string
           cuisine?: string | null
           description?: string | null
@@ -1605,6 +1614,7 @@ export type Database = {
           name: string
           notes: string | null
           pack_size: string | null
+          promo_image_url: string | null
           regular_price: number | null
           sale_flyer_id: string
           sale_price: number | null
@@ -1619,6 +1629,7 @@ export type Database = {
           name: string
           notes?: string | null
           pack_size?: string | null
+          promo_image_url?: string | null
           regular_price?: number | null
           sale_flyer_id: string
           sale_price?: number | null
@@ -1633,6 +1644,7 @@ export type Database = {
           name?: string
           notes?: string | null
           pack_size?: string | null
+          promo_image_url?: string | null
           regular_price?: number | null
           sale_flyer_id?: string
           sale_price?: number | null

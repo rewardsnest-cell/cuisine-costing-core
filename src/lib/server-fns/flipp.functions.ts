@@ -35,7 +35,6 @@ async function flipp<T = any>(path: string, init: RequestInit = {}): Promise<T> 
 
 export const listFlippTemplates = createServerFn({ method: "GET" }).handler(async () => {
   const data = await flipp<any>("/templates");
-  // Flipp returns either { data: [...] } or an array — normalize.
   const arr: any[] = Array.isArray(data) ? data : (data?.data ?? data?.templates ?? []);
   const templates = arr.map((t) => ({
     id: String(t.id ?? t.uid ?? ""),
@@ -47,24 +46,35 @@ export const listFlippTemplates = createServerFn({ method: "GET" }).handler(asyn
   return { templates };
 });
 
+// Returns default template ids configured via env vars so the client can
+// pre-fill the picker without exposing secrets.
+export const getFlippDefaults = createServerFn({ method: "GET" }).handler(async () => {
+  return {
+    recipe_template_id: process.env.FLIPP_RECIPE_TEMPLATE_ID || null,
+    flyer_template_id: process.env.FLIPP_FLYER_TEMPLATE_ID || null,
+  };
+});
+
 // ---------- Image generation ----------
 
 type FlippValue = { name: string; value: string | null };
+
+type Target =
+  | { kind: "recipe"; id: string; column?: "image_url" | "coupon_image_url" }
+  | { kind: "sale_flyer"; id: string; column?: "image_url" }
+  | { kind: "sale_flyer_item"; id: string; column?: "promo_image_url" }
+  | { kind: "none" };
+
 type GenerateInput = {
   template_id: string;
   values: FlippValue[];
-  // Where to persist the rendered image:
-  target?:
-    | { kind: "recipe"; id: string }
-    | { kind: "sale_flyer"; id: string }
-    | { kind: "none" };
+  target?: Target;
 };
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLLS = 20; // ~40s ceiling
 
 function extractImageUrl(payload: any): { url: string | null; status: string; width: number | null; height: number | null } {
-  // Flipp's POST /images returns a job; rendered image surfaces under varying keys.
   const url =
     payload?.image_url ??
     payload?.url ??
@@ -95,14 +105,37 @@ async function pollForImage(jobId: string): Promise<{ url: string; width: number
   throw new Error("Timed out waiting for Flipp to render the image");
 }
 
-async function persistToStorage(
-  imageUrl: string,
-  target: NonNullable<GenerateInput["target"]>
-): Promise<string> {
+function bucketAndTableFor(target: Exclude<Target, { kind: "none" }>): {
+  bucket: string;
+  table: "recipes" | "sale_flyers" | "sale_flyer_items";
+  column: string;
+} {
+  if (target.kind === "recipe") {
+    return {
+      bucket: "recipe-photos",
+      table: "recipes",
+      column: target.column ?? "image_url",
+    };
+  }
+  if (target.kind === "sale_flyer") {
+    return {
+      bucket: "sale-flyers",
+      table: "sale_flyers",
+      column: target.column ?? "image_url",
+    };
+  }
+  return {
+    bucket: "sale-flyers",
+    table: "sale_flyer_items",
+    column: target.column ?? "promo_image_url",
+  };
+}
+
+async function persistToStorage(imageUrl: string, target: Target): Promise<string> {
   if (target.kind === "none") return imageUrl;
 
-  const bucket = target.kind === "recipe" ? "recipe-photos" : "sale-flyers";
-  const path = `${target.id}/flipp-${Date.now()}.png`;
+  const { bucket, table, column } = bucketAndTableFor(target);
+  const path = `${target.id}/flipp-${column}-${Date.now()}.png`;
 
   const imgRes = await fetch(imageUrl);
   if (!imgRes.ok) throw new Error(`Failed to download Flipp image (${imgRes.status})`);
@@ -117,10 +150,9 @@ async function persistToStorage(
   const { data: pub } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
   const finalUrl = `${pub.publicUrl}?v=${Date.now()}`;
 
-  const table = target.kind === "recipe" ? "recipes" : "sale_flyers";
   const { error: updErr } = await supabaseAdmin
     .from(table)
-    .update({ image_url: finalUrl })
+    .update({ [column]: finalUrl } as any)
     .eq("id", target.id);
   if (updErr) throw new Error(`DB update failed: ${updErr.message}`);
 
@@ -138,7 +170,6 @@ export const generateFlippImage = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    // 1. Kick off the render
     const created = await flipp("/images", {
       method: "POST",
       body: JSON.stringify({
@@ -150,7 +181,6 @@ export const generateFlippImage = createServerFn({ method: "POST" })
     let { url, status, width, height } = extractImageUrl(created);
     const jobId = created?.id ?? created?.data?.id ?? created?.job_id;
 
-    // 2. Poll if not immediately ready
     if (!url || (status !== "ready" && status !== "complete" && status !== "completed" && status !== "success")) {
       if (!jobId) throw new Error("Flipp did not return a job id and no image_url was present");
       const polled = await pollForImage(String(jobId));
@@ -161,7 +191,6 @@ export const generateFlippImage = createServerFn({ method: "POST" })
 
     if (!url) throw new Error("Flipp returned no image_url");
 
-    // 3. Optionally persist
     const target = data.target ?? { kind: "none" };
     const finalUrl = await persistToStorage(url, target);
 

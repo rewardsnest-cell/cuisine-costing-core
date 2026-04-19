@@ -55,6 +55,7 @@ type Item = {
   regular_price: number | null;
   savings: number | null;
   inventory_item_id: string | null;
+  promo_image_url?: string | null;
 };
 
 function SaleFlyerDetailPage() {
@@ -506,6 +507,7 @@ function SaleFlyerDetailPage() {
                     <th className="text-right py-2 pr-2 min-w-[90px]">Sale</th>
                     <th className="text-right py-2 pr-2 min-w-[90px]">Reg</th>
                     <th className="text-right py-2 pr-2 min-w-[80px]">Save</th>
+                    <th className="text-center py-2 pr-2 min-w-[60px]">Promo</th>
                     <th className="py-2 w-8"></th>
                   </tr>
                 </thead>
@@ -576,6 +578,44 @@ function SaleFlyerDetailPage() {
                       </td>
                       <td className="py-1.5 pr-2 text-right text-emerald-600 dark:text-emerald-400 text-xs">
                         {it.savings != null ? `$${Number(it.savings).toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-1.5 pr-2 text-center">
+                        {it.id.startsWith("new-") ? (
+                          <span className="text-[10px] text-muted-foreground">Save first</span>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <FlippGenerateButton
+                              target={{ kind: "sale_flyer_item", id: it.id, column: "promo_image_url" }}
+                              templateKey="flyer-item-promo"
+                              label="Promo"
+                              size="sm"
+                              variant="ghost"
+                              values={[
+                                { name: "item_name", value: it.name || null },
+                                { name: "brand", value: it.brand ?? null },
+                                { name: "pack_size", value: it.pack_size ?? null },
+                                { name: "sale_price", value: it.sale_price != null ? `$${Number(it.sale_price).toFixed(2)}` : null },
+                                { name: "original_price", value: it.regular_price != null ? `$${Number(it.regular_price).toFixed(2)}` : null },
+                                { name: "savings", value: it.savings != null ? `$${Number(it.savings).toFixed(2)}` : null },
+                                { name: "photo", value: it.promo_image_url ?? null },
+                                { name: "valid_dates", value: [flyer.sale_start_date, flyer.sale_end_date].filter(Boolean).join(" – ") || null },
+                              ]}
+                              onGenerated={(url) =>
+                                updateItem(idx, { promo_image_url: url } as any)
+                              }
+                            />
+                            {it.promo_image_url && (
+                              <a
+                                href={it.promo_image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-primary underline"
+                              >
+                                view
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-1.5 text-right">
                         <Button

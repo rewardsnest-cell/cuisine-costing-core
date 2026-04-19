@@ -38,6 +38,10 @@ type Recipe = {
   instructions: string | null;
   active: boolean;
   source_competitor_quote_id?: string | null;
+  image_url?: string | null;
+  coupon_image_url?: string | null;
+  coupon_text?: string | null;
+  coupon_valid_until?: string | null;
 };
 
 type Ingredient = {
@@ -281,15 +285,21 @@ function RecipesPage() {
               {recomputing ? "Recomputing…" : "Recompute cost"}
             </Button>
             <FlippGenerateButton
-              target={{ kind: "recipe", id: selectedRecipe.id }}
+              target={{ kind: "recipe", id: selectedRecipe.id, column: "coupon_image_url" }}
+              templateKey="recipe-coupon"
+              label="Generate Social Image with Coupon"
               values={[
-                { name: "name", value: selectedRecipe.name },
+                { name: "title", value: selectedRecipe.name },
+                { name: "subtitle", value: selectedRecipe.description ?? selectedRecipe.category ?? null },
                 { name: "description", value: selectedRecipe.description ?? null },
+                { name: "photo", value: (selectedRecipe as any).image_url ?? null },
                 { name: "category", value: selectedRecipe.category ?? null },
                 { name: "cuisine", value: selectedRecipe.cuisine ?? null },
+                { name: "coupon_text", value: (selectedRecipe as any).coupon_text ?? null },
+                { name: "valid_until", value: (selectedRecipe as any).coupon_valid_until ?? null },
                 { name: "price", value: selectedRecipe.cost_per_serving ? `$${Number(selectedRecipe.cost_per_serving).toFixed(2)}` : null },
               ]}
-              onGenerated={(url) => setSelectedRecipe({ ...selectedRecipe, ...({ image_url: url } as any) })}
+              onGenerated={(url) => setSelectedRecipe({ ...selectedRecipe, ...({ coupon_image_url: url } as any) })}
             />
             <Link to="/admin/recipes/$id/edit" params={{ id: selectedRecipe.id }}>
               <Button variant="outline" size="sm">Edit recipe</Button>
