@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
+import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
 
 type IngredientRow = {
   id?: string; // existing recipe_ingredients row id
@@ -276,11 +277,30 @@ export function RecipeForm({
         <ArrowLeft className="w-4 h-4" /> Back to Recipes
       </Button>
 
-      <div className="flex items-center gap-3">
-        <ChefHat className="w-7 h-7 text-primary" />
-        <h1 className="font-display text-2xl font-bold">
-          {mode === "create" ? "New Recipe" : "Edit Recipe"}
-        </h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <ChefHat className="w-7 h-7 text-primary" />
+          <h1 className="font-display text-2xl font-bold">
+            {mode === "create" ? "New Recipe" : "Edit Recipe"}
+          </h1>
+        </div>
+        {mode === "edit" && recipeId && (
+          <FlippGenerateButton
+            target={{ kind: "recipe", id: recipeId, column: "coupon_image_url" }}
+            templateKey="recipe-coupon"
+            label="Generate Social Image with Coupon"
+            values={[
+              { name: "title", value: form.name || null },
+              { name: "subtitle", value: form.description || form.category || null },
+              { name: "description", value: form.description || null },
+              { name: "category", value: form.category || null },
+              { name: "cuisine", value: form.cuisine || null },
+              { name: "coupon_text", value: null },
+              { name: "valid_until", value: null },
+            ]}
+            onGenerated={() => toast.success("Coupon image saved to this recipe")}
+          />
+        )}
       </div>
 
       {/* Basics */}
