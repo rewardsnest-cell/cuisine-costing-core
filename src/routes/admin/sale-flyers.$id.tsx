@@ -134,7 +134,11 @@ function SaleFlyerDetailPage() {
         await load();
       }
     } catch (e: any) {
-      setError(e?.message || String(e));
+      let msg = e?.message;
+      if (e instanceof Response) {
+        msg = `${e.status} ${e.statusText}: ${await e.text().catch(() => "")}`;
+      }
+      setError(msg || String(e));
     } finally {
       setProcessing(false);
       setStatus("");
