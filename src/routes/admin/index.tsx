@@ -4,11 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap } from "lucide-react";
+import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap, Clock, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
 import { CoverageBadges } from "@/components/admin/CoverageBadges";
+import { PriceAlertsBanner } from "@/components/admin/PriceAlertsBanner";
+import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -112,6 +114,7 @@ interface RecentQuote {
   total: number | null;
   created_at: string;
   status: string;
+  event_date?: string | null;
 }
 
 function AdminDashboard() {
@@ -123,12 +126,24 @@ function AdminDashboard() {
     pendingReceipts: 0,
     suppliers: 0,
     purchaseOrders: 0,
+    openQuotesThisWeek: 0,
+    upcomingEvents: 0,
   });
   const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
+  const [upcoming, setUpcoming] = useState<RecentQuote[]>([]);
 
   useEffect(() => {
     const load = async () => {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const todayIso = now.toISOString().slice(0, 10);
+      const in30Iso = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
       const [
         recipesRes,
         inventoryRes,
@@ -138,6 +153,9 @@ function AdminDashboard() {
         poRes,
         lowStockRes,
         recentQuotesRes,
+        openQuotesWeekRes,
+        upcomingEventsRes,
+        upcomingListRes,
       ] = await Promise.all([
         supabase.from("recipes").select("*", { count: "exact", head: true }),
         supabase.from("inventory_items").select("*", { count: "exact", head: true }),
@@ -147,6 +165,24 @@ function AdminDashboard() {
         supabase.from("purchase_orders").select("*", { count: "exact", head: true }),
         supabase.from("inventory_items").select("id, name, current_stock, par_level, unit").gt("par_level", 0).order("name"),
         supabase.from("quotes").select("id, reference_number, client_name, event_type, total, created_at, status").order("created_at", { ascending: false }).limit(5),
+        supabase
+          .from("quotes")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["draft", "pending", "sent", "open"])
+          .gte("created_at", weekStart.toISOString())
+          .lt("created_at", weekEnd.toISOString()),
+        supabase
+          .from("quotes")
+          .select("*", { count: "exact", head: true })
+          .gte("event_date", todayIso)
+          .lte("event_date", in30Iso),
+        supabase
+          .from("quotes")
+          .select("id, reference_number, client_name, event_type, total, created_at, status, event_date")
+          .gte("event_date", todayIso)
+          .lte("event_date", in30Iso)
+          .order("event_date", { ascending: true })
+          .limit(5),
       ]);
 
       setCounts({
@@ -156,9 +192,12 @@ function AdminDashboard() {
         pendingReceipts: receiptsRes.count ?? 0,
         suppliers: suppliersRes.count ?? 0,
         purchaseOrders: poRes.count ?? 0,
+        openQuotesThisWeek: openQuotesWeekRes.count ?? 0,
+        upcomingEvents: upcomingEventsRes.count ?? 0,
       });
       setLowStock((lowStockRes.data || []).filter((i) => Number(i.current_stock) < Number(i.par_level)).slice(0, 5));
       setRecentQuotes(recentQuotesRes.data || []);
+      setUpcoming((upcomingListRes.data || []) as RecentQuote[]);
       setLoading(false);
     };
     load();
@@ -166,13 +205,14 @@ function AdminDashboard() {
 
   const stats: Stat[] = [
     { label: "Quick Quote", value: "New", icon: Zap, color: "bg-gradient-warm text-primary-foreground", to: "/admin/quick-quote" },
+    { label: "Open Quotes (this week)", value: loading ? "…" : counts.openQuotesThisWeek, icon: Clock, color: "bg-warning/15 text-warning", to: "/admin/quotes" },
+    { label: "Upcoming Events (30d)", value: loading ? "…" : counts.upcomingEvents, icon: CalendarCheck, color: "bg-success/15 text-success", to: "/admin/events" },
     { label: "Total Recipes", value: loading ? "…" : counts.recipes, icon: ChefHat, color: "bg-primary/10 text-primary", to: "/admin/recipes" },
     { label: "Inventory Items", value: loading ? "…" : counts.inventory, icon: Package, color: "bg-success/10 text-success", to: "/admin/inventory" },
     { label: "Total Quotes", value: loading ? "…" : counts.quotes, icon: FileText, color: "bg-gold/20 text-warm", to: "/admin/quotes" },
     { label: "Pending Receipts", value: loading ? "…" : counts.pendingReceipts, icon: Receipt, color: "bg-warning/20 text-warning", to: "/admin/receipts" },
     { label: "Suppliers", value: loading ? "…" : counts.suppliers, icon: Truck, color: "bg-accent/20 text-accent-foreground", to: "/admin/suppliers" },
     { label: "Purchase Orders", value: loading ? "…" : counts.purchaseOrders, icon: ShoppingCart, color: "bg-primary/10 text-primary", to: "/admin/purchase-orders" },
-    { label: "All Events", value: loading ? "…" : counts.quotes, icon: CalendarDays, color: "bg-primary/10 text-primary", to: "/admin/events" },
   ];
 
   return (
@@ -182,6 +222,8 @@ function AdminDashboard() {
         <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your catering operations today.</p>
       </div>
 
+      <PriceAlertsBanner />
+
       <SettingsCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -190,7 +232,45 @@ function AdminDashboard() {
 
       <CoverageBadges />
 
+      <MarginVolatilityChart />
+
       <CostHealthWidget />
+
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-lg font-semibold">Upcoming Events (next 30 days)</h3>
+            </div>
+            <Link to="/admin/events" className="text-xs text-primary hover:underline">View all</Link>
+          </div>
+          {loading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : upcoming.length === 0 ? (
+            <div className="h-24 flex items-center justify-center text-muted-foreground text-sm">
+              <p>No upcoming events scheduled.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {upcoming.map((q) => (
+                <li key={q.id}>
+                  <Link to="/admin/events" className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{q.client_name || q.event_type || "Untitled"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(q as any).event_date ? new Date((q as any).event_date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "—"}
+                        {" · "}{q.status}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold whitespace-nowrap">${Number(q.total || 0).toLocaleString()}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-warm border-border/50">
