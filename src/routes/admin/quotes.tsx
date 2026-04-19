@@ -348,6 +348,7 @@ function QuotesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Quote | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [recalcingId, setRecalcingId] = useState<string | null>(null);
+  const [floorId, setFloorId] = useState<string | null>(null);
 
   const handleRecalc = async (q: Quote) => {
     setRecalcingId(q.id);
@@ -360,6 +361,20 @@ function QuotesPage() {
       toast.error(e instanceof Error ? e.message : "Failed to recalculate");
     } finally {
       setRecalcingId(null);
+    }
+  };
+
+  const handleApplyFloor = async (q: Quote) => {
+    setFloorId(q.id);
+    try {
+      const { applyNationalFloorPricing } = await import("@/lib/server-fns/apply-national-floor.functions");
+      const res = await applyNationalFloorPricing({ data: { quoteId: q.id } }) as { updatedItems: number; total: number; nationalSnapshotsApplied: number; month: string };
+      toast.success(`Margin floor applied (${res.nationalSnapshotsApplied} national prices, month ${res.month}) · total $${res.total.toFixed(2)}`);
+      loadQuotes();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to apply national floor");
+    } finally {
+      setFloorId(null);
     }
   };
 
@@ -543,6 +558,10 @@ function QuotesPage() {
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => handleRecalc(q)} disabled={recalcingId === q.id}>
                   {recalcingId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   {recalcingId === q.id ? "Recalculating…" : "Recalculate pricing"}
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleApplyFloor(q)} disabled={floorId === q.id}>
+                  {floorId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {floorId === q.id ? "Applying floor…" : "Apply national floor"}
                 </Button>
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => openAssign(q)}>
                   <Users className="w-3.5 h-3.5" /> Staff
