@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FileText, Plus, LinkIcon, Download, MessageSquare } from "lucide-react";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { toast } from "sonner";
+import { PortalListSkeleton } from "@/components/PortalListSkeleton";
 
 export const Route = createFileRoute("/my-quotes")({
   head: () => ({
@@ -217,7 +218,7 @@ function MyQuotesPage() {
           </Card>
 
           {fetching ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <PortalListSkeleton count={3} label="Loading your quotes" />
           ) : quotes.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">

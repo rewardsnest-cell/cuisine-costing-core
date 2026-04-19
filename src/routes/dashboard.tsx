@@ -21,6 +21,7 @@ import {
   Receipt,
   Briefcase,
 } from "lucide-react";
+import { PortalListSkeleton } from "@/components/PortalListSkeleton";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -37,6 +38,7 @@ function DashboardPage() {
   const { access } = useSectionAccess();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [fetching, setFetching] = useState(true);
   const [fullName, setFullName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [nameMsg, setNameMsg] = useState<string | null>(null);
@@ -45,6 +47,7 @@ function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+    setFetching(true);
     (async () => {
       const [q, p, a] = await Promise.all([
         supabase
@@ -66,6 +69,7 @@ function DashboardPage() {
       setQuotes(q.data || []);
       setFullName((p.data as any)?.full_name || (user.user_metadata as any)?.full_name || "");
       setAssignments((a as any).data || []);
+      setFetching(false);
     })();
   }, [user, isEmployee]);
 
@@ -167,7 +171,9 @@ function DashboardPage() {
                     </Link>
                   </CardHeader>
                   <CardContent>
-                    {quotes.length === 0 ? (
+                    {fetching ? (
+                      <PortalListSkeleton count={3} label="Loading recent quotes" />
+                    ) : quotes.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No quotes yet.</p>
                     ) : (
                       <div className="space-y-2">

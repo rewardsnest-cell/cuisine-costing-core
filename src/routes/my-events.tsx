@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, MapPin, Users, ClipboardList, CheckCircle2, Circle, Clock } from "lucide-react";
+import { PortalListSkeleton } from "@/components/PortalListSkeleton";
 
 type Stage = { key: string; label: string; hint: string };
 const STAGES: Stage[] = [
@@ -55,10 +56,12 @@ type Assignment = {
 function MyEventsPage() {
   const { user, loading } = useAuth();
   const [rows, setRows] = useState<Assignment[]>([]);
+  const [fetching, setFetching] = useState(true);
   const [filter, setFilter] = useState<Filter>("upcoming");
 
   useEffect(() => {
     if (!user) return;
+    setFetching(true);
     (async () => {
       const { data } = await (supabase as any)
         .from("event_assignments")
@@ -66,10 +69,11 @@ function MyEventsPage() {
         .eq("employee_user_id", user.id)
         .order("created_at", { ascending: false });
       setRows((data ?? []) as Assignment[]);
+      setFetching(false);
     })();
   }, [user]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground" role="status" aria-live="polite">Loading…</div>;
   if (!user) {
     return (
       <>
@@ -111,9 +115,11 @@ function MyEventsPage() {
                     <TabsTrigger value="all">All ({rows.length})</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                {filtered.length === 0 ? (
+                {fetching ? (
+                  <PortalListSkeleton count={3} label="Loading your assigned events" />
+                ) : filtered.length === 0 ? (
                   <Card><CardContent className="p-12 text-center">
-                    <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                    <ClipboardList className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" aria-hidden="true" />
                     <p className="text-muted-foreground">
                       {filter === "upcoming" ? "No upcoming events." : filter === "past" ? "No past events." : "You have no assigned events yet."}
                     </p>
