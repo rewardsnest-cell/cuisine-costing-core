@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
 import jsPDF from 'jspdf'
+import { BRAND, drawBrandedHeader, drawBrandedFooter } from '@/lib/pdf-brand'
 
 export const Route = createFileRoute('/api/recipes/$id/printable')({
   server: {
