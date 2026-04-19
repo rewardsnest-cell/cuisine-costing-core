@@ -215,7 +215,20 @@ function ReceiptsPage() {
             {receipts.map((r) => (
               <Card key={r.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
                 <CardContent className="p-4 flex items-center gap-4">
-                  {r.image_url && <img src={r.image_url} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-border" />}
+                  {r.image_url ? (
+                    <button
+                      type="button"
+                      onClick={() => openReview(r)}
+                      className="shrink-0 rounded-lg border border-border overflow-hidden hover:ring-2 hover:ring-primary transition-all"
+                      aria-label="View receipt photo"
+                    >
+                      <img src={r.image_url} alt="Receipt" className="w-24 h-24 object-cover" />
+                    </button>
+                  ) : (
+                    <div className="w-24 h-24 shrink-0 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                      <Receipt className="w-6 h-6 text-muted-foreground/50" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {statusIcon(r.status)}
@@ -225,7 +238,7 @@ function ReceiptsPage() {
                       {new Date(r.receipt_date).toLocaleDateString()} · {Array.isArray(r.extracted_line_items) ? r.extracted_line_items.length : 0} items
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
                         {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
@@ -245,11 +258,11 @@ function ReceiptsPage() {
                     )}
                     {r.status === "processed" && (
                       <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5" /> View
+                        <Pencil className="w-3.5 h-3.5" /> Edit
                       </Button>
                     )}
                   </div>
-                  <p className="font-display text-lg font-bold">${Number(r.total_amount).toFixed(2)}</p>
+                  <p className="font-display text-lg font-bold whitespace-nowrap">${Number(r.total_amount).toFixed(2)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -259,16 +272,28 @@ function ReceiptsPage() {
 
       {/* Review Dialog */}
       <Dialog open={!!reviewReceipt} onOpenChange={(open) => !open && setReviewReceipt(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Review Extracted Line Items</DialogTitle>
+            <DialogTitle className="font-display">
+              {reviewReceipt?.status === "processed" ? "Edit Receipt" : "Review Extracted Line Items"}
+            </DialogTitle>
           </DialogHeader>
           {reviewReceipt && (
-            <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-6">
               {reviewReceipt.image_url && (
-                <img src={reviewReceipt.image_url} alt="Receipt" className="w-full max-h-48 object-contain rounded-lg border border-border" />
+                <div className="space-y-2">
+                  <a href={reviewReceipt.image_url} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={reviewReceipt.image_url}
+                      alt="Receipt"
+                      className="w-full max-h-[70vh] object-contain rounded-lg border border-border bg-muted/20"
+                    />
+                  </a>
+                  <p className="text-xs text-muted-foreground text-center">Tap image to open full size</p>
+                </div>
               )}
-              <div className="overflow-x-auto">
+              <div className="space-y-3">
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left">
