@@ -79,6 +79,7 @@ function PublicMenuPage() {
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<"all" | "standard" | "premium">("all");
+  const [kind, setKind] = useState<RecipeKind>("food");
   const [meat, setMeat] = useState<MeatKey>("all");
   const [category, setCategory] = useState<string>("all");
   const [dietary, setDietary] = useState<"all" | "vegetarian" | "vegan" | "gluten-free">("all");
