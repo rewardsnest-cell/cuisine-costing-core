@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin as supabase } from "@/integrations/supabase/client.server";
 
 export const recalcQuotePricing = createServerFn({ method: "POST" })
   .inputValidator((data: { quoteId: string }) => {
@@ -7,10 +7,6 @@ export const recalcQuotePricing = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
-    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) throw new Error("Server is missing Supabase credentials");
-    const supabase = createClient(url, key);
 
     // 1. Read markup multiplier
     const { data: settings } = await supabase
