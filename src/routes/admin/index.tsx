@@ -114,6 +114,7 @@ interface RecentQuote {
   total: number | null;
   created_at: string;
   status: string;
+  event_date?: string | null;
 }
 
 function AdminDashboard() {
