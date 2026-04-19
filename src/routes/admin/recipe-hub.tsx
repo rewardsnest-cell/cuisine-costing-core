@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil } from "lucide-react";
 import { parseYouTubeId } from "@/lib/recipe-video";
+import { RecipeBulkActions } from "@/components/admin/RecipeBulkActions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/admin/recipe-hub")({
   head: () => ({ meta: [{ title: "Recipe Hub — Admin" }] }),
@@ -34,6 +36,8 @@ function RecipeHub() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "no-video" | "no-shop" | "draft">("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) => setSelectedIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   useEffect(() => {
     (async () => {
@@ -128,6 +132,19 @@ function RecipeHub() {
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left">
               <tr>
+                <th className="px-4 py-2 w-8">
+                  <Checkbox
+                    checked={visible.length > 0 && visible.every((r) => selectedIds.has(r.id))}
+                    onCheckedChange={(c) => {
+                      setSelectedIds((s) => {
+                        const n = new Set(s);
+                        if (c) visible.forEach((r) => n.add(r.id));
+                        else visible.forEach((r) => n.delete(r.id));
+                        return n;
+                      });
+                    }}
+                  />
+                </th>
                 <th className="px-4 py-2">Recipe</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2">Video</th>
@@ -142,7 +159,10 @@ function RecipeHub() {
                 const tipCount = Array.isArray(r.pro_tips) ? r.pro_tips.length : 0;
                 const hasVideo = !!parseYouTubeId(r.video_url);
                 return (
-                  <tr key={r.id} className="border-t border-border hover:bg-secondary/20">
+                  <tr key={r.id} className={`border-t border-border hover:bg-secondary/20 ${selectedIds.has(r.id) ? "bg-primary/5" : ""}`}>
+                    <td className="px-4 py-2">
+                      <Checkbox checked={selectedIds.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} />
+                    </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-3">
                         {r.image_url ? (
@@ -186,6 +206,12 @@ function RecipeHub() {
           </table>
         </div>
       )}
+      <RecipeBulkActions
+        recipes={visible.map((r) => ({ id: r.id, name: r.name, image_url: r.image_url }))}
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onPhotoUpdated={(id, url) => setRows((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: url } : x)))}
+      />
     </div>
   );
 }
