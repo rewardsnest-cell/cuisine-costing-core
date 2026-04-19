@@ -95,7 +95,7 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
         key: "firecrawl",
         label: "Firecrawl",
         configured: firecrawlConfigured,
-        details: {},
+        details: { token_secret_name: "FIRECRAWL_API_KEY" },
       },
       {
         key: "email",
