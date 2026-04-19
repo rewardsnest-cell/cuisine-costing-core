@@ -110,3 +110,38 @@ export const generateRecipePhoto = createServerFn({ method: "POST" })
 
     return { id: rec.id, name: rec.name, url: publicUrl };
   });
+
+export const generateRecipeSocialPhoto = createServerFn({ method: "POST" })
+  .inputValidator((input: { recipeId: string }) => input)
+  .handler(async ({ data }) => {
+    const { data: rec, error } = await supabaseAdmin
+      .from("recipes")
+      .select("id,name,description,category")
+      .eq("id", data.recipeId)
+      .single();
+    if (error || !rec) throw new Error(error?.message || "Recipe not found");
+
+    const { bytes, contentType } = await generateOne(
+      rec.name,
+      (rec.description || "").slice(0, 280),
+      rec.category || "",
+      "social",
+    );
+
+    const path = `${rec.id}/${slug(rec.name)}-social.png`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, bytes, { contentType, upsert: true });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+
+    const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
+    const publicUrl = `${pub.publicUrl}?v=${Date.now()}`;
+
+    const { error: updErr } = await supabaseAdmin
+      .from("recipes")
+      .update({ social_image_url: publicUrl })
+      .eq("id", rec.id);
+    if (updErr) throw new Error(`DB update failed: ${updErr.message}`);
+
+    return { id: rec.id, name: rec.name, url: publicUrl };
+  });
