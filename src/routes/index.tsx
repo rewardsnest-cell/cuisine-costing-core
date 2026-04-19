@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { TestimonialsCarousel } from "@/components/TestimonialsCarousel";
+import { FloatingQuoteCTA } from "@/components/FloatingQuoteCTA";
 
 function useAsset(slug: string): string | null {
   const [url, setUrl] = useState<string | null>(null);
@@ -121,6 +123,7 @@ function HomePage() {
               </div>
             ))}
           </div>
+          <TestimonialsCarousel />
         </div>
       </section>
 
@@ -160,6 +163,7 @@ function HomePage() {
           </div>
         </div>
       </section>
+      <FloatingQuoteCTA />
     </div>
   );
 }
