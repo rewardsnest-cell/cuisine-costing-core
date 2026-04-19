@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
+import { FlippLinkButton } from "@/components/admin/FlippLinkButton";
 
 export const Route = createFileRoute("/admin/sale-flyers/$id")({
   component: SaleFlyerDetailPage,
@@ -56,6 +57,8 @@ type Item = {
   savings: number | null;
   inventory_item_id: string | null;
   promo_image_url?: string | null;
+  flipp_short_link?: string | null;
+  flipp_image_url?: string | null;
 };
 
 function SaleFlyerDetailPage() {

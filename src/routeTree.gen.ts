@@ -43,12 +43,14 @@ import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CouponItemIdRouteImport } from './routes/coupon.$itemId'
 import { Route as CateringQuoteRouteImport } from './routes/catering_.quote'
 import { Route as BlogWinterWeddingCateringGuideRouteImport } from './routes/blog.winter-wedding-catering-guide'
 import { Route as BlogSpringWeddingCateringGuideRouteImport } from './routes/blog.spring-wedding-catering-guide'
 import { Route as BlogFallWeddingCateringGuideRouteImport } from './routes/blog.fall-wedding-catering-guide'
 import { Route as ApiRecipeSignupRouteImport } from './routes/api/recipe-signup'
 import { Route as ApiQuoteAssistantRouteImport } from './routes/api/quote-assistant'
+import { Route as ApiFlippRouteImport } from './routes/api/flipp'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
@@ -278,6 +280,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CouponItemIdRoute = CouponItemIdRouteImport.update({
+  id: '/coupon/$itemId',
+  path: '/coupon/$itemId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CateringQuoteRoute = CateringQuoteRouteImport.update({
   id: '/catering_/quote',
   path: '/catering/quote',
@@ -309,6 +316,11 @@ const ApiRecipeSignupRoute = ApiRecipeSignupRouteImport.update({
 const ApiQuoteAssistantRoute = ApiQuoteAssistantRouteImport.update({
   id: '/api/quote-assistant',
   path: '/api/quote-assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFlippRoute = ApiFlippRouteImport.update({
+  id: '/api/flipp',
+  path: '/api/flipp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiContactRoute = ApiContactRouteImport.update({
@@ -655,12 +667,14 @@ export interface FileRoutesByFullPath {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
   '/catering/quote': typeof CateringQuoteRoute
+  '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
@@ -750,12 +764,14 @@ export interface FileRoutesByTo {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
   '/catering/quote': typeof CateringQuoteRoute
+  '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
@@ -848,12 +864,14 @@ export interface FileRoutesById {
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/contact': typeof ApiContactRoute
+  '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
   '/api/recipe-signup': typeof ApiRecipeSignupRoute
   '/blog/fall-wedding-catering-guide': typeof BlogFallWeddingCateringGuideRoute
   '/blog/spring-wedding-catering-guide': typeof BlogSpringWeddingCateringGuideRoute
   '/blog/winter-wedding-catering-guide': typeof BlogWinterWeddingCateringGuideRoute
   '/catering_/quote': typeof CateringQuoteRoute
+  '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
@@ -947,12 +965,14 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/flipp'
     | '/api/quote-assistant'
     | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
     | '/catering/quote'
+    | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
@@ -1042,12 +1062,14 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/flipp'
     | '/api/quote-assistant'
     | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
     | '/catering/quote'
+    | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
@@ -1139,12 +1161,14 @@ export interface FileRouteTypes {
     | '/admin/uploads'
     | '/admin/users'
     | '/api/contact'
+    | '/api/flipp'
     | '/api/quote-assistant'
     | '/api/recipe-signup'
     | '/blog/fall-wedding-catering-guide'
     | '/blog/spring-wedding-catering-guide'
     | '/blog/winter-wedding-catering-guide'
     | '/catering_/quote'
+    | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
@@ -1200,12 +1224,14 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
+  ApiFlippRoute: typeof ApiFlippRoute
   ApiQuoteAssistantRoute: typeof ApiQuoteAssistantRoute
   ApiRecipeSignupRoute: typeof ApiRecipeSignupRoute
   BlogFallWeddingCateringGuideRoute: typeof BlogFallWeddingCateringGuideRoute
   BlogSpringWeddingCateringGuideRoute: typeof BlogSpringWeddingCateringGuideRoute
   BlogWinterWeddingCateringGuideRoute: typeof BlogWinterWeddingCateringGuideRoute
   CateringQuoteRoute: typeof CateringQuoteRoute
+  CouponItemIdRoute: typeof CouponItemIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
@@ -1461,6 +1487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/coupon/$itemId': {
+      id: '/coupon/$itemId'
+      path: '/coupon/$itemId'
+      fullPath: '/coupon/$itemId'
+      preLoaderRoute: typeof CouponItemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catering_/quote': {
       id: '/catering_/quote'
       path: '/catering/quote'
@@ -1501,6 +1534,13 @@ declare module '@tanstack/react-router' {
       path: '/api/quote-assistant'
       fullPath: '/api/quote-assistant'
       preLoaderRoute: typeof ApiQuoteAssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/flipp': {
+      id: '/api/flipp'
+      path: '/api/flipp'
+      fullPath: '/api/flipp'
+      preLoaderRoute: typeof ApiFlippRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/contact': {
@@ -2089,12 +2129,14 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
+  ApiFlippRoute: ApiFlippRoute,
   ApiQuoteAssistantRoute: ApiQuoteAssistantRoute,
   ApiRecipeSignupRoute: ApiRecipeSignupRoute,
   BlogFallWeddingCateringGuideRoute: BlogFallWeddingCateringGuideRoute,
   BlogSpringWeddingCateringGuideRoute: BlogSpringWeddingCateringGuideRoute,
   BlogWinterWeddingCateringGuideRoute: BlogWinterWeddingCateringGuideRoute,
   CateringQuoteRoute: CateringQuoteRoute,
+  CouponItemIdRoute: CouponItemIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
