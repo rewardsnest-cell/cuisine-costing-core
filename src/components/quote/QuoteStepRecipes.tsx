@@ -39,14 +39,23 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
     })();
   }, []);
 
+  const kindCounts = useMemo(() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of allRecipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  }, [allRecipes]);
+
   const matched = useMemo(
     () =>
       filterRecipesForSelections(allRecipes, {
         style: selections.style,
         proteins: selections.proteins,
         allergies: selections.allergies,
-      }).filter((r) => (search.trim() ? r.name.toLowerCase().includes(search.toLowerCase()) : true)),
-    [allRecipes, selections.style, selections.proteins, selections.allergies, search],
+      })
+        .filter((r) => (kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category)))
+        .filter((r) => (search.trim() ? r.name.toLowerCase().includes(search.toLowerCase()) : true)),
+    [allRecipes, selections.style, selections.proteins, selections.allergies, search, kind],
   );
 
   const grouped = useMemo(() => {
