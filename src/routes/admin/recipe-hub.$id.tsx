@@ -185,11 +185,16 @@ function HubEdit() {
 
       {/* Shop items */}
       <Card><CardContent className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="font-semibold">Shop this recipe (affiliate module)</h2>
-          <Button size="sm" variant="outline" onClick={() => setShop([...shop, { name: "", benefit: "", url: "", image_url: "", is_affiliate: true, position: shop.length, _new: true }])}>
-            <Plus className="w-3 h-3 mr-1" />Add item
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={generateAmazonItems} disabled={generating}>
+              <Sparkles className="w-3 h-3 mr-1" />{generating ? "Generating…" : "Generate from ingredients (Amazon)"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShop([...shop, { name: "", benefit: "", url: "", image_url: "", is_affiliate: true, position: shop.length, _new: true }])}>
+              <Plus className="w-3 h-3 mr-1" />Add item
+            </Button>
+          </div>
         </div>
         {shop.filter((s) => !s._delete).length === 0 && <p className="text-sm text-muted-foreground">No shop items yet. Add tools, appliances, or specialty ingredients.</p>}
         <div className="space-y-3">
