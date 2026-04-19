@@ -65,6 +65,7 @@ import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
+import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
@@ -377,6 +378,11 @@ const AdminPurchaseOrdersRoute = AdminPurchaseOrdersRouteImport.update({
   path: '/purchase-orders',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNationalPricesRoute = AdminNationalPricesRouteImport.update({
+  id: '/national-prices',
+  path: '/national-prices',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMenuRoute = AdminMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -551,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -633,6 +640,7 @@ export interface FileRoutesByTo {
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -718,6 +726,7 @@ export interface FileRoutesById {
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -804,6 +813,7 @@ export interface FileRouteTypes {
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
+    | '/admin/national-prices'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -886,6 +896,7 @@ export interface FileRouteTypes {
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
+    | '/admin/national-prices'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/menu'
+    | '/admin/national-prices'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -1453,6 +1465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPurchaseOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/national-prices': {
+      id: '/admin/national-prices'
+      path: '/national-prices'
+      fullPath: '/admin/national-prices'
+      preLoaderRoute: typeof AdminNationalPricesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu': {
       id: '/admin/menu'
       path: '/menu'
@@ -1679,6 +1698,7 @@ interface AdminRouteChildren {
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMenuRoute: typeof AdminMenuRoute
+  AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
@@ -1718,6 +1738,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMenuRoute: AdminMenuRoute,
+  AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuotesRoute: AdminQuotesRoute,
