@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Globe2, Upload, Plus, AlertCircle } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
+import { FredPullPanel } from "@/components/admin/FredPullPanel";
 
 export const Route = createFileRoute("/admin/national-prices")({
   head: () => ({
@@ -172,6 +173,8 @@ function NationalPricesPage() {
           </p>
         </div>
       </div>
+
+      <FredPullPanel onApplied={loadAll} />
 
       {error && (
         <Alert variant="destructive">
