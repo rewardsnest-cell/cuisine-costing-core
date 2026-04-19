@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw, Plus, Minus, Check } from "lucide-react";
 import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTray";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
+import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -458,7 +459,14 @@ function PublicMenuPage() {
           <Card className="shadow-warm border-border/50 max-w-md mx-auto">
             <CardContent className="p-12 text-center">
               <ChefHat className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No menu items in this section yet. Check back soon.</p>
+              <p className="text-muted-foreground mb-4">
+                No menu items match your filters yet — try broadening them!
+              </p>
+              {activeFiltersCount > 0 && (
+                <Button variant="outline" size="sm" onClick={resetFilters} className="gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5" /> Clear all filters
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -479,19 +487,21 @@ function PublicMenuPage() {
                           inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
                         } ${highlightId === r.id ? "animate-anchor-pulse" : ""}`}
                       >
-                        <div className="aspect-video bg-muted relative overflow-hidden">
+                        <Link
+                          to="/recipes/$id"
+                          params={{ id: r.id }}
+                          className="block aspect-video bg-muted relative overflow-hidden group"
+                          aria-label={`View ${r.name}`}
+                        >
                           {r.image_url ? (
                             <img
                               src={r.image_url}
                               alt={r.name}
                               loading="lazy"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                           ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/50">
-                              <ImageOff className="w-8 h-8 mb-1" />
-                              <span className="text-xs">No photo</span>
-                            </div>
+                            <RecipePlaceholder />
                           )}
                           <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                             {r.is_premium && (
@@ -510,10 +520,10 @@ function PublicMenuPage() {
                               <Check className="w-3 h-3" /> Added
                             </div>
                           )}
-                        </div>
+                        </Link>
                         <CardContent className="p-4 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-display text-lg font-semibold leading-tight">{r.name}</h3>
+                            <Link to="/recipes/$id" params={{ id: r.id }} className="font-display text-lg font-semibold leading-tight hover:text-primary transition-colors">{r.name}</Link>
                             <div className="text-right shrink-0">
                               <div className="font-display text-lg font-bold text-gradient-gold">
                                 ${price.toFixed(2)}
