@@ -104,6 +104,21 @@ function RecipesPage() {
           </div>
         </div>
 
+        {/* Use case filter */}
+        <div className="flex flex-wrap justify-center gap-2 mb-12 text-xs">
+          {USE_CASES.map((u) => (
+            <button
+              key={u}
+              onClick={() => setUseCase(u)}
+              className={`px-3 py-1.5 rounded-full border transition-colors ${
+                useCase === u ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {u}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <p className="text-center text-muted-foreground">Loading recipes…</p>
         ) : visible.length === 0 ? (
@@ -129,6 +144,9 @@ function RecipesPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs tracking-widest uppercase">No photo</div>
+                  )}
+                  {r.video_url && (
+                    <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
                   )}
                 </div>
                 <div className="pt-5 text-center">

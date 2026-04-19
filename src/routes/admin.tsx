@@ -46,6 +46,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     label: "Catalog & Inventory",
     items: [
       { to: "/admin/recipes", label: "All Recipes", icon: ChefHat },
+      { to: "/admin/recipe-hub", label: "Recipe Hub", icon: Sparkles },
       { to: "/admin/menu", label: "Public Menu", icon: UtensilsCrossed },
       { to: "/admin/inventory", label: "Inventory", icon: Package },
       { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
