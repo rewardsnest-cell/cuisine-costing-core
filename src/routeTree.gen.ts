@@ -39,6 +39,7 @@ import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fa
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
 import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
+import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CateringQuoteRouteImport } from './routes/catering_.quote'
@@ -85,6 +86,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
+import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -245,6 +247,12 @@ const QuoteAiRoute = QuoteAiRouteImport.update({
   path: '/quote/ai',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HooksNationalPricesMonthlyRoute =
+  HooksNationalPricesMonthlyRouteImport.update({
+    id: '/hooks/national-prices-monthly',
+    path: '/hooks/national-prices-monthly',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
   path: '/event/$reference',
@@ -482,6 +490,11 @@ const AdminRecipesNewRoute = AdminRecipesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminRecipesRoute,
 } as any)
+const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
+  id: '/pricing/national',
+  path: '/pricing/national',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   id: '/competitor-quotes/$id',
   path: '/competitor-quotes/$id',
@@ -584,6 +597,7 @@ export interface FileRoutesByFullPath {
   '/catering/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -594,6 +608,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -667,6 +682,7 @@ export interface FileRoutesByTo {
   '/catering/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -677,6 +693,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -753,6 +770,7 @@ export interface FileRoutesById {
   '/catering_/quote': typeof CateringQuoteRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -763,6 +781,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -840,6 +859,7 @@ export interface FileRouteTypes {
     | '/catering/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/hooks/national-prices-monthly'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -850,6 +870,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -923,6 +944,7 @@ export interface FileRouteTypes {
     | '/catering/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/hooks/national-prices-monthly'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -933,6 +955,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/weddings'
     | '/admin/competitor-quotes/$id'
+    | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -1008,6 +1031,7 @@ export interface FileRouteTypes {
     | '/catering_/quote'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/hooks/national-prices-monthly'
     | '/quote_/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1018,6 +1042,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -1061,6 +1086,7 @@ export interface RootRouteChildren {
   CateringQuoteRoute: typeof CateringQuoteRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
+  HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   QuoteAiRoute: typeof QuoteAiRoute
   BlogIndexRoute: typeof BlogIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1281,6 +1307,13 @@ declare module '@tanstack/react-router' {
       path: '/quote/ai'
       fullPath: '/quote/ai'
       preLoaderRoute: typeof QuoteAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hooks/national-prices-monthly': {
+      id: '/hooks/national-prices-monthly'
+      path: '/hooks/national-prices-monthly'
+      fullPath: '/hooks/national-prices-monthly'
+      preLoaderRoute: typeof HooksNationalPricesMonthlyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/event/$reference': {
@@ -1605,6 +1638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecipesNewRouteImport
       parentRoute: typeof AdminRecipesRoute
     }
+    '/admin/pricing/national': {
+      id: '/admin/pricing/national'
+      path: '/pricing/national'
+      fullPath: '/admin/pricing/national'
+      preLoaderRoute: typeof AdminPricingNationalRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitor-quotes/$id': {
       id: '/admin/competitor-quotes/$id'
       path: '/competitor-quotes/$id'
@@ -1719,6 +1759,7 @@ interface AdminRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
+  AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
 }
@@ -1759,6 +1800,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
+  AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
 }
@@ -1826,6 +1868,7 @@ const rootRouteChildren: RootRouteChildren = {
   CateringQuoteRoute: CateringQuoteRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
+  HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   QuoteAiRoute: QuoteAiRoute,
   BlogIndexRoute: BlogIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,

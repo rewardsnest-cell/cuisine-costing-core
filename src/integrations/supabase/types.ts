@@ -83,6 +83,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_kv: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: number
@@ -946,6 +967,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "national_price_snapshots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      national_price_staging: {
+        Row: {
+          fetched_at: string
+          id: string
+          ingredient_id: string
+          month: string
+          price: number
+          region: string | null
+          source: string
+          unit: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          ingredient_id: string
+          month: string
+          price: number
+          region?: string | null
+          source: string
+          unit: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          ingredient_id?: string
+          month?: string
+          price?: number
+          region?: string | null
+          source?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "national_price_staging_ingredient_id_fkey"
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredient_reference"
