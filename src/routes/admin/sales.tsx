@@ -243,8 +243,8 @@ function SalesDashboard() {
                 : "No items match your filters."}
             </p>
             {rows.length === 0 && (
-              <Link to="/admin/suppliers" className="inline-flex items-center gap-1 text-primary text-sm mt-3 hover:underline">
-                Go to Suppliers <ExternalLink className="w-3 h-3" />
+              <Link to="/admin/scan-flyer" className="inline-flex items-center gap-1 text-primary text-sm mt-3 hover:underline">
+                Upload a flyer <ExternalLink className="w-3 h-3" />
               </Link>
             )}
           </CardContent>
