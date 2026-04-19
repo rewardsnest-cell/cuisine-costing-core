@@ -160,7 +160,7 @@ function MarginVolatilityPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {range.rows.slice(0, 50).map((r) => (
+                    {range.rows.slice(0, 50).map((r: Range["rows"][number]) => (
                       <tr key={r.id} className="border-b border-border/40">
                         <td className="py-1.5 pr-3 font-mono text-xs">{r.reference_number || "—"}</td>
                         <td className="py-1.5 pr-3">{r.event_date}</td>

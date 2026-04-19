@@ -68,6 +68,7 @@ import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
+import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
@@ -397,6 +398,11 @@ const AdminMenuRoute = AdminMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMarginVolatilityRoute = AdminMarginVolatilityRouteImport.update({
+  id: '/margin-volatility',
+  path: '/margin-volatility',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -576,6 +582,7 @@ export interface FileRoutesByFullPath {
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -662,6 +669,7 @@ export interface FileRoutesByTo {
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -751,6 +759,7 @@ export interface FileRoutesById {
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -841,6 +850,7 @@ export interface FileRouteTypes {
     | '/admin/ingredient-reference'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/purchase-orders'
@@ -927,6 +937,7 @@ export interface FileRouteTypes {
     | '/admin/ingredient-reference'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/purchase-orders'
@@ -1015,6 +1026,7 @@ export interface FileRouteTypes {
     | '/admin/ingredient-reference'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/purchase-orders'
@@ -1525,6 +1537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMenuRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/margin-volatility': {
+      id: '/admin/margin-volatility'
+      path: '/margin-volatility'
+      fullPath: '/admin/margin-volatility'
+      preLoaderRoute: typeof AdminMarginVolatilityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/inventory': {
       id: '/admin/inventory'
       path: '/inventory'
@@ -1757,6 +1776,7 @@ interface AdminRouteChildren {
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
@@ -1799,6 +1819,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
+  AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
