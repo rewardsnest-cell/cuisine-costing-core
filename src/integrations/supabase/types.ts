@@ -1569,6 +1569,63 @@ export type Database = {
           },
         ]
       }
+      recipe_shop_items: {
+        Row: {
+          benefit: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_affiliate: boolean
+          name: string
+          position: number
+          program_id: string | null
+          recipe_id: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          benefit?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_affiliate?: boolean
+          name: string
+          position?: number
+          program_id?: string | null
+          recipe_id: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          benefit?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_affiliate?: boolean
+          name?: string
+          position?: number
+          program_id?: string | null
+          recipe_id?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_shop_items_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_shop_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           active: boolean
@@ -1580,8 +1637,10 @@ export type Database = {
           coupon_text: string | null
           coupon_valid_until: string | null
           created_at: string
+          cta_type: string | null
           cuisine: string | null
           description: string | null
+          hook: string | null
           id: string
           image_url: string | null
           instructions: string | null
@@ -1593,11 +1652,23 @@ export type Database = {
           menu_price: number | null
           name: string
           prep_time: number | null
+          pro_tips: Json
+          reheating_instructions: string | null
+          score_affiliate: number
+          score_event: number
+          score_seasonal: number
+          score_video: number
           seasonal_tags: string[] | null
+          serving_suggestions: string | null
           servings: number
+          skill_level: string | null
           source_competitor_quote_id: string | null
+          storage_instructions: string | null
           total_cost: number | null
           updated_at: string
+          use_case: string | null
+          video_embed_html: string | null
+          video_url: string | null
         }
         Insert: {
           active?: boolean
@@ -1609,8 +1680,10 @@ export type Database = {
           coupon_text?: string | null
           coupon_valid_until?: string | null
           created_at?: string
+          cta_type?: string | null
           cuisine?: string | null
           description?: string | null
+          hook?: string | null
           id?: string
           image_url?: string | null
           instructions?: string | null
@@ -1622,11 +1695,23 @@ export type Database = {
           menu_price?: number | null
           name: string
           prep_time?: number | null
+          pro_tips?: Json
+          reheating_instructions?: string | null
+          score_affiliate?: number
+          score_event?: number
+          score_seasonal?: number
+          score_video?: number
           seasonal_tags?: string[] | null
+          serving_suggestions?: string | null
           servings?: number
+          skill_level?: string | null
           source_competitor_quote_id?: string | null
+          storage_instructions?: string | null
           total_cost?: number | null
           updated_at?: string
+          use_case?: string | null
+          video_embed_html?: string | null
+          video_url?: string | null
         }
         Update: {
           active?: boolean
@@ -1638,8 +1723,10 @@ export type Database = {
           coupon_text?: string | null
           coupon_valid_until?: string | null
           created_at?: string
+          cta_type?: string | null
           cuisine?: string | null
           description?: string | null
+          hook?: string | null
           id?: string
           image_url?: string | null
           instructions?: string | null
@@ -1651,11 +1738,23 @@ export type Database = {
           menu_price?: number | null
           name?: string
           prep_time?: number | null
+          pro_tips?: Json
+          reheating_instructions?: string | null
+          score_affiliate?: number
+          score_event?: number
+          score_seasonal?: number
+          score_video?: number
           seasonal_tags?: string[] | null
+          serving_suggestions?: string | null
           servings?: number
+          skill_level?: string | null
           source_competitor_quote_id?: string | null
+          storage_instructions?: string | null
           total_cost?: number | null
           updated_at?: string
+          use_case?: string | null
+          video_embed_html?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
