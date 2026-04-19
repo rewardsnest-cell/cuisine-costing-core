@@ -162,24 +162,35 @@ function SupplierDetailPage() {
         </Button>
       </div>
 
-      {/* Contact card */}
+      {/* Contact card (editable) */}
       <Card className="shadow-warm border-border/50">
-        <CardContent className="p-6 space-y-3">
-          <h1 className="font-display text-2xl font-semibold">{supplier.name}</h1>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-            {supplier.contact_name && <div className="flex items-center gap-2 text-muted-foreground"><User className="w-4 h-4" /> {supplier.contact_name}</div>}
-            {supplier.email && <a href={`mailto:${supplier.email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground"><Mail className="w-4 h-4" /> {supplier.email}</a>}
+        <CardContent className="p-6 space-y-4">
+          <div>
+            <Label>Supplier name</Label>
+            <Input
+              value={form.name ?? ""}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="font-display text-xl font-semibold h-11"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div><Label>Contact name</Label><Input value={form.contact_name ?? ""} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} placeholder="Jane Doe" /></div>
+            <div><Label>Email</Label><Input type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="orders@supplier.com" /></div>
+            <div><Label>Website</Label><Input value={form.website ?? ""} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="supplier.com" /></div>
+            <div><Label>Office phone</Label><Input value={form.office_phone ?? ""} onChange={(e) => setForm({ ...form, office_phone: e.target.value })} placeholder="(555) 123-4567" /></div>
+            <div><Label>Cell phone</Label><Input value={form.cellphone ?? ""} onChange={(e) => setForm({ ...form, cellphone: e.target.value })} placeholder="(555) 987-6543" /></div>
+            <div><Label>Other phone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(555) 000-0000" /></div>
+            <div className="sm:col-span-2"><Label>Address</Label><Input value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="123 Main St, City, ST 00000" /></div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={saveDetails} disabled={saving} className="bg-gradient-warm text-primary-foreground gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save supplier
+            </Button>
             {supplier.website && (
-              <a href={normalizeUrl(supplier.website)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
-                <Globe className="w-4 h-4" /> {supplier.website.replace(/^https?:\/\//, "")}
+              <a href={normalizeUrl(supplier.website)} target="_blank" rel="noopener noreferrer" className="text-sm text-primary inline-flex items-center gap-1 hover:underline">
+                <Globe className="w-4 h-4" /> Open site
               </a>
             )}
-            {supplier.office_phone && <a href={`tel:${supplier.office_phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground"><Phone className="w-4 h-4" /> Office: {supplier.office_phone}</a>}
-            {supplier.cellphone && <a href={`tel:${supplier.cellphone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground"><Smartphone className="w-4 h-4" /> Cell: {supplier.cellphone}</a>}
-            {supplier.phone && !supplier.office_phone && !supplier.cellphone && (
-              <a href={`tel:${supplier.phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground"><Phone className="w-4 h-4" /> {supplier.phone}</a>
-            )}
-            {supplier.address && <div className="flex items-center gap-2 text-muted-foreground sm:col-span-2"><MapPin className="w-4 h-4" /> {supplier.address}</div>}
           </div>
         </CardContent>
       </Card>
