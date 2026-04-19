@@ -79,6 +79,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     label: "Reports",
     items: [
       { to: "/admin/exports", label: "Exports & Reports", icon: Download },
+      { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
     ],
   },
   {
