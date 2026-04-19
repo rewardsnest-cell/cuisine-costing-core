@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Search, Truck, Globe, Phone, Smartphone, Tag, ChevronRight } from "lucide-react";
+import { Plus, Search, Truck, Globe, Phone, Smartphone, Tag, ChevronRight, Pencil, X, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
@@ -33,6 +34,9 @@ function SuppliersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineForm, setInlineForm] = useState(EMPTY_FORM);
+  const [savingInline, setSavingInline] = useState(false);
 
   const load = async () => {
     const { data } = await (supabase as any).from("suppliers").select("*").order("name");
@@ -72,6 +76,52 @@ function SuppliersPage() {
     setDialogOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
+    void load();
+  };
+
+  const startInlineEdit = (s: Supplier) => {
+    setInlineEditId(s.id);
+    setInlineForm({
+      name: s.name ?? "",
+      contact_name: s.contact_name ?? "",
+      email: s.email ?? "",
+      phone: s.phone ?? "",
+      address: s.address ?? "",
+      website: s.website ?? "",
+      office_phone: s.office_phone ?? "",
+      cellphone: s.cellphone ?? "",
+    });
+  };
+
+  const cancelInlineEdit = () => {
+    setInlineEditId(null);
+    setInlineForm(EMPTY_FORM);
+  };
+
+  const saveInlineEdit = async (id: string) => {
+    if (!inlineForm.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    setSavingInline(true);
+    const payload = {
+      name: inlineForm.name.trim(),
+      contact_name: inlineForm.contact_name || null,
+      email: inlineForm.email || null,
+      phone: inlineForm.phone || null,
+      address: inlineForm.address || null,
+      website: inlineForm.website || null,
+      office_phone: inlineForm.office_phone || null,
+      cellphone: inlineForm.cellphone || null,
+    };
+    const { error } = await (supabase as any).from("suppliers").update(payload).eq("id", id);
+    setSavingInline(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Supplier updated");
+    setInlineEditId(null);
     void load();
   };
 
@@ -134,47 +184,87 @@ function SuppliersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <Link
-              key={s.id}
-              to="/admin/suppliers/$id"
-              params={{ id: s.id }}
-              className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={`Open ${s.name}`}
-            >
-              <Card className="shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all h-full">
-                <CardContent className="p-5 space-y-1">
-                  <div className="flex justify-between items-start gap-3">
-                    <h3 className="font-display text-lg font-semibold">{s.name}</h3>
-                    <ChevronRight className="w-4 h-4 text-primary shrink-0 mt-1" />
-                  </div>
-                  {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
-                  {s.email && <p className="text-sm text-muted-foreground truncate">{s.email}</p>}
-                  {s.website && (
-                    <p className="text-sm text-primary flex items-center gap-1.5 truncate">
-                      <Globe className="w-3.5 h-3.5 shrink-0" />{s.website.replace(/^https?:\/\//, "")}
-                    </p>
-                  )}
-                  {s.office_phone && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
-                    </p>
-                  )}
-                  {s.cellphone && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
-                    </p>
-                  )}
-                  {s.phone && !s.office_phone && !s.cellphone && (
-                    <p className="text-sm text-muted-foreground">{s.phone}</p>
-                  )}
-                  <div className="pt-2 text-xs text-primary font-medium inline-flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5" /> View details & sale flyers
-                  </div>
-                </CardContent>
+          {filtered.map((s) => {
+            const isEditing = inlineEditId === s.id;
+            if (isEditing) {
+              return (
+                <Card key={s.id} className="shadow-warm border-primary/40 h-full">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Editing</span>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={cancelInlineEdit} disabled={savingInline}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" className="h-7 px-2" onClick={() => saveInlineEdit(s.id)} disabled={savingInline}>
+                          <Check className="w-3.5 h-3.5 mr-1" /> Save
+                        </Button>
+                      </div>
+                    </div>
+                    <Input placeholder="Company name" value={inlineForm.name} onChange={(e) => setInlineForm({ ...inlineForm, name: e.target.value })} className="h-8 text-sm font-semibold" />
+                    <Input placeholder="Contact person" value={inlineForm.contact_name} onChange={(e) => setInlineForm({ ...inlineForm, contact_name: e.target.value })} className="h-8 text-sm" />
+                    <Input placeholder="Email" type="email" value={inlineForm.email} onChange={(e) => setInlineForm({ ...inlineForm, email: e.target.value })} className="h-8 text-sm" />
+                    <Input placeholder="Website" value={inlineForm.website} onChange={(e) => setInlineForm({ ...inlineForm, website: e.target.value })} className="h-8 text-sm" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="Office phone" value={inlineForm.office_phone} onChange={(e) => setInlineForm({ ...inlineForm, office_phone: e.target.value })} className="h-8 text-sm" />
+                      <Input placeholder="Cellphone" value={inlineForm.cellphone} onChange={(e) => setInlineForm({ ...inlineForm, cellphone: e.target.value })} className="h-8 text-sm" />
+                    </div>
+                    <Input placeholder="Other phone" value={inlineForm.phone} onChange={(e) => setInlineForm({ ...inlineForm, phone: e.target.value })} className="h-8 text-sm" />
+                    <Input placeholder="Address" value={inlineForm.address} onChange={(e) => setInlineForm({ ...inlineForm, address: e.target.value })} className="h-8 text-sm" />
+                  </CardContent>
+                </Card>
+              );
+            }
+            return (
+              <Card key={s.id} className="shadow-warm border-border/50 hover:shadow-gold hover:border-primary/40 transition-all h-full relative group">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-2 right-2 h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); startInlineEdit(s); }}
+                  aria-label={`Edit ${s.name}`}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Link
+                  to="/admin/suppliers/$id"
+                  params={{ id: s.id }}
+                  className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={`Open ${s.name}`}
+                >
+                  <CardContent className="p-5 space-y-1">
+                    <div className="flex justify-between items-start gap-3">
+                      <h3 className="font-display text-lg font-semibold">{s.name}</h3>
+                      <ChevronRight className="w-4 h-4 text-primary shrink-0 mt-1" />
+                    </div>
+                    {s.contact_name && <p className="text-sm text-muted-foreground">{s.contact_name}</p>}
+                    {s.email && <p className="text-sm text-muted-foreground truncate">{s.email}</p>}
+                    {s.website && (
+                      <p className="text-sm text-primary flex items-center gap-1.5 truncate">
+                        <Globe className="w-3.5 h-3.5 shrink-0" />{s.website.replace(/^https?:\/\//, "")}
+                      </p>
+                    )}
+                    {s.office_phone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />Office: {s.office_phone}
+                      </p>
+                    )}
+                    {s.cellphone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5" />Cell: {s.cellphone}
+                      </p>
+                    )}
+                    {s.phone && !s.office_phone && !s.cellphone && (
+                      <p className="text-sm text-muted-foreground">{s.phone}</p>
+                    )}
+                    <div className="pt-2 text-xs text-primary font-medium inline-flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5" /> View details & sale flyers
+                    </div>
+                  </CardContent>
+                </Link>
               </Card>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
