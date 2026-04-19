@@ -20,6 +20,7 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
   const [search, setSearch] = useState("");
+  const [kind, setKind] = useState<RecipeKind>("food");
 
   useEffect(() => {
     (async () => {
