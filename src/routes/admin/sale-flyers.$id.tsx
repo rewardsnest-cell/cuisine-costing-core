@@ -169,6 +169,99 @@ function SaleFlyerDetailPage() {
     }
   };
 
+  const updateItem = (idx: number, patch: Partial<Item>) => {
+    setEditedItems((prev) => {
+      const next = [...prev];
+      const merged = { ...next[idx], ...patch };
+      const sp = merged.sale_price;
+      const rp = merged.regular_price;
+      if (sp != null && rp != null && rp >= sp) {
+        merged.savings = Number((rp - sp).toFixed(2));
+      }
+      next[idx] = merged;
+      return next;
+    });
+  };
+
+  const removeItem = (idx: number) => {
+    setEditedItems((prev) => {
+      const it = prev[idx];
+      if (it && !it.id.startsWith("new-")) {
+        setDeletedItemIds((d) => [...d, it.id]);
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const addItem = () => {
+    setEditedItems((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: "",
+        brand: null,
+        pack_size: null,
+        unit: null,
+        sale_price: null,
+        regular_price: null,
+        savings: null,
+        inventory_item_id: null,
+      },
+    ]);
+  };
+
+  const saveItems = async () => {
+    setSavingItems(true);
+    try {
+      if (deletedItemIds.length > 0) {
+        const { error: delErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .delete()
+          .in("id", deletedItemIds);
+        if (delErr) throw delErr;
+      }
+      const toInsert: any[] = [];
+      const toUpdate: any[] = [];
+      for (const it of editedItems) {
+        if (!it.name.trim()) continue;
+        const payload = {
+          name: it.name.trim(),
+          brand: it.brand?.toString().trim() || null,
+          pack_size: it.pack_size?.toString().trim() || null,
+          unit: it.unit?.toString().trim() || null,
+          sale_price: it.sale_price,
+          regular_price: it.regular_price,
+          savings: it.savings,
+        };
+        if (it.id.startsWith("new-")) {
+          toInsert.push({ ...payload, sale_flyer_id: id });
+        } else {
+          toUpdate.push({ id: it.id, ...payload });
+        }
+      }
+      if (toInsert.length > 0) {
+        const { error: insErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .insert(toInsert);
+        if (insErr) throw insErr;
+      }
+      for (const u of toUpdate) {
+        const { id: uid, ...rest } = u;
+        const { error: upErr } = await (supabase as any)
+          .from("sale_flyer_items")
+          .update(rest)
+          .eq("id", uid);
+        if (upErr) throw upErr;
+      }
+      toast.success("Items saved");
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save items");
+    } finally {
+      setSavingItems(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
