@@ -55,6 +55,7 @@ type Item = {
   regular_price: number | null;
   savings: number | null;
   inventory_item_id: string | null;
+  promo_image_url?: string | null;
 };
 
 function SaleFlyerDetailPage() {

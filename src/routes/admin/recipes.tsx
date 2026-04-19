@@ -38,6 +38,10 @@ type Recipe = {
   instructions: string | null;
   active: boolean;
   source_competitor_quote_id?: string | null;
+  image_url?: string | null;
+  coupon_image_url?: string | null;
+  coupon_text?: string | null;
+  coupon_valid_until?: string | null;
 };
 
 type Ingredient = {
