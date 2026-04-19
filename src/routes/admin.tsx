@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingState } from "@/components/LoadingState";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -94,11 +95,7 @@ function AdminLayout() {
 
   // Auth gate
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
+    return <LoadingState fullScreen label="Checking your session…" />;
   }
 
   if (!user) {

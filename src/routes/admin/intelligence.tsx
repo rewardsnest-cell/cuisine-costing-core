@@ -20,6 +20,7 @@ import {
   createDecisionLog,
 } from "@/lib/server-fns/governance.functions";
 import { downloadFile } from "@/lib/admin/project-audit";
+import { LoadingState } from "@/components/LoadingState";
 
 export const Route = createFileRoute("/admin/intelligence")({
   head: () => ({
@@ -59,7 +60,7 @@ function IntelligencePage() {
 function ExportTab() {
   const qc = useQueryClient();
   const generate = useServerFn(generateProjectStateExport);
-  const { data: exports = [], isLoading } = useQuery({
+  const { data: exports = [], isLoading, error } = useQuery({
     queryKey: ["audit-exports"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -99,7 +100,9 @@ function ExportTab() {
         <div>
           <h3 className="text-sm font-semibold mb-2">Recent exports</h3>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <LoadingState label="Loading recent exports…" />
+          ) : error ? (
+            <p className="text-sm text-destructive">Failed to load: {(error as Error).message}</p>
           ) : exports.length === 0 ? (
             <p className="text-sm text-muted-foreground">No exports yet.</p>
           ) : (
@@ -389,7 +392,7 @@ function DecisionsTab() {
 
 // ---------- Prompts Tab ----------
 function PromptsTab() {
-  const { data: prompts = [], isLoading } = useQuery({
+  const { data: prompts = [], isLoading, error } = useQuery({
     queryKey: ["governance-prompts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -412,7 +415,13 @@ function PromptsTab() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <LoadingState label="Loading prompt registry…" />
+        ) : error ? (
+          <p className="text-sm text-destructive">
+            Failed to load prompts: {(error as Error).message}. The Governance tables may not be readable by your account — confirm you have admin role.
+          </p>
+        ) : prompts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No prompts registered.</p>
         ) : (
           <div className="space-y-3">
             {prompts.map((p) => (
