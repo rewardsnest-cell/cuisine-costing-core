@@ -6,9 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { parseYouTubeId, youtubeEmbedUrl } from "@/lib/recipe-video";
+
+function buildAmazonUrl(query: string, tag: string | null) {
+  const base = `https://www.amazon.com/s?k=${encodeURIComponent(query)}`;
+  return tag ? `${base}&tag=${encodeURIComponent(tag)}` : base;
+}
 
 export const Route = createFileRoute("/admin/recipe-hub/$id")({
   head: () => ({ meta: [{ title: "Edit recipe content — Admin" }] }),
@@ -25,6 +30,7 @@ function HubEdit() {
   const [r, setR] = useState<any>(null);
   const [tips, setTips] = useState<string[]>([]);
   const [shop, setShop] = useState<ShopItem[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -180,11 +186,16 @@ function HubEdit() {
 
       {/* Shop items */}
       <Card><CardContent className="p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="font-semibold">Shop this recipe (affiliate module)</h2>
-          <Button size="sm" variant="outline" onClick={() => setShop([...shop, { name: "", benefit: "", url: "", image_url: "", is_affiliate: true, position: shop.length, _new: true }])}>
-            <Plus className="w-3 h-3 mr-1" />Add item
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={generateAmazonItems} disabled={generating}>
+              <Sparkles className="w-3 h-3 mr-1" />{generating ? "Generating…" : "Generate from ingredients (Amazon)"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShop([...shop, { name: "", benefit: "", url: "", image_url: "", is_affiliate: true, position: shop.length, _new: true }])}>
+              <Plus className="w-3 h-3 mr-1" />Add item
+            </Button>
+          </div>
         </div>
         {shop.filter((s) => !s._delete).length === 0 && <p className="text-sm text-muted-foreground">No shop items yet. Add tools, appliances, or specialty ingredients.</p>}
         <div className="space-y-3">
@@ -263,5 +274,65 @@ function HubEdit() {
 
   function updateShop(i: number, patch: Partial<ShopItem>) {
     setShop(shop.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  }
+
+  async function generateAmazonItems() {
+    setGenerating(true);
+    try {
+      const [{ data: prog }, { data: ings }] = await Promise.all([
+        (supabase as any)
+          .from("affiliate_programs")
+          .select("affiliate_id, status, name")
+          .ilike("name", "%amazon%")
+          .eq("status", "active")
+          .maybeSingle(),
+        (supabase as any).from("recipe_ingredients").select("name").eq("recipe_id", id),
+      ]);
+
+      const tag: string | null = prog?.affiliate_id || null;
+      if (!tag) {
+        toast.warning("No active Amazon program with an affiliate tag found. Links will be untagged.");
+      }
+
+      const list: { name: string }[] = ings || [];
+      if (list.length === 0) {
+        toast.error("This recipe has no ingredients yet — add them in the recipe editor first.");
+        return;
+      }
+
+      // Dedupe by lowercase name, skip ones already in shop
+      const existing = new Set(shop.filter((s) => !s._delete).map((s) => s.name.trim().toLowerCase()));
+      const seen = new Set<string>();
+      const additions: ShopItem[] = [];
+      let pos = shop.length;
+
+      for (const ing of list) {
+        const raw = (ing.name || "").trim();
+        if (!raw) continue;
+        const key = raw.toLowerCase();
+        if (seen.has(key) || existing.has(key)) continue;
+        seen.add(key);
+        additions.push({
+          name: raw.replace(/\b\w/g, (c) => c.toUpperCase()),
+          benefit: `Quality ${raw.toLowerCase()} for this recipe`,
+          url: buildAmazonUrl(raw, tag),
+          image_url: "",
+          is_affiliate: true,
+          position: pos++,
+          _new: true,
+        });
+      }
+
+      if (additions.length === 0) {
+        toast.info("All ingredients already have shop items.");
+        return;
+      }
+      setShop([...shop, ...additions]);
+      toast.success(`Added ${additions.length} Amazon item${additions.length === 1 ? "" : "s"}. Review & save.`);
+    } catch (e: any) {
+      toast.error(e.message || "Generate failed");
+    } finally {
+      setGenerating(false);
+    }
   }
 }
