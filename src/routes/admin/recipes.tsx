@@ -13,6 +13,7 @@ import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { toast } from "sonner";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
