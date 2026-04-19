@@ -1,4 +1,5 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { PublicHeader } from "@/components/PublicHeader";
@@ -42,7 +43,11 @@ function NotFoundComponent() {
   );
 }
 
-export const Route = createRootRoute({
+interface RouterContext {
+  queryClient: QueryClient;
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -84,23 +89,26 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const showChrome = shouldShowPublicChrome(pathname);
   return (
-    <AuthProvider>
-      <ConfirmProvider>
-        {showChrome ? (
-          <div className="min-h-screen bg-background flex flex-col">
-            <PublicHeader />
-            <div className="flex-1">
-              <Outlet />
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ConfirmProvider>
+          {showChrome ? (
+            <div className="min-h-screen bg-background flex flex-col">
+              <PublicHeader />
+              <div className="flex-1">
+                <Outlet />
+              </div>
+              <PublicFooter />
             </div>
-            <PublicFooter />
-          </div>
-        ) : (
-          <Outlet />
-        )}
-      </ConfirmProvider>
-    </AuthProvider>
+          ) : (
+            <Outlet />
+          )}
+        </ConfirmProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
