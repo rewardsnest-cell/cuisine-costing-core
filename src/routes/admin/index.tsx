@@ -125,12 +125,24 @@ function AdminDashboard() {
     pendingReceipts: 0,
     suppliers: 0,
     purchaseOrders: 0,
+    openQuotesThisWeek: 0,
+    upcomingEvents: 0,
   });
   const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<RecentQuote[]>([]);
+  const [upcoming, setUpcoming] = useState<RecentQuote[]>([]);
 
   useEffect(() => {
     const load = async () => {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const todayIso = now.toISOString().slice(0, 10);
+      const in30Iso = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
       const [
         recipesRes,
         inventoryRes,
@@ -140,6 +152,9 @@ function AdminDashboard() {
         poRes,
         lowStockRes,
         recentQuotesRes,
+        openQuotesWeekRes,
+        upcomingEventsRes,
+        upcomingListRes,
       ] = await Promise.all([
         supabase.from("recipes").select("*", { count: "exact", head: true }),
         supabase.from("inventory_items").select("*", { count: "exact", head: true }),
@@ -149,6 +164,24 @@ function AdminDashboard() {
         supabase.from("purchase_orders").select("*", { count: "exact", head: true }),
         supabase.from("inventory_items").select("id, name, current_stock, par_level, unit").gt("par_level", 0).order("name"),
         supabase.from("quotes").select("id, reference_number, client_name, event_type, total, created_at, status").order("created_at", { ascending: false }).limit(5),
+        supabase
+          .from("quotes")
+          .select("*", { count: "exact", head: true })
+          .in("status", ["draft", "pending", "sent", "open"])
+          .gte("created_at", weekStart.toISOString())
+          .lt("created_at", weekEnd.toISOString()),
+        supabase
+          .from("quotes")
+          .select("*", { count: "exact", head: true })
+          .gte("event_date", todayIso)
+          .lte("event_date", in30Iso),
+        supabase
+          .from("quotes")
+          .select("id, reference_number, client_name, event_type, total, created_at, status, event_date")
+          .gte("event_date", todayIso)
+          .lte("event_date", in30Iso)
+          .order("event_date", { ascending: true })
+          .limit(5),
       ]);
 
       setCounts({
@@ -158,9 +191,12 @@ function AdminDashboard() {
         pendingReceipts: receiptsRes.count ?? 0,
         suppliers: suppliersRes.count ?? 0,
         purchaseOrders: poRes.count ?? 0,
+        openQuotesThisWeek: openQuotesWeekRes.count ?? 0,
+        upcomingEvents: upcomingEventsRes.count ?? 0,
       });
       setLowStock((lowStockRes.data || []).filter((i) => Number(i.current_stock) < Number(i.par_level)).slice(0, 5));
       setRecentQuotes(recentQuotesRes.data || []);
+      setUpcoming((upcomingListRes.data || []) as RecentQuote[]);
       setLoading(false);
     };
     load();
@@ -168,13 +204,14 @@ function AdminDashboard() {
 
   const stats: Stat[] = [
     { label: "Quick Quote", value: "New", icon: Zap, color: "bg-gradient-warm text-primary-foreground", to: "/admin/quick-quote" },
+    { label: "Open Quotes (this week)", value: loading ? "…" : counts.openQuotesThisWeek, icon: Clock, color: "bg-warning/15 text-warning", to: "/admin/quotes" },
+    { label: "Upcoming Events (30d)", value: loading ? "…" : counts.upcomingEvents, icon: CalendarCheck, color: "bg-success/15 text-success", to: "/admin/events" },
     { label: "Total Recipes", value: loading ? "…" : counts.recipes, icon: ChefHat, color: "bg-primary/10 text-primary", to: "/admin/recipes" },
     { label: "Inventory Items", value: loading ? "…" : counts.inventory, icon: Package, color: "bg-success/10 text-success", to: "/admin/inventory" },
     { label: "Total Quotes", value: loading ? "…" : counts.quotes, icon: FileText, color: "bg-gold/20 text-warm", to: "/admin/quotes" },
     { label: "Pending Receipts", value: loading ? "…" : counts.pendingReceipts, icon: Receipt, color: "bg-warning/20 text-warning", to: "/admin/receipts" },
     { label: "Suppliers", value: loading ? "…" : counts.suppliers, icon: Truck, color: "bg-accent/20 text-accent-foreground", to: "/admin/suppliers" },
     { label: "Purchase Orders", value: loading ? "…" : counts.purchaseOrders, icon: ShoppingCart, color: "bg-primary/10 text-primary", to: "/admin/purchase-orders" },
-    { label: "All Events", value: loading ? "…" : counts.quotes, icon: CalendarDays, color: "bg-primary/10 text-primary", to: "/admin/events" },
   ];
 
   return (
