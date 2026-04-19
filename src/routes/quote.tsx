@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { useAuth } from "@/hooks/use-auth";
-import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn, Sparkles, ArrowLeftRight, Copy } from "lucide-react";
+import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn, Sparkles, ArrowLeftRight, Copy, FileText } from "lucide-react";
 import { PostQuoteUpsells } from "@/components/quote/PostQuoteUpsells";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
