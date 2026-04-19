@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Zap, Plus, X, Loader2 } from "lucide-react";
 import { MENU_STYLES, SERVICE_STYLES, TIERS, ALLERGIES, PROTEINS } from "@/components/quote/types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
+import { roundUpToNext5 } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/quick-quote")({
   component: QuickQuotePage,
@@ -67,13 +68,14 @@ function QuickQuotePage() {
 
   const tier = TIERS.find((t) => t.id === form.tier) ?? TIERS[0];
   const selected = recipes.filter((r) => form.selectedRecipeIds.includes(r.id));
-  const subtotal =
-    selected.reduce(
-      (sum, r) => sum + pricePerGuestForRecipe(r, markup, form.tier) * Math.max(form.guestCount, 1),
-      0,
-    );
+  const guests = Math.max(form.guestCount, 1);
+  const rawPerGuest = selected.reduce(
+    (sum, r) => sum + pricePerGuestForRecipe(r, markup, form.tier),
+    0,
+  );
+  const perGuest = roundUpToNext5(rawPerGuest);
+  const subtotal = perGuest * guests;
   const total = subtotal * 1.08;
-  const perGuest = form.guestCount > 0 ? subtotal / form.guestCount : 0;
 
   const proteinOptions = PROTEINS[form.style] || [];
 

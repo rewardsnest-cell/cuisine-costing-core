@@ -49,20 +49,24 @@ export const recalcQuotePricing = createServerFn({ method: "POST" })
       updated += 1;
     }
 
-    // 3. Recompute subtotal/total on the quote
+    // 3. Recompute subtotal/total on the quote — round per-guest UP to next $5
     const { data: refreshed } = await supabase
       .from("quote_items")
       .select("total_price")
       .eq("quote_id", data.quoteId);
-    const subtotal =
-      Math.round((refreshed ?? []).reduce((s, r) => s + (Number(r.total_price) || 0), 0) * 100) / 100;
+    const rawSubtotal = (refreshed ?? []).reduce((s, r) => s + (Number(r.total_price) || 0), 0);
 
     const { data: quote } = await supabase
       .from("quotes")
-      .select("tax_rate")
+      .select("tax_rate, guest_count")
       .eq("id", data.quoteId)
       .maybeSingle();
     const taxRate = Number(quote?.tax_rate) || 0;
+    const guests = Math.max(Number(quote?.guest_count) || 1, 1);
+
+    const rawPerGuest = rawSubtotal / guests;
+    const roundedPerGuest = rawPerGuest > 0 ? Math.ceil(rawPerGuest / 5) * 5 : 0;
+    const subtotal = Math.round(roundedPerGuest * guests * 100) / 100;
     const total = Math.round(subtotal * (1 + taxRate) * 100) / 100;
 
     const { error: qErr } = await supabase
@@ -71,5 +75,5 @@ export const recalcQuotePricing = createServerFn({ method: "POST" })
       .eq("id", data.quoteId);
     if (qErr) throw qErr;
 
-    return { updatedItems: updated, subtotal, total, markup };
+    return { updatedItems: updated, subtotal, total, markup, perGuest: roundedPerGuest };
   });
