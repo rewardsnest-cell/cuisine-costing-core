@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { listRecipesForPhotoGen, generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
+import { listRecipesForPhotoGen, generateRecipePhoto, generateRecipeSocialPhoto } from "@/lib/server/generate-recipe-photos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, XCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/generate-recipe-photos")({
@@ -13,19 +13,20 @@ export const Route = createFileRoute("/admin/generate-recipe-photos")({
   component: Page,
 });
 
-type Recipe = { id: string; name: string; image_url: string | null };
+type Recipe = { id: string; name: string; image_url: string | null; social_image_url: string | null };
 type Status = "pending" | "running" | "done" | "error";
-type Row = Recipe & { status: Status; newUrl?: string; error?: string };
+type Row = Recipe & { status: Status; socialStatus: Status; newUrl?: string; newSocialUrl?: string; error?: string; socialError?: string };
 
 function Page() {
   const list = useServerFn(listRecipesForPhotoGen);
   const gen = useServerFn(generateRecipePhoto);
+  const genSocial = useServerFn(generateRecipeSocialPhoto);
   const [rows, setRows] = useState<Row[]>([]);
   const [running, setRunning] = useState(false);
   const [stopRequested, setStopRequested] = useState(false);
 
   useEffect(() => {
-    list().then((r) => setRows(r.recipes.map((x) => ({ ...x, status: "pending" as Status }))));
+    list().then((r) => setRows(r.recipes.map((x) => ({ ...x, status: "pending" as Status, socialStatus: "pending" as Status }))));
   }, [list]);
 
   const done = rows.filter((r) => r.status === "done").length;
