@@ -96,6 +96,14 @@ function SupplierDetailPage() {
     if (!supplier) return;
     setSaving(true);
     const payload = {
+      name: (form.name ?? "").trim() || supplier.name,
+      contact_name: form.contact_name || null,
+      email: form.email || null,
+      phone: form.phone || null,
+      office_phone: form.office_phone || null,
+      cellphone: form.cellphone || null,
+      website: form.website || null,
+      address: form.address || null,
       account_number: form.account_number || null,
       api_endpoint: form.api_endpoint || null,
       api_username: form.api_username || null,
