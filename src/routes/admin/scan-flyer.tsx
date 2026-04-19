@@ -62,6 +62,7 @@ function ScanFlyerPage() {
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -317,13 +318,25 @@ function ScanFlyerPage() {
           <input
             ref={galleryRef}
             type="file"
-            accept="image/*,application/pdf"
+            accept="image/*"
             multiple
             className="hidden"
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
               addFiles(files);
               if (galleryRef.current) galleryRef.current.value = "";
+            }}
+          />
+          <input
+            ref={filesRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              addFiles(files);
+              if (filesRef.current) filesRef.current.value = "";
             }}
           />
 
@@ -345,6 +358,15 @@ function ScanFlyerPage() {
               className="gap-2"
             >
               <ImageIcon className="w-4 h-4" /> Choose from gallery
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => filesRef.current?.click()}
+              disabled={busy}
+              className="gap-2"
+            >
+              <Upload className="w-4 h-4" /> Upload from files
             </Button>
           </div>
 
