@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
+import { RecipeScaler } from "@/components/recipes/RecipeScaler";
 
 const SITE = "https://www.vpsfinest.com";
 
@@ -252,26 +253,13 @@ function RecipeDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-12">
           <aside className="lg:col-span-1">
             <h2 className="font-display text-2xl font-semibold text-primary mb-4">Ingredients</h2>
-            {ingredients.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No ingredients listed.</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {ingredients.map((i: any) => (
-                  <li key={i.id} className="flex gap-2 border-b border-border pb-2">
-                    <span className="text-foreground font-medium tabular-nums shrink-0">
-                      {i.quantity ?? ""} {i.unit ?? ""}
-                    </span>
-                    <span className="text-muted-foreground">{i.name}{i.notes ? ` · ${i.notes}` : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {r.allergens && r.allergens.length > 0 && (
-              <div className="mt-6 text-sm">
-                <p className="text-foreground font-medium mb-1">Contains</p>
-                <p className="text-muted-foreground">{r.allergens.join(", ")}</p>
-              </div>
-            )}
+            <RecipeScaler
+              recipeId={r.id}
+              recipeName={r.name}
+              baseServings={r.servings ?? 4}
+              ingredients={ingredients as any}
+              allergens={r.allergens}
+            />
           </aside>
 
           <section className="lg:col-span-2">
