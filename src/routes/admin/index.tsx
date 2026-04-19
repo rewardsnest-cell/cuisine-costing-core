@@ -188,6 +188,8 @@ function AdminDashboard() {
         {stats.map((s) => <StatCard key={s.label} stat={s} />)}
       </div>
 
+      <CoverageBadges />
+
       <CostHealthWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
