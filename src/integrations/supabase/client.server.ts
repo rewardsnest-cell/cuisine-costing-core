@@ -7,15 +7,24 @@ import type { Database } from './types';
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Prefer service role (bypasses RLS); fall back to publishable key in local dev
+  // where the service role secret isn't injected. RLS will apply in that case.
+  const KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !KEY) {
     throw new Error(
       'Missing Supabase server environment variables. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
     );
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('[supabaseAdmin] SUPABASE_SERVICE_ROLE_KEY not set — falling back to anon key (RLS applies). This is expected in local dev.');
+  }
+
+  return createClient<Database>(SUPABASE_URL, KEY, {
     auth: {
       storage: undefined,
       persistSession: false,
