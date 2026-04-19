@@ -87,6 +87,7 @@ import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -495,6 +496,12 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   path: '/pricing/national',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIngredientsReviewUnlinkedRoute =
+  AdminIngredientsReviewUnlinkedRouteImport.update({
+    id: '/ingredients/review-unlinked',
+    path: '/ingredients/review-unlinked',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   id: '/competitor-quotes/$id',
   path: '/competitor-quotes/$id',
@@ -608,6 +615,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -693,6 +701,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -781,6 +790,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -870,6 +880,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -955,6 +966,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/weddings'
     | '/admin/competitor-quotes/$id'
+    | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -1042,6 +1054,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -1645,6 +1658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/ingredients/review-unlinked': {
+      id: '/admin/ingredients/review-unlinked'
+      path: '/ingredients/review-unlinked'
+      fullPath: '/admin/ingredients/review-unlinked'
+      preLoaderRoute: typeof AdminIngredientsReviewUnlinkedRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitor-quotes/$id': {
       id: '/admin/competitor-quotes/$id'
       path: '/competitor-quotes/$id'
@@ -1759,6 +1779,7 @@ interface AdminRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
+  AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
@@ -1800,6 +1821,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
+  AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
