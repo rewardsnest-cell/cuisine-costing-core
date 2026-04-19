@@ -15,6 +15,8 @@ import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredie
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
+import { RecipeBulkActions } from "@/components/admin/RecipeBulkActions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/admin/recipes")({
   component: RecipesPage,
@@ -68,6 +70,8 @@ function RecipesPage() {
   const [recomputing, setRecomputing] = useState(false);
   const [recomputingAll, setRecomputingAll] = useState(false);
   const { byItemId: activeSales } = useActiveSales();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) => setSelectedIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const isNestedRoute = location.pathname !== "/admin/recipes";
 
@@ -537,50 +541,80 @@ function RecipesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((r) => (
-            <Card
-              key={r.id}
-              className="shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer"
-              onClick={() => openDetail(r)}
-            >
-              <CardContent className={`p-5 ${r.active === false ? "opacity-60" : ""}`}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-display text-lg font-semibold">{r.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{r.category} · {r.cuisine}</p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(r.id, r.name); }}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                {r.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>}
-                <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-                  <span>{r.servings} servings</span>
-                  <span>${Number(r.cost_per_serving).toFixed(2)}/serving</span>
-                </div>
-                <div className="flex gap-1.5 mt-2">
-                  {r.is_vegetarian && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegetarian</span>}
-                  {r.is_vegan && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegan</span>}
-                  {r.is_gluten_free && <span className="px-2 py-0.5 bg-gold/20 text-warm text-xs rounded-full">GF</span>}
-                </div>
-              </CardContent>
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center justify-between px-5 py-3 border-t border-border/40"
+        <>
+          {filtered.length > 0 && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Checkbox
+                checked={filtered.every((r) => selectedIds.has(r.id))}
+                onCheckedChange={(c) => {
+                  setSelectedIds((s) => {
+                    const n = new Set(s);
+                    if (c) filtered.forEach((r) => n.add(r.id));
+                    else filtered.forEach((r) => n.delete(r.id));
+                    return n;
+                  });
+                }}
+              />
+              <span>Select all visible ({filtered.length})</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((r) => (
+              <Card
+                key={r.id}
+                className={`shadow-warm border-border/50 hover:shadow-gold transition-shadow cursor-pointer ${selectedIds.has(r.id) ? "border-primary/60 ring-1 ring-primary/40" : ""}`}
+                onClick={() => openDetail(r)}
               >
-                <span className="text-xs font-medium text-muted-foreground">
-                  {r.active === false ? "Off menu" : "On menu"}
-                </span>
-                <Switch checked={r.active !== false} onCheckedChange={() => toggleActive(r)} />
-              </div>
-            </Card>
-          ))}
-        </div>
+                <CardContent className={`p-5 ${r.active === false ? "opacity-60" : ""}`}>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <span onClick={(e) => { e.stopPropagation(); toggleSelect(r.id); }}>
+                        <Checkbox checked={selectedIds.has(r.id)} className="mt-1" />
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="font-display text-lg font-semibold truncate">{r.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{r.category} · {r.cuisine}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(r.id, r.name); }}
+                      className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {r.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>}
+                  <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
+                    <span>{r.servings} servings</span>
+                    <span>${Number(r.cost_per_serving).toFixed(2)}/serving</span>
+                    {!r.image_url && <span className="text-warning">No photo</span>}
+                  </div>
+                  <div className="flex gap-1.5 mt-2">
+                    {r.is_vegetarian && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegetarian</span>}
+                    {r.is_vegan && <span className="px-2 py-0.5 bg-success/10 text-success text-xs rounded-full">Vegan</span>}
+                    {r.is_gluten_free && <span className="px-2 py-0.5 bg-gold/20 text-warm text-xs rounded-full">GF</span>}
+                  </div>
+                </CardContent>
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-between px-5 py-3 border-t border-border/40"
+                >
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {r.active === false ? "Off menu" : "On menu"}
+                  </span>
+                  <Switch checked={r.active !== false} onCheckedChange={() => toggleActive(r)} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
+      <RecipeBulkActions
+        recipes={filtered.map((r) => ({ id: r.id, name: r.name, image_url: r.image_url }))}
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onPhotoUpdated={(id, url) => setRecipes((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: url } : x)))}
+      />
     </div>
   );
 }
