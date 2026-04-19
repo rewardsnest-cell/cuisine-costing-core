@@ -288,7 +288,22 @@ function SaleFlyerDetailPage() {
     );
   }
 
-  const matched = items.filter((i) => i.inventory_item_id).length;
+  const matched = editedItems.filter((i) => i.inventory_item_id).length;
+  const itemsDirty =
+    deletedItemIds.length > 0 ||
+    editedItems.length !== items.length ||
+    editedItems.some((e, i) => {
+      const o = items[i];
+      if (!o || o.id !== e.id) return true;
+      return (
+        o.name !== e.name ||
+        (o.brand ?? "") !== (e.brand ?? "") ||
+        (o.pack_size ?? "") !== (e.pack_size ?? "") ||
+        (o.unit ?? "") !== (e.unit ?? "") ||
+        (o.sale_price ?? null) !== (e.sale_price ?? null) ||
+        (o.regular_price ?? null) !== (e.regular_price ?? null)
+      );
+    });
 
   return (
     <div className="space-y-6">
