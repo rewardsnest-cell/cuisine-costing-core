@@ -197,7 +197,20 @@ export const activateNationalPrices = createServerFn({ method: "POST" })
     const sb = context.supabase;
     await assertAdmin(sb);
 
-    // Coverage gate
+    // Feature gate
+    const { data: flagRow } = await sb
+      .from("app_kv")
+      .select("value")
+      .eq("key", "national_pricing_enabled")
+      .maybeSingle();
+    const flagEnabled = String(flagRow?.value ?? "").toLowerCase() === "true";
+    if (!flagEnabled) {
+      throw new Error(
+        "National pricing is disabled. Enable the 'national_pricing_enabled' feature flag before activating a month.",
+      );
+    }
+
+
     const { count: totalIngredients } = await sb
       .from("ingredient_reference")
       .select("id", { count: "exact", head: true });
