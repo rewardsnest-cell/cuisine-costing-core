@@ -4,7 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
+import { CalendarDays, MapPin, Users, ClipboardList, CheckCircle2, Circle, Clock } from "lucide-react";
+
+type Stage = { key: string; label: string; hint: string };
+const STAGES: Stage[] = [
+  { key: "confirmed", label: "Booked", hint: "Quote accepted" },
+  { key: "prep", label: "Prep week", hint: "Menu locked, shopping" },
+  { key: "event", label: "Event day", hint: "We're on site" },
+  { key: "wrap", label: "Wrap-up", hint: "Cleanup & follow-up" },
+];
+
+function getStageIndex(status: string | undefined, eventDate: string | null | undefined): number {
+  const today = startOfToday();
+  const ev = eventDate ? new Date(eventDate) : null;
+  if (!ev) return status === "completed" ? 3 : 0;
+  const daysUntil = Math.floor((ev.getTime() - today.getTime()) / 86400000);
+  if (status === "completed" || daysUntil < 0) return 3;
+  if (daysUntil === 0) return 2;
+  if (daysUntil <= 7) return 1;
+  return 0;
+}
 
 type Filter = "upcoming" | "past" | "all";
 
