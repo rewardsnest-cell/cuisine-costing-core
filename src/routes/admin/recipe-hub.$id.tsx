@@ -275,4 +275,64 @@ function HubEdit() {
   function updateShop(i: number, patch: Partial<ShopItem>) {
     setShop(shop.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   }
+
+  async function generateAmazonItems() {
+    setGenerating(true);
+    try {
+      const [{ data: prog }, { data: ings }] = await Promise.all([
+        (supabase as any)
+          .from("affiliate_programs")
+          .select("affiliate_id, status, name")
+          .ilike("name", "%amazon%")
+          .eq("status", "active")
+          .maybeSingle(),
+        (supabase as any).from("recipe_ingredients").select("name").eq("recipe_id", id),
+      ]);
+
+      const tag: string | null = prog?.affiliate_id || null;
+      if (!tag) {
+        toast.warning("No active Amazon program with an affiliate tag found. Links will be untagged.");
+      }
+
+      const list: { name: string }[] = ings || [];
+      if (list.length === 0) {
+        toast.error("This recipe has no ingredients yet — add them in the recipe editor first.");
+        return;
+      }
+
+      // Dedupe by lowercase name, skip ones already in shop
+      const existing = new Set(shop.filter((s) => !s._delete).map((s) => s.name.trim().toLowerCase()));
+      const seen = new Set<string>();
+      const additions: ShopItem[] = [];
+      let pos = shop.length;
+
+      for (const ing of list) {
+        const raw = (ing.name || "").trim();
+        if (!raw) continue;
+        const key = raw.toLowerCase();
+        if (seen.has(key) || existing.has(key)) continue;
+        seen.add(key);
+        additions.push({
+          name: raw.replace(/\b\w/g, (c) => c.toUpperCase()),
+          benefit: `Quality ${raw.toLowerCase()} for this recipe`,
+          url: buildAmazonUrl(raw, tag),
+          image_url: "",
+          is_affiliate: true,
+          position: pos++,
+          _new: true,
+        });
+      }
+
+      if (additions.length === 0) {
+        toast.info("All ingredients already have shop items.");
+        return;
+      }
+      setShop([...shop, ...additions]);
+      toast.success(`Added ${additions.length} Amazon item${additions.length === 1 ? "" : "s"}. Review & save.`);
+    } catch (e: any) {
+      toast.error(e.message || "Generate failed");
+    } finally {
+      setGenerating(false);
+    }
+  }
 }
