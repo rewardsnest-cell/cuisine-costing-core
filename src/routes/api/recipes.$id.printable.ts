@@ -31,44 +31,42 @@ export const Route = createFileRoute('/api/recipes/$id/printable')({
         const W = doc.internal.pageSize.getWidth()
         const H = doc.internal.pageSize.getHeight()
         const M = 54
-        let y = M
+        let y = drawBrandedHeader(doc, { rightText: 'Recipe' })
 
         const ensure = (need: number) => {
-          if (y + need > H - M) { doc.addPage(); y = M }
+          if (y + need > H - 48) {
+            doc.addPage()
+            y = drawBrandedHeader(doc, { rightText: 'Recipe (cont.)' })
+          }
         }
 
-        // Header
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.setTextColor(120)
-        doc.text('VPS FINEST · AURORA, OHIO', M, y)
-        y += 24
-        doc.setTextColor(20)
-        doc.setFontSize(22)
-        doc.setFont('helvetica', 'bold')
+        // Title
+        doc.setFont('times', 'bold')
+        doc.setFontSize(24)
+        doc.setTextColor(...BRAND.ink)
         const titleLines = doc.splitTextToSize(r.name, W - M * 2)
-        doc.text(titleLines, M, y)
+        doc.text(titleLines, M, (y += 8))
         y += titleLines.length * 24 + 4
 
         if (r.hook) {
-          doc.setFont('helvetica', 'italic')
+          doc.setFont('times', 'italic')
           doc.setFontSize(11)
-          doc.setTextColor(80)
+          doc.setTextColor(...BRAND.body)
           const hl = doc.splitTextToSize(r.hook, W - M * 2)
           doc.text(hl, M, y)
           y += hl.length * 14 + 8
         }
 
         // Quick facts
-        doc.setDrawColor(220); doc.line(M, y, W - M, y); y += 16
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(60)
+        doc.setDrawColor(...BRAND.rule); doc.line(M, y, W - M, y); y += 16
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...BRAND.muted)
         const facts = [
           r.prep_time != null ? `Prep ${r.prep_time}m` : null,
           r.cook_time != null ? `Cook ${r.cook_time}m` : null,
           r.servings != null ? `Serves ${r.servings}` : null,
         ].filter(Boolean).join('   ·   ')
         if (facts) { doc.text(facts, M, y); y += 18 }
-        doc.line(M, y, W - M, y); y += 22
+        doc.setDrawColor(...BRAND.rule); doc.line(M, y, W - M, y); y += 22
 
         // Ingredients
         doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(20)
@@ -128,13 +126,8 @@ export const Route = createFileRoute('/api/recipes/$id/printable')({
           doc.text(wrapped, M, y); y += wrapped.length * 13
         }
 
-        // Footer on every page
-        const total = doc.getNumberOfPages()
-        for (let p = 1; p <= total; p++) {
-          doc.setPage(p)
-          doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(140)
-          doc.text(`vpsfinest.com/recipes/${r.id}    ·    Page ${p} of ${total}`, M, H - 28)
-        }
+        // Footer (branded)
+        drawBrandedFooter(doc, { extra: `vpsfinest.com/recipes/${r.id}` })
 
         const buf = doc.output('arraybuffer')
         return new Response(buf, {
