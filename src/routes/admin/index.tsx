@@ -4,11 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap } from "lucide-react";
+import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap, Clock, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
 import { CoverageBadges } from "@/components/admin/CoverageBadges";
+import { PriceAlertsBanner } from "@/components/admin/PriceAlertsBanner";
+import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
