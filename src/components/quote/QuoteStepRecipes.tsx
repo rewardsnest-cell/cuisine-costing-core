@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { QuoteSelections, Step, SelectedRecipe } from "./types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
+import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 
 interface Props {
   selections: QuoteSelections;
