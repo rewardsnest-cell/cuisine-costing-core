@@ -212,6 +212,14 @@ function AdminMenuPage() {
               ? "All photos generated"
               : `Generate ${missingCount} missing photo${missingCount === 1 ? "" : "s"}`}
         </Button>
+        <Button
+          onClick={turnAllOff}
+          disabled={loading || filtered.every((r) => !r.active)}
+          variant="outline"
+          className="gap-2"
+        >
+          Turn all off{search.trim() ? " (filtered)" : ""}
+        </Button>
       </div>
       {bulkRunning && bulkProgress.current && (
         <p className="text-xs text-muted-foreground -mt-3">Current: {bulkProgress.current}</p>
