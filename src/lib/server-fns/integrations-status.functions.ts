@@ -77,15 +77,19 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
         label: "Flipp Image Generation",
         configured: flippConfigured,
         details: {
-          recipe_template_id: process.env.FLIPP_RECIPE_TEMPLATE_ID || null,
-          flyer_template_id: process.env.FLIPP_FLYER_TEMPLATE_ID || null,
+          recipe_template_id: cfg("integration.flipp.recipe_template_id", process.env.FLIPP_RECIPE_TEMPLATE_ID),
+          flyer_template_id: cfg("integration.flipp.flyer_template_id", process.env.FLIPP_FLYER_TEMPLATE_ID),
+          token_secret_name: "FLIPP_BEARER_TOKEN",
         },
       },
       {
         key: "lovable_ai",
         label: "Lovable AI Gateway",
         configured: lovableConfigured,
-        details: { models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5-mini"] },
+        details: {
+          models: ["google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-5-mini"],
+          token_secret_name: "LOVABLE_API_KEY",
+        },
       },
       {
         key: "firecrawl",
