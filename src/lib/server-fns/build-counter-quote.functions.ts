@@ -115,12 +115,13 @@ async function aiGenerateRecipe(
 type LineItem = { name?: string; qty?: number; unitPrice?: number; category?: string };
 
 export const buildCounterQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { competitorQuoteId: string; force?: boolean }) => {
     if (!input?.competitorQuoteId) throw new Error("competitorQuoteId is required");
     return input;
   })
-  .handler(async ({ data }) => {
-    const sb = supabaseAdmin;
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
     const competitorQuoteId = data.competitorQuoteId;
     const force = data.force;
 
