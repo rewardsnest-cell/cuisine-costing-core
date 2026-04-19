@@ -87,6 +87,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
+import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
@@ -497,6 +498,11 @@ const AdminRecipesNewRoute = AdminRecipesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminRecipesRoute,
 } as any)
+const AdminQuotesIdRoute = AdminQuotesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminQuotesRoute,
+} as any)
 const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   id: '/pricing/national',
   path: '/pricing/national',
@@ -587,7 +593,7 @@ export interface FileRoutesByFullPath {
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
-  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/quotes': typeof AdminQuotesRouteWithChildren
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -624,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
+  '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -674,7 +681,7 @@ export interface FileRoutesByTo {
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
-  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/quotes': typeof AdminQuotesRouteWithChildren
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -711,6 +718,7 @@ export interface FileRoutesByTo {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
+  '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -764,7 +772,7 @@ export interface FileRoutesById {
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
-  '/admin/quotes': typeof AdminQuotesRoute
+  '/admin/quotes': typeof AdminQuotesRouteWithChildren
   '/admin/receipts': typeof AdminReceiptsRoute
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -801,6 +809,7 @@ export interface FileRoutesById {
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
+  '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
@@ -892,6 +901,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
+    | '/admin/quotes/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -979,6 +989,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
+    | '/admin/quotes/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -1068,6 +1079,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/$id'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
+    | '/admin/quotes/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
@@ -1670,6 +1682,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecipesNewRouteImport
       parentRoute: typeof AdminRecipesRoute
     }
+    '/admin/quotes/$id': {
+      id: '/admin/quotes/$id'
+      path: '/$id'
+      fullPath: '/admin/quotes/$id'
+      preLoaderRoute: typeof AdminQuotesIdRouteImport
+      parentRoute: typeof AdminQuotesRoute
+    }
     '/admin/pricing/national': {
       id: '/admin/pricing/national'
       path: '/pricing/national'
@@ -1736,6 +1755,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminQuotesRouteChildren {
+  AdminQuotesIdRoute: typeof AdminQuotesIdRoute
+}
+
+const AdminQuotesRouteChildren: AdminQuotesRouteChildren = {
+  AdminQuotesIdRoute: AdminQuotesIdRoute,
+}
+
+const AdminQuotesRouteWithChildren = AdminQuotesRoute._addFileChildren(
+  AdminQuotesRouteChildren,
+)
+
 interface AdminRecipesRouteChildren {
   AdminRecipesNewRoute: typeof AdminRecipesNewRoute
   AdminRecipesIdEditRoute: typeof AdminRecipesIdEditRoute
@@ -1781,7 +1812,7 @@ interface AdminRouteChildren {
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
-  AdminQuotesRoute: typeof AdminQuotesRoute
+  AdminQuotesRoute: typeof AdminQuotesRouteWithChildren
   AdminReceiptsRoute: typeof AdminReceiptsRoute
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
   AdminRegisterRoute: typeof AdminRegisterRoute
@@ -1824,7 +1855,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
-  AdminQuotesRoute: AdminQuotesRoute,
+  AdminQuotesRoute: AdminQuotesRouteWithChildren,
   AdminReceiptsRoute: AdminReceiptsRoute,
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
   AdminRegisterRoute: AdminRegisterRoute,
