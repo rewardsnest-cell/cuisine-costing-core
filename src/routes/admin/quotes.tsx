@@ -550,6 +550,11 @@ function QuotesPage() {
                 <Button variant="outline" size="sm" className="gap-2" onClick={() => { setDetailsQuote(q); setDetailsOpen(true); }}>
                   <Eye className="w-3.5 h-3.5" /> Details
                 </Button>
+                <Button asChild variant="outline" size="sm" className="gap-2">
+                  <Link to="/admin/quotes/$id" params={{ id: q.id }}>
+                    <TrendingUp className="w-3.5 h-3.5" /> Margin
+                  </Link>
+                </Button>
                 {q.conversation?.messages?.length ? (
                   <Button variant="outline" size="sm" className="gap-2" onClick={() => { setTranscriptQuote(q); setTranscriptOpen(true); }}>
                     <MessageSquare className="w-3.5 h-3.5" /> Transcript
