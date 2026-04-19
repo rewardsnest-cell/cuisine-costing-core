@@ -4,7 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, MapPin, Users, ClipboardList } from "lucide-react";
+import { CalendarDays, MapPin, Users, ClipboardList, CheckCircle2, Circle, Clock } from "lucide-react";
+
+type Stage = { key: string; label: string; hint: string };
+const STAGES: Stage[] = [
+  { key: "confirmed", label: "Booked", hint: "Quote accepted" },
+  { key: "prep", label: "Prep week", hint: "Menu locked, shopping" },
+  { key: "event", label: "Event day", hint: "We're on site" },
+  { key: "wrap", label: "Wrap-up", hint: "Cleanup & follow-up" },
+];
+
+function getStageIndex(status: string | undefined, eventDate: string | null | undefined): number {
+  const today = startOfToday();
+  const ev = eventDate ? new Date(eventDate) : null;
+  if (!ev) return status === "completed" ? 3 : 0;
+  const daysUntil = Math.floor((ev.getTime() - today.getTime()) / 86400000);
+  if (status === "completed" || daysUntil < 0) return 3;
+  if (daysUntil === 0) return 2;
+  if (daysUntil <= 7) return 1;
+  return 0;
+}
 
 type Filter = "upcoming" | "past" | "all";
 
@@ -103,7 +122,7 @@ function MyEventsPage() {
                   <div className="space-y-3">
                     {filtered.map((a) => (
                 <Card key={a.id}>
-                  <CardContent className="p-4 space-y-2">
+                  <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold">{a.quote?.client_name || "Event"} · {a.quote?.event_type || ""}</p>
@@ -116,6 +135,39 @@ function MyEventsPage() {
                       <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{a.quote?.guest_count} guests</span>
                       <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />Status: {a.quote?.status}</span>
                     </div>
+                    {(() => {
+                      const activeIdx = getStageIndex(a.quote?.status, a.quote?.event_date);
+                      return (
+                        <div className="pt-2">
+                          <div className="flex items-center gap-1">
+                            {STAGES.map((s, i) => {
+                              const done = i < activeIdx;
+                              const active = i === activeIdx;
+                              return (
+                                <div key={s.key} className="flex-1 flex items-center gap-1">
+                                  <div className={`shrink-0 ${done ? "text-success" : active ? "text-primary" : "text-muted-foreground/40"}`}>
+                                    {done ? <CheckCircle2 className="w-4 h-4" /> : active ? <Clock className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                                  </div>
+                                  {i < STAGES.length - 1 && (
+                                    <div className={`flex-1 h-0.5 rounded ${done ? "bg-success" : "bg-muted"}`} />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="grid grid-cols-4 gap-1 mt-1.5 text-[10px] text-center">
+                            {STAGES.map((s, i) => (
+                              <div key={s.key} className={i === activeIdx ? "text-primary font-semibold" : "text-muted-foreground"}>
+                                {s.label}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 text-center italic">
+                            Next: {STAGES[Math.min(activeIdx, STAGES.length - 1)].hint}
+                          </p>
+                        </div>
+                      );
+                    })()}
                     {a.notes && <p className="text-sm bg-muted/50 rounded-md p-2">{a.notes}</p>}
                   </CardContent>
                 </Card>
