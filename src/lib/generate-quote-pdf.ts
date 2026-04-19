@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { QuotePreferences } from "@/components/quote/types";
+import { BRAND, drawBrandedHeader, drawBrandedFooter } from "@/lib/pdf-brand";
 
 type QuoteData = {
   clientName: string;
@@ -13,44 +14,45 @@ type QuoteData = {
   allergies: string[];
   pricePerDish: number;
   preferences?: QuotePreferences;
+  /** Optional reference number to print on the cover ("TQ-XXXXXX"). */
+  referenceNumber?: string | null;
 };
 
+/**
+ * Branded customer-facing catering proposal.
+ * Header/footer match the recipe printable + newsletter guide.
+ */
 export function generateQuotePDF(data: QuoteData): jsPDF {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  let y = 20;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const W = doc.internal.pageSize.getWidth();
+  const M = 36;
 
-  // Header bar
-  doc.setFillColor(45, 27, 10);
-  doc.rect(0, 0, pageWidth, 45, "F");
-  doc.setFillColor(196, 155, 70);
-  doc.rect(0, 45, pageWidth, 3, "F");
+  let y = drawBrandedHeader(doc, {
+    rightText: "Catering Proposal",
+    subTitle: `Prepared ${new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })}`,
+  });
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(28);
-  doc.setTextColor(196, 155, 70);
-  doc.text("VPS Finest", margin, 30);
+  // Title
+  doc.setFont("times", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(...BRAND.ink);
+  doc.text("Your event, thoughtfully planned.", M, (y += 8));
+  y += 10;
 
-  doc.setFontSize(10);
-  doc.setTextColor(200, 200, 200);
-  doc.text("Premium Catering Proposal", pageWidth - margin, 25, { align: "right" });
-  doc.text(`Prepared ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, pageWidth - margin, 33, { align: "right" });
+  if (data.referenceNumber) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND.muted);
+    doc.text(`Reference: ${data.referenceNumber}`, M, (y += 14));
+  }
 
-  y = 60;
-
-  // Client & Event info
-  doc.setFontSize(18);
-  doc.setTextColor(45, 27, 10);
-  doc.setFont("helvetica", "bold");
-  doc.text("Catering Proposal", margin, y);
-  y += 12;
-
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.setFont("helvetica", "normal");
-
-  const details = [
+  // Client / Event grid
+  y += 18;
+  const details: [string, string][] = [
     ["Client", data.clientName || "—"],
     ["Email", data.clientEmail || "—"],
     ["Event", data.eventType || "—"],
@@ -58,30 +60,29 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
     ["Guests", String(data.guestCount)],
     ["Menu Style", data.menuStyle.charAt(0).toUpperCase() + data.menuStyle.slice(1)],
   ];
-
+  doc.setFontSize(10);
   details.forEach(([label, value]) => {
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 100, 100);
-    doc.text(`${label}:`, margin, y);
+    doc.setTextColor(...BRAND.muted);
+    doc.text(`${label}:`, M, y);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(45, 27, 10);
-    doc.text(value, margin + 35, y);
-    y += 7;
+    doc.setTextColor(...BRAND.ink);
+    doc.text(value, M + 70, y);
+    y += 14;
   });
 
-  y += 8;
+  // Divider
+  y += 6;
+  doc.setDrawColor(...BRAND.gold);
+  doc.setLineWidth(0.6);
+  doc.line(M, y, W - M, y);
+  y += 16;
 
-  // Separator
-  doc.setDrawColor(196, 155, 70);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 12;
-
-  // Menu selections table
+  // Menu selections
+  doc.setFont("times", "bold");
   doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(45, 27, 10);
-  doc.text("Menu Selections", margin, y);
+  doc.setTextColor(...BRAND.ink);
+  doc.text("Menu Selections", M, y);
   y += 8;
 
   const tableBody = data.proteins.map((protein) => [
@@ -97,70 +98,70 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
     body: tableBody,
     theme: "striped",
     headStyles: {
-      fillColor: [45, 27, 10],
-      textColor: [196, 155, 70],
+      fillColor: [...BRAND.cocoa] as [number, number, number],
+      textColor: [...BRAND.gold] as [number, number, number],
       fontStyle: "bold",
       fontSize: 10,
     },
-    bodyStyles: { fontSize: 10, textColor: [50, 50, 50] },
-    alternateRowStyles: { fillColor: [250, 247, 240] },
-    margin: { left: margin, right: margin },
+    bodyStyles: { fontSize: 10, textColor: [...BRAND.body] as [number, number, number] },
+    alternateRowStyles: { fillColor: [...BRAND.cream] as [number, number, number] },
+    margin: { left: M, right: M },
     columnStyles: {
       2: { halign: "right" },
       3: { halign: "right" },
     },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 12;
+  y = (doc as any).lastAutoTable.finalY + 16;
 
   // Totals
-  const totalAmount = data.guestCount * data.proteins.length * data.pricePerDish;
+  const subtotal = data.guestCount * data.proteins.length * data.pricePerDish;
   const taxRate = 0.08;
-  const taxAmount = totalAmount * taxRate;
-  const grandTotal = totalAmount + taxAmount;
+  const tax = subtotal * taxRate;
+  const grand = subtotal + tax;
+  const totalsX = W - M - 80;
 
-  const totalsX = pageWidth - margin - 70;
-
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setFontSize(10);
+  doc.setTextColor(...BRAND.muted);
   doc.text("Subtotal:", totalsX, y);
-  doc.setTextColor(45, 27, 10);
-  doc.text(`$${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, pageWidth - margin, y, { align: "right" });
-  y += 7;
+  doc.setTextColor(...BRAND.ink);
+  doc.text(`$${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, W - M, y, { align: "right" });
+  y += 14;
 
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(...BRAND.muted);
   doc.text("Tax (8%):", totalsX, y);
-  doc.setTextColor(45, 27, 10);
-  doc.text(`$${taxAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, pageWidth - margin, y, { align: "right" });
-  y += 9;
+  doc.setTextColor(...BRAND.ink);
+  doc.text(`$${tax.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, W - M, y, { align: "right" });
+  y += 10;
 
-  doc.setDrawColor(196, 155, 70);
-  doc.line(totalsX - 5, y - 3, pageWidth - margin, y - 3);
+  doc.setDrawColor(...BRAND.gold);
+  doc.line(totalsX - 6, y, W - M, y);
+  y += 14;
 
+  doc.setFont("times", "bold");
   doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(45, 27, 10);
-  doc.text("Total:", totalsX, y + 4);
-  doc.setTextColor(196, 155, 70);
-  doc.text(`$${grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, pageWidth - margin, y + 4, { align: "right" });
-  y += 18;
+  doc.setTextColor(...BRAND.ink);
+  doc.text("Total", totalsX, y);
+  doc.setTextColor(...BRAND.gold);
+  doc.text(`$${grand.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, W - M, y, { align: "right" });
+  y += 22;
 
-  // Allergen accommodations
+  // Allergens
   if (data.allergies.length > 0) {
+    doc.setFont("times", "bold");
     doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(45, 27, 10);
-    doc.text("Allergen Accommodations", margin, y);
-    y += 7;
-    doc.setFontSize(10);
+    doc.setTextColor(...BRAND.ink);
+    doc.text("Allergen Accommodations", M, y);
+    y += 8;
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
     doc.setTextColor(180, 50, 50);
-    doc.text(data.allergies.join("  •  "), margin, y);
-    y += 12;
+    doc.text(data.allergies.join("  •  "), M, (y += 8));
+    y += 14;
   }
 
-  // Chef Preferences (from AI builder)
+  // Chef Preferences
   const p = data.preferences || {};
   const prefRows: [string, string][] = [];
   if (p.proteinDetails) prefRows.push(["Protein notes", p.proteinDetails]);
@@ -175,47 +176,53 @@ export function generateQuotePDF(data: QuoteData): jsPDF {
   if (p.notes) prefRows.push(["Additional notes", p.notes]);
 
   if (prefRows.length > 0) {
-    // New page if low on room
-    const pageHeight = doc.internal.pageSize.getHeight();
-    if (y > pageHeight - 80) {
+    const H = doc.internal.pageSize.getHeight();
+    if (y > H - 110) {
       doc.addPage();
-      y = 25;
+      y = drawBrandedHeader(doc, { rightText: "Catering Proposal" });
     }
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(45, 27, 10);
-    doc.text("Chef Preferences", margin, y);
-    y += 4;
+    doc.setFont("times", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(...BRAND.ink);
+    doc.text("Chef Preferences", M, y);
 
     autoTable(doc, {
-      startY: y + 2,
+      startY: y + 6,
       head: [["Detail", "Value"]],
       body: prefRows,
       theme: "grid",
       headStyles: {
-        fillColor: [45, 27, 10],
-        textColor: [196, 155, 70],
+        fillColor: [...BRAND.cocoa] as [number, number, number],
+        textColor: [...BRAND.gold] as [number, number, number],
         fontStyle: "bold",
         fontSize: 10,
       },
-      bodyStyles: { fontSize: 10, textColor: [50, 50, 50], cellPadding: 3 },
+      bodyStyles: { fontSize: 10, textColor: [...BRAND.body] as [number, number, number], cellPadding: 3 },
       columnStyles: {
-        0: { cellWidth: 45, fontStyle: "bold", textColor: [100, 100, 100] },
+        0: { cellWidth: 120, fontStyle: "bold", textColor: [...BRAND.muted] as [number, number, number] },
         1: { cellWidth: "auto" },
       },
-      margin: { left: margin, right: margin },
+      margin: { left: M, right: M },
     });
-    y = (doc as any).lastAutoTable.finalY + 12;
+    y = (doc as any).lastAutoTable.finalY + 14;
   }
 
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 20;
-  doc.setFillColor(250, 247, 240);
-  doc.rect(0, footerY - 10, pageWidth, 30, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.text("VPS Finest — Premium Catering Solutions", pageWidth / 2, footerY, { align: "center" });
-  doc.text("This proposal is valid for 30 days from the date of issue.", pageWidth / 2, footerY + 5, { align: "center" });
+  // Closing note
+  const H = doc.internal.pageSize.getHeight();
+  if (y > H - 80) {
+    doc.addPage();
+    y = drawBrandedHeader(doc, { rightText: "Catering Proposal" });
+  }
+  doc.setFont("times", "italic");
+  doc.setFontSize(10);
+  doc.setTextColor(...BRAND.muted);
+  doc.text(
+    "This proposal is valid for 30 days. Reply to lock your date or ask any question — we'll come back quickly.",
+    M,
+    y + 6,
+    { maxWidth: W - M * 2 },
+  );
 
+  drawBrandedFooter(doc, { extra: "Catering proposal" });
   return doc;
 }
