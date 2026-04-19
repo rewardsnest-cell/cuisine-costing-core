@@ -138,7 +138,7 @@ export const buildCounterQuote = createServerFn({ method: "POST" })
         .from("competitor_quotes")
         .select("*")
         .eq("id", competitorQuoteId)
-        .single();
+        .maybeSingle();
       if (cqErr || !cq) throw new Error(cqErr?.message || "Competitor quote not found");
       const previousCounterId: string | null = cq.counter_quote_id ?? null;
 
