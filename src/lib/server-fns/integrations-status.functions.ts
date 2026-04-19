@@ -27,6 +27,14 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
     const firecrawlConfigured = !!process.env.FIRECRAWL_API_KEY;
     const supabaseConfigured = !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    // Load editable config overrides from app_kv
+    const { data: kvRows } = await supabaseAdmin
+      .from("app_kv")
+      .select("key,value")
+      .like("key", "integration.%");
+    const kv = new Map<string, string | null>((kvRows ?? []).map((r: any) => [r.key, r.value]));
+    const cfg = (k: string, envVal?: string | null) => kv.get(k) ?? envVal ?? null;
+
     // Email log stats (last 7 days, dedup by message_id)
     let emailStats = { sent: 0, failed: 0, suppressed: 0, total: 0 };
     try {
