@@ -108,11 +108,14 @@ function AffiliatesPage() {
                     <TableCell><Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
                     <TableCell>{p.referral_link ? <a href={p.referral_link} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-sm"><ExternalLink className="w-3 h-3" />open</a> : "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" onClick={async () => {
-                        if (!confirm(`Delete ${p.name}?`)) return;
-                        await supabase.from("affiliate_programs").delete().eq("id", p.id);
-                        toast.success("Deleted"); load();
-                      }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      <div className="flex justify-end gap-1">
+                        <ProgramDialog program={p} onSaved={load} />
+                        <Button size="sm" variant="ghost" onClick={async () => {
+                          if (!confirm(`Delete ${p.name}?`)) return;
+                          await supabase.from("affiliate_programs").delete().eq("id", p.id);
+                          toast.success("Deleted"); load();
+                        }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
