@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, X, Loader2 } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/receipts")({
@@ -134,9 +134,25 @@ function ReceiptsPage() {
     );
   };
 
+  const addLineItem = () => {
+    setEditedLineItems((prev) => [
+      ...prev,
+      { item_name: "", quantity: 1, unit: "each", unit_price: 0, total_price: 0, matched_inventory_id: null, matched_inventory_name: null },
+    ]);
+  };
+
+  const removeLineItem = (idx: number) => {
+    setEditedLineItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
-    await supabase.from("receipts").update({ extracted_line_items: editedLineItems as any }).eq("id", reviewReceipt.id);
+    const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+    const { error } = await supabase
+      .from("receipts")
+      .update({ extracted_line_items: editedLineItems as any, total_amount: Math.round(newTotal * 100) / 100 })
+      .eq("id", reviewReceipt.id);
+    if (error) { toast.error(error.message); return; }
     toast.success("Line items saved");
     load();
     setReviewReceipt(null);
@@ -199,7 +215,20 @@ function ReceiptsPage() {
             {receipts.map((r) => (
               <Card key={r.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
                 <CardContent className="p-4 flex items-center gap-4">
-                  {r.image_url && <img src={r.image_url} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-border" />}
+                  {r.image_url ? (
+                    <button
+                      type="button"
+                      onClick={() => openReview(r)}
+                      className="shrink-0 rounded-lg border border-border overflow-hidden hover:ring-2 hover:ring-primary transition-all"
+                      aria-label="View receipt photo"
+                    >
+                      <img src={r.image_url} alt="Receipt" className="w-24 h-24 object-cover" />
+                    </button>
+                  ) : (
+                    <div className="w-24 h-24 shrink-0 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                      <Receipt className="w-6 h-6 text-muted-foreground/50" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {statusIcon(r.status)}
@@ -209,7 +238,7 @@ function ReceiptsPage() {
                       {new Date(r.receipt_date).toLocaleDateString()} · {Array.isArray(r.extracted_line_items) ? r.extracted_line_items.length : 0} items
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     {r.status === "pending" && (
                       <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
                         {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
@@ -229,11 +258,11 @@ function ReceiptsPage() {
                     )}
                     {r.status === "processed" && (
                       <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5" /> View
+                        <Pencil className="w-3.5 h-3.5" /> Edit
                       </Button>
                     )}
                   </div>
-                  <p className="font-display text-lg font-bold">${Number(r.total_amount).toFixed(2)}</p>
+                  <p className="font-display text-lg font-bold whitespace-nowrap">${Number(r.total_amount).toFixed(2)}</p>
                 </CardContent>
               </Card>
             ))}
@@ -243,16 +272,28 @@ function ReceiptsPage() {
 
       {/* Review Dialog */}
       <Dialog open={!!reviewReceipt} onOpenChange={(open) => !open && setReviewReceipt(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">Review Extracted Line Items</DialogTitle>
+            <DialogTitle className="font-display">
+              {reviewReceipt?.status === "processed" ? "Edit Receipt" : "Review Extracted Line Items"}
+            </DialogTitle>
           </DialogHeader>
           {reviewReceipt && (
-            <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-6">
               {reviewReceipt.image_url && (
-                <img src={reviewReceipt.image_url} alt="Receipt" className="w-full max-h-48 object-contain rounded-lg border border-border" />
+                <div className="space-y-2">
+                  <a href={reviewReceipt.image_url} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={reviewReceipt.image_url}
+                      alt="Receipt"
+                      className="w-full max-h-[70vh] object-contain rounded-lg border border-border bg-muted/20"
+                    />
+                  </a>
+                  <p className="text-xs text-muted-foreground text-center">Tap image to open full size</p>
+                </div>
               )}
-              <div className="overflow-x-auto">
+              <div className="space-y-3">
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left">
@@ -262,13 +303,14 @@ function ReceiptsPage() {
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Unit $</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Total</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Inventory Match</th>
+                      <th className="py-2 px-1 w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {editedLineItems.map((item, idx) => (
                       <tr key={idx} className="border-b border-border/50">
                         <td className="py-2 px-2">
-                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs" />
+                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
                         </td>
                         <td className="py-2 px-2">
                           <Input type="number" value={item.quantity} onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-16" />
@@ -279,10 +321,10 @@ function ReceiptsPage() {
                         <td className="py-2 px-2">
                           <Input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-20" />
                         </td>
-                        <td className="py-2 px-2 font-medium">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                        <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Match..." /></SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs min-w-[140px]"><SelectValue placeholder="Match..." /></SelectTrigger>
                             <SelectContent>
                               {inventoryItems.map((inv) => (
                                 <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
@@ -290,17 +332,24 @@ function ReceiptsPage() {
                             </SelectContent>
                           </Select>
                         </td>
+                        <td className="py-2 px-1">
+                          <Button size="icon" variant="ghost" onClick={() => removeLineItem(idx)} className="h-7 w-7 text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-              {reviewReceipt.status !== "processed" && (
-                <div className="flex justify-end gap-3">
+                </div>
+                <Button variant="outline" size="sm" onClick={addLineItem} className="gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Add line item
+                </Button>
+                <div className="flex justify-end gap-3 pt-2 border-t">
                   <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
                   <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </DialogContent>
