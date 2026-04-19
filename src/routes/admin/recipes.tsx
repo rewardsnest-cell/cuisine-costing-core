@@ -81,8 +81,17 @@ function RecipesPage() {
     if (!r.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === "active" && r.active === false) return false;
     if (filter === "off" && r.active !== false) return false;
+    if (kind === "cocktail" && !isCocktail(r.category)) return false;
+    if (kind === "food" && isCocktail(r.category)) return false;
     return true;
   });
+
+  const kindCounts = (() => {
+    let food = 0;
+    let cocktail = 0;
+    for (const r of recipes) (isCocktail(r.category) ? cocktail++ : food++);
+    return { food, cocktail };
+  })();
 
   const toggleActive = async (r: Recipe) => {
     await (supabase as any).from("recipes").update({ active: !r.active }).eq("id", r.id);
