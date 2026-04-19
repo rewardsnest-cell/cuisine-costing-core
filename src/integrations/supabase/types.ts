@@ -1763,6 +1763,7 @@ export type Database = {
           serving_suggestions: string | null
           servings: number
           skill_level: string | null
+          social_image_url: string | null
           source_competitor_quote_id: string | null
           storage_instructions: string | null
           total_cost: number | null
@@ -1806,6 +1807,7 @@ export type Database = {
           serving_suggestions?: string | null
           servings?: number
           skill_level?: string | null
+          social_image_url?: string | null
           source_competitor_quote_id?: string | null
           storage_instructions?: string | null
           total_cost?: number | null
@@ -1849,6 +1851,7 @@ export type Database = {
           serving_suggestions?: string | null
           servings?: number
           skill_level?: string | null
+          social_image_url?: string | null
           source_competitor_quote_id?: string | null
           storage_instructions?: string | null
           total_cost?: number | null

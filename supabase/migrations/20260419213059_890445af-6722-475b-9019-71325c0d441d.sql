@@ -1,0 +1,1 @@
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS social_image_url text;
