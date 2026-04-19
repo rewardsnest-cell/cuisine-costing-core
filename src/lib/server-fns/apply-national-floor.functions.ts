@@ -15,7 +15,7 @@ import { convertQty } from "@/lib/recipe-costing";
  */
 export const applyNationalFloorPricing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { quoteId: string; month?: string }) => {
+  .inputValidator((data: { quoteId: string; month?: string; region?: string }) => {
     if (!data?.quoteId) throw new Error("quoteId is required");
     if (data.month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.month)) {
       throw new Error("month must be YYYY-MM");
@@ -93,17 +93,26 @@ export const applyNationalFloorPricing = createServerFn({ method: "POST" })
       ),
     );
 
-    // Snapshot lookup: latest snapshot for selected month per ingredient.
+    // Snapshot lookup: prefer region match, then NULL (national), most recent month ≤ active.
     const snapshotByRef = new Map<string, { price: number; unit: string }>();
     if (referenceIds.length) {
       const { data: snaps } = await sb
         .from("national_price_snapshots")
-        .select("ingredient_id, price, unit, month")
+        .select("ingredient_id, price, unit, month, region")
         .in("ingredient_id", referenceIds)
         .lte("month", month)
         .order("month", { ascending: false });
+      const wantRegion = data.region ?? null;
       for (const s of (snaps as any[]) ?? []) {
-        if (!snapshotByRef.has(s.ingredient_id)) {
+        if (wantRegion && s.region === wantRegion && !snapshotByRef.has(s.ingredient_id)) {
+          snapshotByRef.set(s.ingredient_id, {
+            price: Number(s.price) || 0,
+            unit: String(s.unit || ""),
+          });
+        }
+      }
+      for (const s of (snaps as any[]) ?? []) {
+        if (s.region == null && !snapshotByRef.has(s.ingredient_id)) {
           snapshotByRef.set(s.ingredient_id, {
             price: Number(s.price) || 0,
             unit: String(s.unit || ""),
