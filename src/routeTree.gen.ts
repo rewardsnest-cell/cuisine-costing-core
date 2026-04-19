@@ -71,6 +71,7 @@ import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
+import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
@@ -423,6 +424,11 @@ const AdminPurchaseOrdersRoute = AdminPurchaseOrdersRouteImport.update({
   path: '/purchase-orders',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminNewsletterGuideRoute = AdminNewsletterGuideRouteImport.update({
+  id: '/newsletter-guide',
+  path: '/newsletter-guide',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNationalPricesRoute = AdminNationalPricesRouteImport.update({
   id: '/national-prices',
   path: '/national-prices',
@@ -647,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
+  '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
@@ -744,6 +751,7 @@ export interface FileRoutesByTo {
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
+  '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
@@ -844,6 +852,7 @@ export interface FileRoutesById {
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
+  '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
@@ -945,6 +954,7 @@ export interface FileRouteTypes {
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
+    | '/admin/newsletter-guide'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -1042,6 +1052,7 @@ export interface FileRouteTypes {
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
+    | '/admin/newsletter-guide'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -1141,6 +1152,7 @@ export interface FileRouteTypes {
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/national-prices'
+    | '/admin/newsletter-guide'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
@@ -1683,6 +1695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPurchaseOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/newsletter-guide': {
+      id: '/admin/newsletter-guide'
+      path: '/newsletter-guide'
+      fullPath: '/admin/newsletter-guide'
+      preLoaderRoute: typeof AdminNewsletterGuideRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/national-prices': {
       id: '/admin/national-prices'
       path: '/national-prices'
@@ -2000,6 +2019,7 @@ interface AdminRouteChildren {
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
+  AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuotesRoute: typeof AdminQuotesRouteWithChildren
@@ -2046,6 +2066,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
+  AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuotesRoute: AdminQuotesRouteWithChildren,
