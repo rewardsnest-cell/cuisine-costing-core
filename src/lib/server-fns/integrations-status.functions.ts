@@ -2,8 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-async function ensureAdmin(userId: string) {
-  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
+async function ensureAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) throw new Error(`Role check failed: ${error.message}`);
   if (!(data ?? []).some((r: any) => r.role === "admin")) {
     throw new Error("Forbidden: admin only");
   }
@@ -19,7 +20,7 @@ export type IntegrationStatus = {
 export const getIntegrationsStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<IntegrationStatus[]> => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
 
     const flippConfigured = !!process.env.FLIPP_BEARER_TOKEN;
     const lovableConfigured = !!process.env.LOVABLE_API_KEY;
@@ -102,7 +103,7 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
 export const testLovableAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.LOVABLE_API_KEY) return { ok: false, message: "LOVABLE_API_KEY not set" };
     try {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -127,7 +128,7 @@ export const testLovableAI = createServerFn({ method: "POST" })
 export const testFirecrawl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.FIRECRAWL_API_KEY) return { ok: false, message: "FIRECRAWL_API_KEY not set" };
     try {
       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -147,7 +148,7 @@ export const testFirecrawl = createServerFn({ method: "POST" })
 export const testFlipp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.FLIPP_BEARER_TOKEN) return { ok: false, message: "FLIPP_BEARER_TOKEN not set" };
     try {
       const res = await fetch("https://useflipp.com/api/templates", {
