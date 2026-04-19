@@ -160,6 +160,25 @@ function AdminMenuPage() {
 
   const missingCount = recipes.filter((r) => !r.image_url).length;
 
+  const turnAllOff = async () => {
+    const targets = filtered.filter((r) => r.active);
+    if (targets.length === 0) {
+      toast.info("No recipes are currently shown on the menu.");
+      return;
+    }
+    const scope = search.trim() ? `${targets.length} filtered recipe${targets.length === 1 ? "" : "s"}` : `all ${targets.length} recipe${targets.length === 1 ? "" : "s"}`;
+    if (!confirm(`Hide ${scope} from the public menu?`)) return;
+    const ids = targets.map((r) => r.id);
+    setRecipes((cur) => cur.map((r) => (ids.includes(r.id) ? { ...r, active: false } : r)));
+    const { error } = await (supabase as any).from("recipes").update({ active: false }).in("id", ids);
+    if (error) {
+      toast.error(error.message);
+      load();
+    } else {
+      toast.success(`Hid ${targets.length} recipe${targets.length === 1 ? "" : "s"} from the menu.`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -192,6 +211,14 @@ function AdminMenuPage() {
             : missingCount === 0
               ? "All photos generated"
               : `Generate ${missingCount} missing photo${missingCount === 1 ? "" : "s"}`}
+        </Button>
+        <Button
+          onClick={turnAllOff}
+          disabled={loading || filtered.every((r) => !r.active)}
+          variant="outline"
+          className="gap-2"
+        >
+          Turn all off{search.trim() ? " (filtered)" : ""}
         </Button>
       </div>
       {bulkRunning && bulkProgress.current && (
