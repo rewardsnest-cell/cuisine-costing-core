@@ -221,6 +221,8 @@ function AdminDashboard() {
         <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your catering operations today.</p>
       </div>
 
+      <PriceAlertsBanner />
+
       <SettingsCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -229,7 +231,45 @@ function AdminDashboard() {
 
       <CoverageBadges />
 
+      <MarginVolatilityChart />
+
       <CostHealthWidget />
+
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              <h3 className="font-display text-lg font-semibold">Upcoming Events (next 30 days)</h3>
+            </div>
+            <Link to="/admin/events" className="text-xs text-primary hover:underline">View all</Link>
+          </div>
+          {loading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          ) : upcoming.length === 0 ? (
+            <div className="h-24 flex items-center justify-center text-muted-foreground text-sm">
+              <p>No upcoming events scheduled.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {upcoming.map((q) => (
+                <li key={q.id}>
+                  <Link to="/admin/events" className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{q.client_name || q.event_type || "Untitled"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(q as any).event_date ? new Date((q as any).event_date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "—"}
+                        {" · "}{q.status}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold whitespace-nowrap">${Number(q.total || 0).toLocaleString()}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-warm border-border/50">
