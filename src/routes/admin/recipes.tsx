@@ -454,6 +454,25 @@ function RecipesPage() {
   return (
     <div className="space-y-6">
       <UnlinkedIngredientsReview />
+
+      {/* Food vs Cocktails kind switcher */}
+      <div className="inline-flex rounded-full border border-border bg-card p-1 text-xs">
+        {(["food", "cocktail"] as const).map((k) => (
+          <button
+            key={k}
+            onClick={() => setKind(k)}
+            className={`px-4 py-1.5 rounded-full transition-colors ${
+              kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {k === "food" ? "Food" : "Cocktails"}
+            <span className="opacity-70 ml-1">
+              ({k === "food" ? kindCounts.food : kindCounts.cocktail})
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex gap-2 flex-1 max-w-xl">
           <div className="relative flex-1">
