@@ -1,12 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin as supabase } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const recalcQuotePricing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: { quoteId: string }) => {
     if (!data?.quoteId) throw new Error("quoteId is required");
     return data;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
 
     // 1. Read markup multiplier
     const { data: settings } = await supabase
