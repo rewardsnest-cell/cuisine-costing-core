@@ -33,7 +33,10 @@ function Page() {
   const failed = rows.filter((r) => r.status === "error").length;
   const total = rows.length;
 
+  const socialDone = rows.filter((r) => r.socialStatus === "done").length;
+  const socialFailed = rows.filter((r) => r.socialStatus === "error").length;
   const missingCount = rows.filter((r) => !r.image_url || r.status === "error").length;
+  const missingSocialCount = rows.filter((r) => !r.social_image_url || r.socialStatus === "error").length;
 
   const runFiltered = async (predicate: (r: Row) => boolean) => {
     setRunning(true);
@@ -59,8 +62,34 @@ function Page() {
     toast.success(`Finished — ${okCount} done, ${errCount} failed`);
   };
 
+  const runFilteredSocial = async (predicate: (r: Row) => boolean) => {
+    setRunning(true);
+    setStopRequested(false);
+    let okCount = 0;
+    let errCount = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (stopRequested) break;
+      const r = rows[i];
+      if (!predicate(r)) continue;
+      if (r.socialStatus === "done") continue;
+      setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "running", socialError: undefined } : x)));
+      try {
+        const out = await genSocial({ data: { recipeId: r.id } });
+        okCount++;
+        setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "done", newSocialUrl: out.url, social_image_url: out.url } : x)));
+      } catch (e: any) {
+        errCount++;
+        setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "error", socialError: e?.message || "failed" } : x)));
+      }
+    }
+    setRunning(false);
+    toast.success(`Social — ${okCount} done, ${errCount} failed`);
+  };
+
   const runAll = () => runFiltered(() => true);
   const runMissing = () => runFiltered((r) => !r.image_url || r.status === "error");
+  const runAllSocial = () => runFilteredSocial(() => true);
+  const runMissingSocial = () => runFilteredSocial((r) => !r.social_image_url || r.socialStatus === "error");
 
   const regenerateOne = async (id: string) => {
     const i = rows.findIndex((x) => x.id === id);
@@ -74,18 +103,30 @@ function Page() {
     }
   };
 
+  const regenerateSocialOne = async (id: string) => {
+    const i = rows.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "running", socialError: undefined } : x)));
+    try {
+      const out = await genSocial({ data: { recipeId: id } });
+      setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "done", newSocialUrl: out.url, social_image_url: out.url } : x)));
+    } catch (e: any) {
+      setRows((s) => s.map((x, idx) => (idx === i ? { ...x, socialStatus: "error", socialError: e?.message || "failed" } : x)));
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div>
         <h2 className="font-display text-2xl font-bold">Generate Recipe Photos</h2>
         <p className="text-sm text-muted-foreground">
-          AI-generates editorial-style photos for every active recipe and overwrites existing images.
+          AI-generates editorial-style hero photos and clean social-share images (no text, coupons, or buttons) for every active recipe.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> Batch run</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5" /> Editorial hero photos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -106,44 +147,103 @@ function Page() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Share2 className="w-5 h-5" /> Social share images (no coupons / buttons)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={runAllSocial} disabled={running || rows.length === 0} className="bg-gradient-warm text-primary-foreground">
+              {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Share2 className="w-4 h-4 mr-2" />}
+              {running ? `Generating (${socialDone}/${total})...` : `Generate all ${total} social images`}
+            </Button>
+            <Button onClick={runMissingSocial} disabled={running || missingSocialCount === 0} variant="secondary">
+              <Share2 className="w-4 h-4 mr-2" />
+              Regenerate missing/failed ({missingSocialCount})
+            </Button>
+          </div>
+          {total > 0 && <Progress value={(socialDone / total) * 100} />}
+          <p className="text-xs text-muted-foreground">{socialDone} done · {socialFailed} failed · {total - socialDone - socialFailed} remaining</p>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {rows.map((r) => (
           <div key={r.id} className="rounded-lg border overflow-hidden bg-card">
-            <div className="aspect-square bg-muted relative">
-              {r.image_url ? (
-                <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">no image</div>
-              )}
-              {r.status === "running" && (
-                <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              )}
-              {r.status === "done" && (
-                <div className="absolute top-2 right-2 bg-background rounded-full p-0.5">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                </div>
-              )}
-              {r.status === "error" && (
-                <div className="absolute top-2 right-2 bg-background rounded-full p-0.5">
-                  <XCircle className="w-5 h-5 text-destructive" />
-                </div>
-              )}
+            <div className="grid grid-cols-2">
+              <div className="aspect-square bg-muted relative border-r">
+                {r.image_url ? (
+                  <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">no hero</div>
+                )}
+                {r.status === "running" && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                )}
+                {r.status === "done" && (
+                  <div className="absolute top-1 right-1 bg-background rounded-full p-0.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                )}
+                {r.status === "error" && (
+                  <div className="absolute top-1 right-1 bg-background rounded-full p-0.5">
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  </div>
+                )}
+                <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-wide bg-background/80 px-1 rounded">Hero</span>
+              </div>
+              <div className="aspect-square bg-muted relative">
+                {r.social_image_url ? (
+                  <img src={r.social_image_url} alt={`${r.name} social`} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">no social</div>
+                )}
+                {r.socialStatus === "running" && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                )}
+                {r.socialStatus === "done" && (
+                  <div className="absolute top-1 right-1 bg-background rounded-full p-0.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </div>
+                )}
+                {r.socialStatus === "error" && (
+                  <div className="absolute top-1 right-1 bg-background rounded-full p-0.5">
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  </div>
+                )}
+                <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-wide bg-background/80 px-1 rounded">Social</span>
+              </div>
             </div>
             <div className="p-2 space-y-1">
               <p className="text-sm font-medium truncate" title={r.name}>{r.name}</p>
-              {r.error && <p className="text-[10px] text-destructive truncate" title={r.error}>{r.error}</p>}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="w-full h-7 text-xs"
-                disabled={running || r.status === "running"}
-                onClick={() => regenerateOne(r.id)}
-              >
-                {r.status === "running" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                Regenerate
-              </Button>
+              {r.error && <p className="text-[10px] text-destructive truncate" title={r.error}>Hero: {r.error}</p>}
+              {r.socialError && <p className="text-[10px] text-destructive truncate" title={r.socialError}>Social: {r.socialError}</p>}
+              <div className="grid grid-cols-2 gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  disabled={running || r.status === "running"}
+                  onClick={() => regenerateOne(r.id)}
+                >
+                  {r.status === "running" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                  Hero
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs"
+                  disabled={running || r.socialStatus === "running"}
+                  onClick={() => regenerateSocialOne(r.id)}
+                >
+                  {r.socialStatus === "running" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Share2 className="w-3 h-3 mr-1" />}
+                  Social
+                </Button>
+              </div>
             </div>
           </div>
         ))}
