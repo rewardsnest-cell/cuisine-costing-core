@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingState } from "@/components/LoadingState";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -65,7 +66,7 @@ function ResetPasswordPage() {
                 Password updated! Redirecting to sign in…
               </p>
             ) : !ready ? (
-              <p className="text-sm text-muted-foreground text-center">Loading…</p>
+              <LoadingState label="Preparing reset form…" />
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && <p className="text-sm text-destructive bg-destructive/10 rounded-md p-3">{error}</p>}
