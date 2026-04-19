@@ -14,7 +14,10 @@ import {
   Tag,
   Trash2,
   Save,
+  Plus,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 
 export const Route = createFileRoute("/admin/sale-flyers/$id")({
