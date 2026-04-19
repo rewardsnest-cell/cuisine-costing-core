@@ -162,13 +162,11 @@ function EmployeeDashboardPage() {
                   </Button>
                 </Link>
               )}
-              {access.recipes && (
-                <Link to="/admin/recipes">
-                  <Button variant="outline" className="gap-2">
-                    <ChefHat className="w-4 h-4" /> Recipes
-                  </Button>
-                </Link>
-              )}
+              <Link to="/admin/recipes">
+                <Button variant="outline" className="gap-2">
+                  <ChefHat className="w-4 h-4" /> Recipes
+                </Button>
+              </Link>
               {access.receipts && (
                 <Link to="/admin/receipts">
                   <Button variant="outline" className="gap-2">

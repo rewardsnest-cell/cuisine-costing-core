@@ -234,7 +234,7 @@ function DashboardPage() {
           )}
 
           {/* Staff workspace — employees & admins only */}
-          {isEmployee && (access.assigned_events || access.recipes || access.receipts) && (
+          {isEmployee && (
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -250,13 +250,11 @@ function DashboardPage() {
                       </Button>
                     </Link>
                   )}
-                  {access.recipes && (
-                    <Link to="/admin/recipes">
-                      <Button variant="outline" className="gap-2">
-                        <ChefHat className="w-4 h-4" /> Recipes
-                      </Button>
-                    </Link>
-                  )}
+                  <Link to="/admin/recipes">
+                    <Button variant="outline" className="gap-2">
+                      <ChefHat className="w-4 h-4" /> Recipes
+                    </Button>
+                  </Link>
                   {access.receipts && (
                     <Link to="/admin/receipts">
                       <Button variant="outline" className="gap-2">

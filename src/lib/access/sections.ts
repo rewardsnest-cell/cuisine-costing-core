@@ -2,7 +2,6 @@ export const SECTION_KEYS = [
   "quotes",
   "hosting_events",
   "assigned_events",
-  "recipes",
   "receipts",
   "profile",
 ] as const;
@@ -13,7 +12,6 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   quotes: "Recent Quotes",
   hosting_events: "My Upcoming Events (Hosting)",
   assigned_events: "Assigned Events (Staff)",
-  recipes: "Recipes",
   receipts: "Scan Receipts",
   profile: "Profile & Account",
 };
