@@ -1612,6 +1612,35 @@ export type Database = {
           },
         ]
       }
+      recipe_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_favorites_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_ingredients: {
         Row: {
           cost_per_unit: number | null
@@ -2062,6 +2091,50 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_list_items: {
+        Row: {
+          checked: boolean
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          quantity: number | null
+          recipe_id: string | null
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          checked?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          quantity?: number | null
+          recipe_id?: string | null
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          checked?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          quantity?: number | null
+          recipe_id?: string | null
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_list_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]
