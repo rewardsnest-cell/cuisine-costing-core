@@ -77,6 +77,12 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/exports", label: "Exports & Reports", icon: Download },
     ],
   },
+  {
+    label: "Governance",
+    items: [
+      { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
+    ],
+  },
 ];
 
 const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
