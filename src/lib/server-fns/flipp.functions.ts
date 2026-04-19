@@ -12,15 +12,20 @@ function getToken(): string {
 }
 
 async function flipp<T = any>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${FLIPP_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(init.headers || {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${FLIPP_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(init.headers || {}),
+      },
+    });
+  } catch (err: any) {
+    throw new Error(`Flipp network error: ${err?.message || "fetch failed"}`);
+  }
   const text = await res.text();
   let json: any = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* keep text */ }
@@ -34,16 +39,21 @@ async function flipp<T = any>(path: string, init: RequestInit = {}): Promise<T> 
 // ---------- Templates ----------
 
 export const listFlippTemplates = createServerFn({ method: "GET" }).handler(async () => {
-  const data = await flipp<any>("/templates");
-  const arr: any[] = Array.isArray(data) ? data : (data?.data ?? data?.templates ?? []);
-  const templates = arr.map((t) => ({
-    id: String(t.id ?? t.uid ?? ""),
-    name: String(t.name ?? t.title ?? "Untitled"),
-    width: t.width ?? null,
-    height: t.height ?? null,
-    preview_url: t.preview_url ?? t.thumbnail_url ?? null,
-  })).filter((t) => t.id);
-  return { templates };
+  try {
+    const data = await flipp<any>("/templates");
+    const arr: any[] = Array.isArray(data) ? data : (data?.data ?? data?.templates ?? []);
+    const templates = arr.map((t) => ({
+      id: String(t.id ?? t.uid ?? ""),
+      name: String(t.name ?? t.title ?? "Untitled"),
+      width: t.width ?? null,
+      height: t.height ?? null,
+      preview_url: t.preview_url ?? t.thumbnail_url ?? null,
+    })).filter((t) => t.id);
+    return { templates, error: null as string | null };
+  } catch (err: any) {
+    console.error("[flipp] listFlippTemplates failed:", err?.message);
+    return { templates: [] as { id: string; name: string }[], error: err?.message || "Flipp unavailable" };
+  }
 });
 
 // Returns default template ids: app_kv override (admin-editable) → env var fallback.
