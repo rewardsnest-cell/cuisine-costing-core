@@ -262,11 +262,11 @@ function SupplierDetailPage() {
             {flyers.map((fl) => {
               const isActive = activeFlyer?.id === fl.id;
               return (
-                <Card key={fl.id} className={`border-border/60 hover:shadow-gold transition-shadow overflow-hidden ${isActive ? "ring-2 ring-primary" : ""}`}>
+              <Card key={fl.id} className={`border-border/60 hover:shadow-gold transition-shadow overflow-hidden cursor-pointer ${isActive ? "ring-2 ring-primary" : ""}`} onClick={() => navigate({ to: "/admin/sale-flyers/$id", params: { id: fl.id } })}>
                   {fl.image_url && (
-                    <a href={fl.image_url} target="_blank" rel="noopener noreferrer" className="block w-full h-40 bg-muted">
+                    <div className="block w-full h-40 bg-muted">
                       <img src={fl.image_url} alt={fl.title || "Sale flyer"} className="w-full h-full object-cover" />
-                    </a>
+                    </div>
                   )}
                   <CardContent className="p-4 space-y-1.5">
                     <div className="flex items-start justify-between gap-2">
