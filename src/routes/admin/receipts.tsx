@@ -303,13 +303,14 @@ function ReceiptsPage() {
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Unit $</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Total</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Inventory Match</th>
+                      <th className="py-2 px-1 w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {editedLineItems.map((item, idx) => (
                       <tr key={idx} className="border-b border-border/50">
                         <td className="py-2 px-2">
-                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs" />
+                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
                         </td>
                         <td className="py-2 px-2">
                           <Input type="number" value={item.quantity} onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-16" />
@@ -320,10 +321,10 @@ function ReceiptsPage() {
                         <td className="py-2 px-2">
                           <Input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-20" />
                         </td>
-                        <td className="py-2 px-2 font-medium">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                        <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Match..." /></SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs min-w-[140px]"><SelectValue placeholder="Match..." /></SelectTrigger>
                             <SelectContent>
                               {inventoryItems.map((inv) => (
                                 <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
@@ -331,17 +332,26 @@ function ReceiptsPage() {
                             </SelectContent>
                           </Select>
                         </td>
+                        <td className="py-2 px-1">
+                          <Button size="icon" variant="ghost" onClick={() => removeLineItem(idx)} className="h-7 w-7 text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-              {reviewReceipt.status !== "processed" && (
-                <div className="flex justify-end gap-3">
+                </div>
+                <Button variant="outline" size="sm" onClick={addLineItem} className="gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Add line item
+                </Button>
+                <div className="flex justify-end gap-3 pt-2 border-t">
                   <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
                   <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
             </div>
           )}
         </DialogContent>
