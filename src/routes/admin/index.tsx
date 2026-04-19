@@ -8,6 +8,7 @@ import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, Shoppin
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
+import { CoverageBadges } from "@/components/admin/CoverageBadges";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
