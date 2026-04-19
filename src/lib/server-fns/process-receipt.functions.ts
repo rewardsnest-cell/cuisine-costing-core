@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { aiPost, AiGatewayError } from "./_ai-gateway";
 
 type RawLine = {
@@ -11,11 +11,13 @@ type RawLine = {
 };
 
 export const processReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { imageUrl: string; receiptId: string }) => {
     if (!input?.imageUrl || !input?.receiptId) throw new Error("imageUrl and receiptId required");
     return input;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
     try {
       const aiResp = await aiPost({
         model: "google/gemini-2.5-flash",
@@ -88,7 +90,7 @@ export const processReceipt = createServerFn({ method: "POST" })
           let match_score: number | null = null;
 
           try {
-            const { data: matches } = await supabaseAdmin.rpc("find_ingredient_matches", {
+            const { data: matches } = await sb.rpc("find_ingredient_matches", {
               _name: item.item_name,
               _limit: 1,
             });
@@ -113,7 +115,7 @@ export const processReceipt = createServerFn({ method: "POST" })
         }),
       );
 
-      await supabaseAdmin
+      await sb
         .from("receipts")
         .update({
           extracted_line_items: enriched,
