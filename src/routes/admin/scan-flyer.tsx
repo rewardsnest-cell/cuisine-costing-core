@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 
 type Supplier = { id: string; name: string };
 
@@ -205,11 +206,18 @@ function ScanFlyerPage() {
       if (extractAfterSave) {
         setStatus("Extracting items with AI…");
         try {
-          const { processSaleFlyer } = await import("@/lib/server-fns/process-sale-flyer.functions");
           const result = await processSaleFlyer({ data: { flyerId: inserted.id } });
-          if (!result.success) setError(`Saved, but AI extract failed: ${result.error || "unknown error"}`);
+          if (!result.success) {
+            setError(`Saved, but AI extract failed: ${result.error || "unknown error"}`);
+            setBusy(false);
+            setStatus("");
+            return;
+          }
         } catch (fnErr: any) {
           setError(`Saved, but AI extract failed: ${fnErr?.message || fnErr}`);
+          setBusy(false);
+          setStatus("");
+          return;
         }
       }
 
@@ -447,22 +455,30 @@ function ScanFlyerPage() {
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           Extract items with AI after saving
         </label>
-        <div className="flex gap-2">
-          <Button asChild variant="ghost" disabled={busy}>
-            <Link to="/admin/suppliers">Cancel</Link>
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={busy || pages.length === 0 || !supplierId}
-            className="bg-gradient-warm text-primary-foreground gap-2"
-          >
-            {busy ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {busy ? "Working…" : "Save flyer"}
-          </Button>
+        <div className="flex flex-col items-stretch sm:items-end gap-1">
+          <div className="flex gap-2">
+            <Button asChild variant="ghost" disabled={busy}>
+              <Link to="/admin/suppliers">Cancel</Link>
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={busy || pages.length === 0 || !supplierId}
+              className="bg-gradient-warm text-primary-foreground gap-2"
+            >
+              {busy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {busy ? "Working…" : "Save flyer"}
+            </Button>
+          </div>
+          {!supplierId && (
+            <p className="text-xs text-muted-foreground">Pick a supplier to enable Save.</p>
+          )}
+          {supplierId && pages.length === 0 && (
+            <p className="text-xs text-muted-foreground">Add at least one picture to enable Save.</p>
+          )}
         </div>
       </div>
     </div>
