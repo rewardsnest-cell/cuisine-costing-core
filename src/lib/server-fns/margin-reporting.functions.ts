@@ -94,7 +94,7 @@ export const getMarginVarianceRange = createServerFn({ method: "POST" })
     });
 
     const totals = out.reduce(
-      (acc, r) => {
+      (acc: { revenue: number; quoted: number; actual: number }, r: any) => {
         acc.revenue += r.revenue;
         acc.quoted += r.quotedCost;
         acc.actual += r.actualCost;
