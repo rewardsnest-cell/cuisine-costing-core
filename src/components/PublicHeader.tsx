@@ -37,8 +37,11 @@ export function PublicHeader() {
             Get a Quote
           </Link>
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center gap-2 text-sm font-medium text-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-              <Menu className="w-4 h-4" />
+            <DropdownMenuTrigger
+              aria-label="Open navigation menu"
+              className="inline-flex items-center gap-2 text-sm font-medium text-foreground border border-border rounded-md px-3 py-1.5 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <Menu className="w-4 h-4" aria-hidden="true" />
               <span>Menu</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
