@@ -30,6 +30,7 @@ function HubEdit() {
   const [r, setR] = useState<any>(null);
   const [tips, setTips] = useState<string[]>([]);
   const [shop, setShop] = useState<ShopItem[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     (async () => {
