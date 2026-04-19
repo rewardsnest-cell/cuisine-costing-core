@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
+import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 
 type Recipe = {
   id: string;
@@ -122,9 +123,16 @@ function RecipesPage() {
         {loading ? (
           <p className="text-center text-muted-foreground">Loading recipes…</p>
         ) : visible.length === 0 ? (
-          <p className="text-center text-muted-foreground">
-            No {kind === "cocktail" ? "cocktails" : "food recipes"} yet.
-          </p>
+          <div className="text-center py-16 max-w-md mx-auto">
+            <p className="text-muted-foreground mb-4">
+              No {kind === "cocktail" ? "cocktails" : "food recipes"} match these filters yet — try broadening them!
+            </p>
+            {useCase !== "All" && (
+              <button onClick={() => setUseCase("All")} className="text-sm text-primary underline">
+                Clear filters
+              </button>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
             {visible.map((r) => (
@@ -143,7 +151,7 @@ function RecipesPage() {
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs tracking-widest uppercase">No photo</div>
+                    <RecipePlaceholder />
                   )}
                   {r.video_url && (
                     <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
