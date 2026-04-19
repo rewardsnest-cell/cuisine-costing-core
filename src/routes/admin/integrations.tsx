@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { CheckCircle2, XCircle, Loader2, Sparkles, Image as ImageIcon, Globe, Mail, Database, ArrowRight, Settings, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { getIntegrationsStatus, testFlipp, testLovableAI, testFirecrawl, setIntegrationConfig } from "@/lib/server-fns/integrations-status.functions";
+import { getFlippAttribution } from "@/lib/server-fns/flipp-attribution.functions";
 
 export const Route = createFileRoute("/admin/integrations")({
   head: () => ({ meta: [{ title: "API Integrations — Admin" }] }),
