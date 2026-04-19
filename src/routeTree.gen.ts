@@ -71,6 +71,7 @@ import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
@@ -81,6 +82,7 @@ import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
 import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
+import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -414,6 +416,11 @@ const AdminIntelligenceRoute = AdminIntelligenceRouteImport.update({
   path: '/intelligence',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIngredientReferenceRoute =
   AdminIngredientReferenceRouteImport.update({
     id: '/ingredient-reference',
@@ -467,6 +474,11 @@ const AdminAutoLinkIngredientsRoute =
     path: '/auto-link-ingredients',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAffiliatesRoute = AdminAffiliatesRouteImport.update({
+  id: '/affiliates',
+  path: '/affiliates',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAccessRoute = AdminAccessRouteImport.update({
   id: '/access',
   path: '/access',
@@ -576,6 +588,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -586,6 +599,7 @@ export interface FileRoutesByFullPath {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
@@ -664,6 +678,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/access': typeof AdminAccessRoute
+  '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -674,6 +689,7 @@ export interface FileRoutesByTo {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
@@ -755,6 +771,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
+  '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -765,6 +782,7 @@ export interface FileRoutesById {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
@@ -847,6 +865,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/affiliates'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -857,6 +876,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/margin-volatility'
@@ -935,6 +955,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/admin/access'
+    | '/admin/affiliates'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -945,6 +966,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/margin-volatility'
@@ -1025,6 +1047,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/weddings'
     | '/admin/access'
+    | '/admin/affiliates'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -1035,6 +1058,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/margin-volatility'
@@ -1570,6 +1594,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntelligenceRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ingredient-reference': {
       id: '/admin/ingredient-reference'
       path: '/ingredient-reference'
@@ -1638,6 +1669,13 @@ declare module '@tanstack/react-router' {
       path: '/auto-link-ingredients'
       fullPath: '/admin/auto-link-ingredients'
       preLoaderRoute: typeof AdminAutoLinkIngredientsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/affiliates': {
+      id: '/admin/affiliates'
+      path: '/affiliates'
+      fullPath: '/admin/affiliates'
+      preLoaderRoute: typeof AdminAffiliatesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/access': {
@@ -1795,6 +1833,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
+  AdminAffiliatesRoute: typeof AdminAffiliatesRoute
   AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
@@ -1805,6 +1844,7 @@ interface AdminRouteChildren {
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
@@ -1838,6 +1878,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
+  AdminAffiliatesRoute: AdminAffiliatesRoute,
   AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
@@ -1848,6 +1889,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,

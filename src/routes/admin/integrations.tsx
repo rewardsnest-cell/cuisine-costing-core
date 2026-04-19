@@ -68,7 +68,7 @@ function IntegrationsPage() {
                       <Icon className="w-4 h-4" />{item.label}
                     </CardTitle>
                     {item.configured
-                      ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/15"><CheckCircle2 className="w-3 h-3" />Connected</Badge>
+                      ? <Badge className="gap-1"><CheckCircle2 className="w-3 h-3" />Connected</Badge>
                       : <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />Not configured</Badge>}
                   </div>
                 </CardHeader>
@@ -111,7 +111,7 @@ function ItemDetails({ item }: { item: any }) {
     return (
       <div className="text-xs text-muted-foreground">
         Last 7 days — <span className="text-foreground font-medium">{s.total || 0}</span> emails
-        {" · "}<span className="text-emerald-600">{s.sent || 0} sent</span>
+        {" · "}<span className="text-primary">{s.sent || 0} sent</span>
         {" · "}<span className="text-destructive">{s.failed || 0} failed</span>
         {" · "}{s.suppressed || 0} suppressed
       </div>
