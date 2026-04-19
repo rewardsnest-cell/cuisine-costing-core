@@ -298,7 +298,7 @@ export const createFlippLink = createServerFn({ method: "POST" })
       if (imageUrl) patch.flipp_image_url = imageUrl;
       const { error: updErr } = await supabaseAdmin
         .from(table)
-        .update(patch)
+        .update(patch as any)
         .eq("id", target.id);
       if (updErr) console.error("[flipp] persist short link failed:", updErr.message);
 
