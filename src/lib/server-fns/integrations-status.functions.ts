@@ -20,7 +20,7 @@ export type IntegrationStatus = {
 export const getIntegrationsStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<IntegrationStatus[]> => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
 
     const flippConfigured = !!process.env.FLIPP_BEARER_TOKEN;
     const lovableConfigured = !!process.env.LOVABLE_API_KEY;
@@ -103,7 +103,7 @@ export const getIntegrationsStatus = createServerFn({ method: "POST" })
 export const testLovableAI = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.LOVABLE_API_KEY) return { ok: false, message: "LOVABLE_API_KEY not set" };
     try {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -128,7 +128,7 @@ export const testLovableAI = createServerFn({ method: "POST" })
 export const testFirecrawl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.FIRECRAWL_API_KEY) return { ok: false, message: "FIRECRAWL_API_KEY not set" };
     try {
       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -148,7 +148,7 @@ export const testFirecrawl = createServerFn({ method: "POST" })
 export const testFlipp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureAdmin(context.userId);
+    await ensureAdmin(context.supabase, context.userId);
     if (!process.env.FLIPP_BEARER_TOKEN) return { ok: false, message: "FLIPP_BEARER_TOKEN not set" };
     try {
       const res = await fetch("https://useflipp.com/api/templates", {
