@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotePDF } from "@/lib/generate-quote-pdf";
 import { useAuth } from "@/hooks/use-auth";
-import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn, Sparkles, ArrowLeftRight } from "lucide-react";
+import { Download, Send, CheckCircle, RotateCcw, Link as LinkIcon, LogIn, Sparkles, ArrowLeftRight, Copy, FileText } from "lucide-react";
+import { PostQuoteUpsells } from "@/components/quote/PostQuoteUpsells";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
 import {
@@ -239,6 +241,17 @@ export function QuotePage() {
               <div className="bg-muted rounded-lg p-4 mb-4">
                 <p className="text-xs text-muted-foreground mb-1">Your reference number</p>
                 <p className="font-mono text-2xl font-bold text-primary">{referenceNumber}</p>
+                <button
+                  onClick={() => {
+                    if (typeof navigator !== "undefined" && navigator.clipboard) {
+                      navigator.clipboard.writeText(referenceNumber);
+                      toast.success("Reference copied", { description: "Save it anywhere — you can return to /lookup." });
+                    }
+                  }}
+                  className="text-xs text-primary hover:underline mt-2 inline-flex items-center gap-1"
+                >
+                  <Copy className="w-3 h-3" /> Copy reference
+                </button>
                 <p className="text-xs text-muted-foreground mt-1">Save this to look up your quote anytime</p>
               </div>
             )}
@@ -262,10 +275,20 @@ export function QuotePage() {
             {linked && (
               <p className="text-sm text-primary font-medium mb-6">✓ Linked to your account</p>
             )}
+            {submittedQuoteId && (
+              <PostQuoteUpsells
+                quoteId={submittedQuoteId}
+                guestCount={selections.guestCount}
+                eventType={selections.eventType}
+                selectedExtras={selections.extras}
+                selectedAddons={selections.addons}
+              />
+            )}
             <div className="flex flex-wrap gap-3 justify-center">
               <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
                 <Download className="w-4 h-4" /> Download PDF
               </Button>
+              <Link to="/my-quotes"><Button variant="outline" className="gap-2"><FileText className="w-4 h-4" /> My Quotes</Button></Link>
               <Button onClick={startOver} variant="outline" className="gap-2">
                 <RotateCcw className="w-4 h-4" /> Start Over
               </Button>
