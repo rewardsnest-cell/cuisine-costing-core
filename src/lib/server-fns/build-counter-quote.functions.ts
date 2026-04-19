@@ -5,7 +5,7 @@
 // 3. Create a draft quote + quote_items priced at cost_per_serving × qty × MARKUP
 // 4. Link via competitor_quotes.counter_quote_id
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { aiPost, AiGatewayError } from "./_ai-gateway";
 
 const DEFAULT_MARKUP = 3.0;
@@ -115,12 +115,13 @@ async function aiGenerateRecipe(
 type LineItem = { name?: string; qty?: number; unitPrice?: number; category?: string };
 
 export const buildCounterQuote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { competitorQuoteId: string; force?: boolean }) => {
     if (!input?.competitorQuoteId) throw new Error("competitorQuoteId is required");
     return input;
   })
-  .handler(async ({ data }) => {
-    const sb = supabaseAdmin;
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
     const competitorQuoteId = data.competitorQuoteId;
     const force = data.force;
 
@@ -152,7 +153,7 @@ export const buildCounterQuote = createServerFn({ method: "POST" })
         .select("id,name,cost_per_serving")
         .eq("active", true);
       const recipeMap = new Map<string, { id: string; name: string; cost_per_serving: number | null }>();
-      (recipes ?? []).forEach((r) => recipeMap.set(norm(r.name), r));
+      (recipes ?? []).forEach((r: { id: string; name: string; cost_per_serving: number | null }) => recipeMap.set(norm(r.name), r));
 
       let matchedExisting = 0;
       let aiCreated = 0;
