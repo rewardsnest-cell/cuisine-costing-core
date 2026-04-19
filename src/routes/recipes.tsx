@@ -7,10 +7,16 @@ type Recipe = {
   id: string;
   name: string;
   description: string | null;
+  hook: string | null;
   image_url: string | null;
   category: string | null;
   cuisine: string | null;
+  use_case: string | null;
+  video_url: string | null;
 };
+
+const USE_CASES = ["All", "Home", "Party", "Wedding", "Holiday", "Catering"] as const;
+type UseCaseFilter = typeof USE_CASES[number];
 
 export const Route = createFileRoute("/recipes")({
   head: () => ({
@@ -28,11 +34,12 @@ function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [kind, setKind] = useState<RecipeKind>("food");
+  const [useCase, setUseCase] = useState<UseCaseFilter>("All");
 
   useEffect(() => {
     (supabase as any)
       .from("recipes")
-      .select("id, name, description, image_url, category, cuisine")
+      .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url")
       .eq("active", true)
       .order("name")
       .then(({ data }: any) => {
@@ -49,8 +56,17 @@ function RecipesPage() {
   }, [recipes]);
 
   const visible = useMemo(
-    () => recipes.filter((r) => (kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category))),
-    [recipes, kind],
+    () =>
+      recipes.filter((r) => {
+        const matchKind = kind === "cocktail" ? isCocktail(r.category) : !isCocktail(r.category);
+        if (!matchKind) return false;
+        if (useCase !== "All") {
+          const uc = (r.use_case || "").toLowerCase();
+          if (!uc.includes(useCase.toLowerCase())) return false;
+        }
+        return true;
+      }),
+    [recipes, kind, useCase],
   );
 
   return (
