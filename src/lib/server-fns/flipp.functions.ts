@@ -6,9 +6,26 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const FLIPP_BASE = "https://api.useflipp.com/v1";
 
 function getToken(): string {
-  const t = process.env.FLIPP_BEARER_TOKEN;
-  if (!t) throw new Error("FLIPP_BEARER_TOKEN is not configured");
+  const t = process.env.FLIPP_API_KEY || process.env.FLIPP_BEARER_TOKEN;
+  if (!t) throw new Error("FLIPP_API_KEY (or legacy FLIPP_BEARER_TOKEN) is not configured");
   return t;
+}
+
+function getDefaultTemplateId(): string | null {
+  return process.env.FLIPP_TEMPLATE_ID || null;
+}
+
+/** Append UTM params to an absolute URL without clobbering existing ones. */
+function withUtm(rawUrl: string, campaign: string): string {
+  try {
+    const u = new URL(rawUrl);
+    if (!u.searchParams.has("utm_source")) u.searchParams.set("utm_source", "flipp");
+    if (!u.searchParams.has("utm_medium")) u.searchParams.set("utm_medium", "social");
+    if (!u.searchParams.has("utm_campaign")) u.searchParams.set("utm_campaign", campaign);
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
 }
 
 async function flipp<T = any>(path: string, init: RequestInit = {}): Promise<T> {
@@ -209,4 +226,101 @@ export const generateFlippImage = createServerFn({ method: "POST" })
     const finalUrl = await persistToStorage(url, target);
 
     return { image_url: finalUrl, source_url: url, width, height };
+  });
+
+// ---------- Trackable short links ----------
+
+type LinkTarget =
+  | { kind: "sale_flyer_item"; id: string }
+  | { kind: "sale_flyer"; id: string }
+  | { kind: "none" };
+
+type CreateLinkInput = {
+  template_id?: string;
+  values: FlippValue[];
+  destination_url: string;
+  target?: LinkTarget;
+  campaign?: string;
+};
+
+function extractShortLink(payload: any): string | null {
+  return (
+    payload?.fallback_url ??
+    payload?.short_url ??
+    payload?.url ??
+    payload?.data?.fallback_url ??
+    payload?.data?.short_url ??
+    payload?.data?.url ??
+    null
+  );
+}
+
+export const createFlippLink = createServerFn({ method: "POST" })
+  .inputValidator((input: CreateLinkInput) => {
+    if (!input?.destination_url || typeof input.destination_url !== "string") {
+      throw new Error("destination_url is required");
+    }
+    if (!Array.isArray(input.values)) throw new Error("values must be an array");
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const templateId = data.template_id || getDefaultTemplateId();
+    if (!templateId) {
+      throw new Error("FLIPP_TEMPLATE_ID is not configured and no template_id was provided");
+    }
+
+    const target: LinkTarget = data.target ?? { kind: "none" };
+    const campaign =
+      data.campaign ||
+      (target.kind !== "none" ? `${target.kind}_${target.id}` : "share");
+    const destination = withUtm(data.destination_url, campaign);
+
+    const created = await flipp("/links", {
+      method: "POST",
+      body: JSON.stringify({
+        template_id: templateId,
+        values: data.values,
+        destination_url: destination,
+      }),
+    });
+
+    const shortLink = extractShortLink(created);
+    const { url: imageUrl } = extractImageUrl(created);
+    if (!shortLink) throw new Error("Flipp returned no short link");
+
+    // Persist to the originating row when possible.
+    if (target.kind !== "none") {
+      const table = target.kind === "sale_flyer_item" ? "sale_flyer_items" : "sale_flyers";
+      const patch: Record<string, any> = {
+        flipp_short_link: shortLink,
+        flipp_generated_at: new Date().toISOString(),
+      };
+      if (imageUrl) patch.flipp_image_url = imageUrl;
+      const { error: updErr } = await supabaseAdmin
+        .from(table)
+        .update(patch as any)
+        .eq("id", target.id);
+      if (updErr) console.error("[flipp] persist short link failed:", updErr.message);
+
+      // Audit log for attribution dashboards.
+      await supabaseAdmin.from("access_audit_log").insert({
+        action: "flipp.link_generated",
+        details: {
+          target_kind: target.kind,
+          target_id: target.id,
+          short_link: shortLink,
+          destination_url: destination,
+          template_id: templateId,
+        },
+      } as any).then(({ error }) => {
+        if (error) console.error("[flipp] audit insert failed:", error.message);
+      });
+    }
+
+    return {
+      short_link: shortLink,
+      image_url: imageUrl,
+      destination_url: destination,
+      raw: created,
+    };
   });

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { CheckCircle2, XCircle, Loader2, Sparkles, Image as ImageIcon, Globe, Mail, Database, ArrowRight, Settings, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { getIntegrationsStatus, testFlipp, testLovableAI, testFirecrawl, setIntegrationConfig } from "@/lib/server-fns/integrations-status.functions";
+import { getFlippAttribution } from "@/lib/server-fns/flipp-attribution.functions";
 
 export const Route = createFileRoute("/admin/integrations")({
   head: () => ({ meta: [{ title: "API Integrations — Admin" }] }),
@@ -116,6 +117,8 @@ function IntegrationsPage() {
           })}
         </div>
       )}
+
+      <FlippAttributionPanel />
 
       <EditConfigDialog
         item={editing}
@@ -229,4 +232,70 @@ function ItemDetails({ item }: { item: any }) {
     return <div className="text-xs text-muted-foreground">Web scraping & content extraction.</div>;
   }
   return null;
+}
+
+function FlippAttributionPanel() {
+  const [data, setData] = useState<{
+    links: any[]; items: any[]; quotes: any[]; error: string | null;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    getFlippAttribution()
+      .then((d) => { if (mounted) setData(d); })
+      .catch((e) => { if (mounted) setData({ links: [], items: [], quotes: [], error: e?.message || "Failed to load" }); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" /> Flipp attribution
+        </CardTitle>
+        <Badge variant="outline" className="text-xs">UTM-tracked</Badge>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+          </div>
+        ) : data?.error ? (
+          <p className="text-sm text-destructive">{data.error}</p>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Active short links</div>
+              <div className="text-2xl font-semibold">{data?.items.length ?? 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Sale-flyer items currently sharing via flipp.link</p>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Generated (90d)</div>
+              <div className="text-2xl font-semibold">{data?.links.length ?? 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Trackable links created in the last 90 days</p>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Flipp-attributed quotes</div>
+              <div className="text-2xl font-semibold text-primary">{data?.quotes.length ?? 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Quote requests carrying utm_source=flipp</p>
+            </div>
+          </div>
+        )}
+        {!loading && (data?.items.length ?? 0) > 0 && (
+          <div className="mt-4 border-t pt-3 space-y-1.5 max-h-56 overflow-auto">
+            {data!.items.slice(0, 8).map((it: any) => (
+              <div key={it.id} className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate">{it.name}</span>
+                <a href={it.flipp_short_link} target="_blank" rel="noopener noreferrer" className="text-primary underline shrink-0 font-mono">
+                  {it.flipp_short_link.replace(/^https?:\/\//, "")}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

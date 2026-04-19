@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
+import { FlippLinkButton } from "@/components/admin/FlippLinkButton";
 
 export const Route = createFileRoute("/admin/sale-flyers/$id")({
   component: SaleFlyerDetailPage,
@@ -56,6 +57,8 @@ type Item = {
   savings: number | null;
   inventory_item_id: string | null;
   promo_image_url?: string | null;
+  flipp_short_link?: string | null;
+  flipp_image_url?: string | null;
 };
 
 function SaleFlyerDetailPage() {
@@ -602,6 +605,27 @@ function SaleFlyerDetailPage() {
                               ]}
                               onGenerated={(url) =>
                                 updateItem(idx, { promo_image_url: url } as any)
+                              }
+                            />
+                            <FlippLinkButton
+                              target={{ kind: "sale_flyer_item", id: it.id }}
+                              destinationUrl={
+                                typeof window !== "undefined"
+                                  ? `${window.location.origin}/coupon/${it.id}`
+                                  : `/coupon/${it.id}`
+                              }
+                              existingShortLink={it.flipp_short_link ?? null}
+                              values={[
+                                { name: "item_name", value: it.name || null },
+                                { name: "brand", value: it.brand ?? null },
+                                { name: "pack_size", value: it.pack_size ?? null },
+                                { name: "sale_price", value: it.sale_price != null ? `$${Number(it.sale_price).toFixed(2)}` : null },
+                                { name: "original_price", value: it.regular_price != null ? `$${Number(it.regular_price).toFixed(2)}` : null },
+                                { name: "savings", value: it.savings != null ? `$${Number(it.savings).toFixed(2)}` : null },
+                                { name: "valid_dates", value: [flyer.sale_start_date, flyer.sale_end_date].filter(Boolean).join(" – ") || null },
+                              ]}
+                              onCreated={({ short_link, image_url }) =>
+                                updateItem(idx, { flipp_short_link: short_link, flipp_image_url: image_url ?? undefined } as any)
                               }
                             />
                             {it.promo_image_url && (
