@@ -352,8 +352,6 @@ function ReceiptsPage() {
               </div>
             </div>
           )}
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>
