@@ -104,6 +104,8 @@ function WinterClevelandPage() {
       </section>
 
       <SeasonalCTA
+        season="winter"
+        location="Cleveland, Ohio"
         heading="Tell us about your winter wedding."
         subhead="Winter dates often have more flexibility. Share a few details and we'll come back with a clear, itemized quote."
       />

@@ -104,6 +104,8 @@ function FallHudsonPage() {
       </section>
 
       <SeasonalCTA
+        season="fall"
+        location="Hudson, Ohio"
         heading="Tell us about your fall wedding."
         subhead="Fall weekends fill quickly across Northeast Ohio. Share a few details and we'll reply with a clear next step."
       />
