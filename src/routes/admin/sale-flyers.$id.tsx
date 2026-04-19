@@ -108,7 +108,10 @@ function SaleFlyerDetailPage() {
           : Promise.resolve({ data: null }),
       ]);
       setPages((p || []) as Page[]);
-      setItems((it || []) as Item[]);
+      const loaded = (it || []) as Item[];
+      setItems(loaded);
+      setEditedItems(loaded.map((i) => ({ ...i })));
+      setDeletedItemIds([]);
       setSupplierName((s as any)?.name ?? "");
     }
     setLoading(false);
