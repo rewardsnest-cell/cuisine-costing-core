@@ -262,7 +262,9 @@ export function UnlinkedIngredientsReview() {
                     ) : (
                       <Plus className="w-3.5 h-3.5" />
                     )}
-                    Add all to inventory
+                    {bulkBusy
+                      ? `Adding ${bulkProgress.done}/${bulkProgress.total}${bulkProgress.failed ? ` · ${bulkProgress.failed} failed` : ""}`
+                      : "Add all to inventory"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-72 space-y-3">
