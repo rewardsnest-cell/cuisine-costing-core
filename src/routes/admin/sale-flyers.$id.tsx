@@ -468,13 +468,61 @@ function SaleFlyerDetailPage() {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="font-medium">Extracted items</p>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground">
                 {editedItems.length} item{editedItems.length === 1 ? "" : "s"}
                 {editedItems.length > 0 && ` · ${matched} matched`}
               </span>
               <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
                 <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={savingItems || editedItems.filter((i) => !i.inventory_item_id && i.name.trim()).length === 0}
+                onClick={async () => {
+                  const targets = editedItems
+                    .map((it, idx) => ({ it, idx }))
+                    .filter(({ it }) => !it.inventory_item_id && it.name.trim() && !it.id.startsWith("new-"));
+                  if (targets.length === 0) {
+                    toast.info("Nothing to add — save new rows first or all items are already matched");
+                    return;
+                  }
+                  setSavingItems(true);
+                  try {
+                    const inserts = targets.map(({ it }) => ({
+                      name: it.name.trim(),
+                      unit: (it.unit?.trim() || "each"),
+                      average_cost_per_unit: Number(it.sale_price ?? 0) || 0,
+                      last_receipt_cost: it.sale_price != null ? Number(it.sale_price) : null,
+                      supplier_id: flyer.supplier_id ?? null,
+                      created_source: "sale_flyer",
+                    }));
+                    const { data: created, error } = await (supabase as any)
+                      .from("inventory_items")
+                      .insert(inserts)
+                      .select("id,name");
+                    if (error) throw error;
+                    const created_ids = (created ?? []) as { id: string; name: string }[];
+                    for (let i = 0; i < targets.length && i < created_ids.length; i++) {
+                      const t = targets[i];
+                      await (supabase as any)
+                        .from("sale_flyer_items")
+                        .update({ inventory_item_id: created_ids[i].id })
+                        .eq("id", t.it.id);
+                    }
+                    toast.success(`Added ${created_ids.length} item${created_ids.length === 1 ? "" : "s"} to inventory`);
+                    await load();
+                  } catch (e: any) {
+                    toast.error(e?.message || "Failed to add to inventory");
+                  } finally {
+                    setSavingItems(false);
+                  }
+                }}
+                className="gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add all to inventory
               </Button>
               <Button
                 type="button"

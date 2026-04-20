@@ -288,6 +288,47 @@ function RecipesPage() {
               <RefreshCw className={`w-4 h-4 ${recomputing ? "animate-spin" : ""}`} />
               {recomputing ? "Recomputing…" : "Recompute cost"}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loadingDetail || ingredients.filter((i) => !i.inventory_item_id && i.name.trim()).length === 0}
+              className="gap-1.5"
+              onClick={async () => {
+                const unlinked = ingredients.filter((i) => !i.inventory_item_id && i.name.trim());
+                if (unlinked.length === 0) {
+                  toast.info("All ingredients are already linked to inventory");
+                  return;
+                }
+                if (!confirm(`Create ${unlinked.length} new inventory item${unlinked.length === 1 ? "" : "s"} from unlinked ingredients?`)) return;
+                try {
+                  const inserts = unlinked.map((i) => ({
+                    name: i.name.trim(),
+                    unit: (i.unit?.trim() || "each"),
+                    average_cost_per_unit: Number(i.cost_per_unit ?? 0) || 0,
+                    created_source: "recipe",
+                  }));
+                  const { data: created, error } = await (supabase as any)
+                    .from("inventory_items")
+                    .insert(inserts)
+                    .select("id,name");
+                  if (error) throw error;
+                  const list = (created ?? []) as { id: string; name: string }[];
+                  for (let i = 0; i < unlinked.length && i < list.length; i++) {
+                    await (supabase as any)
+                      .from("recipe_ingredients")
+                      .update({ inventory_item_id: list[i].id })
+                      .eq("id", unlinked[i].id);
+                  }
+                  toast.success(`Added ${list.length} ingredient${list.length === 1 ? "" : "s"} to inventory`);
+                  await openDetail(selectedRecipe);
+                } catch (e: any) {
+                  toast.error(e?.message || "Failed to add to inventory");
+                }
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add all to inventory
+            </Button>
             <FlippGenerateButton
               target={{ kind: "recipe", id: selectedRecipe.id, column: "coupon_image_url" }}
               templateKey="recipe-coupon"
