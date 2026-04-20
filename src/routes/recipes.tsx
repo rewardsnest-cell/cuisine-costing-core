@@ -30,6 +30,8 @@ type Recipe = {
   is_gluten_free: boolean | null;
   selling_price_per_person: number | null;
   calculated_cost_per_person: number | null;
+  cost_per_serving: number | null;
+  total_cost: number | null;
   is_copycat: boolean | null;
   copycat_source: string | null;
 };
@@ -70,7 +72,7 @@ function RecipesPage() {
     (async () => {
       const { data: rs } = await (supabase as any)
         .from("recipes")
-        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, is_copycat, copycat_source")
+        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, cost_per_serving, total_cost, is_copycat, copycat_source")
         .eq("active", true)
         .order("name");
       const list: Recipe[] = rs || [];
