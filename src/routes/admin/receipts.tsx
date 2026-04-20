@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/receipts")({
@@ -50,6 +50,7 @@ function ReceiptsPage() {
   const [reviewReceipt, setReviewReceipt] = useState<ReceiptRow | null>(null);
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
+  const [bulkAdding, setBulkAdding] = useState(false);
 
   const load = async () => {
     const [{ data: rData }, { data: iData }] = await Promise.all([
@@ -143,6 +144,51 @@ function ReceiptsPage() {
 
   const removeLineItem = (idx: number) => {
     setEditedLineItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const addAllUnmatchedToInventory = async () => {
+    const unmatched = editedLineItems
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => !it.matched_inventory_id && (it.item_name || "").trim().length > 0);
+    if (unmatched.length === 0) {
+      toast("All line items are already matched");
+      return;
+    }
+    setBulkAdding(true);
+    const created: { idx: number; id: string; name: string }[] = [];
+    let failed = 0;
+    for (const { it, idx } of unmatched) {
+      const price = Number(it.unit_price) || 0;
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .insert({
+          name: it.item_name.trim(),
+          unit: it.unit || "each",
+          current_stock: 0,
+          par_level: 0,
+          average_cost_per_unit: price,
+          last_receipt_cost: price > 0 ? price : null,
+          created_source: "receipt",
+        })
+        .select("id, name")
+        .single();
+      if (error || !data) { failed++; continue; }
+      created.push({ idx, id: data.id, name: data.name });
+    }
+    if (created.length) {
+      setEditedLineItems((prev) =>
+        prev.map((item, i) => {
+          const hit = created.find((c) => c.idx === i);
+          return hit ? { ...item, matched_inventory_id: hit.id, matched_inventory_name: hit.name } : item;
+        }),
+      );
+      // Refresh inventory dropdown so new items show up
+      const { data: iData } = await supabase.from("inventory_items").select("id, name").order("name");
+      if (iData) setInventoryItems(iData as InventoryItem[]);
+    }
+    setBulkAdding(false);
+    if (failed === 0) toast.success(`Added ${created.length} item${created.length === 1 ? "" : "s"} to inventory and matched`);
+    else toast.warning(`Added ${created.length}, ${failed} failed`);
   };
 
   const saveLineItems = async () => {
