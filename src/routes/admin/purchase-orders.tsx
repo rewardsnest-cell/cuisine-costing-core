@@ -701,7 +701,25 @@ function PurchaseOrdersPage() {
 
                   {isOpen && (
                     <div className="mt-4 pt-4 border-t border-border/50">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Line Items</p>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Line Items</p>
+                        {poItems.some((it) => !it.inventory_item_id) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addAllUnmatchedFromPO(po.id)}
+                            disabled={bulkAddingPO === po.id}
+                            className="h-7 gap-1.5 text-xs"
+                          >
+                            {bulkAddingPO === po.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <PackagePlus className="w-3.5 h-3.5" />
+                            )}
+                            Add all unmatched to inventory
+                          </Button>
+                        )}
+                      </div>
                       {poItems.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-3">No items added yet.</p>
                       ) : (
