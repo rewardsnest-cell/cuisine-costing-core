@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, ChefHat, Check } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
+import { useServerFn } from "@tanstack/react-start";
+import { generateRecipePhoto, generateRecipeSocialPhoto } from "@/lib/server/generate-recipe-photos";
 
 type IngredientRow = {
   id?: string; // existing recipe_ingredients row id
