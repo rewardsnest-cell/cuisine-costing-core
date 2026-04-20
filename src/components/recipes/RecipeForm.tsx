@@ -158,6 +158,12 @@ export function RecipeForm({
     initial.ingredients.length ? initial.ingredients : [emptyIngredient()],
   );
   const [inventory, setInventory] = useState<InvItem[]>([]);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [socialUrl, setSocialUrl] = useState<string | null>(null);
+  const [genHero, setGenHero] = useState(false);
+  const [genSocial, setGenSocial] = useState(false);
+  const genHeroFn = useServerFn(generateRecipePhoto);
+  const genSocialFn = useServerFn(generateRecipeSocialPhoto);
 
   useEffect(() => {
     (async () => {
@@ -168,6 +174,49 @@ export function RecipeForm({
       setInventory((data ?? []) as InvItem[]);
     })();
   }, []);
+
+  useEffect(() => {
+    if (mode !== "edit" || !recipeId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("recipes")
+        .select("image_url,social_image_url")
+        .eq("id", recipeId)
+        .maybeSingle();
+      if (data) {
+        setHeroUrl((data as any).image_url ?? null);
+        setSocialUrl((data as any).social_image_url ?? null);
+      }
+    })();
+  }, [mode, recipeId]);
+
+  const handleGenerateHero = async () => {
+    if (!recipeId) return;
+    setGenHero(true);
+    try {
+      const out = await genHeroFn({ data: { recipeId } });
+      setHeroUrl(out.url);
+      toast.success("Hero photo generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate hero photo");
+    } finally {
+      setGenHero(false);
+    }
+  };
+
+  const handleGenerateSocial = async () => {
+    if (!recipeId) return;
+    setGenSocial(true);
+    try {
+      const out = await genSocialFn({ data: { recipeId } });
+      setSocialUrl(out.url);
+      toast.success("Social image generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate social image");
+    } finally {
+      setGenSocial(false);
+    }
+  };
 
   const updateIngredient = (idx: number, patch: Partial<IngredientRow>) => {
     setIngredients((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
