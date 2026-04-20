@@ -462,6 +462,55 @@ function InventoryPage() {
               <span className="cursor-pointer"><Upload className="w-4 h-4 mr-1" /> {importing ? "Importing..." : "Bulk Upload"}</span>
             </Button>
           </label>
+          <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-1.5"><ListPlus className="w-4 h-4" /> Bulk Add</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle className="font-display">Bulk add inventory items</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  One item per line. Optional CSV: <code className="bg-muted px-1 rounded">name, unit, category, cost</code>.
+                  Defaults below apply when those columns are blank.
+                </p>
+                <Textarea
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  placeholder={"Tomatoes\nOlive Oil, l, Pantry, 12.50\nGarlic, lb, Produce"}
+                  rows={8}
+                  className="font-mono text-xs"
+                />
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Default unit</Label>
+                    <Input value={bulkUnit} onChange={(e) => setBulkUnit(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Default category</Label>
+                    <Input value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} placeholder="Optional" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Default vendor</Label>
+                    <Select value={bulkSupplier} onValueChange={setBulkSupplier}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No vendor</SelectItem>
+                        {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleBulkAdd}
+                  disabled={bulkBusy || bulkParsedCount === 0}
+                  className="w-full bg-gradient-warm text-primary-foreground gap-2"
+                >
+                  {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Create {bulkParsedCount || 0} item{bulkParsedCount === 1 ? "" : "s"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-warm text-primary-foreground"><Plus className="w-4 h-4 mr-1" /> Add Item</Button>
