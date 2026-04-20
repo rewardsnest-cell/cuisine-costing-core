@@ -1,19 +1,33 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2 } from "lucide-react";
+import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
-type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null; notes: string | null };
+type Ingredient = {
+  id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+  cost_per_unit?: number | null;
+  inventory_cost?: number | null;
+};
 
 function fmtQty(q: number): string {
   if (!isFinite(q) || q <= 0) return "";
-  // Show fractions for common values
   const rounded = Math.round(q * 100) / 100;
   if (Number.isInteger(rounded)) return String(rounded);
   return rounded.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function lineCost(i: Ingredient, factor: number): number {
+  const qty = (i.quantity || 0) * factor;
+  const unitCost = Number(i.inventory_cost ?? i.cost_per_unit ?? 0);
+  if (!qty || !unitCost) return 0;
+  return qty * unitCost;
 }
 
 export function RecipeScaler({
@@ -22,22 +36,26 @@ export function RecipeScaler({
   baseServings,
   ingredients,
   allergens,
+  pricePerPerson,
+  totalRecipeCost,
 }: {
   recipeId: string;
   recipeName: string;
   baseServings: number;
   ingredients: Ingredient[];
   allergens?: string[] | null;
+  pricePerPerson?: number | null;
+  totalRecipeCost?: number | null;
 }) {
   const initial = baseServings && baseServings > 0 ? baseServings : 4;
   const [servings, setServings] = useState<number>(initial);
   const [favLoading, setFavLoading] = useState(false);
   const [isFav, setIsFav] = useState<boolean | null>(null);
   const [shopLoading, setShopLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const { user } = useAuth();
 
-  // Load fav state once on mount when user is known
-  useMemo(() => {
+  useEffect(() => {
     if (!user) { setIsFav(false); return; }
     (supabase as any)
       .from("recipe_favorites")
@@ -50,20 +68,118 @@ export function RecipeScaler({
 
   const factor = servings / initial;
 
-  const scaled = ingredients.map((i) => ({
-    ...i,
-    scaledQty: i.quantity != null ? i.quantity * factor : null,
-  }));
+  const scaled = useMemo(
+    () => ingredients.map((i) => ({
+      ...i,
+      scaledQty: i.quantity != null ? i.quantity * factor : null,
+      scaledCost: lineCost(i, factor),
+    })),
+    [ingredients, factor],
+  );
+
+  const scaledTotal = useMemo(() => scaled.reduce((sum, i) => sum + (i.scaledCost || 0), 0), [scaled]);
+  const hasCosts = scaledTotal > 0;
 
   const handlePrint = () => {
     window.open(`/api/recipes/${recipeId}/printable?servings=${servings}`, "_blank", "noopener");
   };
 
-  const toggleFav = async () => {
-    if (!user) {
-      toast.info("Sign in to save favorites", { description: "Create a free account to save recipes." });
-      return;
+  const downloadRecipeCard = async () => {
+    setPdfLoading(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const w = doc.internal.pageSize.getWidth();
+      const margin = 50;
+      let y = margin;
+
+      // Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(40, 40, 40);
+      doc.text(recipeName, margin, y);
+      y += 28;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Serves ${servings}${servings !== initial ? ` (scaled ×${factor.toFixed(2).replace(/\.?0+$/, "")})` : ""}`, margin, y);
+      y += 18;
+
+      // Pricing summary
+      if (hasCosts || pricePerPerson) {
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y, w - margin, y);
+        y += 16;
+        doc.setFontSize(11);
+        doc.setTextColor(60, 60, 60);
+        if (hasCosts) {
+          doc.setFont("helvetica", "bold");
+          doc.text(`Total ingredient cost: $${scaledTotal.toFixed(2)}`, margin, y);
+          y += 14;
+          doc.setFont("helvetica", "normal");
+          const perServing = scaledTotal / servings;
+          doc.text(`Cost per serving: $${perServing.toFixed(2)}`, margin, y);
+          y += 14;
+        }
+        if (pricePerPerson) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(180, 130, 40);
+          doc.text(`Suggested price per person: $${Number(pricePerPerson).toFixed(2)}`, margin, y);
+          y += 14;
+          doc.setTextColor(60, 60, 60);
+          doc.setFont("helvetica", "normal");
+        }
+        y += 6;
+      }
+
+      // Ingredients
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y, w - margin, y);
+      y += 16;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(40, 40, 40);
+      doc.text("Ingredients", margin, y);
+      y += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      for (const i of scaled) {
+        if (y > 720) { doc.addPage(); y = margin; }
+        const qty = i.scaledQty != null ? `${fmtQty(i.scaledQty)} ${i.unit ?? ""}` : "";
+        const line = `• ${qty}  ${i.name}${i.notes ? ` — ${i.notes}` : ""}`;
+        const wrapped = doc.splitTextToSize(line, w - margin * 2 - 60);
+        doc.text(wrapped, margin, y);
+        if (i.scaledCost && i.scaledCost > 0) {
+          doc.setTextColor(140, 140, 140);
+          doc.text(`$${i.scaledCost.toFixed(2)}`, w - margin, y, { align: "right" });
+          doc.setTextColor(40, 40, 40);
+        }
+        y += wrapped.length * 12 + 4;
+      }
+
+      // Footer
+      if (y > 720) { doc.addPage(); y = margin; }
+      y += 10;
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y, w - margin, y);
+      y += 14;
+      doc.setFontSize(9);
+      doc.setTextColor(140, 140, 140);
+      doc.text("Recipe card from VPS Finest — vpsfinest.com", margin, y);
+
+      doc.save(`${recipeName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-recipe-card.pdf`);
+      toast.success("Recipe card downloaded");
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't generate PDF");
+    } finally {
+      setPdfLoading(false);
     }
+  };
+
+  const toggleFav = async () => {
+    if (!user) { toast.info("Sign in to save favorites", { description: "Create a free account to save recipes." }); return; }
     setFavLoading(true);
     try {
       if (isFav) {
@@ -83,14 +199,8 @@ export function RecipeScaler({
   };
 
   const addToShoppingList = async () => {
-    if (!user) {
-      toast.info("Sign in to use your shopping list");
-      return;
-    }
-    if (scaled.length === 0) {
-      toast.info("No ingredients to add");
-      return;
-    }
+    if (!user) { toast.info("Sign in to use your shopping list"); return; }
+    if (scaled.length === 0) { toast.info("No ingredients to add"); return; }
     setShopLoading(true);
     try {
       const rows = scaled.map((i) => ({
@@ -113,18 +223,48 @@ export function RecipeScaler({
 
   return (
     <div>
+      {/* Pricing summary */}
+      {(hasCosts || pricePerPerson) && (
+        <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-4 mb-5">
+          {pricePerPerson != null && pricePerPerson > 0 && (
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Catering price per person</p>
+              <p className="font-display text-3xl font-bold text-gradient-gold tabular-nums mt-1">
+                ${Number(pricePerPerson).toFixed(2)}
+              </p>
+            </div>
+          )}
+          {hasCosts && (
+            <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-border/50 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total cost</p>
+                <p className="font-semibold tabular-nums">${scaledTotal.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Per serving</p>
+                <p className="font-semibold tabular-nums">${(scaledTotal / servings).toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action bar */}
       <div className="flex flex-wrap gap-2 mb-6">
+        <Button onClick={downloadRecipeCard} variant="default" size="sm" disabled={pdfLoading}>
+          {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+          Download recipe card
+        </Button>
         <Button onClick={handlePrint} variant="outline" size="sm">
-          <Printer className="w-4 h-4" /> Printable version
+          <Printer className="w-4 h-4" /> Printable
         </Button>
         <Button onClick={toggleFav} variant={isFav ? "default" : "outline"} size="sm" disabled={favLoading}>
           {favLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />}
-          {isFav ? "Saved" : "Save to favorites"}
+          {isFav ? "Saved" : "Save"}
         </Button>
         <Button onClick={addToShoppingList} variant="outline" size="sm" disabled={shopLoading}>
           {shopLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
-          Add to shopping list
+          Shopping list
         </Button>
       </div>
 
@@ -143,40 +283,17 @@ export function RecipeScaler({
             </p>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="h-8 w-8"
-              onClick={() => setServings((s) => Math.max(1, s - 1))}
-              aria-label="Decrease servings"
-            >
+            <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(1, s - 1))} aria-label="Decrease servings">
               <Minus className="w-3 h-3" />
             </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="h-8 w-8"
-              onClick={() => setServings((s) => Math.min(100, s + 1))}
-              aria-label="Increase servings"
-            >
+            <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(100, s + 1))} aria-label="Increase servings">
               <Plus className="w-3 h-3" />
             </Button>
           </div>
         </div>
-        <Slider
-          value={[servings]}
-          min={1}
-          max={Math.max(24, initial * 4)}
-          step={1}
-          onValueChange={([v]) => setServings(v)}
-        />
+        <Slider value={[servings]} min={1} max={Math.max(24, initial * 4)} step={1} onValueChange={([v]) => setServings(v)} />
         {servings !== initial && (
-          <button
-            onClick={() => setServings(initial)}
-            className="text-xs text-primary hover:underline mt-2"
-          >
+          <button onClick={() => setServings(initial)} className="text-xs text-primary hover:underline mt-2">
             Reset to {initial}
           </button>
         )}
@@ -192,10 +309,15 @@ export function RecipeScaler({
               <span className="text-foreground font-medium tabular-nums shrink-0">
                 {i.scaledQty != null ? fmtQty(i.scaledQty) : ""} {i.unit ?? ""}
               </span>
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground flex-1">
                 {i.name}
                 {i.notes ? ` · ${i.notes}` : ""}
               </span>
+              {i.scaledCost > 0 && (
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  ${i.scaledCost.toFixed(2)}
+                </span>
+              )}
             </li>
           ))}
         </ul>
