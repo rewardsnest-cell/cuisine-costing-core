@@ -12,7 +12,7 @@ export const Route = createFileRoute("/recipes/$id")({
     const { data: recipe, error } = await (supabase as any)
       .from("recipes")
       .select(
-        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type",
+        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, serving_size, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type, total_cost, cost_per_serving, selling_price_per_person, menu_price, is_copycat, copycat_source",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/recipes/$id")({
     const [{ data: ingredients }, { data: shopItems }] = await Promise.all([
       (supabase as any)
         .from("recipe_ingredients")
-        .select("id, name, quantity, unit, notes")
+        .select("id, name, quantity, unit, notes, cost_per_unit, inventory_items(average_cost_per_unit)")
         .eq("recipe_id", params.id)
         .order("name"),
       (supabase as any)
@@ -31,6 +31,16 @@ export const Route = createFileRoute("/recipes/$id")({
         .eq("recipe_id", params.id)
         .order("position"),
     ]);
+
+    const enrichedIngredients = (ingredients || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      quantity: row.quantity,
+      unit: row.unit,
+      notes: row.notes,
+      cost_per_unit: row.cost_per_unit,
+      inventory_cost: row.inventory_items?.average_cost_per_unit ?? null,
+    }));
 
     let related: any[] = [];
     if (recipe.category || recipe.cuisine) {
@@ -47,7 +57,7 @@ export const Route = createFileRoute("/recipes/$id")({
       related = rel || [];
     }
 
-    return { recipe, ingredients: ingredients || [], shopItems: shopItems || [], related };
+    return { recipe, ingredients: enrichedIngredients, shopItems: shopItems || [], related };
   },
   head: ({ loaderData }) => {
     if (!loaderData?.recipe) return { meta: [{ title: "Recipe — VPS Finest" }] };
@@ -259,6 +269,8 @@ function RecipeDetailPage() {
               baseServings={r.servings ?? 4}
               ingredients={ingredients as any}
               allergens={r.allergens}
+              pricePerPerson={r.menu_price ?? r.selling_price_per_person ?? null}
+              totalRecipeCost={r.total_cost ?? null}
             />
           </aside>
 
