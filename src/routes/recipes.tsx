@@ -36,7 +36,8 @@ type Recipe = {
   copycat_source: string | null;
 };
 
-type Ingredient = { recipe_id: string; name: string };
+type Ingredient = { recipe_id: string; name: string; inventory_item_id: string | null; reference_id: string | null };
+type Coverage = { linked: number; total: number };
 
 const USE_CASES = ["All", "Home", "Party", "Wedding", "Holiday", "Catering"] as const;
 const DIETARY = ["Vegetarian", "Vegan", "Gluten-Free"] as const;
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/recipes")({
 function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<Map<string, string[]>>(new Map());
+  const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
   const [loading, setLoading] = useState(true);
   const [kind, setKind] = useState<RecipeKind>("food");
   const [useCase, setUseCase] = useState<UseCaseFilter>("All");
@@ -81,14 +83,20 @@ function RecipesPage() {
       if (list.length) {
         const { data: ings } = await (supabase as any)
           .from("recipe_ingredients")
-          .select("recipe_id, name")
+          .select("recipe_id, name, inventory_item_id, reference_id")
           .in("recipe_id", list.map((r) => r.id));
         const map = new Map<string, string[]>();
+        const cov = new Map<string, Coverage>();
         for (const i of (ings || []) as Ingredient[]) {
           if (!map.has(i.recipe_id)) map.set(i.recipe_id, []);
           map.get(i.recipe_id)!.push((i.name || "").toLowerCase());
+          const c = cov.get(i.recipe_id) || { linked: 0, total: 0 };
+          c.total += 1;
+          if (i.inventory_item_id || i.reference_id) c.linked += 1;
+          cov.set(i.recipe_id, c);
         }
         setIngredients(map);
+        setCoverage(cov);
       }
       setLoading(false);
     })();
