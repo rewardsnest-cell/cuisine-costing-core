@@ -199,21 +199,43 @@ export function RecipeScaler({
   };
 
   const addToShoppingList = async () => {
-    if (!user) { toast.info("Sign in to use your shopping list"); return; }
     if (scaled.length === 0) { toast.info("No ingredients to add"); return; }
     setShopLoading(true);
     try {
-      const rows = scaled.map((i) => ({
-        user_id: user.id,
-        recipe_id: recipeId,
-        name: i.name,
-        quantity: i.scaledQty,
-        unit: i.unit,
-        notes: i.notes ? `${recipeName}: ${i.notes}` : recipeName,
-      }));
-      const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
-      if (error) throw error;
-      toast.success(`Added ${rows.length} items to shopping list`);
+      if (user) {
+        const rows = scaled.map((i) => ({
+          user_id: user.id,
+          recipe_id: recipeId,
+          name: i.name,
+          quantity: i.scaledQty,
+          unit: i.unit,
+          notes: i.notes ? `${recipeName}: ${i.notes}` : recipeName,
+        }));
+        const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
+        if (error) throw error;
+        toast.success(`Added ${rows.length} items to shopping list`);
+      } else {
+        // Anonymous fallback: store in localStorage so the button still works
+        const KEY = "shopping_list_local_v1";
+        const existing = (() => {
+          try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
+        })();
+        const additions = scaled.map((i) => ({
+          id: crypto.randomUUID(),
+          recipe_id: recipeId,
+          recipe_name: recipeName,
+          name: i.name,
+          quantity: i.scaledQty,
+          unit: i.unit,
+          notes: i.notes || null,
+          checked: false,
+          created_at: new Date().toISOString(),
+        }));
+        localStorage.setItem(KEY, JSON.stringify([...existing, ...additions]));
+        toast.success(`Added ${additions.length} items to your list`, {
+          description: "Sign in to sync your shopping list across devices.",
+        });
+      }
     } catch (e: any) {
       toast.error("Couldn't add to list", { description: e.message });
     } finally {
