@@ -1895,8 +1895,10 @@ export type Database = {
         Row: {
           active: boolean
           allergens: string[] | null
+          calculated_cost_per_person: number | null
           category: string | null
           cook_time: number | null
+          copycat_source: string | null
           cost_per_serving: number | null
           coupon_image_url: string | null
           coupon_text: string | null
@@ -1909,11 +1911,13 @@ export type Database = {
           id: string
           image_url: string | null
           instructions: string | null
+          is_copycat: boolean
           is_gluten_free: boolean | null
           is_premium: boolean
           is_standard: boolean
           is_vegan: boolean | null
           is_vegetarian: boolean | null
+          markup_percentage: number | null
           menu_price: number | null
           name: string
           prep_time: number | null
@@ -1924,6 +1928,8 @@ export type Database = {
           score_seasonal: number
           score_video: number
           seasonal_tags: string[] | null
+          selling_price_per_person: number | null
+          serving_size: string | null
           serving_suggestions: string | null
           servings: number
           skill_level: string | null
@@ -1939,8 +1945,10 @@ export type Database = {
         Insert: {
           active?: boolean
           allergens?: string[] | null
+          calculated_cost_per_person?: number | null
           category?: string | null
           cook_time?: number | null
+          copycat_source?: string | null
           cost_per_serving?: number | null
           coupon_image_url?: string | null
           coupon_text?: string | null
@@ -1953,11 +1961,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           instructions?: string | null
+          is_copycat?: boolean
           is_gluten_free?: boolean | null
           is_premium?: boolean
           is_standard?: boolean
           is_vegan?: boolean | null
           is_vegetarian?: boolean | null
+          markup_percentage?: number | null
           menu_price?: number | null
           name: string
           prep_time?: number | null
@@ -1968,6 +1978,8 @@ export type Database = {
           score_seasonal?: number
           score_video?: number
           seasonal_tags?: string[] | null
+          selling_price_per_person?: number | null
+          serving_size?: string | null
           serving_suggestions?: string | null
           servings?: number
           skill_level?: string | null
@@ -1983,8 +1995,10 @@ export type Database = {
         Update: {
           active?: boolean
           allergens?: string[] | null
+          calculated_cost_per_person?: number | null
           category?: string | null
           cook_time?: number | null
+          copycat_source?: string | null
           cost_per_serving?: number | null
           coupon_image_url?: string | null
           coupon_text?: string | null
@@ -1997,11 +2011,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           instructions?: string | null
+          is_copycat?: boolean
           is_gluten_free?: boolean | null
           is_premium?: boolean
           is_standard?: boolean
           is_vegan?: boolean | null
           is_vegetarian?: boolean | null
+          markup_percentage?: number | null
           menu_price?: number | null
           name?: string
           prep_time?: number | null
@@ -2012,6 +2028,8 @@ export type Database = {
           score_seasonal?: number
           score_video?: number
           seasonal_tags?: string[] | null
+          selling_price_per_person?: number | null
+          serving_size?: string | null
           serving_suggestions?: string | null
           servings?: number
           skill_level?: string | null
@@ -2534,6 +2552,10 @@ export type Database = {
     }
     Functions: {
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
+      compute_recipe_selling_price: {
+        Args: { _cost_per_serving: number; _markup_percentage: number }
+        Returns: number
+      }
       convert_unit_factor: {
         Args: { density_g_per_ml?: number; from_unit: string; to_unit: string }
         Returns: number
