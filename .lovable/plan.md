@@ -1,40 +1,46 @@
 
-User wants a "Generate all missing images with AI" action — a one-click bulk generator for every recipe lacking `image_url`, scoped to the merged Recipe Hub list.
 
-Combining with the prior approved plan (merge `/admin/recipes` into `/admin/recipe-hub`):
+User confirms: reorganize admin + add help cards + consolidate the two "national" pages as discussed.
 
 ## Plan
 
-### 1. Merge `/admin/recipes` → `/admin/recipe-hub` (as previously planned)
-- Hub list absorbs operational filters (Active/Off, Food/Cocktail), "Recompute all costs" button, cost column.
-- `/admin/recipe-hub/$id` becomes tabbed: "Content & Monetization" (default) + "Recipe & Cost" (embeds `RecipeForm`).
-- Redirects: `/admin/recipes` → `/admin/recipe-hub`; `/admin/recipes/$id/edit` → `/admin/recipe-hub/$id?tab=recipe`.
-- Sidebar: remove "All Recipes", rename "Recipe Hub" → "Recipes".
+### 1. Reusable help card
+- Create `src/components/admin/PageHelpCard.tsx` — sage-accent card with title, purpose, when-to-use, related links, and a "Hide" toggle persisted in `localStorage` per route.
+- Create `src/lib/admin/page-help.ts` — central registry mapping each admin route to `{ title, purpose, whenToUse, related[] }` so all copy lives in one file.
 
-### 2. New "Generate all missing images" action
-- **Header button** on `/admin/recipe-hub` next to "New recipe": **"Generate missing photos (N)"** where N = count of recipes with no `image_url` across the *entire* list (not just visible/selected).
-- Disabled when N = 0. Confirmation dialog before running ("This will use AI credits and may take ~Ns").
-- Progress bar showing `done / total · X failed`, cancellable.
-- Reuses existing `generateRecipePhoto` server fn from `src/lib/server/generate-recipe-photos.ts` — sequential calls (1 at a time) to respect AI gateway rate limits, 500ms delay between calls.
-- On each success: update row's `image_url` in local state so the thumbnail appears live.
-- Toast summary at end: "Generated X photos, Y failed".
-- Also add a smaller **"Social photos (M)"** secondary action using existing `generateRecipeSocialPhoto` for recipes missing `social_image_url` (only if the column is shown / opt-in via filter).
+### 2. Reorganize sidebar in `src/routes/admin.tsx`
+Group ~30 pages into 6 collapsible `SidebarGroup`s (active group auto-expands):
 
-### 3. Filter chip
-- Add "Missing photo" to existing filter chips so users can preview which recipes will be processed.
+```text
+PRICING INTELLIGENCE   national-prices, margin-volatility, trends,
+                       competitor-trends, competitor-quotes, quick-quote
+RECIPES & MENU         recipe-hub, recipes, menu, generate-recipe-photos,
+                       servings-review, newsletter-guide
+INGREDIENTS            ingredient-reference, synonyms, auto-link-ingredients,
+                       ingredients/review-unlinked
+INVENTORY & SOURCING   inventory, suppliers, purchase-orders, receipts,
+                       uploads, scan-flyer, sales
+EVENTS & PEOPLE        quotes, events, schedule, timesheet, employees,
+                       users, access
+SYSTEM                 integrations, brand-colors, affiliates, feedback,
+                       exports, import-recipes, scan-assets
+```
 
-### Files touched
-- **Modify**: `src/routes/admin/recipe-hub.tsx` (merge features + new bulk-generate header action + filter), `src/routes/admin/recipe-hub.$id.tsx` (tabs + embed RecipeForm), `src/routes/admin.tsx` (sidebar), `src/lib/admin/project-audit.ts` (path rename).
-- **Convert to redirects**: `src/routes/admin/recipes.tsx`, `src/routes/admin/recipes.$id.edit.tsx`.
-- **Reuse as-is**: `generateRecipePhoto`, `generateRecipeSocialPhoto`, `RecipeForm`, `RecipeBulkActions`.
+### 3. Consolidate the two "National" pages
+- Convert `src/routes/admin/national-prices.tsx` to a `Tabs` shell:
+  - **Overview** — status strip (active month, coverage, last FRED pull, flag state)
+  - **FRED Sources** — existing `FredMappingsManager` + `FredPullPanel` + new small Pull History table reading `fred_pull_log`
+  - **Monthly Snapshots** — staging review + Activate (moved from `pricing.national.tsx`)
+  - **Manual Entry** — existing CSV/single-row form
+- Replace `src/routes/admin/pricing.national.tsx` with a redirect to `/admin/national-prices?tab=snapshots`.
 
-### Risks & mitigations
-| Risk | Mitigation |
-|---|---|
-| AI rate limits (429) on large batches | Sequential calls + 500ms delay; surface failed count, allow re-run (will skip already-photoed) |
-| Long-running batch if 50+ recipes | Live progress + cancel button; user can stop anytime |
-| Cost surprise | Confirmation dialog states count + that AI credits are consumed |
-| Partial completion crash | Each recipe is independent; failures captured per-row, not fatal |
+### 4. Add `<PageHelpCard route="..." />` to every admin page
+~30 one-line additions at the top of each route's component. Copy sourced from the existing `/mnt/documents/vpsfinest-system-extraction.md` audit so wording is accurate.
 
 ### Out of scope
-- No DB changes. No new server function (existing `generateRecipePhoto` already handles single recipe). No parallel/queue infrastructure.
+- No DB changes, no new server functions, no logic changes
+- URLs unchanged except the one consolidation (with redirect)
+
+### Risk
+Low. Help cards are additive; sidebar regrouping is visual; the merged page reuses existing components verbatim.
+
