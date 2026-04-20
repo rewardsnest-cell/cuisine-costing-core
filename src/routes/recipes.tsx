@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 import { Input } from "@/components/ui/input";
-import { Search, Clock, Users, ChefHat } from "lucide-react";
+import { Search, Clock, Users, ChefHat, Heart, ShoppingBasket, Sparkles } from "lucide-react";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 type Recipe = {
   id: string;
@@ -21,10 +23,15 @@ type Recipe = {
   prep_time: number | null;
   cook_time: number | null;
   servings: number | null;
+  serving_size: string | null;
   skill_level: string | null;
   is_vegetarian: boolean | null;
   is_vegan: boolean | null;
   is_gluten_free: boolean | null;
+  selling_price_per_person: number | null;
+  calculated_cost_per_person: number | null;
+  is_copycat: boolean | null;
+  copycat_source: string | null;
 };
 
 type Ingredient = { recipe_id: string; name: string };
@@ -56,11 +63,14 @@ function RecipesPage() {
   const [cuisine, setCuisine] = useState<string>("All");
   const [query, setQuery] = useState("");
 
+  const { user } = useAuth();
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     (async () => {
       const { data: rs } = await (supabase as any)
         .from("recipes")
-        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, skill_level, is_vegetarian, is_vegan, is_gluten_free")
+        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, is_copycat, copycat_source")
         .eq("active", true)
         .order("name");
       const list: Recipe[] = rs || [];
@@ -81,6 +91,76 @@ function RecipesPage() {
       setLoading(false);
     })();
   }, []);
+
+  // Load favorites for signed-in users
+  useEffect(() => {
+    if (!user) { setFavorites(new Set()); return; }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("recipe_favorites")
+        .select("recipe_id")
+        .eq("user_id", user.id);
+      setFavorites(new Set(((data || []) as { recipe_id: string }[]).map((x) => x.recipe_id)));
+    })();
+  }, [user]);
+
+  const toggleFavorite = async (recipeId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to save favorites", { description: "Free account — takes 10 seconds." });
+      return;
+    }
+    const isFav = favorites.has(recipeId);
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      isFav ? next.delete(recipeId) : next.add(recipeId);
+      return next;
+    });
+    if (isFav) {
+      await (supabase as any).from("recipe_favorites").delete().eq("user_id", user.id).eq("recipe_id", recipeId);
+      toast("Removed from favorites");
+    } else {
+      const { error } = await (supabase as any).from("recipe_favorites").insert({ user_id: user.id, recipe_id: recipeId });
+      if (error) {
+        // revert on error
+        setFavorites((prev) => { const next = new Set(prev); next.delete(recipeId); return next; });
+        toast.error("Couldn't save favorite");
+      } else {
+        toast.success("Saved to favorites");
+      }
+    }
+  };
+
+  const quickAddToShoppingList = async (recipe: Recipe, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to use the shopping list");
+      return;
+    }
+    const { data: ings } = await (supabase as any)
+      .from("recipe_ingredients")
+      .select("name, quantity, unit")
+      .eq("recipe_id", recipe.id);
+    const rows = (ings || []).map((i: any) => ({
+      user_id: user.id,
+      recipe_id: recipe.id,
+      name: i.name,
+      quantity: i.quantity,
+      unit: i.unit,
+    }));
+    if (!rows.length) {
+      toast("No ingredients to add");
+      return;
+    }
+    const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
+    if (error) {
+      toast.error("Couldn't add to shopping list");
+    } else {
+      toast.success(`Added ${rows.length} ingredient${rows.length === 1 ? "" : "s"}`, { description: recipe.name });
+    }
+  };
 
   const cuisineOptions = useMemo(() => {
     const s = new Set<string>();
@@ -254,30 +334,53 @@ function RecipesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
             {visible.map((r) => {
               const total = (r.prep_time || 0) + (r.cook_time || 0);
+              const price = Number(r.selling_price_per_person || 0);
+              const isFav = favorites.has(r.id);
               return (
-                <Link key={r.id} to="/recipes/$id" params={{ id: r.id }} className="group block">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                    {r.image_url ? (
-                      <img
-                        src={r.image_url}
-                        alt={r.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <RecipePlaceholder />
-                    )}
-                    {r.video_url && (
-                      <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
-                    )}
-                  </div>
+                <div key={r.id} className="group block">
+                  <Link to="/recipes/$id" params={{ id: r.id }} className="block">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-muted rounded-md">
+                      {r.image_url ? (
+                        <img
+                          src={r.image_url}
+                          alt={r.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <RecipePlaceholder />
+                      )}
+                      <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                        {r.is_copycat && (
+                          <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
+                            <Sparkles className="w-3 h-3" /> Copycat
+                          </span>
+                        )}
+                        {r.video_url && (
+                          <span className="text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+                        aria-pressed={isFav}
+                        onClick={(e) => toggleFavorite(r.id, e)}
+                        className={`absolute top-3 right-3 w-9 h-9 inline-flex items-center justify-center rounded-full bg-background/90 backdrop-blur-sm shadow-sm transition-colors hover:bg-background ${isFav ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
+                      </button>
+                    </div>
+                  </Link>
                   <div className="pt-5 text-center">
                     {(r.category || r.cuisine) && (
                       <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
                         {[r.category, r.cuisine].filter(Boolean).join(" · ")}
+                        {r.is_copycat && r.copycat_source && <span className="ml-2 normal-case tracking-normal">· inspired by {r.copycat_source}</span>}
                       </p>
                     )}
-                    <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                    <Link to="/recipes/$id" params={{ id: r.id }}>
+                      <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                    </Link>
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed">{r.description}</p>
                     )}
@@ -287,15 +390,40 @@ function RecipesPage() {
                           <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{total}m</span>
                         )}
                         {r.servings != null && (
-                          <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" />{r.servings}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Users className="w-3 h-3" />Serves {r.servings}
+                            {r.serving_size ? <span className="text-muted-foreground/70"> · {r.serving_size}</span> : null}
+                          </span>
                         )}
                         {r.skill_level && (
                           <span className="inline-flex items-center gap-1 capitalize"><ChefHat className="w-3 h-3" />{r.skill_level}</span>
                         )}
                       </div>
                     )}
+                    {price > 0 && (
+                      <p className="mt-3 font-display text-base font-semibold text-foreground">
+                        ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">per person</span>
+                      </p>
+                    )}
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      <Link
+                        to="/recipes/$id"
+                        params={{ id: r.id }}
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        View recipe
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => quickAddToShoppingList(r, e)}
+                        className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors inline-flex items-center gap-1"
+                        aria-label={`Add ${r.name} ingredients to shopping list`}
+                      >
+                        <ShoppingBasket className="w-3 h-3" /> Add to list
+                      </button>
+                    </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>

@@ -179,7 +179,7 @@ export const importVpsfinestRecipes = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const inserted: { id: string; name: string }[] = [];
+    const inserted: { id: string; name: string; autoLinked?: number; autoCreated?: number }[] = [];
     const skipped: { name: string; reason: string }[] = [];
 
     for (const r of data.recipes) {
@@ -225,20 +225,112 @@ export const importVpsfinestRecipes = createServerFn({ method: "POST" })
         continue;
       }
 
-      const ingRows = r.ingredients.map((i) => ({
-        recipe_id: recipe.id,
-        name: i.name,
-        quantity: i.quantity,
-        unit: i.unit,
-      }));
+      // Smart auto-link / auto-create per ingredient
+      const ingRows: any[] = [];
+      let autoCreated = 0;
+      let autoLinked = 0;
+      for (const i of r.ingredients) {
+        const linked = await resolveOrCreateInventoryForIngredient(i.name, i.unit);
+        if (linked.created) autoCreated++;
+        else if (linked.inventoryItemId) autoLinked++;
+        ingRows.push({
+          recipe_id: recipe.id,
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          inventory_item_id: linked.inventoryItemId,
+          reference_id: linked.referenceId,
+        });
+      }
       const { error: ingErr } = await supabaseAdmin.from("recipe_ingredients").insert(ingRows);
       if (ingErr) {
         skipped.push({ name: r.name, reason: `recipe inserted but ingredients failed: ${ingErr.message}` });
         continue;
       }
 
-      inserted.push({ id: recipe.id, name: r.name });
+      inserted.push({ id: recipe.id, name: r.name, autoLinked, autoCreated });
     }
 
     return { inserted, skipped };
   });
+
+// ---- smart linking helpers ----
+
+async function fetchLatestFredPriceForKeyword(name: string): Promise<{ price: number; unit: string } | null> {
+  const FRED_API_KEY = process.env.FRED_API_KEY;
+  if (!FRED_API_KEY) return null;
+  const norm = name.toLowerCase();
+  const { data: maps } = await supabaseAdmin
+    .from("fred_series_map")
+    .select("series_id, unit, unit_conversion, match_keywords, label")
+    .eq("active", true);
+  const hit = (maps || []).find((m: any) =>
+    (m.match_keywords || []).some((k: string) => norm.includes(String(k).toLowerCase())),
+  );
+  if (!hit) return null;
+  try {
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${encodeURIComponent(hit.series_id)}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json: any = await res.json();
+    const obs = json?.observations?.[0];
+    const val = obs?.value && obs.value !== "." ? Number(obs.value) : NaN;
+    if (!isFinite(val) || val <= 0) return null;
+    return { price: val * Number(hit.unit_conversion || 1), unit: hit.unit || "lb" };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveOrCreateInventoryForIngredient(
+  rawName: string,
+  rawUnit: string,
+): Promise<{ inventoryItemId: string | null; referenceId: string | null; created: boolean }> {
+  const name = (rawName || "").trim();
+  if (!name) return { inventoryItemId: null, referenceId: null, created: false };
+
+  // Use the existing fuzzy/synonym matcher RPC
+  const { data: matches } = await supabaseAdmin.rpc("find_ingredient_matches", { _name: name, _limit: 1 });
+  const top = (matches as any[] | null)?.[0];
+  if (top && (top.source === "synonym" || (top.similarity ?? 0) >= 0.8)) {
+    return {
+      inventoryItemId: top.inventory_item_id ?? null,
+      referenceId: top.reference_id ?? null,
+      created: false,
+    };
+  }
+
+  // No confident match — create inventory item (pending review) + link via reference (trigger does that)
+  const fred = await fetchLatestFredPriceForKeyword(name);
+  const unit = (rawUnit || "each").trim();
+  const { data: inv, error: invErr } = await supabaseAdmin
+    .from("inventory_items")
+    .insert({
+      name,
+      unit: fred?.unit || unit,
+      average_cost_per_unit: fred?.price ?? 0,
+      last_receipt_cost: fred?.price ?? null,
+      created_source: "import_auto",
+      pending_review: true,
+    })
+    .select("id")
+    .single();
+  if (invErr || !inv) {
+    return { inventoryItemId: null, referenceId: null, created: false };
+  }
+  if (fred) {
+    await supabaseAdmin.from("price_history").insert({
+      inventory_item_id: inv.id,
+      source: "fred_auto_import",
+      unit_price: fred.price,
+      unit: fred.unit,
+    });
+  }
+  // The trg_inventory_create_reference trigger has already created/linked an ingredient_reference row.
+  const { data: ref } = await supabaseAdmin
+    .from("ingredient_reference")
+    .select("id")
+    .eq("inventory_item_id", inv.id)
+    .maybeSingle();
+  return { inventoryItemId: inv.id, referenceId: ref?.id ?? null, created: true };
+}

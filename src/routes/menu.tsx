@@ -39,6 +39,7 @@ type MenuRecipe = {
   image_url: string | null;
   cost_per_serving: number | null;
   menu_price: number | null;
+  selling_price_per_person: number | null;
   is_standard: boolean;
   is_premium: boolean;
   is_vegetarian: boolean | null;
@@ -70,8 +71,9 @@ function detectMeat(r: Pick<MenuRecipe, "name" | "description" | "is_vegetarian"
   return null;
 }
 
-function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving">) {
+function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving" | "selling_price_per_person">) {
   if (r.menu_price != null && Number(r.menu_price) > 0) return Number(r.menu_price);
+  if (r.selling_price_per_person != null && Number(r.selling_price_per_person) > 0) return Number(r.selling_price_per_person);
   return Number(r.cost_per_serving || 0) * MARKUP;
 }
 
@@ -95,7 +97,7 @@ function PublicMenuPage() {
       const { data } = await (supabase as any)
         .from("recipes")
         .select(
-          "id, name, description, category, image_url, cost_per_serving, menu_price, is_standard, is_premium, is_vegetarian, is_vegan, is_gluten_free",
+          "id, name, description, category, image_url, cost_per_serving, menu_price, selling_price_per_person, is_standard, is_premium, is_vegetarian, is_vegan, is_gluten_free",
         )
         .eq("active", true)
         .order("name");
