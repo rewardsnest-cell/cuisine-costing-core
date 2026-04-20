@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, ChefHat, Check } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
+import { useServerFn } from "@tanstack/react-start";
+import { generateRecipePhoto, generateRecipeSocialPhoto } from "@/lib/server/generate-recipe-photos";
 
 type IngredientRow = {
   id?: string; // existing recipe_ingredients row id
@@ -156,6 +158,12 @@ export function RecipeForm({
     initial.ingredients.length ? initial.ingredients : [emptyIngredient()],
   );
   const [inventory, setInventory] = useState<InvItem[]>([]);
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+  const [socialUrl, setSocialUrl] = useState<string | null>(null);
+  const [genHero, setGenHero] = useState(false);
+  const [genSocial, setGenSocial] = useState(false);
+  const genHeroFn = useServerFn(generateRecipePhoto);
+  const genSocialFn = useServerFn(generateRecipeSocialPhoto);
 
   useEffect(() => {
     (async () => {
@@ -166,6 +174,49 @@ export function RecipeForm({
       setInventory((data ?? []) as InvItem[]);
     })();
   }, []);
+
+  useEffect(() => {
+    if (mode !== "edit" || !recipeId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("recipes")
+        .select("image_url,social_image_url")
+        .eq("id", recipeId)
+        .maybeSingle();
+      if (data) {
+        setHeroUrl((data as any).image_url ?? null);
+        setSocialUrl((data as any).social_image_url ?? null);
+      }
+    })();
+  }, [mode, recipeId]);
+
+  const handleGenerateHero = async () => {
+    if (!recipeId) return;
+    setGenHero(true);
+    try {
+      const out = await genHeroFn({ data: { recipeId } });
+      setHeroUrl(out.url);
+      toast.success("Hero photo generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate hero photo");
+    } finally {
+      setGenHero(false);
+    }
+  };
+
+  const handleGenerateSocial = async () => {
+    if (!recipeId) return;
+    setGenSocial(true);
+    try {
+      const out = await genSocialFn({ data: { recipeId } });
+      setSocialUrl(out.url);
+      toast.success("Social image generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate social image");
+    } finally {
+      setGenSocial(false);
+    }
+  };
 
   const updateIngredient = (idx: number, patch: Partial<IngredientRow>) => {
     setIngredients((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
@@ -285,23 +336,77 @@ export function RecipeForm({
           </h1>
         </div>
         {mode === "edit" && recipeId && (
-          <FlippGenerateButton
-            target={{ kind: "recipe", id: recipeId, column: "coupon_image_url" }}
-            templateKey="recipe-coupon"
-            label="Generate Social Image with Coupon"
-            values={[
-              { name: "title", value: form.name || null },
-              { name: "subtitle", value: form.description || form.category || null },
-              { name: "description", value: form.description || null },
-              { name: "category", value: form.category || null },
-              { name: "cuisine", value: form.cuisine || null },
-              { name: "coupon_text", value: null },
-              { name: "valid_until", value: null },
-            ]}
-            onGenerated={() => toast.success("Coupon image saved to this recipe")}
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateHero}
+              disabled={genHero}
+              className="gap-2"
+            >
+              {genHero ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {heroUrl ? "Regenerate AI hero" : "Generate AI hero"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateSocial}
+              disabled={genSocial}
+              className="gap-2"
+            >
+              {genSocial ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+              {socialUrl ? "Regenerate AI social" : "Generate AI social"}
+            </Button>
+            <FlippGenerateButton
+              target={{ kind: "recipe", id: recipeId, column: "coupon_image_url" }}
+              templateKey="recipe-coupon"
+              label="Generate Social Image with Coupon"
+              values={[
+                { name: "title", value: form.name || null },
+                { name: "subtitle", value: form.description || form.category || null },
+                { name: "description", value: form.description || null },
+                { name: "category", value: form.category || null },
+                { name: "cuisine", value: form.cuisine || null },
+                { name: "coupon_text", value: null },
+                { name: "valid_until", value: null },
+              ]}
+              onGenerated={() => toast.success("Coupon image saved to this recipe")}
+            />
+          </div>
         )}
       </div>
+
+      {mode === "edit" && recipeId && (heroUrl || socialUrl) && (
+        <Card className="shadow-warm border-border/50">
+          <CardContent className="p-5">
+            <h2 className="font-display text-lg font-semibold mb-3">AI-generated photos</h2>
+            <div className="grid grid-cols-2 gap-4 max-w-md">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Hero</p>
+                {heroUrl ? (
+                  <img src={heroUrl} alt={`${form.name} hero`} className="w-full aspect-square object-cover rounded-md border" />
+                ) : (
+                  <div className="w-full aspect-square rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                    No hero yet
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Social</p>
+                {socialUrl ? (
+                  <img src={socialUrl} alt={`${form.name} social`} className="w-full aspect-square object-cover rounded-md border" />
+                ) : (
+                  <div className="w-full aspect-square rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                    No social yet
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Basics */}
       <Card className="shadow-warm border-border/50">
