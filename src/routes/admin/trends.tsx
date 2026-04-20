@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingUp, TrendingDown, Minus, Search, LineChart as LineChartIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/trends")({
   component: TrendsPage,
 });
@@ -95,6 +97,7 @@ function TrendsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/trends" />
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

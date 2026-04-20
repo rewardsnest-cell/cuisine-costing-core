@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/events")({
   head: () => ({ meta: [{ title: "Events — VPS Finest Admin" }] }),
   component: EventsPage,
@@ -485,6 +487,7 @@ function EventsPage() {
 
   return (
     <div className="space-y-4">
+      <PageHelpCard route="/admin/events" />
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

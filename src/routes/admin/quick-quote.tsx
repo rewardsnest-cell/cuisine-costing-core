@@ -15,6 +15,8 @@ import { MENU_STYLES, SERVICE_STYLES, TIERS, ALLERGIES, PROTEINS } from "@/compo
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
 import { roundUpToNext5 } from "@/lib/utils";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/quick-quote")({
   component: QuickQuotePage,
 });
@@ -144,6 +146,7 @@ function QuickQuotePage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
+      <PageHelpCard route="/admin/quick-quote" />
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-warm flex items-center justify-center">
           <Zap className="w-5 h-5 text-primary-foreground" />

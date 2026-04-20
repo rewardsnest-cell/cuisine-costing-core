@@ -22,6 +22,8 @@ import {
 import { downloadFile } from "@/lib/admin/project-audit";
 import { LoadingState } from "@/components/LoadingState";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/intelligence")({
   head: () => ({
     meta: [{ title: "Project Intelligence — Admin" }],
@@ -32,6 +34,7 @@ export const Route = createFileRoute("/admin/intelligence")({
 function IntelligencePage() {
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/intelligence" />
       <div>
         <h1 className="font-display text-2xl font-bold">Project Intelligence</h1>
         <p className="text-sm text-muted-foreground">

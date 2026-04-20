@@ -16,6 +16,8 @@ import {
 import { toast } from "sonner";
 import { UserCog, Plus, Pencil, Search, BadgeCheck, BadgeX } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/employees")({
   head: () => ({ meta: [{ title: "Employees — VPS Finest Admin" }] }),
   component: EmployeesPage,
@@ -135,6 +137,7 @@ function EmployeesPage() {
 
   return (
     <div className="space-y-4">
+      <PageHelpCard route="/admin/employees" />
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

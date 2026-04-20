@@ -11,6 +11,8 @@ import { Download, Save, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateNewsletterGuidePDF, type GuideRecipe } from "@/lib/newsletter-guide-pdf";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 interface RecipeRow {
   id: string;
   name: string;
@@ -174,6 +176,7 @@ function NewsletterGuidePage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/newsletter-guide" />
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground">Newsletter Recipe Guide</h2>
         <p className="text-muted-foreground text-sm mt-1">

@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/receipts")({
   component: ReceiptsPage,
 });
@@ -230,6 +232,7 @@ function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/receipts" />
       {/* Upload zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}

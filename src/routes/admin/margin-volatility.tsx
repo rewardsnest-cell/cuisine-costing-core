@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingState } from "@/components/LoadingState";
 import { TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/margin-volatility")({
   head: () => ({
     meta: [
@@ -84,6 +86,7 @@ function MarginVolatilityPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/margin-volatility" />
       <div>
         <h1 className="font-display text-3xl font-bold flex items-center gap-2">
           <TrendingUp className="w-7 h-7 text-primary" /> Margin & Volatility

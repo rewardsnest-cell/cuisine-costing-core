@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "sonner";
 import { Building2, Plus, ExternalLink, FileSearch, Pencil, Globe, Phone, Mail, Trophy, X as XIcon, Clock } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/competitors")({
   head: () => ({
     meta: [
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/admin/competitors")({
     const router = useRouter();
     return (
       <div className="p-8 text-center space-y-3">
+      <PageHelpCard route="/admin/competitors" />
         <p className="text-destructive">Couldn't load competitors: {error.message}</p>
         <Button onClick={() => { router.invalidate(); reset(); }}>Retry</Button>
       </div>

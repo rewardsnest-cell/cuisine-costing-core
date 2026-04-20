@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, MapPin, Users, ExternalLink, CalendarDays, Filter } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/schedule")({
   head: () => ({ meta: [{ title: "Schedule — VPS Finest Admin" }] }),
   component: SchedulePage,
@@ -191,6 +193,7 @@ function SchedulePage() {
 
   return (
     <div className="space-y-4">
+      <PageHelpCard route="/admin/schedule" />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={goPrev}><ChevronLeft className="w-4 h-4" /></Button>

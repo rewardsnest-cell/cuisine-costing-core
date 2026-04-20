@@ -22,6 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { BulkCompetitorUpload } from "@/components/competitor/BulkCompetitorUpload";
 import { roundUpToNext5 } from "@/lib/utils";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/quotes")({
   component: QuotesPage,
 });
@@ -482,6 +484,7 @@ function QuotesPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/quotes" />
       <Card className="shadow-warm border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">

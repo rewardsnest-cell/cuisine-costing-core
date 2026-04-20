@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { getIntegrationsStatus, testFlipp, testLovableAI, testFirecrawl, setIntegrationConfig } from "@/lib/server-fns/integrations-status.functions";
 import { getFlippAttribution } from "@/lib/server-fns/flipp-attribution.functions";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/integrations")({
   head: () => ({ meta: [{ title: "API Integrations — Admin" }] }),
   component: IntegrationsPage,
@@ -60,6 +62,7 @@ function IntegrationsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/integrations" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">API Integrations</h1>

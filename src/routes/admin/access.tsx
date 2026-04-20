@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Mail, RotateCw, Trash2, UserPlus, Search, ShieldCheck, History } from "lucide-react";
 import { SECTION_KEYS, SECTION_LABELS, ROLE_KEYS, type SectionKey, type RoleKey } from "@/lib/access/sections";
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 import {
   inviteEmployee,
   resendInvite,
@@ -162,6 +164,7 @@ function AccessControlPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <PageHelpCard route="/admin/access" />
       <div>
         <h1 className="font-display text-2xl font-bold flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-primary" /> Access Control

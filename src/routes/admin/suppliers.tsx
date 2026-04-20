@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Search, Truck, Globe, Phone, Smartphone, Tag, ChevronRight, Pencil, X, Check } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/suppliers")({
   component: SuppliersPage,
 });
@@ -131,6 +133,7 @@ function SuppliersPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/suppliers" />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

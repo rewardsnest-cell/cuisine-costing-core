@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Download, Users, Check, AlertTriangle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/timesheet")({
   component: TimesheetPage,
 });
@@ -227,6 +229,7 @@ function TimesheetPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/timesheet" />
       <div>
         <h1 className="font-display text-2xl font-bold flex items-center gap-2">
           <Clock className="w-5 h-5" /> Timesheet

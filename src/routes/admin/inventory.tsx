@@ -19,6 +19,8 @@ import { PriceSparkline } from "@/components/PriceSparkline";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { FredPullPanel } from "@/components/admin/FredPullPanel";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 type AdjustmentRow = { id: string; previous_stock: number; new_stock: number; change_amount: number; reason: string | null; source: string; created_at: string; user_id: string | null };
 
 const SORT_KEYS = ["name", "vendor", "current_stock", "unit", "par_level", "average_cost_per_unit", "last_receipt_cost", "status"] as const;
@@ -394,6 +396,7 @@ function InventoryPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/inventory" />
       <FredPullPanel onApplied={loadItems} />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">

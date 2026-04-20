@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { UnlinkedIngredientsReview } from "@/components/recipes/UnlinkedIngredientsReview";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/ingredients/review-unlinked")({
   head: () => ({
     meta: [
@@ -17,6 +19,7 @@ export const Route = createFileRoute("/admin/ingredients/review-unlinked")({
 function ReviewUnlinkedPage() {
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-5xl mx-auto">
+      <PageHelpCard route="/admin/ingredients/review-unlinked" />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">

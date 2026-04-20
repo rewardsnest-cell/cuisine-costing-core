@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Receipt, FileSearch, Tag, ExternalLink, ImageIcon, Inbox } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/uploads")({
   head: () => ({
     meta: [
@@ -130,6 +132,7 @@ function UploadsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/uploads" />
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Uploads</h1>
         <p className="text-sm text-muted-foreground mt-1">All receipts, competitor quotes, and sale flyers in one feed.</p>

@@ -28,6 +28,8 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/competitor-quotes/")({
   head: () => ({
     meta: [
@@ -282,6 +284,7 @@ function CompetitorQuotesPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/competitor-quotes" />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Competitor Quotes</h1>

@@ -10,6 +10,8 @@ import { Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer,
 import { toast } from "sonner";
 import { TrendingUp, FileSearch } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/competitor-trends")({
   head: () => ({
     meta: [
@@ -127,6 +129,7 @@ function CompetitorTrendsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/competitor-trends" />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">

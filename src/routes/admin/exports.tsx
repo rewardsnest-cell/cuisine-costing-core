@@ -15,6 +15,8 @@ import {
 import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
 import jsPDF from "jspdf";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/exports")({
   head: () => ({
     meta: [
@@ -271,6 +273,7 @@ function ExportsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <PageHelpCard route="/admin/exports" />
       <header>
         <h1 className="font-display text-2xl font-bold text-foreground">
           Exports & Reports

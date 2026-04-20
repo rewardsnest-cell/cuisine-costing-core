@@ -9,6 +9,8 @@ import { Sparkles, ArrowLeft, Link2, Plus, X, RefreshCw, CheckCircle2, Loader2, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 const COMMON_UNITS = ["each", "lb", "oz", "g", "kg", "ml", "l", "cup", "tbsp", "tsp", "clove", "bunch", "head", "slice", "piece"];
 
 export const Route = createFileRoute("/admin/auto-link-ingredients")({
@@ -249,6 +251,7 @@ function AutoLink() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/auto-link-ingredients" />
       <div className="flex items-center gap-3">
         <Link to="/admin">
           <Button variant="ghost" size="sm" className="gap-1.5">
