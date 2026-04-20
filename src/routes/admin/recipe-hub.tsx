@@ -52,12 +52,24 @@ function RecipeHub() {
   const [kind, setKind] = useState<Kind>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
-  const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number }>({
-    running: false, done: 0, total: 0, failed: 0,
+  const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number; queue: string[] }>({
+    running: false, done: 0, total: 0, failed: 0, queue: [],
   });
   const cancelRef = useRef(false);
+  const runningRef = useRef(false);
   const askConfirm = useConfirm();
   const genPhoto = useServerFn(generateRecipePhoto);
+
+  // Warn on tab close while bulk is running
+  useEffect(() => {
+    if (!bulkGen.running) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [bulkGen.running]);
 
   const toggleSelect = (id: string) =>
     setSelectedIds((s) => {
