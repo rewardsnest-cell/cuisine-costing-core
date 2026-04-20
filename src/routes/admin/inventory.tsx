@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, stripSearchParams } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft, ArrowUpDown, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Search, Trash2, Package, ChevronDown, ChevronUp, Pencil, Download, Upload, History, Sparkles, ArrowRightLeft, ArrowUpDown, X, ListPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, SaleBadge } from "@/lib/use-active-sales";
 import { PriceSparkline } from "@/components/PriceSparkline";
@@ -82,6 +83,58 @@ function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkUnit, setBulkUnit] = useState("each");
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkSupplier, setBulkSupplier] = useState<string>("__none__");
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const bulkParsedCount = useMemo(
+    () => bulkText.split("\n").map((l) => l.split(",")[0]?.trim()).filter(Boolean).length,
+    [bulkText],
+  );
+
+  const handleBulkAdd = async () => {
+    const lines = bulkText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return;
+    setBulkBusy(true);
+    const supplierId = bulkSupplier === "__none__" ? null : bulkSupplier;
+    const rows: any[] = [];
+    for (const line of lines) {
+      // Optional CSV: name, unit, category, cost
+      const parts = line.split(",").map((p) => p.trim());
+      const name = parts[0];
+      if (!name) continue;
+      const unit = parts[1] || bulkUnit || "each";
+      const category = parts[2] || bulkCategory || null;
+      const cost = parts[3] != null ? Number(parts[3]) || 0 : 0;
+      rows.push({
+        name,
+        unit,
+        category: category || null,
+        current_stock: 0,
+        par_level: 0,
+        average_cost_per_unit: cost,
+        last_receipt_cost: cost > 0 ? cost : null,
+        supplier_id: supplierId,
+        created_source: "bulk",
+      });
+    }
+    const { data, error } = await supabase.from("inventory_items").insert(rows).select("id");
+    setBulkBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Added ${data?.length ?? rows.length} inventory item${rows.length === 1 ? "" : "s"}`);
+    setBulkText("");
+    setBulkOpen(false);
+    loadItems();
+  };
   const [expanded, setExpanded] = useState<string | null>(null);
   const [history, setHistory] = useState<Record<string, PurchaseRow[]>>({});
   const [form, setForm] = useState({ name: "", unit: "each", par_level: "0", category: "", current_stock: "0", average_cost_per_unit: "0", supplier_id: "" });
