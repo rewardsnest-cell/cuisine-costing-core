@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 
 export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
@@ -117,6 +118,8 @@ function UserManagementPage() {
         <h2 className="font-display text-2xl font-bold text-foreground">User Management</h2>
         <p className="text-muted-foreground text-sm mt-1">Manage user accounts, admin requests, and access.</p>
       </div>
+
+      <CreateTestAdminButton />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
