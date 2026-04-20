@@ -1,35 +1,40 @@
 
+User wants a "Generate all missing images with AI" action — a one-click bulk generator for every recipe lacking `image_url`, scoped to the merged Recipe Hub list.
 
-The user wants to import the recipes (typo: "residues" → "recipes") from vpsfinest.com into the system's `recipes` table.
+Combining with the prior approved plan (merge `/admin/recipes` into `/admin/recipe-hub`):
 
 ## Plan
 
-### 1. Scrape recipes from vpsfinest.com
-Use Firecrawl (already-available connector) server-side to:
-- **Map** `https://www.vpsfinest.com` to discover all recipe URLs (filter for `/recipes/*` or similar paths).
-- **Batch scrape** each recipe page as markdown + structured JSON, asking the model to extract: `name`, `description`, `category`, `cuisine`, `prep_time`, `cook_time`, `servings`, `instructions`, `image_url`, `allergens`, `is_vegan`, `is_vegetarian`, `is_gluten_free`, and an `ingredients` array (`name`, `quantity`, `unit`).
+### 1. Merge `/admin/recipes` → `/admin/recipe-hub` (as previously planned)
+- Hub list absorbs operational filters (Active/Off, Food/Cocktail), "Recompute all costs" button, cost column.
+- `/admin/recipe-hub/$id` becomes tabbed: "Content & Monetization" (default) + "Recipe & Cost" (embeds `RecipeForm`).
+- Redirects: `/admin/recipes` → `/admin/recipe-hub`; `/admin/recipes/$id/edit` → `/admin/recipe-hub/$id?tab=recipe`.
+- Sidebar: remove "All Recipes", rename "Recipe Hub" → "Recipes".
 
-### 2. Build an admin import page
-New route `src/routes/admin/import-recipes.tsx`:
-- "Scan vpsfinest.com" button → calls a server function that runs the Firecrawl map + scrape and returns a preview list (no DB writes yet).
-- Preview table showing each found recipe with checkboxes, editable name, and detected ingredient count.
-- "Import selected" button → inserts into `recipes` + `recipe_ingredients` (skipping duplicates by name match), then recomputes `total_cost` / `cost_per_serving` via the existing `recipe-costing.ts` helper where ingredients link to inventory.
+### 2. New "Generate all missing images" action
+- **Header button** on `/admin/recipe-hub` next to "New recipe": **"Generate missing photos (N)"** where N = count of recipes with no `image_url` across the *entire* list (not just visible/selected).
+- Disabled when N = 0. Confirmation dialog before running ("This will use AI credits and may take ~Ns").
+- Progress bar showing `done / total · X failed`, cancellable.
+- Reuses existing `generateRecipePhoto` server fn from `src/lib/server/generate-recipe-photos.ts` — sequential calls (1 at a time) to respect AI gateway rate limits, 500ms delay between calls.
+- On each success: update row's `image_url` in local state so the thumbnail appears live.
+- Toast summary at end: "Generated X photos, Y failed".
+- Also add a smaller **"Social photos (M)"** secondary action using existing `generateRecipeSocialPhoto` for recipes missing `social_image_url` (only if the column is shown / opt-in via filter).
 
-### 3. Server function
-`src/lib/server/import-vpsfinest-recipes.ts` exposes two `createServerFn` endpoints:
-- `scanRecipes()` — Firecrawl map + scrape, returns parsed array. Read-only, no DB writes.
-- `importRecipes(selected[])` — inserts into Supabase using the service role client (`client.server.ts`).
+### 3. Filter chip
+- Add "Missing photo" to existing filter chips so users can preview which recipes will be processed.
 
-### 4. Connector setup
-Firecrawl connector must be linked to this project before the server function works. The first run will prompt to connect.
+### Files touched
+- **Modify**: `src/routes/admin/recipe-hub.tsx` (merge features + new bulk-generate header action + filter), `src/routes/admin/recipe-hub.$id.tsx` (tabs + embed RecipeForm), `src/routes/admin.tsx` (sidebar), `src/lib/admin/project-audit.ts` (path rename).
+- **Convert to redirects**: `src/routes/admin/recipes.tsx`, `src/routes/admin/recipes.$id.edit.tsx`.
+- **Reuse as-is**: `generateRecipePhoto`, `generateRecipeSocialPhoto`, `RecipeForm`, `RecipeBulkActions`.
 
-### Out of scope (ask if needed)
-- Image hosting: I'll store the original vpsfinest.com image URLs in `recipes.image_url`. If you want them re-uploaded to your storage bucket, say so.
-- Inventory linking: ingredients will be created as free-text on `recipe_ingredients.name`. Linking to existing `inventory_items` will need a separate review pass (the existing `UnlinkedIngredientsReview` component already handles this).
-- Re-import / sync: this is a one-shot importer. Re-running will skip recipes whose name already exists.
+### Risks & mitigations
+| Risk | Mitigation |
+|---|---|
+| AI rate limits (429) on large batches | Sequential calls + 500ms delay; surface failed count, allow re-run (will skip already-photoed) |
+| Long-running batch if 50+ recipes | Live progress + cancel button; user can stop anytime |
+| Cost surprise | Confirmation dialog states count + that AI credits are consumed |
+| Partial completion crash | Each recipe is independent; failures captured per-row, not fatal |
 
-### Technical notes
-- Route uses TanStack file-based routing (`admin.import-recipes.tsx`).
-- Firecrawl called via the Lovable connector gateway (`https://connector-gateway.lovable.dev/firecrawl/...`) from a server function — never client-side.
-- Inserts respect existing RLS (admin auth required, already enforced by the `/admin` layout).
-
+### Out of scope
+- No DB changes. No new server function (existing `generateRecipePhoto` already handles single recipe). No parallel/queue infrastructure.
