@@ -388,9 +388,23 @@ function ReceiptsPage() {
                   </tbody>
                 </table>
                 </div>
-                <Button variant="outline" size="sm" onClick={addLineItem} className="gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Add line item
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={addLineItem} className="gap-1.5">
+                    <Plus className="w-3.5 h-3.5" /> Add line item
+                  </Button>
+                  {editedLineItems.some((it) => !it.matched_inventory_id && (it.item_name || "").trim().length > 0) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addAllUnmatchedToInventory}
+                      disabled={bulkAdding}
+                      className="gap-1.5"
+                    >
+                      {bulkAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackagePlus className="w-3.5 h-3.5" />}
+                      Add all unmatched to inventory
+                    </Button>
+                  )}
+                </div>
                 <div className="flex justify-end gap-3 pt-2 border-t">
                   <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
                   <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
