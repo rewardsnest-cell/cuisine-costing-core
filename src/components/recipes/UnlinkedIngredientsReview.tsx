@@ -85,6 +85,7 @@ export function UnlinkedIngredientsReview() {
   const [pickFor, setPickFor] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, failed: 0 });
   // Per-row draft for category/supplier popover
   const [draft, setDraft] = useState<Record<string, { category: string; supplier_id: string }>>({});
   // Bulk defaults
