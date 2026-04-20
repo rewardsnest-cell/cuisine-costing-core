@@ -890,6 +890,45 @@ function IngredientReferencePage() {
           <Button
             variant="outline"
             size="sm"
+            disabled={loading || rows.filter((r) => !r.inventory_item_id).length === 0}
+            onClick={async () => {
+              const unlinked = rows.filter((r) => !r.inventory_item_id);
+              if (unlinked.length === 0) {
+                toast.info("All references are already linked to inventory");
+                return;
+              }
+              if (!confirm(`Create ${unlinked.length} new inventory item${unlinked.length === 1 ? "" : "s"} from unlinked references?`)) return;
+              const inserts = unlinked.map((r) => ({
+                name: r.canonical_name,
+                unit: r.default_unit || "each",
+                category: r.category ?? null,
+                created_source: "ingredient_reference",
+              }));
+              const { data: created, error } = await supabase
+                .from("inventory_items")
+                .insert(inserts)
+                .select("id,name");
+              if (error) {
+                toast.error(error.message);
+                return;
+              }
+              const list = (created ?? []) as { id: string; name: string }[];
+              for (let i = 0; i < unlinked.length && i < list.length; i++) {
+                await supabase
+                  .from("ingredient_reference")
+                  .update({ inventory_item_id: list[i].id })
+                  .eq("id", unlinked[i].id);
+              }
+              toast.success(`Created ${list.length} inventory item${list.length === 1 ? "" : "s"} and linked them`);
+              await load();
+            }}
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add all unlinked to inventory
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleBulkScanAll}
             disabled={bulkScanning || loading || rows.length === 0}
             title="Run pg_trgm matching for every reference and queue suggestions in the cache"
