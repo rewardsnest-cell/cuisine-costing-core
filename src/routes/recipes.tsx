@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 import { Input } from "@/components/ui/input";
-import { Search, Clock, Users, ChefHat } from "lucide-react";
+import { Search, Clock, Users, ChefHat, Heart, ShoppingBasket, Sparkles } from "lucide-react";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 type Recipe = {
   id: string;
@@ -21,10 +23,15 @@ type Recipe = {
   prep_time: number | null;
   cook_time: number | null;
   servings: number | null;
+  serving_size: string | null;
   skill_level: string | null;
   is_vegetarian: boolean | null;
   is_vegan: boolean | null;
   is_gluten_free: boolean | null;
+  selling_price_per_person: number | null;
+  calculated_cost_per_person: number | null;
+  is_copycat: boolean | null;
+  copycat_source: string | null;
 };
 
 type Ingredient = { recipe_id: string; name: string };
