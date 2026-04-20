@@ -100,7 +100,7 @@ export const generateRecipePhoto = createServerFn({ method: "POST" })
     if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
     const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path);
-    const publicUrl = `${pub.publicUrl}?v=${Date.now()}`;
+    const publicUrl = pub.publicUrl;
 
     const { error: updErr } = await supabaseAdmin
       .from("recipes")
