@@ -475,7 +475,7 @@ function PublicMenuPage() {
           <div className="space-y-12">
             {grouped.map(([category, items]) => (
               <section key={category}>
-                <h2 className="font-display text-2xl font-semibold mb-5 border-b border-border pb-2">{category}</h2>
+                <h2 className="font-display text-2xl font-bold text-foreground mb-5 border-b border-border pb-2">{category}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {items.map((r) => {
                     const price = resolvedPrice(r);
@@ -485,14 +485,14 @@ function PublicMenuPage() {
                       <Card
                         key={r.id}
                         id={`recipe-${r.id}`}
-                        className={`shadow-warm border-border/50 overflow-hidden flex flex-col transition-all scroll-mt-28 rounded-xl ${
+                        className={`group border-border/60 overflow-hidden flex flex-col transition-all duration-300 scroll-mt-28 rounded-xl bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
                           inTray ? "ring-2 ring-primary/40 border-primary/30" : ""
                         } ${highlightId === r.id ? "animate-anchor-pulse" : ""}`}
                       >
                         <Link
                           to="/recipes/$id"
                           params={{ id: r.id }}
-                          className="block aspect-video bg-muted relative overflow-hidden group"
+                          className="block aspect-video bg-muted relative overflow-hidden"
                           aria-label={`View ${r.name}`}
                         >
                           {r.image_url ? (
@@ -500,11 +500,12 @@ function PublicMenuPage() {
                               src={r.image_url}
                               alt={r.name}
                               loading="lazy"
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                           ) : (
                             <RecipePlaceholder />
                           )}
+                          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
                           <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                             {r.is_premium && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/90 text-gold-foreground text-[10px] font-semibold uppercase tracking-wide">
@@ -523,14 +524,14 @@ function PublicMenuPage() {
                             </div>
                           )}
                         </Link>
-                        <CardContent className="p-4 flex-1 flex flex-col">
-                          <div className="flex items-start justify-between gap-2">
-                            <Link to="/recipes/$id" params={{ id: r.id }} className="font-display text-lg font-semibold leading-tight hover:text-primary transition-colors">{r.name}</Link>
+                        <CardContent className="p-5 flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-3">
+                            <Link to="/recipes/$id" params={{ id: r.id }} className="font-display text-lg font-bold leading-tight text-foreground group-hover:text-accent transition-colors">{r.name}</Link>
                             <div className="text-right shrink-0">
-                              <div className="font-display text-lg font-bold text-gradient-gold">
+                              <div className="font-display text-xl font-bold text-foreground">
                                 ${price.toFixed(2)}
                               </div>
-                              <div className="text-[10px] text-muted-foreground">per person</div>
+                              <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">per person</div>
                             </div>
                           </div>
                           {r.description && (
@@ -563,7 +564,7 @@ function PublicMenuPage() {
                                     cost_per_serving: Number(r.cost_per_serving || 0),
                                   })
                                 }
-                                className="w-full gap-2 bg-gradient-warm text-primary-foreground"
+                                className="w-full gap-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity tracking-wide font-semibold"
                               >
                                 <Plus className="w-3.5 h-3.5" /> Add to Selections
                               </Button>
@@ -604,12 +605,10 @@ function PublicMenuPage() {
           </div>
         )}
 
-        <div className="mt-16 text-center">
-          <p className="text-muted-foreground mb-4">Ready to plan your event?</p>
-          <Link to="/catering/quote">
-            <Button size="lg" className="bg-gradient-warm text-primary-foreground">
-              Get a Custom Quote
-            </Button>
+        <div className="mt-20 text-center">
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-6">Ready to plan your event?</p>
+          <Link to="/catering/quote" className="inline-flex items-center justify-center rounded-sm bg-primary px-8 py-3 text-sm font-semibold tracking-wide text-primary-foreground hover:opacity-90 transition-opacity">
+            Get a Custom Quote
           </Link>
         </div>
       </div>
