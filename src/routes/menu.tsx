@@ -475,7 +475,7 @@ function PublicMenuPage() {
           <div className="space-y-12">
             {grouped.map(([category, items]) => (
               <section key={category}>
-                <h2 className="font-display text-2xl font-semibold mb-5 border-b border-border pb-2">{category}</h2>
+                <h2 className="font-display text-2xl font-bold text-foreground mb-5 border-b border-border pb-2">{category}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {items.map((r) => {
                     const price = resolvedPrice(r);
@@ -564,7 +564,7 @@ function PublicMenuPage() {
                                     cost_per_serving: Number(r.cost_per_serving || 0),
                                   })
                                 }
-                                className="w-full gap-2 bg-gradient-warm text-primary-foreground"
+                                className="w-full gap-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity tracking-wide font-semibold"
                               >
                                 <Plus className="w-3.5 h-3.5" /> Add to Selections
                               </Button>
@@ -605,12 +605,10 @@ function PublicMenuPage() {
           </div>
         )}
 
-        <div className="mt-16 text-center">
-          <p className="text-muted-foreground mb-4">Ready to plan your event?</p>
-          <Link to="/catering/quote">
-            <Button size="lg" className="bg-gradient-warm text-primary-foreground">
-              Get a Custom Quote
-            </Button>
+        <div className="mt-20 text-center">
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-6">Ready to plan your event?</p>
+          <Link to="/catering/quote" className="inline-flex items-center justify-center rounded-sm bg-primary px-8 py-3 text-sm font-semibold tracking-wide text-primary-foreground hover:opacity-90 transition-opacity">
+            Get a Custom Quote
           </Link>
         </div>
       </div>
