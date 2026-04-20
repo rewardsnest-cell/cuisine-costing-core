@@ -36,7 +36,8 @@ type Recipe = {
   copycat_source: string | null;
 };
 
-type Ingredient = { recipe_id: string; name: string };
+type Ingredient = { recipe_id: string; name: string; inventory_item_id: string | null; reference_id: string | null };
+type Coverage = { linked: number; total: number };
 
 const USE_CASES = ["All", "Home", "Party", "Wedding", "Holiday", "Catering"] as const;
 const DIETARY = ["Vegetarian", "Vegan", "Gluten-Free"] as const;
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/recipes")({
 function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<Map<string, string[]>>(new Map());
+  const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
   const [loading, setLoading] = useState(true);
   const [kind, setKind] = useState<RecipeKind>("food");
   const [useCase, setUseCase] = useState<UseCaseFilter>("All");
@@ -81,14 +83,20 @@ function RecipesPage() {
       if (list.length) {
         const { data: ings } = await (supabase as any)
           .from("recipe_ingredients")
-          .select("recipe_id, name")
+          .select("recipe_id, name, inventory_item_id, reference_id")
           .in("recipe_id", list.map((r) => r.id));
         const map = new Map<string, string[]>();
+        const cov = new Map<string, Coverage>();
         for (const i of (ings || []) as Ingredient[]) {
           if (!map.has(i.recipe_id)) map.set(i.recipe_id, []);
           map.get(i.recipe_id)!.push((i.name || "").toLowerCase());
+          const c = cov.get(i.recipe_id) || { linked: 0, total: 0 };
+          c.total += 1;
+          if (i.inventory_item_id || i.reference_id) c.linked += 1;
+          cov.set(i.recipe_id, c);
         }
         setIngredients(map);
+        setCoverage(cov);
       }
       setLoading(false);
     })();
@@ -333,28 +341,31 @@ function RecipesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-20">
             {visible.map((r) => {
               const total = (r.prep_time || 0) + (r.cook_time || 0);
               const price = Number(r.selling_price_per_person || 0);
               const perPersonCost = Number(r.calculated_cost_per_person || r.cost_per_serving || 0);
               const totalCost = Number(r.total_cost || (perPersonCost * (r.servings || 0)) || 0);
               const isFav = favorites.has(r.id);
+              const cov = coverage.get(r.id);
+              const fullyCosted = cov && cov.total > 0 && cov.linked === cov.total;
+              const partial = cov && cov.total > 0 && cov.linked > 0 && cov.linked < cov.total;
               return (
                 <div key={r.id} className="group block">
                   <Link to="/recipes/$id" params={{ id: r.id }} className="block">
-                    <div className="relative aspect-[4/3] overflow-hidden bg-muted rounded-md">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-muted rounded-md shadow-sm group-hover:shadow-md transition-shadow duration-500">
                       {r.image_url ? (
                         <img
                           src={r.image_url}
                           alt={r.name}
                           loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                         />
                       ) : (
                         <RecipePlaceholder />
                       )}
-                      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
+                      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-500" />
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                         {r.is_copycat && (
                           <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
@@ -376,21 +387,21 @@ function RecipesPage() {
                       </button>
                     </div>
                   </Link>
-                  <div className="pt-6 text-center">
+                  <div className="pt-7 text-center">
                     {(r.category || r.cuisine) && (
-                      <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-3">
                         {[r.category, r.cuisine].filter(Boolean).join(" · ")}
                         {r.is_copycat && r.copycat_source && <span className="ml-2 normal-case tracking-normal">· inspired by {r.copycat_source}</span>}
                       </p>
                     )}
                     <Link to="/recipes/$id" params={{ id: r.id }}>
-                      <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                      <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-accent transition-colors duration-300">{r.name}</h3>
                     </Link>
                     {r.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed font-light">{r.description}</p>
+                      <p className="text-sm text-muted-foreground mt-3 line-clamp-2 max-w-xs mx-auto leading-relaxed font-light">{r.description}</p>
                     )}
                     {(total > 0 || r.servings || r.skill_level) && (
-                      <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
                         {total > 0 && (
                           <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{total}m</span>
                         )}
@@ -406,12 +417,27 @@ function RecipesPage() {
                       </div>
                     )}
                     {(totalCost > 0 || perPersonCost > 0) && (
-                      <p className="mt-3 text-xs text-muted-foreground">
+                      <p
+                        className="mt-4 text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5"
+                        title={
+                          cov
+                            ? `${cov.linked}/${cov.total} ingredients linked to inventory${fullyCosted ? "" : " — total may be incomplete"}`
+                            : undefined
+                        }
+                      >
                         {totalCost > 0 && (
                           <span className="font-medium text-foreground">${totalCost.toFixed(2)} total</span>
                         )}
-                        {totalCost > 0 && perPersonCost > 0 && <span className="mx-1.5">·</span>}
+                        {totalCost > 0 && perPersonCost > 0 && <span className="mx-1">·</span>}
                         {perPersonCost > 0 && <span>${perPersonCost.toFixed(2)} per person</span>}
+                        {cov && cov.total > 0 && (
+                          <span
+                            className={`ml-1 inline-flex items-center justify-center w-2 h-2 rounded-full ${
+                              fullyCosted ? "bg-success" : partial ? "bg-gold" : "bg-muted-foreground/40"
+                            }`}
+                            aria-label={`${cov.linked} of ${cov.total} ingredients priced`}
+                          />
+                        )}
                       </p>
                     )}
                     {price > 0 && (
@@ -419,18 +445,18 @@ function RecipesPage() {
                         ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">catering price / person</span>
                       </p>
                     )}
-                    <div className="mt-5 flex items-center justify-center gap-2">
+                    <div className="mt-6 flex items-center justify-center gap-2">
                       <Link
                         to="/recipes/$id"
                         params={{ id: r.id }}
-                        className="text-xs px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity tracking-wide font-semibold"
+                        className="text-xs px-5 py-2.5 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity tracking-wide font-semibold"
                       >
                         View recipe
                       </Link>
                       <button
                         type="button"
                         onClick={(e) => quickAddToShoppingList(r, e)}
-                        className="text-xs px-4 py-2 rounded-sm border border-foreground/30 text-foreground hover:bg-foreground hover:text-background transition-colors inline-flex items-center gap-1 font-semibold tracking-wide"
+                        className="text-xs px-5 py-2.5 rounded-sm border border-foreground/30 text-foreground hover:bg-foreground hover:text-background transition-colors inline-flex items-center gap-1 font-semibold tracking-wide"
                         aria-label={`Add ${r.name} ingredients to shopping list`}
                       >
                         <ShoppingBasket className="w-3 h-3" /> Add to list
