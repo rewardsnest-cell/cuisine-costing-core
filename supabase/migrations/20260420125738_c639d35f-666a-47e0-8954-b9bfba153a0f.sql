@@ -1,0 +1,2 @@
+UPDATE public.recipes SET image_url = split_part(image_url, '?', 1) WHERE image_url LIKE '%?v=%';
+UPDATE public.recipes SET social_image_url = split_part(social_image_url, '?', 1) WHERE social_image_url LIKE '%?v=%';
