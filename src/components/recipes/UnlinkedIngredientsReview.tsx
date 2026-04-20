@@ -85,6 +85,7 @@ export function UnlinkedIngredientsReview() {
   const [pickFor, setPickFor] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, failed: 0 });
   // Per-row draft for category/supplier popover
   const [draft, setDraft] = useState<Record<string, { category: string; supplier_id: string }>>({});
   // Bulk defaults
@@ -188,21 +189,41 @@ export function UnlinkedIngredientsReview() {
     if (unlinked.length === 0) return;
     setBulkBusy(true);
     setBulkOpen(false);
+    setBulkProgress({ done: 0, total: unlinked.length, failed: 0 });
     const supplierId = bulkSupplier === NONE ? null : bulkSupplier;
-    let created = 0;
-    let failed = 0;
+    const items = [...unlinked];
     const newItems: InvItem[] = [];
     const successIds: string[] = [];
-    for (const ing of unlinked) {
-      const item = await createAndLink(ing, { category: bulkCategory, supplier_id: supplierId });
-      if (item) {
-        created++;
-        newItems.push(item);
-        successIds.push(ing.id);
-      } else {
-        failed++;
+    const errors: string[] = [];
+    let done = 0;
+    let failed = 0;
+    const CONCURRENCY = 5;
+
+    // Worker pool — 5 in flight at a time
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < items.length) {
+        const idx = cursor++;
+        const ing = items[idx];
+        try {
+          const item = await createAndLink(ing, { category: bulkCategory, supplier_id: supplierId });
+          if (item) {
+            newItems.push(item);
+            successIds.push(ing.id);
+          } else {
+            failed++;
+            errors.push(ing.name);
+          }
+        } catch (e: any) {
+          failed++;
+          errors.push(`${ing.name}: ${e?.message ?? "error"}`);
+        }
+        done++;
+        setBulkProgress({ done, total: items.length, failed });
       }
-    }
+    };
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
     setBulkBusy(false);
     if (newItems.length) {
       setInventory((prev) =>
@@ -211,8 +232,13 @@ export function UnlinkedIngredientsReview() {
       const idSet = new Set(successIds);
       setUnlinked((rows) => rows.filter((r) => !idSet.has(r.id)));
     }
-    if (failed === 0) toast.success(`Added ${created} ingredient${created === 1 ? "" : "s"} to inventory`);
-    else toast.warning(`Added ${created}, ${failed} failed`);
+    const created = newItems.length;
+    if (failed === 0) {
+      toast.success(`Added ${created} ingredient${created === 1 ? "" : "s"} to inventory`);
+    } else {
+      toast.warning(`Added ${created}, ${failed} failed${errors.length ? ` — first: ${errors[0]}` : ""}`);
+      console.warn("[bulk add] failed items:", errors);
+    }
   };
 
   if (!loading && unlinked.length === 0) return null;
@@ -236,7 +262,9 @@ export function UnlinkedIngredientsReview() {
                     ) : (
                       <Plus className="w-3.5 h-3.5" />
                     )}
-                    Add all to inventory
+                    {bulkBusy
+                      ? `Adding ${bulkProgress.done}/${bulkProgress.total}${bulkProgress.failed ? ` · ${bulkProgress.failed} failed` : ""}`
+                      : "Add all to inventory"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-72 space-y-3">
