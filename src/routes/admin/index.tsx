@@ -12,6 +12,7 @@ import { CoverageBadges } from "@/components/admin/CoverageBadges";
 import { PriceAlertsBanner } from "@/components/admin/PriceAlertsBanner";
 import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart";
 import { PricingHealthWidget } from "@/components/admin/PricingHealthWidget";
+import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
