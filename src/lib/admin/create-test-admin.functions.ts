@@ -1,63 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 export const TEST_ADMIN_EMAIL = "test-admin@vpsfinest.com";
 export const TEST_ADMIN_PASSWORD = "AdminTest2026!";
 const TEST_ADMIN_NAME = "Test Admin";
 
-type AdminCheckInput = {
-  userId: string;
-  email?: string | null;
-};
-
-async function hasAdminRoleForUserId(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+async function ensureCallerIsAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
 
   if (error) {
-    throw new Error("Auth check failed");
+    throw new Error(`Auth check failed: ${error.message}`);
   }
 
-  return (data ?? []).some((row: { role: string }) => row.role === "admin");
-}
-
-async function ensureCallerIsAdmin({ userId, email }: AdminCheckInput) {
-  if (await hasAdminRoleForUserId(userId)) {
-    return;
+  if (!data) {
+    throw new Error("Forbidden: admin only");
   }
-
-  const normalizedEmail = email?.trim().toLowerCase();
-
-  if (normalizedEmail) {
-    const { data: matchingProfiles, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("user_id, email")
-      .ilike("email", normalizedEmail);
-
-    if (profileError) {
-      throw new Error("Auth check failed");
-    }
-
-    for (const profile of matchingProfiles ?? []) {
-      if (profile.user_id && (await hasAdminRoleForUserId(profile.user_id))) {
-        console.warn("[createTestAdminUser] Admin check used email fallback", {
-          authUserId: userId,
-          matchedAdminUserId: profile.user_id,
-          email: normalizedEmail,
-        });
-        return;
-      }
-    }
-  }
-
-  console.warn("[createTestAdminUser] Admin check failed", {
-    authUserId: userId,
-    email: normalizedEmail ?? null,
-  });
-  throw new Error("Forbidden: admin only");
 }
 
 /**
@@ -70,10 +36,7 @@ async function ensureCallerIsAdmin({ userId, email }: AdminCheckInput) {
 export const createTestAdminUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureCallerIsAdmin({
-      userId: context.userId,
-      email: typeof context.claims.email === "string" ? context.claims.email : null,
-    });
+    await ensureCallerIsAdmin(context.supabase, context.userId);
 
     let existingId: string | null = null;
     for (let page = 1; page <= 10; page++) {
