@@ -179,7 +179,7 @@ export const importVpsfinestRecipes = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const inserted: { id: string; name: string }[] = [];
+    const inserted: { id: string; name: string; autoLinked?: number; autoCreated?: number }[] = [];
     const skipped: { name: string; reason: string }[] = [];
 
     for (const r of data.recipes) {
