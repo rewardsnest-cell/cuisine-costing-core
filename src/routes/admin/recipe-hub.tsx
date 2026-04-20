@@ -52,12 +52,24 @@ function RecipeHub() {
   const [kind, setKind] = useState<Kind>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
-  const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number }>({
-    running: false, done: 0, total: 0, failed: 0,
+  const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number; queue: string[] }>({
+    running: false, done: 0, total: 0, failed: 0, queue: [],
   });
   const cancelRef = useRef(false);
+  const runningRef = useRef(false);
   const askConfirm = useConfirm();
   const genPhoto = useServerFn(generateRecipePhoto);
+
+  // Warn on tab close while bulk is running
+  useEffect(() => {
+    if (!bulkGen.running) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [bulkGen.running]);
 
   const toggleSelect = (id: string) =>
     setSelectedIds((s) => {
@@ -167,50 +179,120 @@ function RecipeHub() {
     }
   };
 
+  // ---- Bulk image generation: resilient runner ----
+  const STORAGE_KEY = "recipeHub.bulkPhotoQueue.v1";
+  const PER_CALL_TIMEOUT_MS = 60_000;
+
+  const persistQueue = (queue: string[], done: number, failed: number, total: number) => {
+    try {
+      if (queue.length === 0 && !runningRef.current) {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } else {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ queue, done, failed, total }));
+      }
+    } catch {}
+  };
+
+  const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+    new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timeout")), ms);
+      p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+
+  const runQueue = async (initialQueue: string[], initialDone = 0, initialFailed = 0, initialTotal?: number) => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    cancelRef.current = false;
+    const total = initialTotal ?? initialQueue.length + initialDone + initialFailed;
+    let queue = [...initialQueue];
+    let done = initialDone;
+    let failed = initialFailed;
+    setBulkGen({ running: true, done, total, failed, queue });
+    persistQueue(queue, done, failed, total);
+
+    while (queue.length > 0) {
+      if (cancelRef.current) break;
+      const id = queue[0];
+      let attempt = 0;
+      let success = false;
+      while (attempt < 3 && !cancelRef.current) {
+        try {
+          const out: any = await withTimeout(genPhoto({ data: { recipeId: id } }), PER_CALL_TIMEOUT_MS);
+          if (out?.url) {
+            setRows((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: out.url } : x)));
+          }
+          success = true;
+          break;
+        } catch (e: any) {
+          const msg = String(e?.message || "");
+          // Backoff for rate limit / transient
+          const wait = msg.includes("429") || msg.toLowerCase().includes("rate") ? 5000 * (attempt + 1) : 1500 * (attempt + 1);
+          attempt++;
+          if (attempt < 3) await new Promise((r) => setTimeout(r, wait));
+        }
+      }
+      if (success) done++;
+      else failed++;
+      queue = queue.slice(1);
+      setBulkGen({ running: true, done, total, failed, queue });
+      persistQueue(queue, done, failed, total);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    runningRef.current = false;
+    const wasCancelled = cancelRef.current;
+    setBulkGen({ running: false, done, total, failed, queue });
+    persistQueue([], done, failed, total);
+    if (wasCancelled) toast(`Stopped: ${done} generated${failed > 0 ? `, ${failed} failed` : ""}`);
+    else toast.success(`Generated ${done} photo${done === 1 ? "" : "s"}${failed > 0 ? `, ${failed} failed` : ""}`);
+  };
+
   const generateAllMissing = async () => {
-    if (bulkGen.running) return;
+    if (runningRef.current) return;
     if (allMissingPhoto.length === 0) {
       toast.info("All recipes already have photos.");
       return;
     }
     const ok = await askConfirm({
       title: `Generate ${allMissingPhoto.length} missing photo${allMissingPhoto.length === 1 ? "" : "s"}?`,
-      description: `This uses AI credits and runs sequentially. Estimated time: ~${Math.ceil(allMissingPhoto.length * 6)}s. You can cancel anytime.`,
+      description: `Uses AI credits. Estimated ~${Math.ceil(allMissingPhoto.length * 7)}s. Progress is saved — if the page reloads it will resume automatically.`,
     });
     if (!ok) return;
-
-    cancelRef.current = false;
-    setBulkGen({ running: true, done: 0, total: allMissingPhoto.length, failed: 0 });
-    let okCount = 0;
-    let failCount = 0;
-
-    for (const r of allMissingPhoto) {
-      if (cancelRef.current) break;
-      try {
-        const out: any = await genPhoto({ data: { recipeId: r.id } });
-        okCount++;
-        if (out?.url) {
-          setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, image_url: out.url } : x)));
-        }
-      } catch {
-        failCount++;
-      }
-      setBulkGen((s) => ({ ...s, done: okCount + failCount, failed: failCount }));
-      // Throttle to respect AI gateway rate limits
-      await new Promise((res) => setTimeout(res, 500));
-    }
-
-    setBulkGen({ running: false, done: okCount + failCount, total: allMissingPhoto.length, failed: failCount });
-    if (cancelRef.current) {
-      toast(`Stopped: ${okCount} generated${failCount > 0 ? `, ${failCount} failed` : ""}`);
-    } else {
-      toast.success(`Generated ${okCount} photo${okCount === 1 ? "" : "s"}${failCount > 0 ? `, ${failCount} failed` : ""}`);
-    }
+    await runQueue(allMissingPhoto.map((r) => r.id));
   };
 
   const cancelBulk = () => {
     cancelRef.current = true;
   };
+
+  // Auto-resume on mount if a previous batch was interrupted
+  useEffect(() => {
+    if (rows.length === 0) return;
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { queue: string[]; done: number; failed: number; total: number };
+      if (!saved.queue || saved.queue.length === 0) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      // Filter out any IDs that already have photos (e.g. completed in another tab)
+      const stillMissing = saved.queue.filter((id) => {
+        const r = rows.find((x) => x.id === id);
+        return r && !r.image_url;
+      });
+      if (stillMissing.length === 0) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      toast.info(`Resuming photo generation (${stillMissing.length} left)…`);
+      runQueue(stillMissing, saved.done, saved.failed, saved.total);
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length > 0]);
+
 
   return (
     <div className="space-y-6 p-6">
