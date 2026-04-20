@@ -1,17 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil, RefreshCw, Sparkles, Loader2, X, ImageOff } from "lucide-react";
 import { parseYouTubeId } from "@/lib/recipe-video";
 import { RecipeBulkActions } from "@/components/admin/RecipeBulkActions";
 import { Checkbox } from "@/components/ui/checkbox";
+import { isCocktail } from "@/lib/recipe-kind";
+import { getIngredientCostMetrics } from "@/lib/recipe-costing";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { toast } from "sonner";
+import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
 
 export const Route = createFileRoute("/admin/recipe-hub")({
-  head: () => ({ meta: [{ title: "Recipe Hub — Admin" }] }),
+  head: () => ({ meta: [{ title: "Recipes — Admin" }] }),
   component: RecipeHub,
 });
 
@@ -24,6 +31,7 @@ type Row = {
   image_url: string | null;
   video_url: string | null;
   pro_tips: any;
+  cost_per_serving: number | null;
   score_affiliate: number;
   score_video: number;
   score_event: number;
@@ -31,38 +39,58 @@ type Row = {
   shop_count?: number;
 };
 
+type ContentFilter = "all" | "no-video" | "no-shop" | "no-photo" | "draft";
+type StatusFilter = "all" | "active" | "off";
+type Kind = "all" | "food" | "cocktail";
+
 function RecipeHub() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "no-video" | "no-shop" | "draft">("all");
+  const [filter, setFilter] = useState<ContentFilter>("all");
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [kind, setKind] = useState<Kind>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const toggleSelect = (id: string) => setSelectedIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const [recomputingAll, setRecomputingAll] = useState(false);
+  const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number }>({
+    running: false, done: 0, total: 0, failed: 0,
+  });
+  const cancelRef = useRef(false);
+  const askConfirm = useConfirm();
+  const genPhoto = useServerFn(generateRecipePhoto);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [{ data: recipes }, { data: shop }] = await Promise.all([
-        (supabase as any)
-          .from("recipes")
-          .select("id, name, active, category, use_case, image_url, video_url, pro_tips, score_affiliate, score_video, score_event, score_seasonal")
-          .order("updated_at", { ascending: false }),
-        (supabase as any).from("recipe_shop_items").select("recipe_id"),
-      ]);
-      const counts = new Map<string, number>();
-      for (const s of (shop || []) as any[]) counts.set(s.recipe_id, (counts.get(s.recipe_id) || 0) + 1);
-      const merged: Row[] = (recipes || []).map((r: any) => ({ ...r, shop_count: counts.get(r.id) || 0 }));
-      setRows(merged);
-      setLoading(false);
-    })();
-  }, []);
+  const toggleSelect = (id: string) =>
+    setSelectedIds((s) => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+
+  const load = async () => {
+    setLoading(true);
+    const [{ data: recipes }, { data: shop }] = await Promise.all([
+      (supabase as any)
+        .from("recipes")
+        .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal")
+        .order("updated_at", { ascending: false }),
+      (supabase as any).from("recipe_shop_items").select("recipe_id"),
+    ]);
+    const counts = new Map<string, number>();
+    for (const s of (shop || []) as any[]) counts.set(s.recipe_id, (counts.get(s.recipe_id) || 0) + 1);
+    const merged: Row[] = (recipes || []).map((r: any) => ({ ...r, shop_count: counts.get(r.id) || 0 }));
+    setRows(merged);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const stats = useMemo(() => {
     const total = rows.length;
     const withVideo = rows.filter((r) => parseYouTubeId(r.video_url)).length;
     const withShop = rows.filter((r) => (r.shop_count || 0) > 0).length;
+    const withPhoto = rows.filter((r) => !!r.image_url).length;
     const drafts = rows.filter((r) => !r.active).length;
-    return { total, withVideo, withShop, drafts };
+    return { total, withVideo, withShop, withPhoto, drafts };
   }, [rows]);
 
   const visible = useMemo(() => {
@@ -71,28 +99,174 @@ function RecipeHub() {
       if (ql && !r.name.toLowerCase().includes(ql)) return false;
       if (filter === "no-video" && parseYouTubeId(r.video_url)) return false;
       if (filter === "no-shop" && (r.shop_count || 0) > 0) return false;
+      if (filter === "no-photo" && r.image_url) return false;
       if (filter === "draft" && r.active) return false;
+      if (status === "active" && !r.active) return false;
+      if (status === "off" && r.active) return false;
+      if (kind === "food" && isCocktail(r.category)) return false;
+      if (kind === "cocktail" && !isCocktail(r.category)) return false;
       return true;
     });
-  }, [rows, q, filter]);
+  }, [rows, q, filter, status, kind]);
+
+  // All recipes lacking a photo (entire dataset, not just visible)
+  const allMissingPhoto = useMemo(() => rows.filter((r) => !r.image_url), [rows]);
+
+  const recomputeAllCosts = async () => {
+    if (recomputingAll) return;
+    const ok = await askConfirm({
+      title: "Recompute all recipe costs?",
+      description: "Recomputes costs for every recipe using the latest inventory prices.",
+    });
+    if (!ok) return;
+    setRecomputingAll(true);
+    const toastId = toast.loading("Recomputing all recipe costs…");
+    try {
+      const { data, error } = await (supabase as any)
+        .from("recipes")
+        .select(
+          "id, servings, recipe_ingredients(quantity, unit, cost_per_unit, inventory_item:inventory_items(name, average_cost_per_unit, unit))",
+        );
+      if (error) throw error;
+
+      let updated = 0;
+      let failed = 0;
+      for (const r of (data || []) as any[]) {
+        const total = (r.recipe_ingredients || []).reduce(
+          (sum: number, ing: any) =>
+            sum +
+            getIngredientCostMetrics({
+              quantity: Number(ing.quantity) || 0,
+              unit: ing.unit,
+              fallbackCostPerUnit: ing.cost_per_unit,
+              inventoryItem: ing.inventory_item,
+            }).lineTotal,
+          0,
+        );
+        const servings = Math.max(1, Number(r.servings) || 1);
+        const perServing = total / servings;
+        const { error: upErr } = await (supabase as any)
+          .from("recipes")
+          .update({
+            total_cost: Math.round(total * 10000) / 10000,
+            cost_per_serving: Math.round(perServing * 10000) / 10000,
+          })
+          .eq("id", r.id);
+        if (upErr) failed++;
+        else updated++;
+      }
+      await load();
+      toast.success(
+        failed > 0 ? `Recomputed ${updated} recipes (${failed} failed)` : `Recomputed ${updated} recipes`,
+        { id: toastId },
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to recompute costs", { id: toastId });
+    } finally {
+      setRecomputingAll(false);
+    }
+  };
+
+  const generateAllMissing = async () => {
+    if (bulkGen.running) return;
+    if (allMissingPhoto.length === 0) {
+      toast.info("All recipes already have photos.");
+      return;
+    }
+    const ok = await askConfirm({
+      title: `Generate ${allMissingPhoto.length} missing photo${allMissingPhoto.length === 1 ? "" : "s"}?`,
+      description: `This uses AI credits and runs sequentially. Estimated time: ~${Math.ceil(allMissingPhoto.length * 6)}s. You can cancel anytime.`,
+    });
+    if (!ok) return;
+
+    cancelRef.current = false;
+    setBulkGen({ running: true, done: 0, total: allMissingPhoto.length, failed: 0 });
+    let okCount = 0;
+    let failCount = 0;
+
+    for (const r of allMissingPhoto) {
+      if (cancelRef.current) break;
+      try {
+        const out: any = await genPhoto({ data: { recipeId: r.id } });
+        okCount++;
+        if (out?.url) {
+          setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, image_url: out.url } : x)));
+        }
+      } catch {
+        failCount++;
+      }
+      setBulkGen((s) => ({ ...s, done: okCount + failCount, failed: failCount }));
+      // Throttle to respect AI gateway rate limits
+      await new Promise((res) => setTimeout(res, 500));
+    }
+
+    setBulkGen({ running: false, done: okCount + failCount, total: allMissingPhoto.length, failed: failCount });
+    if (cancelRef.current) {
+      toast(`Stopped: ${okCount} generated${failCount > 0 ? `, ${failCount} failed` : ""}`);
+    } else {
+      toast.success(`Generated ${okCount} photo${okCount === 1 ? "" : "s"}${failCount > 0 ? `, ${failCount} failed` : ""}`);
+    }
+  };
+
+  const cancelBulk = () => {
+    cancelRef.current = true;
+  };
 
   return (
     <div className="space-y-6 p-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display text-3xl text-primary">Recipe Hub</h1>
+          <h1 className="font-display text-3xl text-primary">Recipes</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Centralized control for video, monetization, and content quality across all recipes.
+            Manage cost, content, video, monetization, and quality across all recipes.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={recomputeAllCosts}
+            disabled={recomputingAll || rows.length === 0}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`w-4 h-4 ${recomputingAll ? "animate-spin" : ""}`} />
+            {recomputingAll ? "Recomputing…" : "Recompute all costs"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={generateAllMissing}
+            disabled={bulkGen.running || allMissingPhoto.length === 0}
+            className="gap-1.5"
+          >
+            {bulkGen.running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Generate missing photos ({allMissingPhoto.length})
+          </Button>
           <Link to="/admin/recipes/new"><Button><Plus className="w-4 h-4 mr-2" />New recipe</Button></Link>
           <Link to="/recipes" target="_blank"><Button variant="outline">View public hub</Button></Link>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {bulkGen.running || (bulkGen.total > 0 && bulkGen.done < bulkGen.total) ? (
+        <Card className="border-primary/30">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-sm font-medium">
+                Generating photos: {bulkGen.done} / {bulkGen.total}
+                {bulkGen.failed > 0 && <span className="text-destructive ml-2">· {bulkGen.failed} failed</span>}
+              </div>
+              {bulkGen.running && (
+                <Button size="sm" variant="ghost" onClick={cancelBulk} className="gap-1">
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </Button>
+              )}
+            </div>
+            <Progress value={bulkGen.total > 0 ? (bulkGen.done / bulkGen.total) * 100 : 0} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat label="Total recipes" value={stats.total} icon={<ChefHat className="w-4 h-4" />} />
+        <Stat label="With photo" value={`${stats.withPhoto} / ${stats.total}`} icon={<ImageOff className="w-4 h-4" />} />
         <Stat label="With video" value={`${stats.withVideo} / ${stats.total}`} icon={<Video className="w-4 h-4" />} />
         <Stat label="With shop items" value={`${stats.withShop} / ${stats.total}`} icon={<ShoppingBag className="w-4 h-4" />} />
         <Stat label="Drafts (inactive)" value={stats.drafts} />
@@ -104,22 +278,27 @@ function RecipeHub() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search recipes…" className="pl-9" />
           </div>
-          <div className="inline-flex rounded-full border border-border bg-card p-1 text-sm">
-            {([
+          <FilterChips
+            value={kind}
+            onChange={setKind}
+            options={[["all", "All kinds"], ["food", "Food"], ["cocktail", "Cocktails"]]}
+          />
+          <FilterChips
+            value={status}
+            onChange={setStatus}
+            options={[["all", "Any status"], ["active", "On menu"], ["off", "Off menu"]]}
+          />
+          <FilterChips
+            value={filter}
+            onChange={setFilter}
+            options={[
               ["all", "All"],
+              ["no-photo", "Missing photo"],
               ["no-video", "Missing video"],
               ["no-shop", "Missing shop items"],
               ["draft", "Drafts"],
-            ] as const).map(([k, label]) => (
-              <button
-                key={k}
-                onClick={() => setFilter(k)}
-                className={`px-3 py-1 rounded-full transition-colors ${filter === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            ]}
+          />
         </CardContent>
       </Card>
 
@@ -147,6 +326,7 @@ function RecipeHub() {
                 </th>
                 <th className="px-4 py-2">Recipe</th>
                 <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2 text-right">Cost/serving</th>
                 <th className="px-4 py-2">Video</th>
                 <th className="px-4 py-2">Shop</th>
                 <th className="px-4 py-2">Tips</th>
@@ -168,7 +348,9 @@ function RecipeHub() {
                         {r.image_url ? (
                           <img src={r.image_url} className="w-10 h-10 rounded object-cover" alt="" />
                         ) : (
-                          <div className="w-10 h-10 rounded bg-muted" />
+                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-muted-foreground">
+                            <ImageOff className="w-4 h-4" />
+                          </div>
                         )}
                         <div>
                           <p className="font-medium text-foreground">{r.name}</p>
@@ -178,6 +360,9 @@ function RecipeHub() {
                     </td>
                     <td className="px-4 py-2">
                       {r.active ? <Badge variant="secondary">Published</Badge> : <Badge variant="outline">Draft</Badge>}
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      {r.cost_per_serving != null ? `$${Number(r.cost_per_serving).toFixed(2)}` : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-2">{hasVideo ? <Badge>YouTube</Badge> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-2">
@@ -190,14 +375,9 @@ function RecipeHub() {
                       {r.score_affiliate}/{r.score_video}/{r.score_event}/{r.score_seasonal}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link to="/admin/recipe-hub/$id" params={{ id: r.id }}>
-                          <Button size="sm" variant="outline"><Pencil className="w-3 h-3 mr-1" />Hub</Button>
-                        </Link>
-                        <Link to="/admin/recipes/$id/edit" params={{ id: r.id }}>
-                          <Button size="sm" variant="ghost">Recipe</Button>
-                        </Link>
-                      </div>
+                      <Link to="/admin/recipe-hub/$id" params={{ id: r.id }}>
+                        <Button size="sm" variant="outline"><Pencil className="w-3 h-3 mr-1" />Edit</Button>
+                      </Link>
                     </td>
                   </tr>
                 );
@@ -212,6 +392,30 @@ function RecipeHub() {
         onClearSelection={() => setSelectedIds(new Set())}
         onPhotoUpdated={(id, url) => setRows((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: url } : x)))}
       />
+    </div>
+  );
+}
+
+function FilterChips<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: ReadonlyArray<readonly [T, string]>;
+}) {
+  return (
+    <div className="inline-flex rounded-full border border-border bg-card p-1 text-sm">
+      {options.map(([k, label]) => (
+        <button
+          key={k}
+          onClick={() => onChange(k)}
+          className={`px-3 py-1 rounded-full transition-colors ${value === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }
