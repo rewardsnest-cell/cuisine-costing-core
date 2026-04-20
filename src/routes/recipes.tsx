@@ -63,11 +63,14 @@ function RecipesPage() {
   const [cuisine, setCuisine] = useState<string>("All");
   const [query, setQuery] = useState("");
 
+  const { user } = useAuth();
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     (async () => {
       const { data: rs } = await (supabase as any)
         .from("recipes")
-        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, skill_level, is_vegetarian, is_vegan, is_gluten_free")
+        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, is_copycat, copycat_source")
         .eq("active", true)
         .order("name");
       const list: Recipe[] = rs || [];
