@@ -97,6 +97,9 @@ export function PhotoGrid({
                     src={tile.url}
                     alt={tile.alt}
                     loading="lazy"
+                    decoding="async"
+                    width={400}
+                    height={400}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 ) : (
