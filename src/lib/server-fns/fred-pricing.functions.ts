@@ -90,14 +90,21 @@ export const previewFredPull = createServerFn({ method: "POST" })
     await requireAdmin(sb);
     const apiKey = await getFredApiKey(sb);
 
-    // Load FRED series map
-    let seriesQ = sb.from("fred_series_map").select("series_id, label, match_keywords, unit, unit_conversion, category, active");
+    // Load FRED series map — primary first so they win when keywords overlap.
+    let seriesQ = sb
+      .from("fred_series_map")
+      .select("series_id, label, match_keywords, unit, unit_conversion, category, active, priority")
+      .order("priority", { ascending: true }); // 'fallback' > 'primary' alphabetically; reverse below
     if (data.only_active) seriesQ = seriesQ.eq("active", true);
     const { data: seriesRows, error: seriesErr } = await seriesQ;
     if (seriesErr) throw new Error(`Load FRED series: ${seriesErr.message}`);
-    const series = (seriesRows || []) as Array<{
-      series_id: string; label: string; match_keywords: string[]; unit: string; unit_conversion: number; category: string | null;
-    }>;
+    const series = ((seriesRows || []) as Array<{
+      series_id: string; label: string; match_keywords: string[]; unit: string; unit_conversion: number; category: string | null; priority: "primary" | "fallback";
+    }>).sort((a, b) => {
+      // Primary before fallback
+      if (a.priority === b.priority) return 0;
+      return a.priority === "primary" ? -1 : 1;
+    });
 
     // Load inventory + reference (with FRED override) + synonyms in parallel
     const [{ data: inv }, { data: refs }, { data: syns }] = await Promise.all([
