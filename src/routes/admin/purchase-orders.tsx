@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2, Sparkles, Tag } from "lucide-react";
+import { Plus, ShoppingCart, Trash2, ChevronDown, ChevronUp, Truck, Camera, Loader2, Sparkles, Tag, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useActiveSales, type ActiveSale } from "@/lib/use-active-sales";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -56,7 +56,51 @@ function PurchaseOrdersPage() {
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [creatingSuggested, setCreatingSuggested] = useState(false);
+  const [bulkAddingPO, setBulkAddingPO] = useState<string | null>(null);
   const { byItemId: activeSales } = useActiveSales();
+
+  const addAllUnmatchedFromPO = async (poId: string) => {
+    const lines = (items[poId] || []).filter((it) => !it.inventory_item_id && (it.name || "").trim().length > 0);
+    if (lines.length === 0) {
+      toast("No unmatched line items on this PO");
+      return;
+    }
+    setBulkAddingPO(poId);
+    let created = 0;
+    let failed = 0;
+    const poSupplier = orders.find((o) => o.id === poId)?.supplier_id || null;
+    for (const line of lines) {
+      const price = Number(line.unit_price) || 0;
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .insert({
+          name: line.name.trim(),
+          unit: line.unit || "each",
+          current_stock: 0,
+          par_level: 0,
+          average_cost_per_unit: price,
+          last_receipt_cost: price > 0 ? price : null,
+          supplier_id: poSupplier,
+          created_source: "purchase_order",
+        })
+        .select("id")
+        .single();
+      if (error || !data) { failed++; continue; }
+      const { error: linkErr } = await supabase
+        .from("purchase_order_items")
+        .update({ inventory_item_id: data.id })
+        .eq("id", line.id);
+      if (linkErr) { failed++; continue; }
+      created++;
+    }
+    setBulkAddingPO(null);
+    // Refresh inventory and this PO's items
+    const { data: inv } = await supabase.from("inventory_items").select("*").order("name");
+    if (inv) setInventory(inv as InventoryItem[]);
+    await loadItems(poId);
+    if (failed === 0) toast.success(`Added ${created} item${created === 1 ? "" : "s"} to inventory and linked`);
+    else toast.warning(`Added ${created}, ${failed} failed`);
+  };
 
   const handleScan = async (file: File) => {
     setScanning(true);
@@ -657,7 +701,25 @@ function PurchaseOrdersPage() {
 
                   {isOpen && (
                     <div className="mt-4 pt-4 border-t border-border/50">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Line Items</p>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Line Items</p>
+                        {poItems.some((it) => !it.inventory_item_id) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addAllUnmatchedFromPO(po.id)}
+                            disabled={bulkAddingPO === po.id}
+                            className="h-7 gap-1.5 text-xs"
+                          >
+                            {bulkAddingPO === po.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <PackagePlus className="w-3.5 h-3.5" />
+                            )}
+                            Add all unmatched to inventory
+                          </Button>
+                        )}
+                      </div>
                       {poItems.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-3">No items added yet.</p>
                       ) : (
