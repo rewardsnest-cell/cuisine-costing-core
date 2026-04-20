@@ -337,6 +337,8 @@ function RecipesPage() {
             {visible.map((r) => {
               const total = (r.prep_time || 0) + (r.cook_time || 0);
               const price = Number(r.selling_price_per_person || 0);
+              const perPersonCost = Number(r.calculated_cost_per_person || r.cost_per_serving || 0);
+              const totalCost = Number(r.total_cost || (perPersonCost * (r.servings || 0)) || 0);
               const isFav = favorites.has(r.id);
               return (
                 <div key={r.id} className="group block">
@@ -352,6 +354,7 @@ function RecipesPage() {
                       ) : (
                         <RecipePlaceholder />
                       )}
+                      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                         {r.is_copycat && (
                           <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
@@ -373,7 +376,7 @@ function RecipesPage() {
                       </button>
                     </div>
                   </Link>
-                  <div className="pt-5 text-center">
+                  <div className="pt-6 text-center">
                     {(r.category || r.cuisine) && (
                       <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
                         {[r.category, r.cuisine].filter(Boolean).join(" · ")}
@@ -384,7 +387,7 @@ function RecipesPage() {
                       <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
                     </Link>
                     {r.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed">{r.description}</p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed font-light">{r.description}</p>
                     )}
                     {(total > 0 || r.servings || r.skill_level) && (
                       <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
@@ -402,23 +405,32 @@ function RecipesPage() {
                         )}
                       </div>
                     )}
-                    {price > 0 && (
-                      <p className="mt-3 font-display text-base font-semibold text-foreground">
-                        ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">per person</span>
+                    {(totalCost > 0 || perPersonCost > 0) && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {totalCost > 0 && (
+                          <span className="font-medium text-foreground">${totalCost.toFixed(2)} total</span>
+                        )}
+                        {totalCost > 0 && perPersonCost > 0 && <span className="mx-1.5">·</span>}
+                        {perPersonCost > 0 && <span>${perPersonCost.toFixed(2)} per person</span>}
                       </p>
                     )}
-                    <div className="mt-4 flex items-center justify-center gap-2">
+                    {price > 0 && (
+                      <p className="mt-2 font-display text-base font-semibold text-foreground">
+                        ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">catering price / person</span>
+                      </p>
+                    )}
+                    <div className="mt-5 flex items-center justify-center gap-2">
                       <Link
                         to="/recipes/$id"
                         params={{ id: r.id }}
-                        className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        className="text-xs px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity tracking-wide font-semibold"
                       >
                         View recipe
                       </Link>
                       <button
                         type="button"
                         onClick={(e) => quickAddToShoppingList(r, e)}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors inline-flex items-center gap-1"
+                        className="text-xs px-4 py-2 rounded-sm border border-foreground/30 text-foreground hover:bg-foreground hover:text-background transition-colors inline-flex items-center gap-1 font-semibold tracking-wide"
                         aria-label={`Add ${r.name} ingredients to shopping list`}
                       >
                         <ShoppingBasket className="w-3 h-3" /> Add to list
