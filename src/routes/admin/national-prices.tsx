@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Globe2, Upload, Plus, AlertCircle } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 import { FredPullPanel } from "@/components/admin/FredPullPanel";
+import { FredMappingsManager } from "@/components/admin/FredMappingsManager";
 
 export const Route = createFileRoute("/admin/national-prices")({
   head: () => ({
@@ -173,6 +174,8 @@ function NationalPricesPage() {
           </p>
         </div>
       </div>
+
+      <FredMappingsManager references={refs} onChanged={loadAll} />
 
       <FredPullPanel onApplied={loadAll} />
 

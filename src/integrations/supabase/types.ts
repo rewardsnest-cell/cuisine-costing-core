@@ -876,6 +876,7 @@ export type Database = {
           label: string
           match_keywords: string[]
           notes: string | null
+          priority: Database["public"]["Enums"]["fred_priority"]
           series_id: string
           unit: string
           unit_conversion: number
@@ -889,6 +890,7 @@ export type Database = {
           label: string
           match_keywords?: string[]
           notes?: string | null
+          priority?: Database["public"]["Enums"]["fred_priority"]
           series_id: string
           unit?: string
           unit_conversion?: number
@@ -902,6 +904,7 @@ export type Database = {
           label?: string
           match_keywords?: string[]
           notes?: string | null
+          priority?: Database["public"]["Enums"]["fred_priority"]
           series_id?: string
           unit?: string
           unit_conversion?: number
@@ -2625,6 +2628,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employee"
+      fred_priority: "primary" | "fallback"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2753,6 +2757,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "employee"],
+      fred_priority: ["primary", "fallback"],
     },
   },
 } as const
