@@ -11,6 +11,7 @@ import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
 import { CoverageBadges } from "@/components/admin/CoverageBadges";
 import { PriceAlertsBanner } from "@/components/admin/PriceAlertsBanner";
 import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart";
+import { PricingHealthWidget } from "@/components/admin/PricingHealthWidget";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
@@ -230,6 +231,8 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((s) => <StatCard key={s.label} stat={s} />)}
       </div>
+
+      <PricingHealthWidget />
 
       <CoverageBadges />
 
