@@ -14,6 +14,8 @@ import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart"
 import { PricingHealthWidget } from "@/components/admin/PricingHealthWidget";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
@@ -220,6 +222,7 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin" />
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground">Welcome back</h2>
         <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your catering operations today.</p>

@@ -10,6 +10,8 @@ import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, 
 import { useConfirm } from "@/components/ConfirmDialog";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/users")({
   component: UserManagementPage,
 });
@@ -114,6 +116,7 @@ function UserManagementPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/users" />
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground">User Management</h2>
         <p className="text-muted-foreground text-sm mt-1">Manage user accounts, admin requests, and access.</p>

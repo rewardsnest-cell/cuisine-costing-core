@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 import {
   extractBrandColors,
   applyBrandPalette,
@@ -63,6 +65,7 @@ function BrandColorsPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <PageHelpCard route="/admin/brand-colors" />
       <div>
         <h1 className="font-display text-3xl text-primary">Brand colors</h1>
         <p className="text-muted-foreground mt-1">

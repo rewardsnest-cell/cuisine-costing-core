@@ -13,6 +13,8 @@ import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
 import { bulkRefreshRecipesFromFred } from "@/lib/server-fns/bulk-refresh-fred.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/menu")({
   head: () => ({
     meta: [{ title: "Public Menu — Admin" }],
@@ -241,6 +243,7 @@ function AdminMenuPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/menu" />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Public Menu</h1>

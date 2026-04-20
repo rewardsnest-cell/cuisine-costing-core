@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { KeyRound } from "lucide-react";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/set-password")({
   component: SetPasswordPage,
 });
@@ -34,6 +36,7 @@ function SetPasswordPage() {
 
   return (
     <div className="space-y-6 max-w-lg">
+      <PageHelpCard route="/admin/set-password" />
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground">Set / Change Password</h2>
         <p className="text-muted-foreground text-sm mt-1">

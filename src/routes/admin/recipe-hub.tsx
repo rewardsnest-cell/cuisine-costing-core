@@ -17,6 +17,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/recipe-hub")({
   head: () => ({ meta: [{ title: "Recipes — Admin" }] }),
   component: RecipeHub,
@@ -296,6 +298,7 @@ function RecipeHub() {
 
   return (
     <div className="space-y-6 p-6">
+      <PageHelpCard route="/admin/recipe-hub" />
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl text-primary">Recipes</h1>

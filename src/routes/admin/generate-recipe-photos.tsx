@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Sparkles, CheckCircle2, XCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/generate-recipe-photos")({
   head: () => ({ meta: [{ title: "Generate Recipe Photos — Admin" }] }),
   component: Page,
@@ -117,6 +119,7 @@ function Page() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <PageHelpCard route="/admin/generate-recipe-photos" />
       <div>
         <h2 className="font-display text-2xl font-bold">Generate Recipe Photos</h2>
         <p className="text-sm text-muted-foreground">

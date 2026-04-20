@@ -19,6 +19,8 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/ingredient-reference")({
   head: () => ({
     meta: [
@@ -868,6 +870,7 @@ function IngredientReferencePage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
+      <PageHelpCard route="/admin/ingredient-reference" />
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">

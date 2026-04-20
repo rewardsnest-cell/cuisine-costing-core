@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, ExternalLink, DollarSign, Handshake, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/affiliates")({
   head: () => ({ meta: [{ title: "Affiliates & Sponsorships — Admin" }] }),
   component: AffiliatesPage,
@@ -65,6 +67,7 @@ function AffiliatesPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/affiliates" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Affiliates & Sponsorships</h1>

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Tag, Search, ArrowUpDown, Truck, Calendar, Package, ExternalLink, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/sales")({
   head: () => ({
     meta: [
@@ -177,6 +179,7 @@ function SalesDashboard() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/sales" />
       {/* Header with upload CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

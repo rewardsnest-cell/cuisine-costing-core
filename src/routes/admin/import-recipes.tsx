@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/import-recipes")({
   head: () => ({ meta: [{ title: "Import Recipes from vpsfinest.com — Admin" }] }),
   component: ImportRecipesPage,
@@ -73,6 +75,7 @@ function ImportRecipesPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
+      <PageHelpCard route="/admin/import-recipes" />
       <div>
         <h2 className="font-display text-2xl font-bold">Import Recipes from vpsfinest.com</h2>
         <p className="text-sm text-muted-foreground">Scrape recipe pages from the public site and import them into your catalog.</p>

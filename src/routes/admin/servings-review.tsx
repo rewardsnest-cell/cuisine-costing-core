@@ -7,6 +7,8 @@ import { AlertTriangle, Save, ChefHat, ArrowLeft, CheckCircle2 } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/servings-review")({
   head: () => ({
     meta: [
@@ -86,6 +88,7 @@ function ServingsReview() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/servings-review" />
       <div className="flex items-center gap-3">
         <Link to="/admin">
           <Button variant="ghost" size="sm" className="gap-1.5">

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Search, Copy, UploadCloud, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 type QuickPick = {
   slug: "hero-home" | "path-recipes" | "path-catering" | "logo-main";
   label: string;
@@ -228,6 +230,7 @@ function ScanAssetsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
+      <PageHelpCard route="/admin/scan-assets" />
       <div>
         <h2 className="font-display text-2xl font-bold">Scan vpsfinest.com Images</h2>
         <p className="text-sm text-muted-foreground">

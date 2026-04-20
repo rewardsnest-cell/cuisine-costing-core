@@ -27,6 +27,8 @@ import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
 import { processSaleFlyer } from "@/lib/server-fns/process-sale-flyer.functions";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 type Supplier = { id: string; name: string };
 
 type StagedPage = {
@@ -234,6 +236,7 @@ function ScanFlyerPage() {
 
   return (
     <div className="container max-w-3xl py-6 space-y-6">
+      <PageHelpCard route="/admin/scan-flyer" />
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">

@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useActiveSales, type ActiveSale } from "@/lib/use-active-sales";
 import { useConfirm } from "@/components/ConfirmDialog";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/purchase-orders")({
   component: PurchaseOrdersPage,
 });
@@ -395,6 +397,7 @@ function PurchaseOrdersPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/purchase-orders" />
       <div className="flex justify-end gap-2">
         <label>
           <input

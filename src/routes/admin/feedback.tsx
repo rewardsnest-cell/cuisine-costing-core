@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Star, ExternalLink, Inbox, CheckCircle2, Archive } from "lucide-react";
 import { toast } from "sonner";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/feedback")({
   head: () => ({ meta: [{ title: "Feedback Inbox — VPS Finest Admin" }] }),
   component: FeedbackInbox,
@@ -94,6 +96,7 @@ function FeedbackInbox() {
 
   return (
     <div className="space-y-5">
+      <PageHelpCard route="/admin/feedback" />
       <div className="flex items-start gap-3">
         <Inbox className="w-5 h-5 text-primary mt-1" aria-hidden="true" />
         <div>

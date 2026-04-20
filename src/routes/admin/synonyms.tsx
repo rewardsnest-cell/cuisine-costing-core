@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { useConfirm } from "@/components/ConfirmDialog";
 
+import { PageHelpCard } from "@/components/admin/PageHelpCard";
+
 export const Route = createFileRoute("/admin/synonyms")({
   head: () => ({
     meta: [
@@ -638,6 +640,7 @@ function SynonymsPage() {
 
   return (
     <div className="space-y-6">
+      <PageHelpCard route="/admin/synonyms" />
       <div>
         <h2 className="font-display text-2xl font-bold text-foreground">Ingredient Synonyms</h2>
         <p className="text-muted-foreground text-sm mt-1">
