@@ -334,30 +334,53 @@ function RecipesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14">
             {visible.map((r) => {
               const total = (r.prep_time || 0) + (r.cook_time || 0);
+              const price = Number(r.selling_price_per_person || 0);
+              const isFav = favorites.has(r.id);
               return (
-                <Link key={r.id} to="/recipes/$id" params={{ id: r.id }} className="group block">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                    {r.image_url ? (
-                      <img
-                        src={r.image_url}
-                        alt={r.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <RecipePlaceholder />
-                    )}
-                    {r.video_url && (
-                      <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
-                    )}
-                  </div>
+                <div key={r.id} className="group block">
+                  <Link to="/recipes/$id" params={{ id: r.id }} className="block">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-muted rounded-md">
+                      {r.image_url ? (
+                        <img
+                          src={r.image_url}
+                          alt={r.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <RecipePlaceholder />
+                      )}
+                      <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                        {r.is_copycat && (
+                          <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
+                            <Sparkles className="w-3 h-3" /> Copycat
+                          </span>
+                        )}
+                        {r.video_url && (
+                          <span className="text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+                        aria-pressed={isFav}
+                        onClick={(e) => toggleFavorite(r.id, e)}
+                        className={`absolute top-3 right-3 w-9 h-9 inline-flex items-center justify-center rounded-full bg-background/90 backdrop-blur-sm shadow-sm transition-colors hover:bg-background ${isFav ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
+                      </button>
+                    </div>
+                  </Link>
                   <div className="pt-5 text-center">
                     {(r.category || r.cuisine) && (
                       <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">
                         {[r.category, r.cuisine].filter(Boolean).join(" · ")}
+                        {r.is_copycat && r.copycat_source && <span className="ml-2 normal-case tracking-normal">· inspired by {r.copycat_source}</span>}
                       </p>
                     )}
-                    <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                    <Link to="/recipes/$id" params={{ id: r.id }}>
+                      <h3 className="font-display text-xl font-bold text-foreground group-hover:text-accent transition-colors">{r.name}</h3>
+                    </Link>
                     {r.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs mx-auto leading-relaxed">{r.description}</p>
                     )}
@@ -367,15 +390,40 @@ function RecipesPage() {
                           <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{total}m</span>
                         )}
                         {r.servings != null && (
-                          <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" />{r.servings}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Users className="w-3 h-3" />Serves {r.servings}
+                            {r.serving_size ? <span className="text-muted-foreground/70"> · {r.serving_size}</span> : null}
+                          </span>
                         )}
                         {r.skill_level && (
                           <span className="inline-flex items-center gap-1 capitalize"><ChefHat className="w-3 h-3" />{r.skill_level}</span>
                         )}
                       </div>
                     )}
+                    {price > 0 && (
+                      <p className="mt-3 font-display text-base font-semibold text-foreground">
+                        ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">per person</span>
+                      </p>
+                    )}
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      <Link
+                        to="/recipes/$id"
+                        params={{ id: r.id }}
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        View recipe
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => quickAddToShoppingList(r, e)}
+                        className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors inline-flex items-center gap-1"
+                        aria-label={`Add ${r.name} ingredients to shopping list`}
+                      >
+                        <ShoppingBasket className="w-3 h-3" /> Add to list
+                      </button>
+                    </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
