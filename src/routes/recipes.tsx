@@ -92,6 +92,76 @@ function RecipesPage() {
     })();
   }, []);
 
+  // Load favorites for signed-in users
+  useEffect(() => {
+    if (!user) { setFavorites(new Set()); return; }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("recipe_favorites")
+        .select("recipe_id")
+        .eq("user_id", user.id);
+      setFavorites(new Set(((data || []) as { recipe_id: string }[]).map((x) => x.recipe_id)));
+    })();
+  }, [user]);
+
+  const toggleFavorite = async (recipeId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to save favorites", { description: "Free account — takes 10 seconds." });
+      return;
+    }
+    const isFav = favorites.has(recipeId);
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      isFav ? next.delete(recipeId) : next.add(recipeId);
+      return next;
+    });
+    if (isFav) {
+      await (supabase as any).from("recipe_favorites").delete().eq("user_id", user.id).eq("recipe_id", recipeId);
+      toast("Removed from favorites");
+    } else {
+      const { error } = await (supabase as any).from("recipe_favorites").insert({ user_id: user.id, recipe_id: recipeId });
+      if (error) {
+        // revert on error
+        setFavorites((prev) => { const next = new Set(prev); next.delete(recipeId); return next; });
+        toast.error("Couldn't save favorite");
+      } else {
+        toast.success("Saved to favorites");
+      }
+    }
+  };
+
+  const quickAddToShoppingList = async (recipe: Recipe, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Sign in to use the shopping list");
+      return;
+    }
+    const { data: ings } = await (supabase as any)
+      .from("recipe_ingredients")
+      .select("name, quantity, unit")
+      .eq("recipe_id", recipe.id);
+    const rows = (ings || []).map((i: any) => ({
+      user_id: user.id,
+      recipe_id: recipe.id,
+      name: i.name,
+      quantity: i.quantity,
+      unit: i.unit,
+    }));
+    if (!rows.length) {
+      toast("No ingredients to add");
+      return;
+    }
+    const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
+    if (error) {
+      toast.error("Couldn't add to shopping list");
+    } else {
+      toast.success(`Added ${rows.length} ingredient${rows.length === 1 ? "" : "s"}`, { description: recipe.name });
+    }
+  };
+
   const cuisineOptions = useMemo(() => {
     const s = new Set<string>();
     for (const r of recipes) if (r.cuisine) s.add(r.cuisine);
