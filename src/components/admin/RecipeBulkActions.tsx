@@ -40,21 +40,33 @@ export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPh
       toast.info("All selected recipes already have photos.");
       return;
     }
-    if (!confirm(`Generate AI photos for ${missingPhotos.length} recipe(s)? This may take a minute.`)) return;
+    if (!confirm(`Generate AI photos for ${missingPhotos.length} recipe(s)? Runs 4 in parallel.`)) return;
     setRunning(true);
     setProgress({ done: 0, total: missingPhotos.length, failed: 0 });
+
+    const CONCURRENCY = 4;
+    const queue = [...missingPhotos];
     let ok = 0;
     let fail = 0;
-    for (const r of missingPhotos) {
-      try {
-        const out: any = await gen({ data: { recipeId: r.id } });
-        ok++;
-        onPhotoUpdated?.(r.id, out?.url);
-      } catch {
-        fail++;
+    let done = 0;
+
+    const worker = async () => {
+      while (queue.length > 0) {
+        const r = queue.shift();
+        if (!r) break;
+        try {
+          const out: any = await gen({ data: { recipeId: r.id } });
+          ok++;
+          onPhotoUpdated?.(r.id, out?.url);
+        } catch {
+          fail++;
+        }
+        done++;
+        setProgress({ done, total: missingPhotos.length, failed: fail });
       }
-      setProgress({ done: ok + fail, total: missingPhotos.length, failed: fail });
-    }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, missingPhotos.length) }, worker));
     setRunning(false);
     toast.success(`Photos: ${ok} generated${fail > 0 ? `, ${fail} failed` : ""}`);
   };
