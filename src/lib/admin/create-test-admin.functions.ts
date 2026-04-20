@@ -1,18 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 export const TEST_ADMIN_EMAIL = "test-admin@vpsfinest.com";
 export const TEST_ADMIN_PASSWORD = "AdminTest2026!";
 const TEST_ADMIN_NAME = "Test Admin";
 
-async function ensureCallerIsAdmin(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-  if (error) throw new Error("Auth check failed");
-  if (!(data ?? []).some((r: any) => r.role === "admin")) {
+async function ensureCallerIsAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+
+  if (error) {
+    throw new Error(`Auth check failed: ${error.message}`);
+  }
+
+  if (!data) {
     throw new Error("Forbidden: admin only");
   }
 }
@@ -27,9 +36,8 @@ async function ensureCallerIsAdmin(userId: string) {
 export const createTestAdminUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureCallerIsAdmin(context.userId);
+    await ensureCallerIsAdmin(context.supabase, context.userId);
 
-    // Find existing user (paginate just in case)
     let existingId: string | null = null;
     for (let page = 1; page <= 10; page++) {
       const { data, error } = await supabaseAdmin.auth.admin.listUsers({
@@ -38,7 +46,7 @@ export const createTestAdminUser = createServerFn({ method: "POST" })
       });
       if (error) throw new Error(error.message);
       const match = data.users.find(
-        (u) => (u.email ?? "").toLowerCase() === TEST_ADMIN_EMAIL,
+        (user) => (user.email ?? "").toLowerCase() === TEST_ADMIN_EMAIL,
       );
       if (match) {
         existingId = match.id;
@@ -52,8 +60,7 @@ export const createTestAdminUser = createServerFn({ method: "POST" })
 
     if (existingId) {
       userId = existingId;
-      // Reset password and ensure email is confirmed
-      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         userId,
         {
           password: TEST_ADMIN_PASSWORD,
@@ -61,41 +68,37 @@ export const createTestAdminUser = createServerFn({ method: "POST" })
           user_metadata: { full_name: TEST_ADMIN_NAME },
         },
       );
-      if (updErr) throw new Error(updErr.message);
+      if (updateError) throw new Error(updateError.message);
     } else {
-      const { data: createdUser, error: createErr } =
+      const { data: createdUser, error: createError } =
         await supabaseAdmin.auth.admin.createUser({
           email: TEST_ADMIN_EMAIL,
           password: TEST_ADMIN_PASSWORD,
           email_confirm: true,
           user_metadata: { full_name: TEST_ADMIN_NAME },
         });
-      if (createErr) throw new Error(createErr.message);
+      if (createError) throw new Error(createError.message);
       if (!createdUser.user?.id) throw new Error("Failed to create user");
       userId = createdUser.user.id;
       created = true;
     }
 
-    // Ensure profile row
     await supabaseAdmin.from("profiles").upsert(
       { user_id: userId, email: TEST_ADMIN_EMAIL, full_name: TEST_ADMIN_NAME },
       { onConflict: "user_id" },
     );
 
-    // Ensure admin role (ignore unique conflict)
     await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: userId, role: "admin" })
       .then(() => null, () => null);
 
-    // Clear any per-user section overrides so the admin role's full access applies
     await supabaseAdmin
       .from("user_section_overrides")
       .delete()
       .eq("user_id", userId)
       .then(() => null, () => null);
 
-    // Audit log
     await supabaseAdmin.from("access_audit_log").insert({
       actor_user_id: context.userId,
       action: created ? "test_admin_created" : "test_admin_reset",
