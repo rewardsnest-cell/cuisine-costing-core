@@ -336,23 +336,77 @@ export function RecipeForm({
           </h1>
         </div>
         {mode === "edit" && recipeId && (
-          <FlippGenerateButton
-            target={{ kind: "recipe", id: recipeId, column: "coupon_image_url" }}
-            templateKey="recipe-coupon"
-            label="Generate Social Image with Coupon"
-            values={[
-              { name: "title", value: form.name || null },
-              { name: "subtitle", value: form.description || form.category || null },
-              { name: "description", value: form.description || null },
-              { name: "category", value: form.category || null },
-              { name: "cuisine", value: form.cuisine || null },
-              { name: "coupon_text", value: null },
-              { name: "valid_until", value: null },
-            ]}
-            onGenerated={() => toast.success("Coupon image saved to this recipe")}
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateHero}
+              disabled={genHero}
+              className="gap-2"
+            >
+              {genHero ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {heroUrl ? "Regenerate AI hero" : "Generate AI hero"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateSocial}
+              disabled={genSocial}
+              className="gap-2"
+            >
+              {genSocial ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+              {socialUrl ? "Regenerate AI social" : "Generate AI social"}
+            </Button>
+            <FlippGenerateButton
+              target={{ kind: "recipe", id: recipeId, column: "coupon_image_url" }}
+              templateKey="recipe-coupon"
+              label="Generate Social Image with Coupon"
+              values={[
+                { name: "title", value: form.name || null },
+                { name: "subtitle", value: form.description || form.category || null },
+                { name: "description", value: form.description || null },
+                { name: "category", value: form.category || null },
+                { name: "cuisine", value: form.cuisine || null },
+                { name: "coupon_text", value: null },
+                { name: "valid_until", value: null },
+              ]}
+              onGenerated={() => toast.success("Coupon image saved to this recipe")}
+            />
+          </div>
         )}
       </div>
+
+      {mode === "edit" && recipeId && (heroUrl || socialUrl) && (
+        <Card className="shadow-warm border-border/50">
+          <CardContent className="p-5">
+            <h2 className="font-display text-lg font-semibold mb-3">AI-generated photos</h2>
+            <div className="grid grid-cols-2 gap-4 max-w-md">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Hero</p>
+                {heroUrl ? (
+                  <img src={heroUrl} alt={`${form.name} hero`} className="w-full aspect-square object-cover rounded-md border" />
+                ) : (
+                  <div className="w-full aspect-square rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                    No hero yet
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Social</p>
+                {socialUrl ? (
+                  <img src={socialUrl} alt={`${form.name} social`} className="w-full aspect-square object-cover rounded-md border" />
+                ) : (
+                  <div className="w-full aspect-square rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                    No social yet
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Basics */}
       <Card className="shadow-warm border-border/50">
