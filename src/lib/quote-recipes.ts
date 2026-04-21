@@ -12,6 +12,7 @@ export type RecipeRow = {
   is_gluten_free: boolean | null;
   allergens: string[] | null;
   active: boolean;
+  pricing_status?: string | null;
 };
 
 /**
@@ -29,6 +30,8 @@ export function filterRecipesForSelections(
 
   return recipes.filter((r) => {
     if (!r.active) return false;
+    // Pricing integrity gate: never expose recipes with blocked pricing
+    if (r.pricing_status && r.pricing_status !== "valid") return false;
 
     // Allergen filter
     if (allergiesLower.length && r.allergens?.length) {

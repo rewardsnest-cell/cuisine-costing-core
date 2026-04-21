@@ -135,7 +135,7 @@ function EventsPage() {
     const [{ data: ev }, { data: settings }, { data: recs }, { data: appS }] = await Promise.all([
       (supabase as any).from("quotes").select("*").order("event_date", { ascending: true, nullsFirst: false }),
       (supabase as any).from("app_settings").select("revision_lock_days").eq("id", 1).maybeSingle(),
-      (supabase as any).from("recipes").select("id, name, category, cuisine, cost_per_serving").eq("active", true).order("name"),
+      (supabase as any).from("recipes").select("id, name, category, cuisine, cost_per_serving").eq("active", true).eq("pricing_status", "valid").order("name"),
       (supabase as any).from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle(),
     ]);
     setEvents((ev ?? []) as Event[]);
