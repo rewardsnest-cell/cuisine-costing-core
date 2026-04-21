@@ -38,6 +38,8 @@ type Row = {
   score_video: number;
   score_event: number;
   score_seasonal: number;
+  pricing_status: string | null;
+  pricing_errors: any;
   shop_count?: number;
 };
 
@@ -85,7 +87,7 @@ function RecipeHub() {
     const [{ data: recipes }, { data: shop }] = await Promise.all([
       (supabase as any)
         .from("recipes")
-        .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal")
+        .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal, pricing_status, pricing_errors")
         .order("updated_at", { ascending: false }),
       (supabase as any).from("recipe_shop_items").select("recipe_id"),
     ]);
@@ -444,10 +446,19 @@ function RecipeHub() {
                       </div>
                     </td>
                     <td className="px-4 py-2">
-                      {r.active ? <Badge variant="secondary">Published</Badge> : <Badge variant="outline">Draft</Badge>}
+                      <div className="flex flex-col gap-1">
+                        {r.active ? <Badge variant="secondary">Published</Badge> : <Badge variant="outline">Draft</Badge>}
+                        {r.pricing_status && r.pricing_status !== "valid" && (
+                          <Badge variant="destructive" className="text-[10px]" title={Array.isArray(r.pricing_errors) ? r.pricing_errors.map((e: any) => `${e.ingredient}: ${e.message}`).join("\n") : ""}>
+                            {r.pricing_status.replace("blocked_missing_", "needs ")}
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
-                      {r.cost_per_serving != null ? `$${Number(r.cost_per_serving).toFixed(2)}` : <span className="text-muted-foreground">—</span>}
+                      {r.pricing_status && r.pricing_status !== "valid"
+                        ? <span className="text-destructive text-xs">blocked</span>
+                        : r.cost_per_serving != null ? `$${Number(r.cost_per_serving).toFixed(2)}` : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-2">{hasVideo ? <Badge>YouTube</Badge> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-2">
