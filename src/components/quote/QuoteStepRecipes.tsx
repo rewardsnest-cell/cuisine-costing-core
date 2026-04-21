@@ -27,8 +27,9 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
       const [{ data: recipes }, { data: settings }] = await Promise.all([
         supabase
           .from("recipes")
-          .select("id,name,description,category,cuisine,cost_per_serving,is_vegetarian,is_vegan,is_gluten_free,allergens,active")
+          .select("id,name,description,category,cuisine,cost_per_serving,is_vegetarian,is_vegan,is_gluten_free,allergens,active,pricing_status")
           .eq("active", true)
+          .eq("pricing_status", "valid")
           .order("category", { nullsFirst: false })
           .order("name"),
         supabase.from("app_settings").select("markup_multiplier").eq("id", 1).maybeSingle(),

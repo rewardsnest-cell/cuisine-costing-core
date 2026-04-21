@@ -63,6 +63,8 @@ function HubEdit() {
             is_vegan: !!rec.is_vegan,
             is_gluten_free: !!rec.is_gluten_free,
             allergens: (rec.allergens ?? []).join(", "),
+            pricing_status: rec.pricing_status ?? "valid",
+            pricing_errors: Array.isArray(rec.pricing_errors) ? rec.pricing_errors : [],
           },
           ingredients: (ings ?? []).map((i: any) => ({
             id: i.id,

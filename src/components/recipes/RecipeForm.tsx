@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -53,6 +53,8 @@ export type RecipeFormInitial = {
     is_vegan: boolean;
     is_gluten_free: boolean;
     allergens: string;
+    pricing_status?: string | null;
+    pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
   };
   ingredients: IngredientRow[];
 };
@@ -377,6 +379,42 @@ export function RecipeForm({
           </div>
         )}
       </div>
+
+      {initial.recipe.pricing_status && initial.recipe.pricing_status !== "valid" && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div>
+                  <h3 className="font-semibold text-destructive">
+                    Pricing blocked: {initial.recipe.pricing_status.replace("blocked_missing_", "missing ")}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This recipe will not appear in quote builders or be costed until all issues are resolved.
+                  </p>
+                </div>
+                {Array.isArray(initial.recipe.pricing_errors) && initial.recipe.pricing_errors.length > 0 && (
+                  <ul className="text-sm space-y-1 mt-2">
+                    {initial.recipe.pricing_errors.map((err, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="font-medium">{err.ingredient || "—"}:</span>
+                        <span className="text-muted-foreground">{err.message || err.issue}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-muted-foreground pt-1">
+                  Fix by linking ingredients in the list below to inventory items, or by editing the matching
+                  {" "}
+                  <a href="/admin/ingredient-reference" className="underline hover:text-primary">ingredient reference</a>
+                  {" "}to set density or waste factor.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {mode === "edit" && recipeId && (heroUrl || socialUrl) && (
         <Card className="shadow-warm border-border/50">
