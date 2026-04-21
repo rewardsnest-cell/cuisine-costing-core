@@ -53,6 +53,8 @@ export type RecipeFormInitial = {
     is_vegan: boolean;
     is_gluten_free: boolean;
     allergens: string;
+    pricing_status?: string | null;
+    pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
   };
   ingredients: IngredientRow[];
 };
