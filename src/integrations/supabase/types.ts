@@ -1924,6 +1924,8 @@ export type Database = {
           menu_price: number | null
           name: string
           prep_time: number | null
+          pricing_errors: Json
+          pricing_status: string
           pro_tips: Json
           reheating_instructions: string | null
           score_affiliate: number
@@ -1974,6 +1976,8 @@ export type Database = {
           menu_price?: number | null
           name: string
           prep_time?: number | null
+          pricing_errors?: Json
+          pricing_status?: string
           pro_tips?: Json
           reheating_instructions?: string | null
           score_affiliate?: number
@@ -2024,6 +2028,8 @@ export type Database = {
           menu_price?: number | null
           name?: string
           prep_time?: number | null
+          pricing_errors?: Json
+          pricing_status?: string
           pro_tips?: Json
           reheating_instructions?: string | null
           score_affiliate?: number
