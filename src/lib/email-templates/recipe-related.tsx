@@ -1,11 +1,4 @@
-import { Body } from '@react-email/body'
-import { Container } from '@react-email/container'
-import { Head } from '@react-email/head'
-import { Heading } from '@react-email/heading'
-import { Html } from '@react-email/html'
-import { Preview } from '@react-email/preview'
-import { Text } from '@react-email/text'
-import { Hr } from '@react-email/hr'
+import { Body, Container, Head, Heading, Html, Preview, Text, Hr } from '@react-email/components';
 import type { TemplateEntry } from './registry'
 import * as brand from './_brand'
 
