@@ -243,10 +243,78 @@ function AutoLink() {
     toast.success(`Bulk linked ${candidates.length} groups (${count} ingredient rows)`);
   };
 
+  const [bulkAddProgress, setBulkAddProgress] = useState({ done: 0, total: 0, failed: 0 });
+
+  const addAllUnmatched = async () => {
+    const candidates = groups.filter(
+      (g) => !g.done && !g.dismissed && g.matches.length === 0 && !g.loadingMatches,
+    );
+    if (candidates.length === 0) {
+      toast.info("No unmatched groups to add.");
+      return;
+    }
+    if (!confirm(`Create ${candidates.length} new inventory item(s) from unmatched ingredients? Runs 5 in parallel.`)) return;
+
+    setBulkBusy(true);
+    setBulkAddProgress({ done: 0, total: candidates.length, failed: 0 });
+    const queue = [...candidates];
+    let done = 0;
+    let failed = 0;
+    let succeeded = 0;
+    const CONCURRENCY = 5;
+
+    const worker = async () => {
+      while (queue.length > 0) {
+        const g = queue.shift();
+        if (!g) break;
+        try {
+          const { data: invItem, error: invErr } = await supabase
+            .from("inventory_items")
+            .insert({ name: g.alias.trim(), unit: "each", average_cost_per_unit: 0 })
+            .select("id, name")
+            .single();
+          if (invErr || !invItem) {
+            failed++;
+          } else {
+            const { error: linkErr } = await supabase
+              .from("recipe_ingredients")
+              .update({ inventory_item_id: invItem.id })
+              .in("id", g.ingredient_ids);
+            if (linkErr) {
+              failed++;
+            } else {
+              await (supabase as any)
+                .from("ingredient_synonyms")
+                .upsert(
+                  { alias: g.alias, alias_normalized: g.alias_normalized, canonical: invItem.name },
+                  { onConflict: "alias_normalized" },
+                );
+              succeeded++;
+              setGroups((prev) =>
+                prev.map((x) => (x.alias_normalized === g.alias_normalized ? { ...x, done: true } : x)),
+              );
+            }
+          }
+        } catch {
+          failed++;
+        }
+        done++;
+        setBulkAddProgress({ done, total: candidates.length, failed });
+      }
+    };
+
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, candidates.length) }, worker));
+    setBulkBusy(false);
+    toast.success(`Created ${succeeded} item(s)${failed > 0 ? `, ${failed} failed` : ""}`);
+  };
+
   const visibleGroups = groups.filter((g) => !g.dismissed && !g.done);
   const totalUnlinked = visibleGroups.reduce((sum, g) => sum + g.count, 0);
   const confidentCount = visibleGroups.filter(
     (g) => g.matches[0] && g.matches[0].similarity >= 0.7
+  ).length;
+  const unmatchedCount = visibleGroups.filter(
+    (g) => !g.loadingMatches && g.matches.length === 0,
   ).length;
 
   return (
@@ -270,14 +338,32 @@ function AutoLink() {
               We use fuzzy matching against your inventory to suggest links. Confirm or pick another match — confirming also adds a synonym so future imports auto-resolve.
             </p>
           </div>
-          <Button
-            onClick={linkAllConfident}
-            disabled={bulkBusy || confidentCount === 0}
-            className="bg-gradient-warm text-primary-foreground gap-1.5 flex-shrink-0"
-          >
-            {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-            Auto-link {confidentCount} confident
-          </Button>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <Button
+              onClick={linkAllConfident}
+              disabled={bulkBusy || confidentCount === 0}
+              className="bg-gradient-warm text-primary-foreground gap-1.5"
+            >
+              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+              Auto-link {confidentCount} confident
+            </Button>
+            <Button
+              onClick={addAllUnmatched}
+              disabled={bulkBusy || unmatchedCount === 0}
+              variant="outline"
+              className="gap-1.5"
+              title="Create a new inventory item for every group with no matches"
+            >
+              {bulkBusy && bulkAddProgress.total > 0 ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PackagePlus className="w-4 h-4" />
+              )}
+              {bulkBusy && bulkAddProgress.total > 0
+                ? `Adding ${bulkAddProgress.done}/${bulkAddProgress.total}${bulkAddProgress.failed ? ` · ${bulkAddProgress.failed} failed` : ""}`
+                : `Add ${unmatchedCount} unmatched as new`}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
