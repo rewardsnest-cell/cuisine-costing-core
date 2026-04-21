@@ -338,14 +338,32 @@ function AutoLink() {
               We use fuzzy matching against your inventory to suggest links. Confirm or pick another match — confirming also adds a synonym so future imports auto-resolve.
             </p>
           </div>
-          <Button
-            onClick={linkAllConfident}
-            disabled={bulkBusy || confidentCount === 0}
-            className="bg-gradient-warm text-primary-foreground gap-1.5 flex-shrink-0"
-          >
-            {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-            Auto-link {confidentCount} confident
-          </Button>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <Button
+              onClick={linkAllConfident}
+              disabled={bulkBusy || confidentCount === 0}
+              className="bg-gradient-warm text-primary-foreground gap-1.5"
+            >
+              {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+              Auto-link {confidentCount} confident
+            </Button>
+            <Button
+              onClick={addAllUnmatched}
+              disabled={bulkBusy || unmatchedCount === 0}
+              variant="outline"
+              className="gap-1.5"
+              title="Create a new inventory item for every group with no matches"
+            >
+              {bulkBusy && bulkAddProgress.total > 0 ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PackagePlus className="w-4 h-4" />
+              )}
+              {bulkBusy && bulkAddProgress.total > 0
+                ? `Adding ${bulkAddProgress.done}/${bulkAddProgress.total}${bulkAddProgress.failed ? ` · ${bulkAddProgress.failed} failed` : ""}`
+                : `Add ${unmatchedCount} unmatched as new`}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
