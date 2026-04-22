@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil, RefreshCw, Sparkles, Loader2, X, ImageOff } from "lucide-react";
+import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil, RefreshCw, Sparkles, Loader2, X, ImageOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { parseYouTubeId } from "@/lib/recipe-video";
 import { RecipeBulkActions } from "@/components/admin/RecipeBulkActions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -67,6 +67,15 @@ function RecipeHub() {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
+  const [healthRecompute, setHealthRecompute] = useState<{
+    running: boolean;
+    done: number;
+    total: number;
+    newlyBlocked: { id: string; name: string }[];
+    newlyWarning: { id: string; name: string }[];
+    improved: { id: string; name: string }[];
+    showSummary: boolean;
+  }>({ running: false, done: 0, total: 0, newlyBlocked: [], newlyWarning: [], improved: [], showSummary: false });
   const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number; queue: string[] }>({
     running: false, done: 0, total: 0, failed: 0, queue: [],
   });
@@ -212,7 +221,82 @@ function RecipeHub() {
     }
   };
 
-  // ---- Bulk image generation: resilient runner ----
+  const recomputePricingHealth = async () => {
+    if (healthRecompute.running) return;
+    const ok = await askConfirm({
+      title: "Recompute pricing health for all recipes?",
+      description: "Re-runs cost validation on every recipe and refreshes health summaries. This may take a moment.",
+    });
+    if (!ok) return;
+
+    // Snapshot current health BEFORE recompute, by id
+    const before = new Map<string, HealthStatus>();
+    for (const r of rows) before.set(r.id, r.health_status ?? "healthy");
+
+    const ids = rows.map((r) => r.id);
+    const total = ids.length;
+    setHealthRecompute({ running: true, done: 0, total, newlyBlocked: [], newlyWarning: [], improved: [], showSummary: false });
+    const toastId = toast.loading(`Recomputing pricing health (0 / ${total})…`);
+
+    // Run with limited concurrency to avoid hammering the DB
+    const CONCURRENCY = 6;
+    let done = 0;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < ids.length) {
+        const i = cursor++;
+        const id = ids[i];
+        try {
+          await (supabase as any).rpc("recompute_recipe_cost", { _recipe_id: id });
+        } catch {
+          // swallow — health summary will still reflect current DB state
+        }
+        done++;
+        if (done % 5 === 0 || done === total) {
+          toast.loading(`Recomputing pricing health (${done} / ${total})…`, { id: toastId });
+          setHealthRecompute((s) => ({ ...s, done }));
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, () => worker()));
+
+    // Reload rows + health summary
+    await load();
+
+    // Diff after reload — read fresh state via setRows callback pattern
+    setRows((fresh) => {
+      const newlyBlocked: { id: string; name: string }[] = [];
+      const newlyWarning: { id: string; name: string }[] = [];
+      const improved: { id: string; name: string }[] = [];
+      for (const r of fresh) {
+        const prev = before.get(r.id);
+        const next = r.health_status ?? "healthy";
+        if (prev === next) continue;
+        if (next === "blocked" && prev !== "blocked") newlyBlocked.push({ id: r.id, name: r.name });
+        else if (next === "warning" && prev === "healthy") newlyWarning.push({ id: r.id, name: r.name });
+        else if (next === "healthy" && prev !== "healthy") improved.push({ id: r.id, name: r.name });
+      }
+      setHealthRecompute({
+        running: false,
+        done: total,
+        total,
+        newlyBlocked,
+        newlyWarning,
+        improved,
+        showSummary: true,
+      });
+      const changes = newlyBlocked.length + newlyWarning.length + improved.length;
+      if (changes === 0) {
+        toast.success(`Pricing health recomputed — no status changes (${total} recipes)`, { id: toastId });
+      } else {
+        toast.success(
+          `Health refreshed: ${newlyBlocked.length} newly blocked, ${newlyWarning.length} new warning, ${improved.length} improved`,
+          { id: toastId },
+        );
+      }
+      return fresh;
+    });
+  };
   const STORAGE_KEY = "recipeHub.bulkPhotoQueue.v1";
   const PER_CALL_TIMEOUT_MS = 60_000;
 
@@ -349,6 +433,21 @@ function RecipeHub() {
           </Button>
           <Button
             variant="outline"
+            onClick={recomputePricingHealth}
+            disabled={healthRecompute.running || rows.length === 0}
+            className="gap-1.5"
+          >
+            {healthRecompute.running ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-4 h-4" />
+            )}
+            {healthRecompute.running
+              ? `Recomputing health (${healthRecompute.done}/${healthRecompute.total})…`
+              : "Recompute pricing health"}
+          </Button>
+          <Button
+            variant="outline"
             onClick={generateAllMissing}
             disabled={bulkGen.running || allMissingPhoto.length === 0}
             className="gap-1.5"
@@ -376,6 +475,58 @@ function RecipeHub() {
               )}
             </div>
             <Progress value={bulkGen.total > 0 ? (bulkGen.done / bulkGen.total) * 100 : 0} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {healthRecompute.showSummary && !healthRecompute.running ? (
+        <Card className="border-primary/30">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">
+                  Pricing health refreshed across {healthRecompute.total} recipes
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setHealthRecompute((s) => ({ ...s, showSummary: false }))}
+                className="gap-1"
+              >
+                <X className="w-3.5 h-3.5" /> Dismiss
+              </Button>
+            </div>
+
+            {healthRecompute.newlyBlocked.length === 0
+              && healthRecompute.newlyWarning.length === 0
+              && healthRecompute.improved.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No status changes detected.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <ChangeList
+                  title="Newly blocked"
+                  items={healthRecompute.newlyBlocked}
+                  tone="destructive"
+                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                  onJump={() => setHealthFilter("blocked")}
+                />
+                <ChangeList
+                  title="New warnings"
+                  items={healthRecompute.newlyWarning}
+                  tone="warning"
+                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                  onJump={() => setHealthFilter("warning")}
+                />
+                <ChangeList
+                  title="Improved"
+                  items={healthRecompute.improved}
+                  tone="success"
+                  icon={<ShieldCheck className="w-3.5 h-3.5" />}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}
@@ -561,5 +712,67 @@ function Stat({ label, value, icon }: { label: string; value: string | number; i
         <p className="text-2xl font-display text-foreground mt-2">{value}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function ChangeList({
+  title,
+  items,
+  tone,
+  icon,
+  onJump,
+}: {
+  title: string;
+  items: { id: string; name: string }[];
+  tone: "destructive" | "warning" | "success";
+  icon: React.ReactNode;
+  onJump?: () => void;
+}) {
+  const toneClass =
+    tone === "destructive"
+      ? "text-destructive"
+      : tone === "warning"
+        ? "text-warning"
+        : "text-success";
+  return (
+    <div className="rounded-md border border-border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className={`flex items-center gap-1.5 text-xs font-semibold ${toneClass}`}>
+          {icon}
+          {title}
+          <span className="tabular-nums">({items.length})</span>
+        </div>
+        {onJump && items.length > 0 && (
+          <button
+            onClick={onJump}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Filter list
+          </button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">None.</p>
+      ) : (
+        <ul className="space-y-0.5 max-h-40 overflow-auto">
+          {items.slice(0, 10).map((it) => (
+            <li key={it.id} className="text-xs">
+              <Link
+                to="/admin/recipe-hub/$id"
+                params={{ id: it.id }}
+                className="hover:underline truncate block"
+              >
+                {it.name}
+              </Link>
+            </li>
+          ))}
+          {items.length > 10 && (
+            <li className="text-[11px] text-muted-foreground italic">
+              …and {items.length - 10} more
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
   );
 }
