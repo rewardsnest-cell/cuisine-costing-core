@@ -95,16 +95,24 @@ function RecipeHub() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: recipes }, { data: shop }] = await Promise.all([
+    const [{ data: recipes }, { data: shop }, { data: healthRows }] = await Promise.all([
       (supabase as any)
         .from("recipes")
         .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal, pricing_status, pricing_errors")
         .order("updated_at", { ascending: false }),
       (supabase as any).from("recipe_shop_items").select("recipe_id"),
+      (supabase as any).rpc("recipe_pricing_health_summary"),
     ]);
     const counts = new Map<string, number>();
     for (const s of (shop || []) as any[]) counts.set(s.recipe_id, (counts.get(s.recipe_id) || 0) + 1);
-    const merged: Row[] = (recipes || []).map((r: any) => ({ ...r, shop_count: counts.get(r.id) || 0 }));
+    const healthMap = new Map<string, RecipeHealthSummaryRow>();
+    for (const h of (healthRows || []) as RecipeHealthSummaryRow[]) healthMap.set(h.recipe_id, h);
+    const merged: Row[] = (recipes || []).map((r: any) => ({
+      ...r,
+      shop_count: counts.get(r.id) || 0,
+      health_status: healthMap.get(r.id)?.health_status ?? (r.pricing_status && r.pricing_status !== "valid" ? "blocked" : "healthy"),
+      stale_count: healthMap.get(r.id)?.stale_ingredient_count ?? 0,
+    }));
     setRows(merged);
     setLoading(false);
   };
