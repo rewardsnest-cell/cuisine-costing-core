@@ -13,6 +13,7 @@ import { ArrowLeft, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { parseYouTubeId, youtubeEmbedUrl } from "@/lib/recipe-video";
 import { RecipeForm, type RecipeFormInitial } from "@/components/recipes/RecipeForm";
+import { PricingHealthPanel } from "@/components/admin/PricingHealthPanel";
 
 function buildAmazonUrl(query: string, tag: string | null) {
   const base = `https://www.amazon.com/s?k=${encodeURIComponent(query)}`;
