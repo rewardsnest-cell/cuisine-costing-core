@@ -1160,6 +1160,62 @@ export type Database = {
           },
         ]
       }
+      kroger_sku_map: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          last_seen_at: string
+          match_confidence: number | null
+          notes: string | null
+          product_name: string | null
+          product_name_normalized: string | null
+          reference_id: string | null
+          sku: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          match_confidence?: number | null
+          notes?: string | null
+          product_name?: string | null
+          product_name_normalized?: string | null
+          reference_id?: string | null
+          sku: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          match_confidence?: number | null
+          notes?: string | null
+          product_name?: string | null
+          product_name_normalized?: string | null
+          reference_id?: string | null
+          sku?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kroger_sku_map_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       national_price_snapshots: {
         Row: {
           created_at: string
@@ -2602,6 +2658,20 @@ export type Database = {
       is_assigned_to_quote: {
         Args: { _quote_id: string; _user_id: string }
         Returns: boolean
+      }
+      kroger_price_signals: {
+        Args: never
+        Returns: {
+          flag: string
+          inventory_avg: number
+          inventory_item_id: string
+          inventory_last_update: string
+          inventory_name: string
+          inventory_unit: string
+          kroger_30d_median: number
+          kroger_last_observed: string
+          kroger_sample_count: number
+        }[]
       }
       move_to_dlq: {
         Args: {
