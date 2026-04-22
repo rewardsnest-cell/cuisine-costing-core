@@ -48,11 +48,14 @@ type Row = {
   pricing_status: string | null;
   pricing_errors: any;
   shop_count?: number;
+  health_status?: HealthStatus;
+  stale_count?: number;
 };
 
 type ContentFilter = "all" | "no-video" | "no-shop" | "no-photo" | "draft";
 type StatusFilter = "all" | "active" | "off";
 type Kind = "all" | "food" | "cocktail";
+type HealthFilter = "all" | "blocked" | "warning" | "healthy";
 
 function RecipeHub() {
   const [rows, setRows] = useState<Row[]>([]);
