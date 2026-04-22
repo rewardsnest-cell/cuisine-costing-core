@@ -714,3 +714,65 @@ function Stat({ label, value, icon }: { label: string; value: string | number; i
     </Card>
   );
 }
+
+function ChangeList({
+  title,
+  items,
+  tone,
+  icon,
+  onJump,
+}: {
+  title: string;
+  items: { id: string; name: string }[];
+  tone: "destructive" | "warning" | "success";
+  icon: React.ReactNode;
+  onJump?: () => void;
+}) {
+  const toneClass =
+    tone === "destructive"
+      ? "text-destructive"
+      : tone === "warning"
+        ? "text-warning"
+        : "text-success";
+  return (
+    <div className="rounded-md border border-border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className={`flex items-center gap-1.5 text-xs font-semibold ${toneClass}`}>
+          {icon}
+          {title}
+          <span className="tabular-nums">({items.length})</span>
+        </div>
+        {onJump && items.length > 0 && (
+          <button
+            onClick={onJump}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Filter list
+          </button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">None.</p>
+      ) : (
+        <ul className="space-y-0.5 max-h-40 overflow-auto">
+          {items.slice(0, 10).map((it) => (
+            <li key={it.id} className="text-xs">
+              <Link
+                to="/admin/recipe-hub/$id"
+                params={{ id: it.id }}
+                className="hover:underline truncate block"
+              >
+                {it.name}
+              </Link>
+            </li>
+          ))}
+          {items.length > 10 && (
+            <li className="text-[11px] text-muted-foreground italic">
+              …and {items.length - 10} more
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
