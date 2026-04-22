@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil, RefreshCw, Sparkles, Loader2, X, ImageOff } from "lucide-react";
+import { ChefHat, Video, ShoppingBag, Search, Plus, Pencil, RefreshCw, Sparkles, Loader2, X, ImageOff, ShieldCheck, AlertTriangle } from "lucide-react";
 import { parseYouTubeId } from "@/lib/recipe-video";
 import { RecipeBulkActions } from "@/components/admin/RecipeBulkActions";
 import { Checkbox } from "@/components/ui/checkbox";
