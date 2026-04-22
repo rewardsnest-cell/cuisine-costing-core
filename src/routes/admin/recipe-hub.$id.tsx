@@ -13,6 +13,7 @@ import { ArrowLeft, Plus, Trash2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { parseYouTubeId, youtubeEmbedUrl } from "@/lib/recipe-video";
 import { RecipeForm, type RecipeFormInitial } from "@/components/recipes/RecipeForm";
+import { PricingHealthPanel } from "@/components/admin/PricingHealthPanel";
 
 function buildAmazonUrl(query: string, tag: string | null) {
   const base = `https://www.amazon.com/s?k=${encodeURIComponent(query)}`;
@@ -106,11 +107,14 @@ function HubEdit() {
         </TabsContent>
 
         <TabsContent value="recipe">
-          {recipeInitial ? (
-            <RecipeForm mode="edit" initial={recipeInitial} recipeId={id} />
-          ) : (
-            <p className="text-muted-foreground p-6">Loading recipe…</p>
-          )}
+          <div className="space-y-4">
+            <PricingHealthPanel recipeId={id} />
+            {recipeInitial ? (
+              <RecipeForm mode="edit" initial={recipeInitial} recipeId={id} />
+            ) : (
+              <p className="text-muted-foreground p-6">Loading recipe…</p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

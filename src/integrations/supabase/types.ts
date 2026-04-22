@@ -2691,6 +2691,15 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recipe_pricing_health: { Args: { _recipe_id: string }; Returns: Json }
+      recipe_pricing_health_summary: {
+        Args: never
+        Returns: {
+          health_status: string
+          recipe_id: string
+          stale_ingredient_count: number
+        }[]
+      }
       recompute_quote_totals: {
         Args: { _quote_id: string }
         Returns: undefined

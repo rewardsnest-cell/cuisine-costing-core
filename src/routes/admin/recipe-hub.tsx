@@ -18,6 +18,13 @@ import { toast } from "sonner";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
+import {
+  HEALTH_BADGE_CLASS,
+  HEALTH_LABEL,
+  HEALTH_SORT_RANK,
+  type HealthStatus,
+  type RecipeHealthSummaryRow,
+} from "@/lib/pricing-health";
 
 export const Route = createFileRoute("/admin/recipe-hub")({
   head: () => ({ meta: [{ title: "Recipes — Admin" }] }),
@@ -41,11 +48,14 @@ type Row = {
   pricing_status: string | null;
   pricing_errors: any;
   shop_count?: number;
+  health_status?: HealthStatus;
+  stale_count?: number;
 };
 
 type ContentFilter = "all" | "no-video" | "no-shop" | "no-photo" | "draft";
 type StatusFilter = "all" | "active" | "off";
 type Kind = "all" | "food" | "cocktail";
+type HealthFilter = "all" | "blocked" | "warning" | "healthy";
 
 function RecipeHub() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -54,6 +64,7 @@ function RecipeHub() {
   const [filter, setFilter] = useState<ContentFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [kind, setKind] = useState<Kind>("all");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
   const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number; queue: string[] }>({
@@ -84,16 +95,24 @@ function RecipeHub() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: recipes }, { data: shop }] = await Promise.all([
+    const [{ data: recipes }, { data: shop }, { data: healthRows }] = await Promise.all([
       (supabase as any)
         .from("recipes")
         .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal, pricing_status, pricing_errors")
         .order("updated_at", { ascending: false }),
       (supabase as any).from("recipe_shop_items").select("recipe_id"),
+      (supabase as any).rpc("recipe_pricing_health_summary"),
     ]);
     const counts = new Map<string, number>();
     for (const s of (shop || []) as any[]) counts.set(s.recipe_id, (counts.get(s.recipe_id) || 0) + 1);
-    const merged: Row[] = (recipes || []).map((r: any) => ({ ...r, shop_count: counts.get(r.id) || 0 }));
+    const healthMap = new Map<string, RecipeHealthSummaryRow>();
+    for (const h of (healthRows || []) as RecipeHealthSummaryRow[]) healthMap.set(h.recipe_id, h);
+    const merged: Row[] = (recipes || []).map((r: any) => ({
+      ...r,
+      shop_count: counts.get(r.id) || 0,
+      health_status: healthMap.get(r.id)?.health_status ?? (r.pricing_status && r.pricing_status !== "valid" ? "blocked" : "healthy"),
+      stale_count: healthMap.get(r.id)?.stale_ingredient_count ?? 0,
+    }));
     setRows(merged);
     setLoading(false);
   };
@@ -111,7 +130,7 @@ function RecipeHub() {
 
   const visible = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    const filtered = rows.filter((r) => {
       if (ql && !r.name.toLowerCase().includes(ql)) return false;
       if (filter === "no-video" && parseYouTubeId(r.video_url)) return false;
       if (filter === "no-shop" && (r.shop_count || 0) > 0) return false;
@@ -121,9 +140,19 @@ function RecipeHub() {
       if (status === "off" && r.active) return false;
       if (kind === "food" && isCocktail(r.category)) return false;
       if (kind === "cocktail" && !isCocktail(r.category)) return false;
+      if (healthFilter !== "all" && (r.health_status ?? "healthy") !== healthFilter) return false;
       return true;
     });
-  }, [rows, q, filter, status, kind]);
+    // Sort by health: blocked → warning → healthy (preserves original order within group)
+    return filtered
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => {
+        const ra = HEALTH_SORT_RANK[a.r.health_status ?? "healthy"];
+        const rb = HEALTH_SORT_RANK[b.r.health_status ?? "healthy"];
+        return ra !== rb ? ra - rb : a.i - b.i;
+      })
+      .map((x) => x.r);
+  }, [rows, q, filter, status, kind, healthFilter]);
 
   // All recipes lacking a photo (entire dataset, not just visible)
   const allMissingPhoto = useMemo(() => rows.filter((r) => !r.image_url), [rows]);
@@ -374,6 +403,11 @@ function RecipeHub() {
             value={status}
             onChange={setStatus}
             options={[["all", "Any status"], ["active", "On menu"], ["off", "Off menu"]]}
+          />
+          <FilterChips
+            value={healthFilter}
+            onChange={setHealthFilter}
+            options={[["all", "Any health"], ["blocked", "Blocked"], ["warning", "Warning"], ["healthy", "Healthy"]]}
           />
           <FilterChips
             value={filter}
