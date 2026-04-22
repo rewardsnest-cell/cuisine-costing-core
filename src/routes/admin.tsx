@@ -33,6 +33,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     label: "Pricing Intelligence",
     items: [
       { to: "/admin/national-prices", label: "Pricing Intelligence", icon: Globe2 },
+      { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
       { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
       { to: "/admin/competitor-trends", label: "Competitor Trends", icon: TrendingUp },
