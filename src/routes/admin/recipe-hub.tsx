@@ -433,6 +433,21 @@ function RecipeHub() {
           </Button>
           <Button
             variant="outline"
+            onClick={recomputePricingHealth}
+            disabled={healthRecompute.running || rows.length === 0}
+            className="gap-1.5"
+          >
+            {healthRecompute.running ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-4 h-4" />
+            )}
+            {healthRecompute.running
+              ? `Recomputing health (${healthRecompute.done}/${healthRecompute.total})…`
+              : "Recompute pricing health"}
+          </Button>
+          <Button
+            variant="outline"
             onClick={generateAllMissing}
             disabled={bulkGen.running || allMissingPhoto.length === 0}
             className="gap-1.5"
