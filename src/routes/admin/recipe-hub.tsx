@@ -405,6 +405,11 @@ function RecipeHub() {
             options={[["all", "Any status"], ["active", "On menu"], ["off", "Off menu"]]}
           />
           <FilterChips
+            value={healthFilter}
+            onChange={setHealthFilter}
+            options={[["all", "Any health"], ["blocked", "Blocked"], ["warning", "Warning"], ["healthy", "Healthy"]]}
+          />
+          <FilterChips
             value={filter}
             onChange={setFilter}
             options={[
