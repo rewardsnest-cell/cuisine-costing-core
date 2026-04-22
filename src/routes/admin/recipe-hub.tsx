@@ -479,6 +479,58 @@ function RecipeHub() {
         </Card>
       ) : null}
 
+      {healthRecompute.showSummary && !healthRecompute.running ? (
+        <Card className="border-primary/30">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">
+                  Pricing health refreshed across {healthRecompute.total} recipes
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setHealthRecompute((s) => ({ ...s, showSummary: false }))}
+                className="gap-1"
+              >
+                <X className="w-3.5 h-3.5" /> Dismiss
+              </Button>
+            </div>
+
+            {healthRecompute.newlyBlocked.length === 0
+              && healthRecompute.newlyWarning.length === 0
+              && healthRecompute.improved.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No status changes detected.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <ChangeList
+                  title="Newly blocked"
+                  items={healthRecompute.newlyBlocked}
+                  tone="destructive"
+                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                  onJump={() => setHealthFilter("blocked")}
+                />
+                <ChangeList
+                  title="New warnings"
+                  items={healthRecompute.newlyWarning}
+                  tone="warning"
+                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                  onJump={() => setHealthFilter("warning")}
+                />
+                <ChangeList
+                  title="Improved"
+                  items={healthRecompute.improved}
+                  tone="success"
+                  icon={<ShieldCheck className="w-3.5 h-3.5" />}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Stat label="Total recipes" value={stats.total} icon={<ChefHat className="w-4 h-4" />} />
         <Stat label="With photo" value={`${stats.withPhoto} / ${stats.total}`} icon={<ImageOff className="w-4 h-4" />} />
