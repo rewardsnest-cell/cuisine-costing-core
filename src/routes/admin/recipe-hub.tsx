@@ -221,7 +221,82 @@ function RecipeHub() {
     }
   };
 
-  // ---- Bulk image generation: resilient runner ----
+  const recomputePricingHealth = async () => {
+    if (healthRecompute.running) return;
+    const ok = await askConfirm({
+      title: "Recompute pricing health for all recipes?",
+      description: "Re-runs cost validation on every recipe and refreshes health summaries. This may take a moment.",
+    });
+    if (!ok) return;
+
+    // Snapshot current health BEFORE recompute, by id
+    const before = new Map<string, HealthStatus>();
+    for (const r of rows) before.set(r.id, r.health_status ?? "healthy");
+
+    const ids = rows.map((r) => r.id);
+    const total = ids.length;
+    setHealthRecompute({ running: true, done: 0, total, newlyBlocked: [], newlyWarning: [], improved: [], showSummary: false });
+    const toastId = toast.loading(`Recomputing pricing health (0 / ${total})…`);
+
+    // Run with limited concurrency to avoid hammering the DB
+    const CONCURRENCY = 6;
+    let done = 0;
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < ids.length) {
+        const i = cursor++;
+        const id = ids[i];
+        try {
+          await (supabase as any).rpc("recompute_recipe_cost", { _recipe_id: id });
+        } catch {
+          // swallow — health summary will still reflect current DB state
+        }
+        done++;
+        if (done % 5 === 0 || done === total) {
+          toast.loading(`Recomputing pricing health (${done} / ${total})…`, { id: toastId });
+          setHealthRecompute((s) => ({ ...s, done }));
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, () => worker()));
+
+    // Reload rows + health summary
+    await load();
+
+    // Diff after reload — read fresh state via setRows callback pattern
+    setRows((fresh) => {
+      const newlyBlocked: { id: string; name: string }[] = [];
+      const newlyWarning: { id: string; name: string }[] = [];
+      const improved: { id: string; name: string }[] = [];
+      for (const r of fresh) {
+        const prev = before.get(r.id);
+        const next = r.health_status ?? "healthy";
+        if (prev === next) continue;
+        if (next === "blocked" && prev !== "blocked") newlyBlocked.push({ id: r.id, name: r.name });
+        else if (next === "warning" && prev === "healthy") newlyWarning.push({ id: r.id, name: r.name });
+        else if (next === "healthy" && prev !== "healthy") improved.push({ id: r.id, name: r.name });
+      }
+      setHealthRecompute({
+        running: false,
+        done: total,
+        total,
+        newlyBlocked,
+        newlyWarning,
+        improved,
+        showSummary: true,
+      });
+      const changes = newlyBlocked.length + newlyWarning.length + improved.length;
+      if (changes === 0) {
+        toast.success(`Pricing health recomputed — no status changes (${total} recipes)`, { id: toastId });
+      } else {
+        toast.success(
+          `Health refreshed: ${newlyBlocked.length} newly blocked, ${newlyWarning.length} new warning, ${improved.length} improved`,
+          { id: toastId },
+        );
+      }
+      return fresh;
+    });
+  };
   const STORAGE_KEY = "recipeHub.bulkPhotoQueue.v1";
   const PER_CALL_TIMEOUT_MS = 60_000;
 
