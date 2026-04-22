@@ -130,7 +130,7 @@ function RecipeHub() {
 
   const visible = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    return rows.filter((r) => {
+    const filtered = rows.filter((r) => {
       if (ql && !r.name.toLowerCase().includes(ql)) return false;
       if (filter === "no-video" && parseYouTubeId(r.video_url)) return false;
       if (filter === "no-shop" && (r.shop_count || 0) > 0) return false;
@@ -140,9 +140,19 @@ function RecipeHub() {
       if (status === "off" && r.active) return false;
       if (kind === "food" && isCocktail(r.category)) return false;
       if (kind === "cocktail" && !isCocktail(r.category)) return false;
+      if (healthFilter !== "all" && (r.health_status ?? "healthy") !== healthFilter) return false;
       return true;
     });
-  }, [rows, q, filter, status, kind]);
+    // Sort by health: blocked → warning → healthy (preserves original order within group)
+    return filtered
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => {
+        const ra = HEALTH_SORT_RANK[a.r.health_status ?? "healthy"];
+        const rb = HEALTH_SORT_RANK[b.r.health_status ?? "healthy"];
+        return ra !== rb ? ra - rb : a.i - b.i;
+      })
+      .map((x) => x.r);
+  }, [rows, q, filter, status, kind, healthFilter]);
 
   // All recipes lacking a photo (entire dataset, not just visible)
   const allMissingPhoto = useMemo(() => rows.filter((r) => !r.image_url), [rows]);
