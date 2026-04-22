@@ -64,6 +64,7 @@ function RecipeHub() {
   const [filter, setFilter] = useState<ContentFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [kind, setKind] = useState<Kind>("all");
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
   const [bulkGen, setBulkGen] = useState<{ running: boolean; done: number; total: number; failed: number; queue: string[] }>({
