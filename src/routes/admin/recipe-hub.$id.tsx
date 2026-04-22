@@ -107,11 +107,14 @@ function HubEdit() {
         </TabsContent>
 
         <TabsContent value="recipe">
-          {recipeInitial ? (
-            <RecipeForm mode="edit" initial={recipeInitial} recipeId={id} />
-          ) : (
-            <p className="text-muted-foreground p-6">Loading recipe…</p>
-          )}
+          <div className="space-y-4">
+            <PricingHealthPanel recipeId={id} />
+            {recipeInitial ? (
+              <RecipeForm mode="edit" initial={recipeInitial} recipeId={id} />
+            ) : (
+              <p className="text-muted-foreground p-6">Loading recipe…</p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
