@@ -279,3 +279,21 @@ function AdminLoginGate() {
     </div>
   );
 }
+
+function AdminSidebarLogo() {
+  const { data: brandLogoUrl } = useBrandAsset("primary_logo");
+  if (brandLogoUrl) {
+    return (
+      <img
+        src={brandLogoUrl}
+        alt="VPS Finest"
+        className="w-7 h-7 rounded-lg object-contain"
+      />
+    );
+  }
+  return (
+    <div className="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center">
+      <span className="text-gold-foreground font-bold text-xs">TQ</span>
+    </div>
+  );
+}
