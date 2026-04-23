@@ -301,30 +301,32 @@ function PublicMenuPage() {
           </button>
         </div>
 
-        <div className="max-w-xl mx-auto mb-5 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-center">
-          <div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-              <span>Price range</span>
-              <span className="font-medium text-foreground">
-                ${priceRange[0].toFixed(0)} – ${priceRange[1].toFixed(0)}
-              </span>
+        <div className={`max-w-xl mx-auto mb-5 grid grid-cols-1 ${showPricing ? "sm:grid-cols-[1fr_auto]" : ""} gap-4 items-center`}>
+          {showPricing && (
+            <div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                <span>Price range</span>
+                <span className="font-medium text-foreground">
+                  ${priceRange[0].toFixed(0)} – ${priceRange[1].toFixed(0)}
+                </span>
+              </div>
+              <Slider
+                min={0}
+                max={priceMax}
+                step={1}
+                value={priceRange}
+                onValueChange={(v) => setPriceRange([v[0], v[1]] as [number, number])}
+              />
             </div>
-            <Slider
-              min={0}
-              max={priceMax}
-              step={1}
-              value={priceRange}
-              onValueChange={(v) => setPriceRange([v[0], v[1]] as [number, number])}
-            />
-          </div>
+          )}
           <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
             <SelectTrigger className="w-full sm:w-44 bg-card">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="name-asc">Name (A → Z)</SelectItem>
-              <SelectItem value="price-asc">Price (low → high)</SelectItem>
-              <SelectItem value="price-desc">Price (high → low)</SelectItem>
+              {showPricing && <SelectItem value="price-asc">Price (low → high)</SelectItem>}
+              {showPricing && <SelectItem value="price-desc">Price (high → low)</SelectItem>}
             </SelectContent>
           </Select>
         </div>

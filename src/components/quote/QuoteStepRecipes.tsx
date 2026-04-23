@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { QuoteSelections, Step, SelectedRecipe } from "./types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 interface Props {
   selections: QuoteSelections;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) {
+  const { showPricing } = usePricingVisibility();
   const [allRecipes, setAllRecipes] = useState<RecipeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
@@ -187,10 +189,12 @@ export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) 
                               </Badge>
                             )}
                           </div>
-                          <span className="text-sm font-semibold text-primary">
-                            ${perGuest.toFixed(2)}
-                            <span className="text-[10px] text-muted-foreground font-normal">/guest</span>
-                          </span>
+                          {showPricing && (
+                            <span className="text-sm font-semibold text-primary">
+                              ${perGuest.toFixed(2)}
+                              <span className="text-[10px] text-muted-foreground font-normal">/guest</span>
+                            </span>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

@@ -31,6 +31,7 @@ import { QuoteStepAddons } from "@/components/quote/QuoteStepAddons";
 import { QuoteStepTier } from "@/components/quote/QuoteStepTier";
 import { QuoteStepRecipes } from "@/components/quote/QuoteStepRecipes";
 import { totalForRecipes } from "@/lib/quote-recipes";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 import { redirect } from "@tanstack/react-router";
 
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/quote")({
 
 export function QuotePage() {
   const { user } = useAuth();
+  const { showPricing } = usePricingVisibility();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("style");
   const [submitted, setSubmitted] = useState(false);
@@ -448,9 +450,11 @@ export function QuotePage() {
                         {(selections.recipes || []).map((r) => (
                           <li key={r.id} className="text-sm flex justify-between gap-2">
                             <span className="font-medium">• {r.name}</span>
-                            <span className="text-muted-foreground text-xs">
-                              ${(r.cost_per_serving * markup * selectedTier.multiplier).toFixed(2)}/guest
-                            </span>
+                            {showPricing && (
+                              <span className="text-muted-foreground text-xs">
+                                ${(r.cost_per_serving * markup * selectedTier.multiplier).toFixed(2)}/guest
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -506,18 +510,27 @@ export function QuotePage() {
                     <div><p className="text-sm text-muted-foreground mb-1">Tier</p><p className="text-sm font-semibold">{selectedTier.icon} {selectedTier.label}</p></div>
                   </div>
                   <div className="border-t pt-4 bg-muted/50 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
-                    <div className="space-y-1 text-sm mb-3">
-                      <div className="flex justify-between"><span className="text-muted-foreground">Main dishes ({selections.proteins.length}×{selections.guestCount} guests)</span><span>${dishTotal.toLocaleString()}</span></div>
-                      {extrasTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Sides & extras</span><span>${extrasTotal.toLocaleString()}</span></div>}
-                      {addonsTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>${addonsTotal.toLocaleString()}</span></div>}
-                      {recipesTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Chef recipes ({(selections.recipes || []).length})</span><span>${Math.round(recipesTotal).toLocaleString()}</span></div>}
-                      {selectedTier.multiplier > 1 && <div className="flex justify-between"><span className="text-muted-foreground">{selectedTier.label} tier ({selectedTier.multiplier}x)</span><span className="text-xs">applied</span></div>}
-                    </div>
-                    <div className="flex justify-between items-center border-t pt-3">
-                      <span className="font-display text-lg font-semibold">Estimated Total</span>
-                      <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">+8% tax applied at checkout</p>
+                    {showPricing ? (
+                      <>
+                        <div className="space-y-1 text-sm mb-3">
+                          <div className="flex justify-between"><span className="text-muted-foreground">Main dishes ({selections.proteins.length}×{selections.guestCount} guests)</span><span>${dishTotal.toLocaleString()}</span></div>
+                          {extrasTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Sides & extras</span><span>${extrasTotal.toLocaleString()}</span></div>}
+                          {addonsTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Add-ons</span><span>${addonsTotal.toLocaleString()}</span></div>}
+                          {recipesTotal > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Chef recipes ({(selections.recipes || []).length})</span><span>${Math.round(recipesTotal).toLocaleString()}</span></div>}
+                          {selectedTier.multiplier > 1 && <div className="flex justify-between"><span className="text-muted-foreground">{selectedTier.label} tier ({selectedTier.multiplier}x)</span><span className="text-xs">applied</span></div>}
+                        </div>
+                        <div className="flex justify-between items-center border-t pt-3">
+                          <span className="font-display text-lg font-semibold">Estimated Total</span>
+                          <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">+8% tax applied at checkout</p>
+                      </>
+                    ) : (
+                      <div className="text-center py-2">
+                        <p className="font-display text-lg font-semibold">Pricing available on request</p>
+                        <p className="text-xs text-muted-foreground mt-1">Submit your request and we'll send a personalized quote.</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -536,15 +549,19 @@ export function QuotePage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-lg">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">Estimated · {selections.guestCount} guests · {selectedTier.icon} {selectedTier.label}</p>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
-                {selections.guestCount > 0 && totalAmount > 0 && (
-                  <span className="text-xs text-muted-foreground">~${Math.round(totalAmount / selections.guestCount)}/guest</span>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground truncate">{showPricing ? "Estimated" : "Building quote"} · {selections.guestCount} guests · {selectedTier.icon} {selectedTier.label}</p>
+              {showPricing ? (
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl font-bold text-gradient-gold">${totalAmount.toLocaleString()}</span>
+                  {selections.guestCount > 0 && totalAmount > 0 && (
+                    <span className="text-xs text-muted-foreground">~${Math.round(totalAmount / selections.guestCount)}/guest</span>
+                  )}
+                </div>
+              ) : (
+                <span className="font-display text-base font-semibold text-foreground">Pricing on request</span>
+              )}
             </div>
-            <Button size="sm" variant="outline" onClick={() => setStep("review")} disabled={totalAmount === 0} className="shrink-0">
+            <Button size="sm" variant="outline" onClick={() => setStep("review")} disabled={showPricing ? totalAmount === 0 : (selections.proteins.length === 0 && (selections.recipes || []).length === 0)} className="shrink-0">
               Review
             </Button>
           </div>

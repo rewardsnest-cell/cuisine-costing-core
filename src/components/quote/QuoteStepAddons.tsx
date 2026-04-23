@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ADDONS, type QuoteSelections, type Step } from "./types";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 interface Props {
   selections: QuoteSelections;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function QuoteStepAddons({ selections, setSelections, setStep }: Props) {
+  const { showPricing } = usePricingVisibility();
   const toggle = (id: string) => {
     setSelections((s) => ({
       ...s,
@@ -33,7 +35,7 @@ export function QuoteStepAddons({ selections, setSelections, setStep }: Props) {
                 <div className="flex-1">
                   <h3 className="font-medium text-sm">{item.label}</h3>
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  <p className="text-xs font-semibold text-primary mt-1">+${item.price}/guest</p>
+                  {showPricing && <p className="text-xs font-semibold text-primary mt-1">+${item.price}/guest</p>}
                 </div>
                 {selections.addons.includes(item.id) && (
                   <span className="text-primary font-bold">✓</span>
