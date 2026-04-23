@@ -414,6 +414,17 @@ function RecipesPage() {
 
         {loading ? (
           <p className="text-center text-muted-foreground">Loading recipes…</p>
+        ) : loadError ? (
+          <div className="text-center py-16 max-w-md mx-auto space-y-3">
+            <p className="text-muted-foreground">We couldn't load recipes right now.</p>
+            <p className="text-xs text-muted-foreground/80">{loadError}</p>
+            <button
+              onClick={() => typeof window !== "undefined" && window.location.reload()}
+              className="text-sm text-primary underline"
+            >
+              Try again
+            </button>
+          </div>
         ) : visible.length === 0 ? (
           <div className="text-center py-16 max-w-md mx-auto">
             <p className="text-muted-foreground mb-4">
