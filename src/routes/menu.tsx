@@ -10,6 +10,7 @@ import { ChefHat, ImageOff, Sparkles, Crown, Search, RotateCcw, Plus, Minus, Che
 import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTray";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -78,6 +79,7 @@ function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving" | "
 }
 
 function PublicMenuPage() {
+  const { showPricing } = usePricingVisibility();
   const { add, setQty, qtyOf, has } = useMenuSelections();
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -527,12 +529,18 @@ function PublicMenuPage() {
                         <CardContent className="p-5 flex-1 flex flex-col">
                           <div className="flex items-start justify-between gap-3">
                             <Link to="/recipes/$id" params={{ id: r.id }} className="font-display text-lg font-bold leading-tight text-foreground group-hover:text-accent transition-colors">{r.name}</Link>
-                            <div className="text-right shrink-0">
-                              <div className="font-display text-xl font-bold text-foreground">
-                                ${price.toFixed(2)}
+                            {showPricing ? (
+                              <div className="text-right shrink-0">
+                                <div className="font-display text-xl font-bold text-foreground">
+                                  ${price.toFixed(2)}
+                                </div>
+                                <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">per person</div>
                               </div>
-                              <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">per person</div>
-                            </div>
+                            ) : (
+                              <div className="text-right shrink-0">
+                                <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Request quote</div>
+                              </div>
+                            )}
                           </div>
                           {r.description && (
                             <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{r.description}</p>

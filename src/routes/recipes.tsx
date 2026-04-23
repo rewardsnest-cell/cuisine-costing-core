@@ -416,7 +416,7 @@ function RecipesPage() {
                         )}
                       </div>
                     )}
-                    {(totalCost > 0 || perPersonCost > 0) && (
+                    {showPricing && (totalCost > 0 || perPersonCost > 0) && (
                       <p
                         className="mt-4 text-xs text-muted-foreground inline-flex items-center justify-center gap-1.5"
                         title={
@@ -440,7 +440,7 @@ function RecipesPage() {
                         )}
                       </p>
                     )}
-                    {price > 0 && (
+                    {showPricing && price > 0 && (
                       <p className="mt-2 font-display text-base font-semibold text-foreground">
                         ${price.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">catering price / person</span>
                       </p>
