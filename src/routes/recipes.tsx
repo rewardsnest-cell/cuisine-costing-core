@@ -368,41 +368,43 @@ function RecipesPage() {
               const fullyCosted = cov && cov.total > 0 && cov.linked === cov.total;
               const partial = cov && cov.total > 0 && cov.linked > 0 && cov.linked < cov.total;
               return (
-                <div key={r.id} className="group block">
-                  <Link to="/recipes/$id" params={{ id: r.id }} className="block">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-muted rounded-md shadow-sm group-hover:shadow-md transition-shadow duration-500">
-                      {r.image_url ? (
-                        <img
-                          src={r.image_url}
-                          alt={r.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-                        />
-                      ) : (
-                        <RecipePlaceholder />
-                      )}
-                      <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-500" />
-                      <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-                        {r.is_copycat && (
-                          <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
-                            <Sparkles className="w-3 h-3" /> Copycat
-                          </span>
+                <article key={r.id} className="group">
+                  <div className="relative">
+                    <Link to="/recipes/$id" params={{ id: r.id }} className="block rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-muted rounded-md shadow-sm group-hover:shadow-md transition-shadow duration-500">
+                        {r.image_url ? (
+                          <img
+                            src={r.image_url}
+                            alt={r.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                          />
+                        ) : (
+                          <RecipePlaceholder />
                         )}
-                        {r.video_url && (
-                          <span className="text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
-                        )}
+                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors duration-500" />
+                        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                          {r.is_copycat && (
+                            <span className="inline-flex items-center gap-1 text-[10px] tracking-widest uppercase bg-accent/90 text-accent-foreground px-2 py-1 rounded-full">
+                              <Sparkles className="w-3 h-3" /> Copycat
+                            </span>
+                          )}
+                          {r.video_url && (
+                            <span className="text-[10px] tracking-widest uppercase bg-background/90 text-foreground px-2 py-1 rounded-full">Video</span>
+                          )}
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
-                        aria-pressed={isFav}
-                        onClick={(e) => toggleFavorite(r.id, e)}
-                        className={`absolute top-3 right-3 w-9 h-9 inline-flex items-center justify-center rounded-full bg-background/90 backdrop-blur-sm shadow-sm transition-colors hover:bg-background ${isFav ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}
-                      >
-                        <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
-                      </button>
-                    </div>
-                  </Link>
+                    </Link>
+                    <button
+                      type="button"
+                      aria-label={isFav ? "Remove from favorites" : "Save to favorites"}
+                      aria-pressed={isFav}
+                      onClick={(e) => toggleFavorite(r.id, e)}
+                      className={`absolute top-3 right-3 z-10 w-9 h-9 inline-flex items-center justify-center rounded-full bg-background/90 backdrop-blur-sm shadow-sm transition-colors hover:bg-background ${isFav ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
                   <div className="pt-7 text-center">
                     {(r.category || r.cuisine) && (
                       <p className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground mb-3">
@@ -410,7 +412,7 @@ function RecipesPage() {
                         {r.is_copycat && r.copycat_source && <span className="ml-2 normal-case tracking-normal">· inspired by {r.copycat_source}</span>}
                       </p>
                     )}
-                    <Link to="/recipes/$id" params={{ id: r.id }}>
+                    <Link to="/recipes/$id" params={{ id: r.id }} className="inline-block">
                       <h3 className="font-display text-2xl font-bold text-foreground group-hover:text-accent transition-colors duration-300">{r.name}</h3>
                     </Link>
                     {r.description && (
@@ -472,14 +474,14 @@ function RecipesPage() {
                       <button
                         type="button"
                         onClick={(e) => quickAddToShoppingList(r, e)}
-                        className="text-xs px-5 py-2.5 rounded-sm border border-foreground/30 text-foreground hover:bg-foreground hover:text-background transition-colors inline-flex items-center gap-1 font-semibold tracking-wide"
+                        className="relative z-10 text-xs px-5 py-2.5 rounded-sm border border-foreground/30 text-foreground hover:bg-foreground hover:text-background transition-colors inline-flex items-center gap-1 font-semibold tracking-wide"
                         aria-label={`Add ${r.name} ingredients to shopping list`}
                       >
                         <ShoppingBasket className="w-3 h-3" /> Add to list
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
