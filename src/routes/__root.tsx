@@ -4,6 +4,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
+import { MobileQuoteBar } from "@/components/MobileQuoteBar";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { SkipToContent } from "@/components/SkipToContent";
 import "@/styles.css";
@@ -102,10 +103,11 @@ function RootComponent() {
           {showChrome ? (
             <div className="min-h-screen bg-background flex flex-col">
               <PublicHeader />
-              <main id="main-content" className="flex-1" tabIndex={-1}>
+              <main id="main-content" className="flex-1 pb-16 md:pb-0" tabIndex={-1}>
                 <Outlet />
               </main>
               <PublicFooter />
+              <MobileQuoteBar />
             </div>
           ) : (
             <main id="main-content" tabIndex={-1}>
