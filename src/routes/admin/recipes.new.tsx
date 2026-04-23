@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { RecipeForm, blankInitial } from "@/components/recipes/RecipeForm";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Legacy route: /admin/recipes/new
+// All recipe creation now flows through /admin/recipe-hub with ?new=1.
 export const Route = createFileRoute("/admin/recipes/new")({
-  component: () => <RecipeForm mode="create" initial={blankInitial} />,
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/recipe-hub", search: { new: 1 } });
+  },
 });

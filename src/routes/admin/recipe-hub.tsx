@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
+import { RecipeForm, blankInitial } from "@/components/recipes/RecipeForm";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 import {
@@ -28,6 +29,10 @@ import {
 
 export const Route = createFileRoute("/admin/recipe-hub")({
   head: () => ({ meta: [{ title: "Recipes — Admin" }] }),
+  // ?new=1 opens the in-page recipe creation flow (single-surface entry point).
+  validateSearch: (search: Record<string, unknown>): { new?: 1 } => {
+    return search.new === 1 || search.new === "1" ? { new: 1 } : {};
+  },
   component: RecipeHub,
 });
 
@@ -58,6 +63,9 @@ type Kind = "all" | "food" | "cocktail";
 type HealthFilter = "all" | "blocked" | "warning" | "healthy";
 
 function RecipeHub() {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/recipe-hub" });
+  const showCreate = search.new === 1;
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -411,6 +419,27 @@ function RecipeHub() {
   }, [rows.length > 0]);
 
 
+  if (showCreate) {
+    return (
+      <div className="space-y-4 p-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-display text-2xl text-primary">New recipe</h1>
+            <p className="text-muted-foreground text-sm">All recipe creation flows through the Recipe Hub.</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: "/admin/recipe-hub", search: {} })}
+          >
+            <X className="w-4 h-4 mr-2" />
+            Cancel
+          </Button>
+        </div>
+        <RecipeForm mode="create" initial={blankInitial} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       <PageHelpCard route="/admin/recipe-hub" />
@@ -455,7 +484,7 @@ function RecipeHub() {
             {bulkGen.running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Generate missing photos ({allMissingPhoto.length})
           </Button>
-          <Link to="/admin/recipes/new"><Button><Plus className="w-4 h-4 mr-2" />New recipe</Button></Link>
+          <Link to="/admin/recipe-hub" search={{ new: 1 }}><Button><Plus className="w-4 h-4 mr-2" />New recipe</Button></Link>
           <Link to="/recipes" target="_blank"><Button variant="outline">View public hub</Button></Link>
         </div>
       </header>
