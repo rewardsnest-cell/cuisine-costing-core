@@ -4,6 +4,7 @@ import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
+import { useBrandAsset } from "@/lib/brand-assets";
 
 const EMAIL = "hello@vpsfinest.com";
 const PHONE_DISPLAY = "(330) 555-0199";
@@ -14,7 +15,9 @@ const LOGO_FALLBACK_URL =
   "https://qzxndabxkzhplhspkkoi.supabase.co/storage/v1/object/public/site-assets/brand/vpsfinest-logo.png";
 
 export function PublicFooter() {
+  const { data: brandLogoUrl } = useBrandAsset("primary_logo");
   const [logoSrc, setLogoSrc] = useState<string>(logo);
+  const effectiveSrc = brandLogoUrl || logoSrc;
   return (
     <footer className="bg-foreground text-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -32,12 +35,12 @@ export function PublicFooter() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <img
-                src={logoSrc}
+                src={effectiveSrc}
                 alt="VPS Finest"
                 className="h-9 w-auto object-contain bg-background/90 rounded-md p-1"
                 loading="lazy"
                 onError={() => {
-                  if (logoSrc !== LOGO_FALLBACK_URL) setLogoSrc(LOGO_FALLBACK_URL);
+                  if (!brandLogoUrl && logoSrc !== LOGO_FALLBACK_URL) setLogoSrc(LOGO_FALLBACK_URL);
                 }}
               />
               <span className="font-display text-lg font-semibold">VPS Finest</span>
