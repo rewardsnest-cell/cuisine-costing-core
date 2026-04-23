@@ -484,7 +484,7 @@ function RecipeHub() {
             {bulkGen.running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Generate missing photos ({allMissingPhoto.length})
           </Button>
-          <Link to="/admin/recipes/new"><Button><Plus className="w-4 h-4 mr-2" />New recipe</Button></Link>
+          <Link to="/admin/recipe-hub" search={{ new: 1 }}><Button><Plus className="w-4 h-4 mr-2" />New recipe</Button></Link>
           <Link to="/recipes" target="_blank"><Button variant="outline">View public hub</Button></Link>
         </div>
       </header>
