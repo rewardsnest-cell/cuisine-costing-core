@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WeddingsRouteImport } from './routes/weddings'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as QuoteRouteImport } from './routes/quote'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as MyEventsRouteImport } from './routes/my-events'
 import { Route as MenuRouteImport } from './routes/menu'
@@ -119,6 +121,11 @@ const WeddingsRoute = WeddingsRouteImport.update({
   path: '/weddings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -147,6 +154,11 @@ const RecipesRoute = RecipesRouteImport.update({
 const QuoteRoute = QuoteRouteImport.update({
   id: '/quote',
   path: '/quote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyQuotesRoute = MyQuotesRouteImport.update({
@@ -664,12 +676,14 @@ export interface FileRoutesByFullPath {
   '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
+  '/privacy': typeof PrivacyRoute
   '/quote': typeof QuoteRoute
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
@@ -769,12 +783,14 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
+  '/privacy': typeof PrivacyRoute
   '/quote': typeof QuoteRoute
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
@@ -875,12 +891,14 @@ export interface FileRoutesById {
   '/menu': typeof MenuRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
+  '/privacy': typeof PrivacyRoute
   '/quote': typeof QuoteRoute
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
@@ -983,12 +1001,14 @@ export interface FileRouteTypes {
     | '/menu'
     | '/my-events'
     | '/my-quotes'
+    | '/privacy'
     | '/quote'
     | '/recipes'
     | '/reset-password'
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
@@ -1088,12 +1108,14 @@ export interface FileRouteTypes {
     | '/menu'
     | '/my-events'
     | '/my-quotes'
+    | '/privacy'
     | '/quote'
     | '/recipes'
     | '/reset-password'
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/admin/access'
     | '/admin/affiliates'
     | '/admin/asset-debug'
@@ -1193,12 +1215,14 @@ export interface FileRouteTypes {
     | '/menu'
     | '/my-events'
     | '/my-quotes'
+    | '/privacy'
     | '/quote'
     | '/recipes'
     | '/reset-password'
     | '/robots.txt'
     | '/signup'
     | '/sitemap.xml'
+    | '/terms'
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
@@ -1300,12 +1324,14 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
+  PrivacyRoute: typeof PrivacyRoute
   QuoteRoute: typeof QuoteRoute
   RecipesRoute: typeof RecipesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   WeddingsRoute: typeof WeddingsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
   ApiFlippRoute: typeof ApiFlippRoute
@@ -1339,6 +1365,13 @@ declare module '@tanstack/react-router' {
       path: '/weddings'
       fullPath: '/weddings'
       preLoaderRoute: typeof WeddingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1381,6 +1414,13 @@ declare module '@tanstack/react-router' {
       path: '/quote'
       fullPath: '/quote'
       preLoaderRoute: typeof QuoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-quotes': {
@@ -2258,12 +2298,14 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
+  PrivacyRoute: PrivacyRoute,
   QuoteRoute: QuoteRoute,
   RecipesRoute: RecipesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   WeddingsRoute: WeddingsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
   ApiFlippRoute: ApiFlippRoute,
