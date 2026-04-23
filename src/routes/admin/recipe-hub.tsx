@@ -63,6 +63,9 @@ type Kind = "all" | "food" | "cocktail";
 type HealthFilter = "all" | "blocked" | "warning" | "healthy";
 
 function RecipeHub() {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/recipe-hub" });
+  const showCreate = search.new === 1;
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
