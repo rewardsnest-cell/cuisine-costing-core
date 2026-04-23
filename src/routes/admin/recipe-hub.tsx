@@ -16,6 +16,7 @@ import { getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { toast } from "sonner";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
+import { RecipeForm, blankInitial } from "@/components/recipes/RecipeForm";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 import {
@@ -28,6 +29,10 @@ import {
 
 export const Route = createFileRoute("/admin/recipe-hub")({
   head: () => ({ meta: [{ title: "Recipes — Admin" }] }),
+  // ?new=1 opens the in-page recipe creation flow (single-surface entry point).
+  validateSearch: (search: Record<string, unknown>) => ({
+    new: search.new === 1 || search.new === "1" ? 1 : undefined,
+  }),
   component: RecipeHub,
 });
 
