@@ -80,7 +80,8 @@ export function RecipeScaler({
   );
 
   const scaledTotal = useMemo(() => scaled.reduce((sum, i) => sum + (i.scaledCost || 0), 0), [scaled]);
-  const hasCosts = scaledTotal > 0;
+  const hasCosts = !hidePricing && scaledTotal > 0;
+  const showPricePerPerson = !hidePricing && pricePerPerson != null && pricePerPerson > 0;
 
   const handlePrint = () => {
     window.open(`/api/recipes/${recipeId}/printable?servings=${servings}`, "_blank", "noopener");
@@ -248,9 +249,9 @@ export function RecipeScaler({
   return (
     <div>
       {/* Pricing summary */}
-      {(hasCosts || pricePerPerson) && (
+      {(hasCosts || showPricePerPerson) && (
         <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-4 mb-5">
-          {pricePerPerson != null && pricePerPerson > 0 && (
+          {showPricePerPerson && (
             <div className="text-center">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">Catering price per person</p>
               <p className="font-display text-3xl font-bold text-gradient-gold tabular-nums mt-1">
@@ -337,7 +338,7 @@ export function RecipeScaler({
                 {i.name}
                 {i.notes ? ` · ${i.notes}` : ""}
               </span>
-              {i.scaledCost > 0 && (
+              {!hidePricing && i.scaledCost > 0 && (
                 <span className="text-xs text-muted-foreground tabular-nums shrink-0">
                   ${i.scaledCost.toFixed(2)}
                 </span>
