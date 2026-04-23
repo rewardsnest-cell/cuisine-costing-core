@@ -38,6 +38,7 @@ export function RecipeScaler({
   allergens,
   pricePerPerson,
   totalRecipeCost,
+  hidePricing = false,
 }: {
   recipeId: string;
   recipeName: string;
@@ -46,6 +47,7 @@ export function RecipeScaler({
   allergens?: string[] | null;
   pricePerPerson?: number | null;
   totalRecipeCost?: number | null;
+  hidePricing?: boolean;
 }) {
   const initial = baseServings && baseServings > 0 ? baseServings : 4;
   const [servings, setServings] = useState<number>(initial);
