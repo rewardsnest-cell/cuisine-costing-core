@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { TIERS, SIDES_AND_EXTRAS, ADDONS, PRICE_PER_DISH, type QuoteSelections, type Step } from "./types";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 interface Props {
   selections: QuoteSelections;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
+  const { showPricing } = usePricingVisibility();
   const guests = Math.max(selections.guestCount || 0, 1);
   const dishPerGuest = selections.proteins.length * PRICE_PER_DISH;
   const extrasPerGuest = selections.extras.reduce((sum, id) => {
@@ -49,7 +51,7 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{t.desc}</p>
-                    {basePerGuest > 0 && (
+                    {showPricing && basePerGuest > 0 && (
                       <div className="mt-2 flex items-baseline gap-2 flex-wrap">
                         <span className="font-display text-2xl font-bold text-primary">~${perGuest.toFixed(0)}</span>
                         <span className="text-xs text-muted-foreground">/ guest</span>

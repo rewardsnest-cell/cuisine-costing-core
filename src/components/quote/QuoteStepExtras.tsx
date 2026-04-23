@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SIDES_AND_EXTRAS, type QuoteSelections, type Step } from "./types";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 interface Props {
   selections: QuoteSelections;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function QuoteStepExtras({ selections, setSelections, setStep }: Props) {
+  const { showPricing } = usePricingVisibility();
   const toggle = (id: string) => {
     setSelections((s) => ({
       ...s,
@@ -31,7 +33,7 @@ export function QuoteStepExtras({ selections, setSelections, setStep }: Props) {
               <span className="text-2xl">{item.icon}</span>
               <div className="flex-1">
                 <h3 className="font-medium text-sm">{item.label}</h3>
-                <p className="text-xs text-muted-foreground">+${item.price}/guest</p>
+                {showPricing && <p className="text-xs text-muted-foreground">+${item.price}/guest</p>}
               </div>
               {selections.extras.includes(item.id) && (
                 <span className="text-primary font-bold">✓</span>
