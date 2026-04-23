@@ -1,19 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-function useAsset(slug: string): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    (supabase as any)
-      .from("site_asset_manifest")
-      .select("public_url")
-      .eq("slug", slug)
-      .maybeSingle()
-      .then(({ data }: any) => { if (data?.public_url) setUrl(data.public_url); });
-  }, [slug]);
-  return url;
-}
+import { useAsset } from "@/lib/use-asset";
 
 export const Route = createFileRoute("/catering")({
   head: () => ({
@@ -47,13 +33,16 @@ const FAQS = [
 ];
 
 function CateringPage() {
-  const hero = useAsset("path-catering");
+  const { url: hero, loading: heroLoading } = useAsset("path-catering");
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative pt-16 min-h-[60vh] flex items-center justify-center text-center">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-muted">
+          {heroLoading && !hero && (
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/80 to-secondary" aria-hidden="true" />
+          )}
           {hero && <img src={hero} alt="Event catering in Aurora, Ohio" className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-foreground/55" />
         </div>
