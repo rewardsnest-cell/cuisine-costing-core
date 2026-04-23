@@ -1984,6 +1984,7 @@ export type Database = {
           pricing_status: string
           pro_tips: Json
           reheating_instructions: string | null
+          scope: Database["public"]["Enums"]["recipe_scope"]
           score_affiliate: number
           score_event: number
           score_seasonal: number
@@ -2036,6 +2037,7 @@ export type Database = {
           pricing_status?: string
           pro_tips?: Json
           reheating_instructions?: string | null
+          scope?: Database["public"]["Enums"]["recipe_scope"]
           score_affiliate?: number
           score_event?: number
           score_seasonal?: number
@@ -2088,6 +2090,7 @@ export type Database = {
           pricing_status?: string
           pro_tips?: Json
           reheating_instructions?: string | null
+          scope?: Database["public"]["Enums"]["recipe_scope"]
           score_affiliate?: number
           score_event?: number
           score_seasonal?: number
@@ -2659,6 +2662,10 @@ export type Database = {
         Args: { _quote_id: string; _user_id: string }
         Returns: boolean
       }
+      is_recipe_publicly_visible: {
+        Args: { _recipe_id: string }
+        Returns: boolean
+      }
       kroger_price_signals: {
         Args: never
         Returns: {
@@ -2714,6 +2721,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employee"
       fred_priority: "primary" | "fallback"
+      recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2843,6 +2851,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "employee"],
       fred_priority: ["primary", "fallback"],
+      recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
     },
   },
 } as const
