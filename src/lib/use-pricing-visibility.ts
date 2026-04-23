@@ -17,15 +17,19 @@ export function usePricingVisibility() {
         .select("value")
         .eq("key", PRICING_VISIBILITY_KEY)
         .maybeSingle();
-      return data?.value === "true";
+      // Default: HIDE pricing on public pages unless admin has explicitly set
+      // the flag to "false" (i.e. opted in to showing prices). This keeps cost
+      // figures off the live site by default and makes the admin toggle the
+      // single source of truth for revealing them.
+      return data?.value !== "false";
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
   return {
-    hidePricing: query.data ?? false,
-    showPricing: !(query.data ?? false),
+    hidePricing: query.data ?? true,
+    showPricing: !(query.data ?? true),
     loading: query.isLoading,
   };
 }
