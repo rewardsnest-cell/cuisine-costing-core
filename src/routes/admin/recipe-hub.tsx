@@ -419,6 +419,27 @@ function RecipeHub() {
   }, [rows.length > 0]);
 
 
+  if (showCreate) {
+    return (
+      <div className="space-y-4 p-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-display text-2xl text-primary">New recipe</h1>
+            <p className="text-muted-foreground text-sm">All recipe creation flows through the Recipe Hub.</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: "/admin/recipe-hub", search: {} })}
+          >
+            <X className="w-4 h-4 mr-2" />
+            Cancel
+          </Button>
+        </div>
+        <RecipeForm mode="create" initial={blankInitial} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       <PageHelpCard route="/admin/recipe-hub" />
