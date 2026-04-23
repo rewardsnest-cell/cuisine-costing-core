@@ -95,6 +95,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/exports", label: "Exports & Reports", icon: Download },
       { to: "/admin/import-recipes", label: "Import Legacy Recipes", icon: Globe },
       { to: "/admin/scan-assets", label: "Scan Site Assets", icon: ScanLine },
+      { to: "/admin/asset-debug", label: "Asset Debug", icon: FileSearch },
       { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
       { to: "/admin/set-password", label: "Set Password", icon: KeyRound },
     ],
