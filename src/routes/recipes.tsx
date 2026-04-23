@@ -67,6 +67,7 @@ function RecipesPage() {
   const [useCase, setUseCase] = useState<UseCaseFilter>("All");
   const [diets, setDiets] = useState<Set<Diet>>(new Set());
   const [cuisine, setCuisine] = useState<string>("All");
+  const [showAllCuisines, setShowAllCuisines] = useState(false);
   const [query, setQuery] = useState("");
 
   const { user } = useAuth();
@@ -240,6 +241,11 @@ function RecipesPage() {
         </div>
       </section>
 
+      {/* Lead magnet banner — turns recipe browsing into email capture */}
+      <section className="pb-10 max-w-3xl mx-auto px-4 sm:px-6">
+        <NewsletterSignup source="recipes_page_top" />
+      </section>
+
       <section className="pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search */}
         <div className="max-w-md mx-auto mb-8 relative">
@@ -303,11 +309,11 @@ function RecipesPage() {
           ))}
         </div>
 
-        {/* Cuisine */}
+        {/* Cuisine — collapsed by default to keep the page calm */}
         {cuisineOptions.length > 2 && (
           <div className="flex flex-wrap justify-center gap-2 mb-8 text-xs">
             <span className="text-muted-foreground self-center mr-1">Cuisine:</span>
-            {cuisineOptions.map((c) => (
+            {(showAllCuisines ? cuisineOptions : cuisineOptions.slice(0, 7)).map((c) => (
               <button
                 key={c}
                 onClick={() => setCuisine(c)}
@@ -318,6 +324,14 @@ function RecipesPage() {
                 {c}
               </button>
             ))}
+            {cuisineOptions.length > 7 && (
+              <button
+                onClick={() => setShowAllCuisines((v) => !v)}
+                className="px-3 py-1.5 rounded-full border border-dashed border-border text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showAllCuisines ? "Show less" : `+${cuisineOptions.length - 7} more`}
+              </button>
+            )}
           </div>
         )}
 
