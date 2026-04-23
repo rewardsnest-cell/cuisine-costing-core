@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, Instagram, Facebook } from "lucide-react";
+import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
@@ -9,8 +10,11 @@ const PHONE_DISPLAY = "(330) 555-0199";
 const PHONE_HREF = "+13305550199";
 const INSTAGRAM_URL = "https://instagram.com/vpsfinest";
 const FACEBOOK_URL = "https://facebook.com/vpsfinest";
+const LOGO_FALLBACK_URL =
+  "https://qzxndabxkzhplhspkkoi.supabase.co/storage/v1/object/public/site-assets/brand/vpsfinest-logo.png";
 
 export function PublicFooter() {
+  const [logoSrc, setLogoSrc] = useState<string>(logo);
   return (
     <footer className="bg-foreground text-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,7 +31,15 @@ export function PublicFooter() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <img src={logo} alt="VPS Finest" className="h-9 w-auto object-contain bg-background/90 rounded-md p-1" loading="lazy" />
+              <img
+                src={logoSrc}
+                alt="VPS Finest"
+                className="h-9 w-auto object-contain bg-background/90 rounded-md p-1"
+                loading="lazy"
+                onError={() => {
+                  if (logoSrc !== LOGO_FALLBACK_URL) setLogoSrc(LOGO_FALLBACK_URL);
+                }}
+              />
               <span className="font-display text-lg font-semibold">VPS Finest</span>
             </div>
             <p className="text-sm text-background/60 leading-relaxed">
