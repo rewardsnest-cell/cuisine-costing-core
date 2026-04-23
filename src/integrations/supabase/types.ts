@@ -211,6 +211,39 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_assets: {
+        Row: {
+          active: boolean
+          asset_type: string
+          asset_url: string
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          asset_type: string
+          asset_url: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          asset_type?: string
+          asset_url?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       change_impact_analyses: {
         Row: {
           audit_export_id: string | null
