@@ -1,46 +1,57 @@
 
 
-User confirms: reorganize admin + add help cards + consolidate the two "national" pages as discussed.
+# Add Recipe Sharing for Facebook, TikTok, YouTube, Instagram
 
-## Plan
+## Goal
+Make it one tap for you to grab a clean recipe link + caption to drop into your Facebook posts, TikTok captions, YouTube descriptions, and Instagram bio/Stories.
 
-### 1. Reusable help card
-- Create `src/components/admin/PageHelpCard.tsx` — sage-accent card with title, purpose, when-to-use, related links, and a "Hide" toggle persisted in `localStorage` per route.
-- Create `src/lib/admin/page-help.ts` — central registry mapping each admin route to `{ title, purpose, whenToUse, related[] }` so all copy lives in one file.
+## What Gets Built
 
-### 2. Reorganize sidebar in `src/routes/admin.tsx`
-Group ~30 pages into 6 collapsible `SidebarGroup`s (active group auto-expands):
+### 1. "Share" button on every recipe page
+Sits in the hero next to Print / Download PDF. Opens a popover with everything pre-formatted for your four platforms:
 
-```text
-PRICING INTELLIGENCE   national-prices, margin-volatility, trends,
-                       competitor-trends, competitor-quotes, quick-quote
-RECIPES & MENU         recipe-hub, recipes, menu, generate-recipe-photos,
-                       servings-review, newsletter-guide
-INGREDIENTS            ingredient-reference, synonyms, auto-link-ingredients,
-                       ingredients/review-unlinked
-INVENTORY & SOURCING   inventory, suppliers, purchase-orders, receipts,
-                       uploads, scan-flyer, sales
-EVENTS & PEOPLE        quotes, events, schedule, timesheet, employees,
-                       users, access
-SYSTEM                 integrations, brand-colors, affiliates, feedback,
-                       exports, import-recipes, scan-assets
+- **Facebook** — one-tap "Share to Facebook" button (opens FB share dialog with the recipe link + auto preview card pulled from the recipe photo, name, and hook).
+- **Instagram** — Instagram doesn't allow direct link sharing from the web, so the popover gives you:
+  - **Copy link** (paste into your Linktree / link-in-bio / Stories link sticker)
+  - **Copy caption** (recipe name + hook + link, ready to paste into a Reel/post)
+  - **QR code** (screenshot it and slap it on a Story or Reel end-card so viewers can scan)
+- **TikTok** — same as Instagram (no direct web share). Use **Copy caption** for the post text and the **QR code** as a video overlay so viewers can scan from the screen.
+- **YouTube** — **Copy link** + **Copy description block** (recipe name, ingredients summary, full link) ready to paste into the video description.
+
+### 2. Pre-written caption template
+The popover shows an editable, ready-to-copy block:
 ```
+{Recipe Name} 🍴
+{hook}
 
-### 3. Consolidate the two "National" pages
-- Convert `src/routes/admin/national-prices.tsx` to a `Tabs` shell:
-  - **Overview** — status strip (active month, coverage, last FRED pull, flag state)
-  - **FRED Sources** — existing `FredMappingsManager` + `FredPullPanel` + new small Pull History table reading `fred_pull_log`
-  - **Monthly Snapshots** — staging review + Activate (moved from `pricing.national.tsx`)
-  - **Manual Entry** — existing CSV/single-row form
-- Replace `src/routes/admin/pricing.national.tsx` with a redirect to `/admin/national-prices?tab=snapshots`.
+Full recipe → vpsfinest.com/recipes/{id}
+#catering #ohio #recipe
+```
+One "Copy caption" button.
 
-### 4. Add `<PageHelpCard route="..." />` to every admin page
-~30 one-line additions at the top of each route's component. Copy sourced from the existing `/mnt/documents/vpsfinest-system-extraction.md` audit so wording is accurate.
+### 3. QR code generator
+A small QR code of the recipe URL renders in the popover. Tap it to enlarge / screenshot. Drop it on TikTok/Reels/Shorts video overlays so on-screen viewers can scan straight to the recipe.
 
-### Out of scope
-- No DB changes, no new server functions, no logic changes
-- URLs unchanged except the one consolidation (with redirect)
+### 4. Native mobile share
+On your phone, a "Share…" button uses iOS/Android's native share sheet — so you can send the link directly to the Instagram app, Messages, TikTok DMs, etc., without copy-paste.
 
-### Risk
-Low. Help cards are additive; sidebar regrouping is visual; the merged page reuses existing components verbatim.
+### 5. Rich link previews (already working, will verify)
+When you paste the recipe URL into Facebook or anywhere else, it auto-shows the recipe photo + name + hook as a preview card. The meta tags are already wired in `recipes_.$id.tsx` — will confirm the recipe image is the one used.
+
+## Files
+
+**Create:**
+- `src/components/recipes/RecipeShareButton.tsx` — popover with Facebook button, copy-link, copy-caption, copy-YouTube-description, QR code, native share
+
+**Modify:**
+- `src/routes/recipes_.$id.tsx` — drop `<RecipeShareButton />` into the hero action row
+- `package.json` — add `qrcode` + `@types/qrcode`
+
+**No backend changes.** All client-side.
+
+## Your Workflow After This Ships
+1. Open the recipe → tap **Share**
+2. **Facebook**: tap "Share to Facebook" → done
+3. **Instagram/TikTok**: tap "Copy caption" → paste into the post; optionally screenshot the QR for the video overlay
+4. **YouTube**: tap "Copy description" → paste into your video description
 
