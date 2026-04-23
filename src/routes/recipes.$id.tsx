@@ -269,8 +269,9 @@ function RecipeDetailPage() {
               baseServings={r.servings ?? 4}
               ingredients={ingredients as any}
               allergens={r.allergens}
-              pricePerPerson={r.menu_price ?? r.selling_price_per_person ?? null}
-              totalRecipeCost={r.total_cost ?? null}
+              pricePerPerson={showPricing ? (r.menu_price ?? r.selling_price_per_person ?? null) : null}
+              totalRecipeCost={showPricing ? (r.total_cost ?? null) : null}
+              hidePricing={!showPricing}
             />
           </aside>
 
