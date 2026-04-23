@@ -63,6 +63,7 @@ function RecipesPage() {
   const [ingredients, setIngredients] = useState<Map<string, string[]>>(new Map());
   const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [kind, setKind] = useState<RecipeKind>("food");
   const [useCase, setUseCase] = useState<UseCaseFilter>("All");
   const [diets, setDiets] = useState<Set<Diet>>(new Set());
@@ -74,20 +75,39 @@ function RecipesPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    (async () => {
-      const { data: rs } = await (supabase as any)
-        .from("recipes")
-        .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, cost_per_serving, total_cost, is_copycat, copycat_source")
-        .eq("active", true)
-        .order("name");
-      const list: Recipe[] = rs || [];
-      setRecipes(list);
-      // Pull ingredients for ingredient search (all in one shot)
-      if (list.length) {
-        const { data: ings } = await (supabase as any)
+    let cancelled = false;
+
+    const loadRecipes = async () => {
+      setLoading(true);
+      setLoadError(null);
+
+      try {
+        const { data: rs, error: recipesError } = await (supabase as any)
+          .from("recipes")
+          .select("id, name, description, hook, image_url, category, cuisine, use_case, video_url, prep_time, cook_time, servings, serving_size, skill_level, is_vegetarian, is_vegan, is_gluten_free, selling_price_per_person, calculated_cost_per_person, cost_per_serving, total_cost, is_copycat, copycat_source")
+          .eq("active", true)
+          .order("name");
+
+        if (recipesError) throw recipesError;
+
+        const list: Recipe[] = rs || [];
+        if (cancelled) return;
+        setRecipes(list);
+
+        if (!list.length) {
+          setIngredients(new Map());
+          setCoverage(new Map());
+          return;
+        }
+
+        const { data: ings, error: ingredientsError } = await (supabase as any)
           .from("recipe_ingredients")
           .select("recipe_id, name, inventory_item_id, reference_id")
           .in("recipe_id", list.map((r) => r.id));
+
+        if (ingredientsError) throw ingredientsError;
+        if (cancelled) return;
+
         const map = new Map<string, string[]>();
         const cov = new Map<string, Coverage>();
         for (const i of (ings || []) as Ingredient[]) {
@@ -100,14 +120,29 @@ function RecipesPage() {
         }
         setIngredients(map);
         setCoverage(cov);
+      } catch (error: any) {
+        if (cancelled) return;
+        setRecipes([]);
+        setIngredients(new Map());
+        setCoverage(new Map());
+        setLoadError(error?.message || "Could not load recipes right now.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
-    })();
+    };
+
+    void loadRecipes();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load favorites for signed-in users
   useEffect(() => {
-    if (!user) { setFavorites(new Set()); return; }
+    if (!user) {
+      setFavorites(new Set());
+      return;
+    }
     (async () => {
       const { data } = await (supabase as any)
         .from("recipe_favorites")
@@ -148,31 +183,65 @@ function RecipesPage() {
   const quickAddToShoppingList = async (recipe: Recipe, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) {
-      toast.error("Sign in to use the shopping list");
+    const { data: ings, error: ingredientsError } = await (supabase as any)
+      .from("recipe_ingredients")
+      .select("name, quantity, unit, notes")
+      .eq("recipe_id", recipe.id);
+
+    if (ingredientsError) {
+      toast.error("Couldn't load ingredients for this recipe");
       return;
     }
-    const { data: ings } = await (supabase as any)
-      .from("recipe_ingredients")
-      .select("name, quantity, unit")
-      .eq("recipe_id", recipe.id);
-    const rows = (ings || []).map((i: any) => ({
-      user_id: user.id,
-      recipe_id: recipe.id,
-      name: i.name,
-      quantity: i.quantity,
-      unit: i.unit,
-    }));
-    if (!rows.length) {
+
+    const list = (ings || []) as Array<{ name: string; quantity: number | null; unit: string | null; notes?: string | null }>;
+    if (!list.length) {
       toast("No ingredients to add");
       return;
     }
-    const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
-    if (error) {
-      toast.error("Couldn't add to shopping list");
-    } else {
-      toast.success(`Added ${rows.length} ingredient${rows.length === 1 ? "" : "s"}`, { description: recipe.name });
+
+    if (user) {
+      const rows = list.map((i) => ({
+        user_id: user.id,
+        recipe_id: recipe.id,
+        name: i.name,
+        quantity: i.quantity,
+        unit: i.unit,
+        notes: i.notes ? `${recipe.name}: ${i.notes}` : recipe.name,
+      }));
+      const { error } = await (supabase as any).from("shopping_list_items").insert(rows);
+      if (error) {
+        toast.error("Couldn't add to shopping list");
+      } else {
+        toast.success(`Added ${rows.length} ingredient${rows.length === 1 ? "" : "s"}`, { description: recipe.name });
+      }
+      return;
     }
+
+    const KEY = "shopping_list_local_v1";
+    const existing = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(KEY) || "[]");
+      } catch {
+        return [];
+      }
+    })();
+
+    const additions = list.map((i) => ({
+      id: crypto.randomUUID(),
+      recipe_id: recipe.id,
+      recipe_name: recipe.name,
+      name: i.name,
+      quantity: i.quantity,
+      unit: i.unit,
+      notes: i.notes || null,
+      checked: false,
+      created_at: new Date().toISOString(),
+    }));
+
+    localStorage.setItem(KEY, JSON.stringify([...existing, ...additions]));
+    toast.success(`Added ${additions.length} item${additions.length === 1 ? "" : "s"} to your list`, {
+      description: "Sign in to sync your shopping list across devices.",
+    });
   };
 
   const cuisineOptions = useMemo(() => {
