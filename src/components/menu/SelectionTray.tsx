@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, Plus, Minus, X, ArrowRight, Trash2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 const STORAGE_KEY = "menu_selections_v1";
 
@@ -90,6 +91,7 @@ export function useMenuSelections() {
 }
 
 export function SelectionTray({ markup = 3.5 }: { markup?: number }) {
+  const { showPricing } = usePricingVisibility();
   const { items, setQty, remove, clear } = useMenuSelections();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -179,10 +181,12 @@ export function SelectionTray({ markup = 3.5 }: { markup?: number }) {
                       {item.category && (
                         <p className="text-[11px] text-muted-foreground mt-0.5">{item.category}</p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ${(item.cost_per_serving * markup).toFixed(2)} × {item.qty} ={" "}
-                        <span className="font-semibold text-foreground">${linePrice.toFixed(2)}</span>
-                      </p>
+                      {showPricing && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ${(item.cost_per_serving * markup).toFixed(2)} × {item.qty} ={" "}
+                          <span className="font-semibold text-foreground">${linePrice.toFixed(2)}</span>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
@@ -214,15 +218,23 @@ export function SelectionTray({ markup = 3.5 }: { markup?: number }) {
             </div>
 
             <div className="border-t border-border p-4 space-y-2 bg-muted/20">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Estimated per guest</span>
-                <span className="font-display text-lg font-bold text-gradient-gold">
-                  ${perGuest.toFixed(2)}
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Final price depends on guest count, service style, and event details.
-              </p>
+              {showPricing ? (
+                <>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Estimated per guest</span>
+                    <span className="font-display text-lg font-bold text-gradient-gold">
+                      ${perGuest.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Final price depends on guest count, service style, and event details.
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  We'll send a personalized quote based on your selections, guest count, and event details.
+                </p>
+              )}
               <Button
                 onClick={handleSendToQuote}
                 className="w-full bg-gradient-warm text-primary-foreground gap-2"
