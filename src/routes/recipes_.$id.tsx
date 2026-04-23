@@ -234,6 +234,14 @@ function RecipeDetailPage() {
             >
               Download PDF
             </a>
+            <RecipeShareButton
+              recipeId={r.id}
+              recipeName={r.name}
+              hook={r.hook}
+              description={r.description}
+              imageUrl={r.image_url}
+              ingredients={ingredients as any}
+            />
           </div>
         </header>
 
