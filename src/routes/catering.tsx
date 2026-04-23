@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAsset } from "@/lib/use-asset";
+import pathCateringStatic from "@/assets/site/path-catering.jpg";
 
 export const Route = createFileRoute("/catering")({
   head: () => ({
@@ -33,17 +34,15 @@ const FAQS = [
 ];
 
 function CateringPage() {
-  const { url: hero, loading: heroLoading } = useAsset("path-catering");
+  const { url: heroOverride } = useAsset("path-catering");
+  const hero = heroOverride ?? pathCateringStatic;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative pt-16 min-h-[60vh] flex items-center justify-center text-center">
         <div className="absolute inset-0 bg-muted">
-          {heroLoading && !hero && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/80 to-secondary" aria-hidden="true" />
-          )}
-          {hero && <img src={hero} alt="Event catering in Aurora, Ohio" className="w-full h-full object-cover" />}
+          <img src={hero} alt="Event catering in Aurora, Ohio" className="w-full h-full object-cover" fetchPriority="high" />
           <div className="absolute inset-0 bg-foreground/55" />
         </div>
         <div className="relative max-w-3xl mx-auto px-6 py-20">
