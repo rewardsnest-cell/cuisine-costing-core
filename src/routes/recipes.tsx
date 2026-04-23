@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
@@ -58,6 +58,7 @@ export const Route = createFileRoute("/recipes")({
 });
 
 function RecipesPage() {
+  const navigate = useNavigate();
   const { showPricing } = usePricingVisibility();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<Map<string, string[]>>(new Map());
@@ -448,7 +449,19 @@ function RecipesPage() {
               const fullyCosted = cov && cov.total > 0 && cov.linked === cov.total;
               const partial = cov && cov.total > 0 && cov.linked > 0 && cov.linked < cov.total;
               return (
-                <article key={r.id} className="group">
+                <article
+                  key={r.id}
+                  className="group cursor-pointer"
+                  onClick={() => navigate({ to: "/recipes/$id", params: { id: r.id } })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate({ to: "/recipes/$id", params: { id: r.id } });
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-label={`Open ${r.name} recipe`}
+                >
                   <div className="relative">
                     <Link to="/recipes/$id" params={{ id: r.id }} className="block rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <div className="relative aspect-[4/5] overflow-hidden bg-muted rounded-md shadow-sm group-hover:shadow-md transition-shadow duration-500">
