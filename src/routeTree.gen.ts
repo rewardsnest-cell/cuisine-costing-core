@@ -72,6 +72,7 @@ import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/pricing-visibility'
+import { Route as AdminPricingTestRouteImport } from './routes/admin/pricing-test'
 import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
@@ -433,6 +434,11 @@ const AdminPricingVisibilityRoute = AdminPricingVisibilityRouteImport.update({
   path: '/pricing-visibility',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingTestRoute = AdminPricingTestRouteImport.update({
+  id: '/pricing-test',
+  path: '/pricing-test',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNewsletterGuideRoute = AdminNewsletterGuideRouteImport.update({
   id: '/newsletter-guide',
   path: '/newsletter-guide',
@@ -681,6 +687,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -783,6 +790,7 @@ export interface FileRoutesByTo {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -888,6 +896,7 @@ export interface FileRoutesById {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -994,6 +1003,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -1096,6 +1106,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -1200,6 +1211,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -1750,6 +1762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingVisibilityRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-test': {
+      id: '/admin/pricing-test'
+      path: '/pricing-test'
+      fullPath: '/admin/pricing-test'
+      preLoaderRoute: typeof AdminPricingTestRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/newsletter-guide': {
       id: '/admin/newsletter-guide'
       path: '/newsletter-guide'
@@ -2099,6 +2118,7 @@ interface AdminRouteChildren {
   AdminMenuRoute: typeof AdminMenuRoute
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
+  AdminPricingTestRoute: typeof AdminPricingTestRoute
   AdminPricingVisibilityRoute: typeof AdminPricingVisibilityRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
@@ -2150,6 +2170,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuRoute: AdminMenuRoute,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
+  AdminPricingTestRoute: AdminPricingTestRoute,
   AdminPricingVisibilityRoute: AdminPricingVisibilityRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
