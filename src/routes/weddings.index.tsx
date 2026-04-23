@@ -6,6 +6,7 @@ import { faqJsonLd } from "@/lib/seo/jsonld";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 import { useAsset } from "@/lib/use-asset";
+import pathCateringStatic from "@/assets/site/path-catering.jpg";
 
 export const Route = createFileRoute("/weddings/")({
   head: () => ({
@@ -46,8 +47,8 @@ const FAQS = [
 function WeddingsPage() {
   const weddingsHero = useAsset("hero-weddings");
   const cateringFallback = useAsset("path-catering");
-  const hero = weddingsHero.url ?? cateringFallback.url;
-  const heroLoading = weddingsHero.loading || (!hero && cateringFallback.loading);
+  // Bundled image is the always-present baseline; CDN overrides if available
+  const hero = weddingsHero.url ?? cateringFallback.url ?? pathCateringStatic;
   const navigate = useNavigate();
 
   return (
@@ -55,10 +56,7 @@ function WeddingsPage() {
       {/* Hero */}
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
         <div className="absolute inset-0 bg-muted">
-          {heroLoading && !hero && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/80 to-secondary" aria-hidden="true" />
-          )}
-          {hero && <img src={hero} alt="Wedding catering in Aurora, Ohio" className="w-full h-full object-cover" />}
+          <img src={hero} alt="Wedding catering in Aurora, Ohio" className="w-full h-full object-cover" fetchPriority="high" />
           <div className="absolute inset-0 bg-foreground/55" />
         </div>
         <div className="relative max-w-3xl mx-auto px-6 py-20">

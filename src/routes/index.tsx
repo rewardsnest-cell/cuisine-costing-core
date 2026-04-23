@@ -4,6 +4,9 @@ import { FloatingQuoteCTA } from "@/components/FloatingQuoteCTA";
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 import { useAsset } from "@/lib/use-asset";
+import heroHomeStatic from "@/assets/site/hero-home.jpg";
+import pathCateringStatic from "@/assets/site/path-catering.jpg";
+import pathRecipesStatic from "@/assets/site/path-recipes.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,21 +21,26 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { url: hero, loading: heroLoading } = useAsset("hero-home");
-  const { url: recipesImg } = useAsset("path-recipes");
-  const { url: cateringImg } = useAsset("path-catering");
+  // Static bundled images render instantly; CDN URL from useAsset takes over
+  // only if an admin has uploaded a newer override via site_asset_manifest.
+  const { url: heroOverride } = useAsset("hero-home");
+  const { url: recipesOverride } = useAsset("path-recipes");
+  const { url: cateringOverride } = useAsset("path-catering");
+  const hero = heroOverride ?? heroHomeStatic;
+  const recipesImg = recipesOverride ?? pathRecipesStatic;
+  const cateringImg = cateringOverride ?? pathCateringStatic;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative pt-16 min-h-[92vh] flex items-center justify-center text-center">
         <div className="absolute inset-0 bg-muted">
-          {heroLoading && !hero && (
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/80 to-secondary" aria-hidden="true" />
-          )}
-          {hero && (
-            <img src={hero} alt="VPS Finest wedding and event catering in Aurora, Ohio" className="w-full h-full object-cover" />
-          )}
+          <img
+            src={hero}
+            alt="VPS Finest wedding and event catering in Aurora, Ohio"
+            className="w-full h-full object-cover"
+            fetchPriority="high"
+          />
           <div className="absolute inset-0 bg-foreground/55" />
         </div>
         <div className="relative max-w-3xl mx-auto px-6 py-24">
