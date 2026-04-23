@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Instagram } from "lucide-react";
+import { recordAssetEvent } from "@/lib/asset-debug";
 
 interface Tile {
   url: string;
@@ -43,26 +44,37 @@ export function PhotoGrid({
       const collected: Tile[] = [];
 
       // 1) gallery- prefixed manifest entries
-      const { data: gallery } = await (supabase as any)
+      const { data: gallery, error: galleryErr } = await (supabase as any)
         .from("site_asset_manifest")
         .select("slug, public_url")
         .like("slug", "gallery-%")
         .order("slug")
         .limit(limit);
+      if (galleryErr) {
+        recordAssetEvent({ slug: "gallery-*", status: "error", error: galleryErr.message });
+      } else if (!gallery || gallery.length === 0) {
+        recordAssetEvent({ slug: "gallery-*", status: "missing", error: "No gallery-* slugs in site_asset_manifest" });
+      }
       for (const g of gallery || []) {
-        if (g?.public_url) collected.push({ url: g.public_url, alt: g.slug || "Gallery image" });
+        if (g?.public_url) {
+          collected.push({ url: g.public_url, alt: g.slug || "Gallery image" });
+          recordAssetEvent({ slug: g.slug, status: "ok", url: g.public_url });
+        }
       }
 
       // 2) Top up with recent recipes that have an image
       if (collected.length < limit) {
         const remaining = limit - collected.length;
-        const { data: recipes } = await (supabase as any)
+        const { data: recipes, error: recipesErr } = await (supabase as any)
           .from("recipes")
           .select("id, name, image_url")
           .eq("active", true)
           .not("image_url", "is", null)
           .order("updated_at", { ascending: false })
           .limit(remaining * 2); // fetch a few extra in case of dedupe
+        if (recipesErr) {
+          recordAssetEvent({ slug: "recipes(image_url)", status: "error", error: recipesErr.message });
+        }
         const seen = new Set(collected.map((t) => t.url));
         for (const r of recipes || []) {
           if (collected.length >= limit) break;

@@ -90,6 +90,7 @@ import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
 import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
+import { Route as AdminAssetDebugRouteImport } from './routes/admin/asset-debug'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
@@ -524,6 +525,11 @@ const AdminAutoLinkIngredientsRoute =
     path: '/auto-link-ingredients',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAssetDebugRoute = AdminAssetDebugRouteImport.update({
+  id: '/asset-debug',
+  path: '/asset-debug',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAffiliatesRoute = AdminAffiliatesRouteImport.update({
   id: '/affiliates',
   path: '/affiliates',
@@ -649,6 +655,7 @@ export interface FileRoutesByFullPath {
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -749,6 +756,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -852,6 +860,7 @@ export interface FileRoutesById {
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
@@ -956,6 +965,7 @@ export interface FileRouteTypes {
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/asset-debug'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -1056,6 +1066,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/asset-debug'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -1158,6 +1169,7 @@ export interface FileRouteTypes {
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/asset-debug'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-colors'
     | '/admin/competitor-trends'
@@ -1852,6 +1864,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAutoLinkIngredientsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/asset-debug': {
+      id: '/admin/asset-debug'
+      path: '/asset-debug'
+      fullPath: '/admin/asset-debug'
+      preLoaderRoute: typeof AdminAssetDebugRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/affiliates': {
       id: '/admin/affiliates'
       path: '/affiliates'
@@ -2041,6 +2060,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
   AdminAffiliatesRoute: typeof AdminAffiliatesRoute
+  AdminAssetDebugRoute: typeof AdminAssetDebugRoute
   AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
@@ -2090,6 +2110,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
   AdminAffiliatesRoute: AdminAffiliatesRoute,
+  AdminAssetDebugRoute: AdminAssetDebugRoute,
   AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,

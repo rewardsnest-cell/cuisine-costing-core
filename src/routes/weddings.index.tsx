@@ -1,25 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { faqJsonLd } from "@/lib/seo/jsonld";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
-
-function useAsset(slug: string): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    (supabase as any)
-      .from("site_asset_manifest")
-      .select("public_url")
-      .eq("slug", slug)
-      .maybeSingle()
-      .then(({ data }: any) => { if (data?.public_url) setUrl(data.public_url); });
-  }, [slug]);
-  return url;
-}
+import { useAsset } from "@/lib/use-asset";
 
 export const Route = createFileRoute("/weddings/")({
   head: () => ({
@@ -58,14 +44,20 @@ const FAQS = [
 ];
 
 function WeddingsPage() {
-  const hero = useAsset("hero-weddings") ?? useAsset("path-catering");
+  const weddingsHero = useAsset("hero-weddings");
+  const cateringFallback = useAsset("path-catering");
+  const hero = weddingsHero.url ?? cateringFallback.url;
+  const heroLoading = weddingsHero.loading || (!hero && cateringFallback.loading);
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative pt-16 min-h-[65vh] flex items-center justify-center text-center">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-muted">
+          {heroLoading && !hero && (
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-muted/80 to-secondary" aria-hidden="true" />
+          )}
           {hero && <img src={hero} alt="Wedding catering in Aurora, Ohio" className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-foreground/55" />
         </div>
