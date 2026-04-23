@@ -165,6 +165,11 @@ function RecipeDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <article className="pt-24 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-4">
+          <Link to="/recipes">
+            <Button variant="outline" size="sm">← Back to recipes</Button>
+          </Link>
+        </div>
         <nav className="text-sm text-muted-foreground mb-6">
           <Link to="/recipes" className="hover:text-primary">Recipes</Link>
           <span className="mx-2">/</span>
