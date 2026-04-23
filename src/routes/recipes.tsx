@@ -9,6 +9,7 @@ import { PhotoGrid } from "@/components/PhotoGrid";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 type Recipe = {
   id: string;
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/recipes")({
 });
 
 function RecipesPage() {
+  const { showPricing } = usePricingVisibility();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [ingredients, setIngredients] = useState<Map<string, string[]>>(new Map());
   const [coverage, setCoverage] = useState<Map<string, Coverage>>(new Map());
