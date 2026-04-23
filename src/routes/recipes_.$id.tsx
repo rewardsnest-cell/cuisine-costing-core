@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
 import { RecipeScaler } from "@/components/recipes/RecipeScaler";
+import { RecipeShareButton } from "@/components/recipes/RecipeShareButton";
 import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 const SITE = "https://www.vpsfinest.com";
