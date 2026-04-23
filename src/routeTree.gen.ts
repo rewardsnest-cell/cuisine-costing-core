@@ -37,7 +37,7 @@ import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddin
 import { Route as WeddingsSpringAuroraOhioRouteImport } from './routes/weddings.spring-aurora-ohio'
 import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fall-hudson-ohio'
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
-import { Route as RecipesIdRouteImport } from './routes/recipes.$id'
+import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
@@ -256,9 +256,9 @@ const WeddingsBookingTimelineRoute = WeddingsBookingTimelineRouteImport.update({
   getParentRoute: () => WeddingsRoute,
 } as any)
 const RecipesIdRoute = RecipesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => RecipesRoute,
+  id: '/recipes_/$id',
+  path: '/recipes/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const QuoteAiRoute = QuoteAiRouteImport.update({
   id: '/quote_/ai',
@@ -659,7 +659,7 @@ export interface FileRoutesByFullPath {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRouteWithChildren
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -763,7 +763,7 @@ export interface FileRoutesByTo {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRouteWithChildren
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -868,7 +868,7 @@ export interface FileRoutesById {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/quote': typeof QuoteRoute
-  '/recipes': typeof RecipesRouteWithChildren
+  '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/signup': typeof SignupRoute
@@ -931,7 +931,7 @@ export interface FileRoutesById {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/quote_/ai': typeof QuoteAiRoute
-  '/recipes/$id': typeof RecipesIdRoute
+  '/recipes_/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1246,7 +1246,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/quote_/ai'
-    | '/recipes/$id'
+    | '/recipes_/$id'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -1289,7 +1289,7 @@ export interface RootRouteChildren {
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   QuoteRoute: typeof QuoteRoute
-  RecipesRoute: typeof RecipesRouteWithChildren
+  RecipesRoute: typeof RecipesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SignupRoute: typeof SignupRoute
@@ -1309,6 +1309,7 @@ export interface RootRouteChildren {
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   HooksRecipeDripRoute: typeof HooksRecipeDripRoute
   QuoteAiRoute: typeof QuoteAiRoute
+  RecipesIdRoute: typeof RecipesIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
@@ -1517,12 +1518,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WeddingsBookingTimelineRouteImport
       parentRoute: typeof WeddingsRoute
     }
-    '/recipes/$id': {
-      id: '/recipes/$id'
-      path: '/$id'
+    '/recipes_/$id': {
+      id: '/recipes_/$id'
+      path: '/recipes/$id'
       fullPath: '/recipes/$id'
       preLoaderRoute: typeof RecipesIdRouteImport
-      parentRoute: typeof RecipesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/quote_/ai': {
       id: '/quote_/ai'
@@ -2201,17 +2202,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface RecipesRouteChildren {
-  RecipesIdRoute: typeof RecipesIdRoute
-}
-
-const RecipesRouteChildren: RecipesRouteChildren = {
-  RecipesIdRoute: RecipesIdRoute,
-}
-
-const RecipesRouteWithChildren =
-  RecipesRoute._addFileChildren(RecipesRouteChildren)
-
 interface WeddingsRouteChildren {
   WeddingsBookingTimelineRoute: typeof WeddingsBookingTimelineRoute
   WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
@@ -2248,7 +2238,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   QuoteRoute: QuoteRoute,
-  RecipesRoute: RecipesRouteWithChildren,
+  RecipesRoute: RecipesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SignupRoute: SignupRoute,
@@ -2268,6 +2258,7 @@ const rootRouteChildren: RootRouteChildren = {
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   HooksRecipeDripRoute: HooksRecipeDripRoute,
   QuoteAiRoute: QuoteAiRoute,
+  RecipesIdRoute: RecipesIdRoute,
   BlogIndexRoute: BlogIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,

@@ -8,7 +8,7 @@ import { usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 const SITE = "https://www.vpsfinest.com";
 
-export const Route = createFileRoute("/recipes/$id")({
+export const Route = createFileRoute("/recipes_/$id")({
   loader: async ({ params }) => {
     const { data: recipe, error } = await (supabase as any)
       .from("recipes")
