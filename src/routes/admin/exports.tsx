@@ -282,6 +282,9 @@ function ExportsPage() {
   const handleDownloadPdf = async () => {
     setBusy("pdf");
     try {
+      const snap = await fetchInventorySnapshot();
+      const fullMd = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
+
       const doc = new jsPDF({ unit: "pt", format: "letter" });
       const margin = 48;
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -301,7 +304,7 @@ function ExportsPage() {
       const lineHeight = 13;
 
       // Render markdown as plain wrapped text with basic heading styling.
-      const lines = PROJECT_AUDIT_MD.split("\n");
+      const lines = fullMd.split("\n");
       for (const raw of lines) {
         const line = raw.trimEnd();
         let fontSize = 10;
