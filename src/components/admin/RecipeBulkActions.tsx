@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
+import { bulkSetInspiredPhase } from "@/lib/server-fns/inspired.functions";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Link2, Loader2, ImageOff, X } from "lucide-react";
+import { Sparkles, Link2, Loader2, ImageOff, X, Sparkle } from "lucide-react";
 import { toast } from "sonner";
+import { PHASE_LABEL, INSPIRED_PHASES, type InspiredPhase } from "@/lib/inspired";
 
 interface BulkRecipe {
   id: string;
@@ -17,6 +19,7 @@ interface Props {
   selectedIds: Set<string>;
   onClearSelection: () => void;
   onPhotoUpdated?: (recipeId: string, url: string) => void;
+  onInspiredPhaseUpdated?: (recipeIds: string[], phase: InspiredPhase) => void;
 }
 
 /**
