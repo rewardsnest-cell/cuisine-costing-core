@@ -1610,6 +1610,87 @@ export type Database = {
           },
         ]
       }
+      pricing_model_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          price_per_person: number
+          pricing_model_id: string
+          recipe_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_person: number
+          pricing_model_id: string
+          recipe_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          price_per_person?: number
+          pricing_model_id?: string
+          recipe_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_model_recipes_pricing_model_id_fkey"
+            columns: ["pricing_model_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_model_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_models: {
+        Row: {
+          activated_at: string | null
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          status: Database["public"]["Enums"]["pricing_model_status"]
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["pricing_model_status"]
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["pricing_model_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2977,6 +3058,7 @@ export type Database = {
       cooking_guide_status: "draft" | "published"
       fred_priority: "primary" | "fallback"
       menu_module_state: "active" | "seasonal" | "inactive"
+      pricing_model_status: "draft" | "active" | "archived"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
     }
@@ -3110,6 +3192,7 @@ export const Constants = {
       cooking_guide_status: ["draft", "published"],
       fred_priority: ["primary", "fallback"],
       menu_module_state: ["active", "seasonal", "inactive"],
+      pricing_model_status: ["draft", "active", "archived"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
     },
