@@ -286,7 +286,7 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
         url.searchParams.set("filter.limit", "5");
         if (opts.locationId) url.searchParams.set("filter.locationId", opts.locationId);
 
-        const res = await fetch(url.toString(), {
+        const res = await krogerFetchWithBackoff(url.toString(), {
           headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         });
         if (!res.ok) {
