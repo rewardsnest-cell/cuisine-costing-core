@@ -7,8 +7,57 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const lineItemSchema = z.object({
+  item_name: z
+    .string()
+    .trim()
+    .min(1, "Name required")
+    .max(200, "Max 200 chars"),
+  quantity: z
+    .number({ invalid_type_error: "Number" })
+    .finite("Invalid")
+    .gt(0, "Must be > 0")
+    .max(100000, "Too large"),
+  unit: z
+    .string()
+    .trim()
+    .min(1, "Unit required")
+    .max(20, "Max 20 chars"),
+  unit_price: z
+    .number({ invalid_type_error: "Number" })
+    .finite("Invalid")
+    .min(0, "Must be ≥ 0")
+    .max(1000000, "Too large"),
+});
+
+type LineItemErrors = Partial<Record<"item_name" | "quantity" | "unit" | "unit_price", string>>;
+
+function validateLineItems(items: LineItem[]): { errors: Record<number, LineItemErrors>; firstMessage: string | null } {
+  const errors: Record<number, LineItemErrors> = {};
+  let firstMessage: string | null = null;
+  items.forEach((it, idx) => {
+    const result = lineItemSchema.safeParse({
+      item_name: it.item_name,
+      quantity: Number(it.quantity),
+      unit: it.unit,
+      unit_price: Number(it.unit_price),
+    });
+    if (!result.success) {
+      const rowErrors: LineItemErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof LineItemErrors;
+        if (field && !rowErrors[field]) rowErrors[field] = issue.message;
+        if (!firstMessage) firstMessage = `Row ${idx + 1}: ${issue.message}`;
+      }
+      errors[idx] = rowErrors;
+    }
+  });
+  return { errors, firstMessage };
+}
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
