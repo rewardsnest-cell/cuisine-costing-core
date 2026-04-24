@@ -137,6 +137,39 @@ function VisibilityPage() {
     );
   }, [rows, search]);
 
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const onBulkToggle = async (turnOn: boolean) => {
+    if (filteredRows.length === 0) return;
+    const scope = search.trim() ? `${filteredRows.length} filtered` : `all ${filteredRows.length}`;
+    if (!window.confirm(`${turnOn ? "Enable" : "Disable"} ${scope} feature(s)?`)) return;
+    setBulkBusy(true);
+    let ok = 0;
+    let fail = 0;
+    try {
+      for (const r of filteredRows) {
+        try {
+          await updateFeatureVisibility({
+            data: {
+              feature_key: r.feature_key,
+              phase: turnOn ? "public" : "off",
+              nav_enabled: turnOn,
+            },
+          });
+          ok++;
+        } catch {
+          fail++;
+        }
+      }
+      toast[fail === 0 ? "success" : "error"](
+        `${turnOn ? "Enabled" : "Disabled"} ${ok} feature(s)${fail ? `, ${fail} failed` : ""}`,
+      );
+      await refetch();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
