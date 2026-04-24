@@ -45,6 +45,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
       { to: "/admin/pricing-visibility", label: "Pricing Visibility", icon: EyeOff },
       { to: "/admin/pricing-test", label: "Pricing Test", icon: FlaskConical },
+      { to: "/admin/pricing-lab", label: "Pricing Lab", icon: FlaskConical },
     ],
   },
   {

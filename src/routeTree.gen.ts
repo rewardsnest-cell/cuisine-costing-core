@@ -80,6 +80,7 @@ import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/pricing-visibility'
 import { Route as AdminPricingTestRouteImport } from './routes/admin/pricing-test'
+import { Route as AdminPricingLabRouteImport } from './routes/admin/pricing-lab'
 import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-modules'
@@ -114,6 +115,7 @@ import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminPricingLabPreviewRouteImport } from './routes/admin/pricing-lab.preview'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminGuidesNewRouteImport } from './routes/admin/guides.new'
@@ -488,6 +490,11 @@ const AdminPricingTestRoute = AdminPricingTestRouteImport.update({
   path: '/pricing-test',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingLabRoute = AdminPricingLabRouteImport.update({
+  id: '/pricing-lab',
+  path: '/pricing-lab',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNewsletterGuideRoute = AdminNewsletterGuideRouteImport.update({
   id: '/newsletter-guide',
   path: '/newsletter-guide',
@@ -662,6 +669,11 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   path: '/pricing/national',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingLabPreviewRoute = AdminPricingLabPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AdminPricingLabRoute,
+} as any)
 const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
@@ -778,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -830,6 +843,7 @@ export interface FileRoutesByFullPath {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -895,6 +909,7 @@ export interface FileRoutesByTo {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -947,6 +962,7 @@ export interface FileRoutesByTo {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -1015,6 +1031,7 @@ export interface FileRoutesById {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
@@ -1067,6 +1084,7 @@ export interface FileRoutesById {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -1136,6 +1154,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
@@ -1188,6 +1207,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1253,6 +1273,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
@@ -1305,6 +1326,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1372,6 +1394,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
@@ -1424,6 +1447,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1993,6 +2017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingTestRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-lab': {
+      id: '/admin/pricing-lab'
+      path: '/pricing-lab'
+      fullPath: '/admin/pricing-lab'
+      preLoaderRoute: typeof AdminPricingLabRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/newsletter-guide': {
       id: '/admin/newsletter-guide'
       path: '/newsletter-guide'
@@ -2231,6 +2262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-lab/preview': {
+      id: '/admin/pricing-lab/preview'
+      path: '/preview'
+      fullPath: '/admin/pricing-lab/preview'
+      preLoaderRoute: typeof AdminPricingLabPreviewRouteImport
+      parentRoute: typeof AdminPricingLabRoute
+    }
     '/admin/menu-modules/preview': {
       id: '/admin/menu-modules/preview'
       path: '/preview'
@@ -2343,6 +2381,18 @@ const AdminMenuModulesRouteChildren: AdminMenuModulesRouteChildren = {
 const AdminMenuModulesRouteWithChildren =
   AdminMenuModulesRoute._addFileChildren(AdminMenuModulesRouteChildren)
 
+interface AdminPricingLabRouteChildren {
+  AdminPricingLabPreviewRoute: typeof AdminPricingLabPreviewRoute
+}
+
+const AdminPricingLabRouteChildren: AdminPricingLabRouteChildren = {
+  AdminPricingLabPreviewRoute: AdminPricingLabPreviewRoute,
+}
+
+const AdminPricingLabRouteWithChildren = AdminPricingLabRoute._addFileChildren(
+  AdminPricingLabRouteChildren,
+)
+
 interface AdminQuotesRouteChildren {
   AdminQuotesIdRoute: typeof AdminQuotesIdRoute
 }
@@ -2420,6 +2470,7 @@ interface AdminRouteChildren {
   AdminMenuModulesRoute: typeof AdminMenuModulesRouteWithChildren
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
+  AdminPricingLabRoute: typeof AdminPricingLabRouteWithChildren
   AdminPricingTestRoute: typeof AdminPricingTestRoute
   AdminPricingVisibilityRoute: typeof AdminPricingVisibilityRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
@@ -2477,6 +2528,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuModulesRoute: AdminMenuModulesRouteWithChildren,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
+  AdminPricingLabRoute: AdminPricingLabRouteWithChildren,
   AdminPricingTestRoute: AdminPricingTestRoute,
   AdminPricingVisibilityRoute: AdminPricingVisibilityRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
