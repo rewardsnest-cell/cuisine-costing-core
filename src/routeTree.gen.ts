@@ -140,6 +140,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
+import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const WeddingsRoute = WeddingsRouteImport.update({
@@ -813,6 +814,12 @@ const ApiRecipesIdPrintableRoute = ApiRecipesIdPrintableRouteImport.update({
   path: '/api/recipes/$id/printable',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksKrogerDailyIngestRoute =
+  ApiPublicHooksKrogerDailyIngestRouteImport.update({
+    id: '/api/public/hooks/kroger-daily-ingest',
+    path: '/api/public/hooks/kroger-daily-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -946,6 +953,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1078,6 +1086,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1213,6 +1222,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1349,6 +1359,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/kroger-daily-ingest'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1481,6 +1492,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/kroger-daily-ingest'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1615,6 +1627,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/kroger-daily-ingest'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1670,6 +1683,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -2597,6 +2611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRecipesIdPrintableRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/kroger-daily-ingest': {
+      id: '/api/public/hooks/kroger-daily-ingest'
+      path: '/api/public/hooks/kroger-daily-ingest'
+      fullPath: '/api/public/hooks/kroger-daily-ingest'
+      preLoaderRoute: typeof ApiPublicHooksKrogerDailyIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recipes/$id/edit': {
       id: '/admin/recipes/$id/edit'
       path: '/$id/edit'
@@ -2911,6 +2932,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
