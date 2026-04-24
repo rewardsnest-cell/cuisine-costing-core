@@ -457,7 +457,7 @@ function ExportsPage() {
                 <Badge variant="secondary" className="font-mono">
                   {lastE2e.total} routes
                 </Badge>
-                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-transparent">
+                <Badge className="bg-primary/15 text-primary border-transparent">
                   ✓ {lastE2e.passed} passed
                 </Badge>
                 {lastE2e.failed > 0 && (
