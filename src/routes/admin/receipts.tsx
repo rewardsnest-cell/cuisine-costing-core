@@ -379,9 +379,15 @@ function ReceiptsPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {statusIcon(r.status)}
-                      <span className="text-sm font-medium capitalize">{r.status}</span>
+                      <span className="text-sm font-medium capitalize">{statusLabel(r.status)}</span>
+                      {Array.isArray(r.extracted_line_items) && r.extracted_line_items.some((it) => it?.needs_review) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-warning px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                          <ShieldAlert className="w-3 h-3" />
+                          {r.extracted_line_items.filter((it) => it?.needs_review).length} flagged
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       {new Date(r.receipt_date).toLocaleDateString()} · {Array.isArray(r.extracted_line_items) ? r.extracted_line_items.length : 0} items
