@@ -29,6 +29,7 @@ import { Route as FollowRouteImport } from './routes/follow'
 import { Route as FamiliarFavoritesRouteImport } from './routes/familiar-favorites'
 import { Route as EmployeeRouteImport } from './routes/employee'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CookingLabRouteImport } from './routes/cooking-lab'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CateringRouteImport } from './routes/catering'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -241,6 +242,11 @@ const EmployeeRoute = EmployeeRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookingLabRoute = CookingLabRouteImport.update({
+  id: '/cooking-lab',
+  path: '/cooking-lab',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -832,6 +838,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
+  '/cooking-lab': typeof CookingLabRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -966,6 +973,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
+  '/cooking-lab': typeof CookingLabRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -1101,6 +1109,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
+  '/cooking-lab': typeof CookingLabRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -1238,6 +1247,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/catering'
     | '/contact'
+    | '/cooking-lab'
     | '/dashboard'
     | '/employee'
     | '/familiar-favorites'
@@ -1372,6 +1382,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/catering'
     | '/contact'
+    | '/cooking-lab'
     | '/dashboard'
     | '/employee'
     | '/familiar-favorites'
@@ -1506,6 +1517,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/catering'
     | '/contact'
+    | '/cooking-lab'
     | '/dashboard'
     | '/employee'
     | '/familiar-favorites'
@@ -1642,6 +1654,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CateringRoute: typeof CateringRoute
   ContactRoute: typeof ContactRoute
+  CookingLabRoute: typeof CookingLabRoute
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
   FamiliarFavoritesRoute: typeof FamiliarFavoritesRoute
@@ -1832,6 +1845,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cooking-lab': {
+      id: '/cooking-lab'
+      path: '/cooking-lab'
+      fullPath: '/cooking-lab'
+      preLoaderRoute: typeof CookingLabRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -2891,6 +2911,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CateringRoute: CateringRoute,
   ContactRoute: ContactRoute,
+  CookingLabRoute: CookingLabRoute,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
   FamiliarFavoritesRoute: FamiliarFavoritesRoute,
