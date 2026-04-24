@@ -1543,11 +1543,17 @@ export type Database = {
           last_seen_at: string
           match_confidence: number | null
           notes: string | null
+          price_observed_at: string | null
+          price_unit_size: string | null
+          product_id: string | null
           product_name: string | null
           product_name_normalized: string | null
+          promo_price: number | null
           reference_id: string | null
+          regular_price: number | null
           sku: string
           status: string
+          upc: string | null
           updated_at: string
         }
         Insert: {
@@ -1558,11 +1564,17 @@ export type Database = {
           last_seen_at?: string
           match_confidence?: number | null
           notes?: string | null
+          price_observed_at?: string | null
+          price_unit_size?: string | null
+          product_id?: string | null
           product_name?: string | null
           product_name_normalized?: string | null
+          promo_price?: number | null
           reference_id?: string | null
+          regular_price?: number | null
           sku: string
           status?: string
+          upc?: string | null
           updated_at?: string
         }
         Update: {
@@ -1573,11 +1585,17 @@ export type Database = {
           last_seen_at?: string
           match_confidence?: number | null
           notes?: string | null
+          price_observed_at?: string | null
+          price_unit_size?: string | null
+          product_id?: string | null
           product_name?: string | null
           product_name_normalized?: string | null
+          promo_price?: number | null
           reference_id?: string | null
+          regular_price?: number | null
           sku?: string
           status?: string
+          upc?: string | null
           updated_at?: string
         }
         Relationships: [

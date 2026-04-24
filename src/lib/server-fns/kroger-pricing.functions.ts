@@ -185,7 +185,9 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
         if (!products.length) continue;
 
         for (const p of products) {
-          const sku: string | undefined = p.productId ?? p.upc;
+          const productId: string | undefined = p.productId;
+          const upc: string | undefined = p.upc;
+          const sku: string | undefined = productId ?? upc;
           const productName: string = p.description ?? p.brand ?? item.name;
           if (!sku) continue;
 
@@ -205,14 +207,21 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           }
           if (regular == null && promo == null) continue;
           const observed = (promo != null && promo > 0 ? promo : regular)!;
+          const nowIso = new Date().toISOString();
 
           const { error: mapErr } = await supabaseAdmin.from("kroger_sku_map").upsert(
             {
               sku,
               product_name: productName,
               product_name_normalized: normalizeName(productName),
-              last_seen_at: new Date().toISOString(),
-            },
+              last_seen_at: nowIso,
+              upc: upc ?? null,
+              product_id: productId ?? null,
+              regular_price: regular,
+              promo_price: promo,
+              price_unit_size: unit,
+              price_observed_at: nowIso,
+            } as any,
             { onConflict: "sku" },
           );
           if (!mapErr) skuMapRowsTouched++;
@@ -404,7 +413,7 @@ export const listKrogerSkuMap = createServerFn({ method: "POST" })
     await ensureAdmin(context.supabase, context.userId);
     let q = supabaseAdmin
       .from("kroger_sku_map")
-      .select("id,sku,product_name,product_name_normalized,status,reference_id,match_confidence,last_seen_at,notes,confirmed_at")
+      .select("id,sku,product_name,product_name_normalized,status,reference_id,match_confidence,last_seen_at,notes,confirmed_at,upc,product_id,regular_price,promo_price,price_unit_size,price_observed_at")
       .order("last_seen_at", { ascending: false })
       .limit(Math.max(1, Math.min(500, data.limit ?? 200)));
     if (data.status) q = q.eq("status", data.status);
@@ -499,7 +508,7 @@ export const listKrogerRunSkus = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await supabaseAdmin
       .from("kroger_sku_map")
-      .select("id,sku,product_name,product_name_normalized,status,reference_id,match_confidence,last_seen_at,confirmed_at,notes")
+      .select("id,sku,product_name,product_name_normalized,status,reference_id,match_confidence,last_seen_at,confirmed_at,notes,upc,product_id,regular_price,promo_price,price_unit_size,price_observed_at")
       .gte("last_seen_at", fromIso)
       .lte("last_seen_at", toIso)
       .order("last_seen_at", { ascending: false })
