@@ -808,18 +808,65 @@ function CookingLabManager() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {sorted.map((e, idx) => (
-            <EntryCard
-              key={e.id}
-              entry={e}
-              canMoveUp={idx > 0}
-              canMoveDown={idx < sorted.length - 1}
-              onMoveUp={() => moveEntry(idx, -1)}
-              onMoveDown={() => moveEntry(idx, 1)}
-              reordering={reorderMut.isPending}
-            />
-          ))}
+        <div className="space-y-3">
+          {/* Bulk action toolbar */}
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Select all entries"
+              />
+              <span className="text-muted-foreground">
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} selected`
+                  : `Select all (${allSorted.length})`}
+              </span>
+            </label>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={selectedIds.size === 0 || bulkBusy}
+              onClick={() => bulkDuplicateMut.mutate(Array.from(selectedIds))}
+            >
+              <Copy className="w-4 h-4" />
+              Duplicate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-destructive hover:text-destructive"
+              disabled={selectedIds.size === 0 || bulkBusy}
+              onClick={() => {
+                const ids = Array.from(selectedIds);
+                if (ids.length === 0) return;
+                if (confirm(`Delete ${ids.length} ${ids.length === 1 ? "entry" : "entries"}? This cannot be undone.`)) {
+                  bulkDeleteMut.mutate(ids);
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
+
+          <div className="space-y-6">
+            {allSorted.map((e, idx) => (
+              <EntryCard
+                key={e.id}
+                entry={e}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < allSorted.length - 1}
+                onMoveUp={() => moveEntry(idx, -1)}
+                onMoveDown={() => moveEntry(idx, 1)}
+                reordering={reorderMut.isPending}
+                selected={selectedIds.has(e.id)}
+                onToggleSelected={(checked) => toggleSelected(e.id, checked)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
