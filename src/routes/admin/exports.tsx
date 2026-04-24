@@ -236,6 +236,8 @@ function ExportsPage() {
       setBusy(null);
     }
   };
+
+  const handleExportCsv = async (spec: CsvSpec) => {
     setBusy(spec.key);
     setError(null);
     try {
