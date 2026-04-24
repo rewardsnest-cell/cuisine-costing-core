@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -19,8 +19,11 @@ import {
   bulkApproveCostUpdates,
   bulkRejectCostUpdates,
   listIngredientCosts,
+  recomputeAndVerifyInternalCosts,
 } from "@/lib/server-fns/cost-intelligence.functions";
 import { CostBreakdownPanel } from "@/components/admin/CostBreakdownPanel";
+
+type VerifyResult = Awaited<ReturnType<typeof recomputeAndVerifyInternalCosts>>;
 
 export const Route = createFileRoute("/admin/cost-queue")({
   head: () => ({ meta: [{ title: "Cost Update Queue — Admin" }] }),
@@ -41,6 +44,9 @@ function CostQueuePage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [breakdownRef, setBreakdownRef] = useState<string | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [verifyOnlyFlagged, setVerifyOnlyFlagged] = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -108,13 +114,25 @@ function CostQueuePage() {
       return next;
     });
   };
+  const reportBulk = (verb: "approved" | "rejected", res: { count: number; ok_count: number; fail_count: number; results: { ok: boolean; item_name?: string | null; error?: string }[] }) => {
+    if (res.fail_count === 0) {
+      toast.success(`${res.ok_count}/${res.count} ${verb}`);
+    } else {
+      const failures = res.results.filter((r) => !r.ok).slice(0, 5);
+      const lines = failures.map((f) => `• ${f.item_name ?? "item"}: ${f.error ?? "unknown error"}`).join("\n");
+      toast.warning(`${res.ok_count}/${res.count} ${verb} — ${res.fail_count} failed`, {
+        description: lines + (res.fail_count > failures.length ? `\n…and ${res.fail_count - failures.length} more` : ""),
+        duration: 8000,
+      });
+    }
+  };
   const onBulkApprove = async () => {
     if (selected.size === 0) return;
     if (!window.confirm(`Approve ${selected.size} cost update${selected.size === 1 ? "" : "s"}?`)) return;
     setBulkBusy(true);
     try {
       const res = await bulkApproveCostUpdates({ data: { queue_ids: Array.from(selected) } });
-      toast.success(`${res.ok_count}/${res.count} approved`);
+      reportBulk("approved", res);
       setSelected(new Set());
       await load();
     } catch (e: any) { toast.error(e?.message || "Bulk approve failed"); }
@@ -126,11 +144,25 @@ function CostQueuePage() {
     setBulkBusy(true);
     try {
       const res = await bulkRejectCostUpdates({ data: { queue_ids: Array.from(selected) } });
-      toast.success(`${res.ok_count}/${res.count} rejected`);
+      reportBulk("rejected", res);
       setSelected(new Set());
       await load();
     } catch (e: any) { toast.error(e?.message || "Bulk reject failed"); }
     finally { setBulkBusy(false); }
+  };
+
+  const onRecomputeVerify = async () => {
+    setVerifyBusy(true);
+    try {
+      const res = await recomputeAndVerifyInternalCosts({ data: {} });
+      setVerifyResult(res);
+      const flagged = res.summary.abnormal + res.summary.no_sources;
+      if (flagged === 0) toast.success(`Verified ${res.summary.checked} items — no issues found`);
+      else toast.warning(`${flagged} of ${res.summary.checked} items need attention`, {
+        description: `${res.summary.abnormal} abnormal Δ · ${res.summary.no_sources} with no sources`,
+      });
+    } catch (e: any) { toast.error(e?.message || "Verification failed"); }
+    finally { setVerifyBusy(false); }
   };
 
   return (
