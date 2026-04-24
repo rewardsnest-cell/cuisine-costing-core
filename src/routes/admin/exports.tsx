@@ -262,13 +262,18 @@ function ExportsPage() {
 
   const handleDownloadMarkdown = async () => {
     setBusy("md");
+    setError(null);
     try {
+      const snap = await fetchInventorySnapshot();
+      const md = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
       await downloadFile(
-        PROJECT_AUDIT_MD,
+        md,
         `PROJECT_AUDIT_${today}.md`,
         "text/markdown;charset=utf-8",
       );
       flashDone("md");
+    } catch (e: any) {
+      setError(e.message || "Markdown export failed");
     } finally {
       setBusy(null);
     }
