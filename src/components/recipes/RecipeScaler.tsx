@@ -82,7 +82,10 @@ export function RecipeScaler({
       .then(({ data }: any) => setIsFav(!!data));
   }, [user, recipeId]);
 
-  const factor = servings / initial;
+  // Scaling is always relative to the AUTHORED base servings, even in public
+  // mode — `initial` is just the chip we start on.
+  const authored = baseServings && baseServings > 0 ? baseServings : 4;
+  const factor = servings / authored;
 
   const scaled = useMemo(
     () => ingredients.map((i) => ({
