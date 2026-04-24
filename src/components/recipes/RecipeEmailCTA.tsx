@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { detectEntrySource, type EntrySource, ENTRY_SOURCE_LABELS } from "@/lib/entry-source";
 
 type LeadMagnet = "printable" | "scaling" | "checklist" | "pack";
 
