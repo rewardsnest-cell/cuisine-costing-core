@@ -714,10 +714,64 @@ export const ROUTE_DESCRIPTIONS: Record<string, RouteDescription> = {
     purpose: "Auto-generated sitemap for search engines.",
     audience: "system",
   },
+  "/sitemap[/]xml": {
+    title: "sitemap.xml",
+    purpose: "Auto-generated sitemap for search engines (router-encoded path).",
+    audience: "system",
+  },
   "/robots.txt": {
     title: "robots.txt",
     purpose: "Robots directives for search crawlers.",
     audience: "system",
+  },
+  "/robots[/]txt": {
+    title: "robots.txt",
+    purpose: "Robots directives for search crawlers (router-encoded path).",
+    audience: "system",
+  },
+
+  // Router-quirk aliases — TanStack flat-route conventions
+  "/blog/index": {
+    title: "Blog Index",
+    purpose: "Index of evergreen catering and wedding blog posts.",
+    audience: "public",
+  },
+  "/guides/index": {
+    title: "Cooking Guides Index",
+    purpose: "Index of published how-to cooking guides.",
+    audience: "public",
+  },
+  "/weddings/index": {
+    title: "Weddings Index",
+    purpose: "Index of wedding catering guides by season and locale.",
+    audience: "public",
+  },
+  "/catering_/quote": {
+    title: "Catering Quote",
+    purpose: "Direct entry point into the quote flow for catering inquiries.",
+    audience: "public",
+  },
+  "/quote_/ai": {
+    title: "AI Quote Assistant",
+    purpose:
+      "Conversational quote builder powered by Lovable AI — answers questions and proposes line items.",
+    audience: "public",
+  },
+  "/recipes_/$id": {
+    title: "Recipe Detail",
+    purpose:
+      "Single recipe view with ingredients, steps, scaler, video, share/print buttons, and email-signup CTA.",
+    audience: "public",
+  },
+  "/familiar-favorites_/$id": {
+    title: "Familiar Favorite Detail",
+    purpose: "Detail view for one familiar-favorite recipe.",
+    audience: "public",
+  },
+  "/inspired_/$id": {
+    title: "Inspired Menu Detail",
+    purpose: "Detail of one inspired menu module with its recipes and notes.",
+    audience: "public",
   },
 };
 
