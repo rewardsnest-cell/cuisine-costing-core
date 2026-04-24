@@ -56,6 +56,55 @@ function CostQueuePage() {
   const [simResult, setSimResult] = useState<SimulateResult | null>(null);
   const [simOpen, setSimOpen] = useState(false);
   const [simSourceIds, setSimSourceIds] = useState<string[]>([]);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineBusy, setTimelineBusy] = useState(false);
+  const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
+
+  const openTimeline = async (queueId: string) => {
+    setTimelineOpen(true);
+    setTimelineBusy(true);
+    setTimelineResult(null);
+    try {
+      const res = await getCostQueueTimeline({ data: { queue_id: queueId } });
+      setTimelineResult(res);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load timeline");
+      setTimelineOpen(false);
+    } finally {
+      setTimelineBusy(false);
+    }
+  };
+
+  const downloadTimelineCSV = () => {
+    if (!timelineResult) return;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ["timestamp", "event", "actor_email", "actor_user_id", "notes", "details_json"];
+    const lines = [headers.join(",")];
+    for (const e of timelineResult.events) {
+      lines.push([
+        escape(e.at),
+        escape(e.label),
+        escape(e.actor_email ?? ""),
+        escape(e.actor_user_id ?? ""),
+        escape(e.notes ?? ""),
+        escape(JSON.stringify(e.details ?? {})),
+      ].join(","));
+    }
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = (timelineResult.item_name ?? "queue").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+    a.download = `cost-queue-timeline-${safeName}-${timelineResult.queue_id.slice(0, 8)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -277,6 +326,7 @@ function CostQueuePage() {
                             <TableCell className="text-right">
                               <div className="inline-flex gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
+                                <Button size="sm" variant="ghost" onClick={() => openTimeline(r.id)} className="gap-1" title="Status timeline & audit CSV"><History className="w-3.5 h-3.5" />Timeline</Button>
                                 <Button size="sm" variant="ghost" disabled={simBusy} onClick={() => onSimulateOne(r.id)} className="gap-1" title="Simulate apply (no writes)"><FlaskConical className="w-3.5 h-3.5" />Simulate</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onApprove(r.id)} className="gap-1"><Check className="w-3.5 h-3.5" />Approve</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onOverride(r.id)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Override</Button>
