@@ -40,6 +40,12 @@ const EntrySchema = z.object({
   qa_image_loads: z.boolean(),
   qa_links_tested: z.boolean(),
   qa_ready: z.boolean(),
+  // Per-entry SEO fields. All optional/nullable — when blank the public page
+  // falls back to the entry's title/description/image and the page-level URL.
+  seo_title: z.string().nullable().optional(),
+  seo_description: z.string().nullable().optional(),
+  seo_canonical_url: z.string().nullable().optional(),
+  seo_og_image_url: z.string().nullable().optional(),
 });
 
 export const saveCookingLabEntry = createServerFn({ method: "POST" })
