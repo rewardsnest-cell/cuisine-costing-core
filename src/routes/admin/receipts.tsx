@@ -556,18 +556,69 @@ function ReceiptsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {r.status === "pending" && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
-                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
-                          {processing === r.id ? "Processing..." : "Run OCR"}
-                        </Button>
-                        <Button size="sm" onClick={() => handleProcessAndSave(r)} disabled={processing === r.id || applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
-                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-                          Process &amp; save
-                        </Button>
-                      </>
-                    )}
+                    {r.status === "pending" && (() => {
+                      const rs = processState[r.id];
+                      const isLoading = rs?.status === "loading";
+                      const isError = rs?.status === "error";
+                      const isSuccess = rs?.status === "success";
+                      return (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id || isLoading} className="gap-1.5">
+                            {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
+                            {processing === r.id ? "Processing..." : "Run OCR"}
+                          </Button>
+                          <div className="flex flex-col items-end gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleProcessAndSave(r)}
+                              disabled={processing === r.id || isLoading || applyingCosts}
+                              variant={isError ? "destructive" : "default"}
+                              className={
+                                isError
+                                  ? "gap-1.5"
+                                  : isSuccess
+                                    ? "gap-1.5 bg-success text-success-foreground hover:bg-success/90"
+                                    : "gap-1.5 bg-gradient-warm text-primary-foreground"
+                              }
+                              aria-label={
+                                isLoading
+                                  ? "Processing receipt"
+                                  : isError
+                                    ? `Retry processing: ${rs.message}`
+                                    : isSuccess
+                                      ? rs.message
+                                      : "Process and save receipt"
+                              }
+                            >
+                              {isLoading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : isSuccess ? (
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              ) : isError ? (
+                                <XCircle className="w-3.5 h-3.5" />
+                              ) : (
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              )}
+                              {isLoading
+                                ? "Processing..."
+                                : isError
+                                  ? "Retry"
+                                  : isSuccess
+                                    ? "Done"
+                                    : "Process & save"}
+                            </Button>
+                            {(isSuccess || isError) && (
+                              <p
+                                className={`text-[10px] max-w-[200px] text-right ${isError ? "text-destructive" : "text-muted-foreground"}`}
+                                role={isError ? "alert" : "status"}
+                              >
+                                {rs.message}
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
                         <Button size="sm" variant={r.status === "needs_review" ? "default" : "outline"} onClick={() => openReview(r)} className="gap-1.5">
