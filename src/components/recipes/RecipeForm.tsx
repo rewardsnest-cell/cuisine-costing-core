@@ -419,6 +419,8 @@ export function RecipeForm({
         allergens: allergensArr.length ? allergensArr : null,
         total_cost: totalCost,
         cost_per_serving: costPerServing,
+        // Inspired / Familiar Favorites flag — DB trigger enforces home_public scope.
+        inspired: !!form.inspired,
       };
       if (mode === "create") {
         // Force draft on creation regardless of publish intent — publish is a
