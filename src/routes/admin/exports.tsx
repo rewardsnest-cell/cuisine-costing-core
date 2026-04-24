@@ -368,11 +368,14 @@ function ExportsPage() {
       }
 
       const pdfBlob = doc.output("blob");
+      setPhase("pdf", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
       rememberSavedFile("pdf", saved);
+      setPhase("pdf", "ready");
       flashDone("pdf");
     } catch (e: any) {
       setError(e.message || "PDF generation failed");
+      setPhase("pdf", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -381,6 +384,7 @@ function ExportsPage() {
   const handleDownloadJson = async () => {
     setBusy("json");
     setError(null);
+    setPhase("json", "generating", "Building JSON bundle…");
     try {
       const snap = await fetchInventorySnapshot();
       const bundle = {
@@ -397,15 +401,18 @@ function ExportsPage() {
         },
       };
       const json = JSON.stringify(bundle, null, 2);
+      setPhase("json", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(
         json,
         `PROJECT_AUDIT_${today}.json`,
         "application/json;charset=utf-8",
       );
       rememberSavedFile("json", saved);
+      setPhase("json", "ready");
       flashDone("json");
     } catch (e: any) {
       setError(e.message || "JSON export failed");
+      setPhase("json", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -414,6 +421,7 @@ function ExportsPage() {
   const handleExportCsv = async (spec: CsvSpec) => {
     setBusy(spec.key);
     setError(null);
+    setPhase(spec.key, "generating", "Querying rows…");
     try {
       // Page through results to bypass the 1000-row default limit.
       const all: any[] = [];
@@ -427,10 +435,12 @@ function ExportsPage() {
         if (e) throw e;
         const batch = data ?? [];
         all.push(...batch);
+        setPhase(spec.key, "generating", `Loaded ${all.length} rows…`);
         if (batch.length < PAGE) break;
         from += PAGE;
       }
 
+      setPhase(spec.key, "uploading", `Uploading ${all.length} rows…`);
       if (all.length === 0) {
         const saved = await saveExportFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
@@ -439,9 +449,11 @@ function ExportsPage() {
         const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
       }
+      setPhase(spec.key, "ready");
       flashDone(spec.key);
     } catch (e: any) {
       setError(`${spec.label}: ${e.message || "Export failed"}`);
+      setPhase(spec.key, "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -452,18 +464,21 @@ function ExportsPage() {
     setError(null);
     try {
       for (const spec of CSV_EXPORTS) {
+        setPhase(spec.key, "generating", "Querying rows…");
         const { data, error: e } = await (supabase as any)
           .from(spec.table)
           .select(spec.select)
           .range(0, 9999);
         if (e) {
+          setPhase(spec.key, "error", e.message);
           throw e;
         }
+        setPhase(spec.key, "uploading", `Uploading ${(data ?? []).length} rows…`);
         const csv = rowsToCsv(data ?? []);
         const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
-        // small delay so browsers don't block bulk downloads
-        await new Promise((r) => setTimeout(r, 250));
+        setPhase(spec.key, "ready");
+        await new Promise((r) => setTimeout(r, 100));
       }
       flashDone("all");
     } catch (e: any) {
