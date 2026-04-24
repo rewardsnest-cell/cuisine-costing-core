@@ -13,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
+import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
