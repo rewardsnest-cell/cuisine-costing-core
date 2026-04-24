@@ -536,7 +536,31 @@ export function RecipeForm({
         )}
       </div>
 
-      {initial.recipe.pricing_status && initial.recipe.pricing_status !== "valid" && (
+      {/* Lifecycle status + ingredient integrity summary */}
+      <Card className="border-border/60">
+        <CardContent className="p-5 flex flex-wrap items-center gap-3">
+          <Badge
+            variant={currentStatus === "published" ? "default" : "secondary"}
+            className="uppercase tracking-wide"
+          >
+            {currentStatus}
+          </Badge>
+          {currentIntegrity === "needs_cleanup" && (
+            <Badge variant="destructive" className="gap-1">
+              <CircleAlert className="w-3 h-3" /> Needs ingredient cleanup
+            </Badge>
+          )}
+          <span className="text-sm text-muted-foreground flex-1 min-w-[200px]">
+            {liveUnresolved.length === 0
+              ? "All ingredient lines are resolved — ready to publish."
+              : `${liveUnresolved.length} ingredient line${liveUnresolved.length === 1 ? "" : "s"} need linking, a unit, or a positive quantity before publishing.`}
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={handleAutoMatchClick} className="gap-1">
+            <Sparkles className="w-3.5 h-3.5" /> Auto-match ingredients
+          </Button>
+        </CardContent>
+      </Card>
+
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-5">
             <div className="flex items-start gap-3">
