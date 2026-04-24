@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { FlaskConical, ExternalLink, Play } from "lucide-react";
 
-type CookingLabEntry = {
+export type CookingLabEntry = {
   id: string;
   title: string;
   description: string;
@@ -147,7 +147,7 @@ function CookingLabPage() {
   );
 }
 
-function CookingLabSection({ entry, reverse }: { entry: CookingLabEntry; reverse: boolean }) {
+export function CookingLabSection({ entry, reverse }: { entry: CookingLabEntry; reverse: boolean }) {
   const embedUrl = youtubeEmbedUrl(entry.video_url);
   const hasTools =
     (entry.primary_tool_name && entry.primary_tool_url) ||
