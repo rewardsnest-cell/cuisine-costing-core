@@ -60,6 +60,12 @@ const BulkSchema = z
   })
   .strict();
 
+const SimulateSchema = z
+  .object({
+    queue_ids: z.array(z.string().uuid()).min(1).max(200),
+  })
+  .strict();
+
 const BreakdownSchema = z.object({ reference_id: z.string().uuid() }).strict();
 
 const RecomputeSchema = z
