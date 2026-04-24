@@ -989,6 +989,8 @@ function EntryCard({
   onMoveUp,
   onMoveDown,
   reordering,
+  selected,
+  onToggleSelected,
 }: {
   entry: CookingLabEntry;
   canMoveUp: boolean;
@@ -996,6 +998,8 @@ function EntryCard({
   onMoveUp: () => void;
   onMoveDown: () => void;
   reordering: boolean;
+  selected: boolean;
+  onToggleSelected: (checked: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
