@@ -302,8 +302,11 @@ export const setReceiptLineItemMatch = createServerFn({ method: "POST" })
         .maybeSingle();
       invName = inv?.name ?? null;
     }
+    const prev = items[data.line_index] ?? {};
+    const previousSource = prev.match_source ?? null;
+    const previousScore = prev.match_score ?? null;
     items[data.line_index] = {
-      ...items[data.line_index],
+      ...prev,
       matched_inventory_id: data.inventory_item_id,
       matched_inventory_name: invName,
       match_source: data.inventory_item_id ? "manual_review" : null,
@@ -314,6 +317,25 @@ export const setReceiptLineItemMatch = createServerFn({ method: "POST" })
       .update({ extracted_line_items: items })
       .eq("id", data.receipt_id);
     if (upErr) throw new Error(upErr.message);
+
+    // Audit log entry for manual receipt line match
+    await supabaseAdmin.from("access_audit_log").insert({
+      action: data.inventory_item_id
+        ? "receipt_line_item_matched"
+        : "receipt_line_item_match_cleared",
+      actor_user_id: context.userId,
+      details: {
+        receipt_id: data.receipt_id,
+        line_index: data.line_index,
+        item_name: items[data.line_index]?.item_name ?? null,
+        inventory_item_id: data.inventory_item_id,
+        inventory_item_name: invName,
+        previous_match_source: previousSource,
+        previous_match_score: previousScore,
+        new_match_source: data.inventory_item_id ? "manual_review" : null,
+      },
+    });
+
     return { success: true };
   });
 
