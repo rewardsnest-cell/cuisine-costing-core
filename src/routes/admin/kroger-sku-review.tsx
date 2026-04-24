@@ -211,7 +211,7 @@ function SkuRow({ row, busy, onAction }: { row: Row; busy: boolean; onAction: (i
               </div>
             )}
             {promo != null && (
-              <div className="whitespace-nowrap text-emerald-600 dark:text-emerald-400">
+              <div className="whitespace-nowrap text-primary font-medium">
                 <span className="text-muted-foreground">promo </span>
                 ${promo.toFixed(2)}
               </div>
