@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CookingLabSection, CookingLabPageBody, type CookingLabEntry as PublicCookingLabEntry } from "@/routes/cooking-lab";
-import { withAmazonAffiliateTag, isTaggableAmazonUrl, autoFixAmazonUrl } from "@/lib/amazon-affiliate";
+import { withAmazonAffiliateTag, isTaggableAmazonUrl, autoFixAmazonUrl, extractAmazonAsin } from "@/lib/amazon-affiliate";
 import {
   FlaskConical,
   Plus,
