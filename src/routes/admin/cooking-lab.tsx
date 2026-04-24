@@ -1210,6 +1210,96 @@ function EntryCard({
   );
 }
 
+type AdminCollection = { id: string; name: string; slug: string };
+
+function EntryCollectionsEditor({ entryId }: { entryId: string }) {
+  const queryClient = useQueryClient();
+
+  const { data: collections, isLoading: loadingCollections } = useQuery({
+    queryKey: ["admin", "cooking-lab-collections"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("cooking_lab_collections")
+        .select("id,name,slug")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AdminCollection[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: assignedIds } = useQuery({
+    queryKey: ["admin", "cooking-lab-entry-collections", entryId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("cooking_lab_entry_collections")
+        .select("collection_id")
+        .eq("entry_id", entryId);
+      if (error) throw error;
+      return new Set<string>(((data ?? []) as { collection_id: string }[]).map((r) => r.collection_id));
+    },
+  });
+
+  const toggle = useMutation({
+    mutationFn: async ({ collectionId, assigned }: { collectionId: string; assigned: boolean }) => {
+      if (assigned) {
+        const { error } = await (supabase as any)
+          .from("cooking_lab_entry_collections")
+          .delete()
+          .eq("entry_id", entryId)
+          .eq("collection_id", collectionId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("cooking_lab_entry_collections")
+          .insert({ entry_id: entryId, collection_id: collectionId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "cooking-lab-entry-collections", entryId] });
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab", "entry-collections", "public"] });
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab", "collection"] });
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Failed to update collection"),
+  });
+
+  if (loadingCollections) {
+    return <p className="text-sm text-muted-foreground">Loading collections…</p>;
+  }
+  if (!collections || collections.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No collections defined yet. Add some via SQL or future Collections admin.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {collections.map((c) => {
+        const assigned = assignedIds?.has(c.id) ?? false;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            disabled={toggle.isPending}
+            onClick={() => toggle.mutate({ collectionId: c.id, assigned })}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+              assigned
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-foreground border-border hover:bg-muted"
+            } disabled:opacity-50`}
+          >
+            {assigned ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {c.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Section({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
