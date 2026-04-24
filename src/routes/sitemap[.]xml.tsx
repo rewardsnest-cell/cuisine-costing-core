@@ -31,6 +31,7 @@ const STATIC_GROUPS: Record<string, string[]> = {
   guides: ["/guides"],
   familiar_favorites: ["/familiar-favorites"],
   quote: ["/catering/quote"],
+  cooking_lab: ["/cooking-lab"],
 };
 
 function escapeXml(str: string): string {
