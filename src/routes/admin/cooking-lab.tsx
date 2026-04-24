@@ -222,8 +222,23 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
     setDirty(true);
   };
 
+  const qaItems = [
+    draft.qa_copy_reviewed,
+    draft.qa_video_loads,
+    draft.qa_image_loads,
+    draft.qa_links_tested,
+    draft.qa_ready,
+  ];
+  const qaPassedCount = qaItems.filter(Boolean).length;
+  const qaAllPassed = qaPassedCount === qaItems.length;
+  const wantsPublished = draft.status === "published";
+  const publishBlocked = wantsPublished && !qaAllPassed;
+
   const saveMut = useMutation({
     mutationFn: async () => {
+      if (publishBlocked) {
+        throw new Error("Complete all 5 QA checklist items before publishing.");
+      }
       const { id, ...rest } = draft;
       const { error } = await (supabase as any)
         .from("cooking_lab_entries")
