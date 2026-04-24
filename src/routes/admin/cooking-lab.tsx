@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps, type CSSProperties, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveCookingLabEntry } from "@/lib/server-fns/save-cooking-lab-entry.functions";
@@ -47,7 +47,25 @@ import {
   Loader2,
   ArrowUp,
   ArrowDown,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type CookingLabEntry = {
   id: string;
@@ -649,43 +667,84 @@ function CookingLabManager() {
     onError: (e: any) => toast.error(e?.message ?? "Failed to create entry"),
   });
 
-  // Swap display_order between two entries — atomic from the user's POV.
-  // We persist whatever display_order each entry has, then re-sort client-side
-  // on next fetch. Two writes; both must succeed for the visible reorder.
+  // Reorder entries by writing a new sequential display_order to every row
+  // whose position changed. Optimistic: we update the React Query cache to the
+  // post-drag order immediately so the UI reflects the move with no flicker,
+  // then persist in parallel and roll back on failure.
   const reorderMut = useMutation({
-    mutationFn: async ({ a, b }: { a: CookingLabEntry; b: CookingLabEntry }) => {
-      const { error: e1 } = await (supabase as any)
-        .from("cooking_lab_entries")
-        .update({ display_order: b.display_order })
-        .eq("id", a.id);
-      if (e1) throw e1;
-      const { error: e2 } = await (supabase as any)
-        .from("cooking_lab_entries")
-        .update({ display_order: a.display_order })
-        .eq("id", b.id);
-      if (e2) throw e2;
+    mutationFn: async (orderedIds: string[]) => {
+      const all = entries ?? [];
+      const byId = new Map(all.map((e) => [e.id, e]));
+      const updates = orderedIds
+        .map((id, idx) => {
+          const prev = byId.get(id);
+          const nextOrder = idx + 1;
+          if (!prev || prev.display_order === nextOrder) return null;
+          return { id, display_order: nextOrder };
+        })
+        .filter((u): u is { id: string; display_order: number } => u !== null);
+      if (updates.length === 0) return;
+      const results = await Promise.all(
+        updates.map((u) =>
+          (supabase as any)
+            .from("cooking_lab_entries")
+            .update({ display_order: u.display_order })
+            .eq("id", u.id),
+        ),
+      );
+      const failed = results.find((r: any) => r.error);
+      if (failed) throw failed.error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+    onMutate: async (orderedIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["cooking-lab", "admin"] });
+      const previous = queryClient.getQueryData<CookingLabEntry[]>(["cooking-lab", "admin"]);
+      if (previous) {
+        const byId = new Map(previous.map((e) => [e.id, e]));
+        const next = orderedIds
+          .map((id, idx) => {
+            const e = byId.get(id);
+            return e ? { ...e, display_order: idx + 1 } : null;
+          })
+          .filter((e): e is CookingLabEntry => e !== null);
+        queryClient.setQueryData<CookingLabEntry[]>(["cooking-lab", "admin"], next);
+      }
+      return { previous };
     },
-    onError: (e: any) => toast.error(e?.message ?? "Reorder failed"),
+    onError: (e: any, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(["cooking-lab", "admin"], ctx.previous);
+      }
+      toast.error(e?.message ?? "Reorder failed");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab", "admin"] });
+    },
   });
 
   const sorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
   const moveEntry = (idx: number, dir: -1 | 1) => {
-    const a = sorted[idx];
-    const b = sorted[idx + dir];
-    if (!a || !b) return;
-    // If both share the same display_order (legacy data), nudge b up by 1 first.
-    if (a.display_order === b.display_order) {
-      reorderMut.mutate({
-        a,
-        b: { ...b, display_order: b.display_order + (dir === 1 ? 1 : -1) },
-      });
-    } else {
-      reorderMut.mutate({ a, b });
-    }
+    const target = idx + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const ids = sorted.map((e) => e.id);
+    const [moved] = ids.splice(idx, 1);
+    ids.splice(target, 0, moved);
+    reorderMut.mutate(ids);
   };
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = sorted.map((e) => e.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    reorderMut.mutate(arrayMove(ids, oldIndex, newIndex));
+  };
+  const dndSensors = useSensors(
+    // Require a small drag distance so clicks on the card body / inputs
+    // aren't accidentally interpreted as drag starts.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Bulk delete selected entries.
   const bulkDeleteMut = useMutation({
@@ -852,21 +911,32 @@ function CookingLabManager() {
             </Button>
           </div>
 
-          <div className="space-y-6">
-            {allSorted.map((e, idx) => (
-              <EntryCard
-                key={e.id}
-                entry={e}
-                canMoveUp={idx > 0}
-                canMoveDown={idx < allSorted.length - 1}
-                onMoveUp={() => moveEntry(idx, -1)}
-                onMoveDown={() => moveEntry(idx, 1)}
-                reordering={reorderMut.isPending}
-                selected={selectedIds.has(e.id)}
-                onToggleSelected={(checked) => toggleSelected(e.id, checked)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={dndSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={allSorted.map((e) => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-6">
+                {allSorted.map((e, idx) => (
+                  <SortableEntryCard
+                    key={e.id}
+                    entry={e}
+                    canMoveUp={idx > 0}
+                    canMoveDown={idx < allSorted.length - 1}
+                    onMoveUp={() => moveEntry(idx, -1)}
+                    onMoveDown={() => moveEntry(idx, 1)}
+                    reordering={reorderMut.isPending}
+                    selected={selectedIds.has(e.id)}
+                    onToggleSelected={(checked) => toggleSelected(e.id, checked)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
@@ -982,6 +1052,50 @@ function AffiliateConfigCard() {
   );
 }
 
+/**
+ * Sortable wrapper around EntryCard. Provides the drag transform/transition
+ * via dnd-kit's useSortable, and passes a drag handle render-slot down so
+ * only the GripVertical icon initiates a drag — not the entire card body
+ * (which contains inputs, buttons, dialogs, etc).
+ */
+function SortableEntryCard(
+  props: Omit<ComponentProps<typeof EntryCard>, "dragHandleSlot">,
+) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.entry.id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  const handle = (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-label="Drag to reorder"
+      title="Drag to reorder"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <GripVertical className="w-4 h-4" />
+    </button>
+  );
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EntryCard {...props} dragHandleSlot={handle} />
+    </div>
+  );
+}
+
 function EntryCard({
   entry,
   canMoveUp,
@@ -991,6 +1105,7 @@ function EntryCard({
   reordering,
   selected,
   onToggleSelected,
+  dragHandleSlot,
 }: {
   entry: CookingLabEntry;
   canMoveUp: boolean;
@@ -1000,6 +1115,7 @@ function EntryCard({
   reordering: boolean;
   selected: boolean;
   onToggleSelected: (checked: boolean) => void;
+  dragHandleSlot?: ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
@@ -1077,12 +1193,13 @@ function EntryCard({
     <Card className={selected ? "ring-2 ring-primary/40" : undefined}>
       <CardHeader className="border-b border-border bg-muted/20">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2">
+            {dragHandleSlot}
             <Checkbox
               checked={selected}
               onCheckedChange={(v) => onToggleSelected(v === true)}
               aria-label={`Select ${draft.title || "entry"} for bulk actions`}
-              className="mt-1"
+              className="mt-2.5"
             />
             <div>
               <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
