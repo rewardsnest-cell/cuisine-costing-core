@@ -543,7 +543,7 @@ export function QuotePage() {
                 <Button variant="outline" onClick={() => setStep("details")}>Back</Button>
                 <Button variant="outline" onClick={handleDownloadPDF} className="gap-2"><Download className="w-4 h-4" /> Download PDF</Button>
                 <Button onClick={handleSubmit} disabled={submitting} className="bg-gradient-warm text-primary-foreground gap-2">
-                  <Send className="w-4 h-4" /> {submitting ? "Submitting..." : "Submit Quote Request"}
+                  <Send className="w-4 h-4" /> {submitting ? "Sending..." : "Request Formal Quote"}
                 </Button>
               </div>
             </div>
