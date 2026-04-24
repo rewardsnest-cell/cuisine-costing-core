@@ -62,31 +62,31 @@
   --font-display: 'Libre Baskerville', Georgia, serif;
   --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* VPS Finest — refreshed warm cream palette, deeper espresso accents */
-  --background: oklch(0.968 0.014 82);
-  --foreground: oklch(0.26 0.025 50);
-  --card: oklch(0.985 0.010 82);
-  --card-foreground: oklch(0.26 0.025 50);
-  --popover: oklch(0.985 0.010 82);
-  --popover-foreground: oklch(0.26 0.025 50);
-  --primary: oklch(0.38 0.045 45);
-  --primary-foreground: oklch(0.98 0.012 82);
-  --secondary: oklch(0.925 0.020 82);
-  --secondary-foreground: oklch(0.30 0.030 45);
-  --muted: oklch(0.938 0.016 82);
-  --muted-foreground: oklch(0.46 0.022 50);
-  --accent: oklch(0.60 0.090 50);
-  --accent-foreground: oklch(0.98 0.012 82);
+  /* VPS Finest — Phase One: warm-neutral canvas, restrained forest-green anchor */
+  --background: oklch(0.972 0.008 85);
+  --foreground: oklch(0.24 0.018 60);
+  --card: oklch(0.987 0.006 85);
+  --card-foreground: oklch(0.24 0.018 60);
+  --popover: oklch(0.987 0.006 85);
+  --popover-foreground: oklch(0.24 0.018 60);
+  --primary: oklch(0.38 0.060 152);
+  --primary-foreground: oklch(0.985 0.006 85);
+  --secondary: oklch(0.935 0.008 85);
+  --secondary-foreground: oklch(0.30 0.020 60);
+  --muted: oklch(0.945 0.006 85);
+  --muted-foreground: oklch(0.48 0.014 60);
+  --accent: oklch(0.58 0.065 60);
+  --accent-foreground: oklch(0.985 0.006 85);
   --destructive: oklch(0.55 0.18 25);
-  --destructive-foreground: oklch(0.98 0.012 82);
-  --border: oklch(0.875 0.020 80);
-  --input: oklch(0.905 0.017 80);
-  --ring: oklch(0.52 0.065 50);
+  --destructive-foreground: oklch(0.985 0.006 85);
+  --border: oklch(0.890 0.008 85);
+  --input: oklch(0.915 0.008 85);
+  --ring: oklch(0.42 0.060 152);
 
-  --warm: oklch(0.52 0.085 45);
-  --warm-foreground: oklch(0.98 0.012 82);
-  --gold: oklch(0.74 0.115 82);
-  --gold-foreground: oklch(0.26 0.040 50);
+  --warm: oklch(0.50 0.055 60);
+  --warm-foreground: oklch(0.985 0.006 85);
+  --gold: oklch(0.70 0.080 80);
+  --gold-foreground: oklch(0.24 0.030 60);
   --success: oklch(0.55 0.10 145);
   --success-foreground: oklch(0.98 0.012 82);
   --warning: oklch(0.72 0.13 75);
