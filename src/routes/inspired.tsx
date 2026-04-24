@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
+import { FeatureGate } from "@/components/FeatureGate";
 
 const SITE = "https://www.vpsfinest.com";
 
