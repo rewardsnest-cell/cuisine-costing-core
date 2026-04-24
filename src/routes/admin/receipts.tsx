@@ -455,6 +455,100 @@ function ReceiptsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* OCR Re-run Comparison Dialog */}
+      <Dialog open={!!compare} onOpenChange={(open) => !open && setCompare(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <RefreshCw className="w-5 h-5" /> OCR Re-run Comparison
+            </DialogTitle>
+          </DialogHeader>
+          {compare && (
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Previous OCR text</p>
+                  <pre className="text-xs bg-muted/40 border border-border rounded-md p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                    {compare.previousText || <span className="text-muted-foreground italic">No previous OCR text on record.</span>}
+                  </pre>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">New OCR text</p>
+                  <pre className="text-xs bg-muted/40 border border-border rounded-md p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                    {compare.newText || <span className="text-muted-foreground italic">No raw text returned.</span>}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Previous line items ({compare.previousItems.length})
+                  </p>
+                  <LineItemsTable items={compare.previousItems} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    New line items ({compare.newItems.length}) · total ${compare.newTotal.toFixed(2)}
+                  </p>
+                  <LineItemsTable items={compare.newItems} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 border-t">
+                <Button variant="outline" onClick={() => setCompare(null)}>Close</Button>
+                <Button
+                  onClick={() => {
+                    const updated = receipts.find((r) => r.id === compare.receiptId);
+                    setCompare(null);
+                    if (updated) openReview(updated);
+                  }}
+                  className="bg-gradient-warm text-primary-foreground"
+                >
+                  Review new line items
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function LineItemsTable({ items }: { items: LineItem[] }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground italic border border-dashed border-border rounded-md p-4 text-center">
+        No line items.
+      </div>
+    );
+  }
+  return (
+    <div className="border border-border rounded-md overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40">
+          <tr>
+            <th className="text-left p-2 font-medium">Item</th>
+            <th className="text-right p-2 font-medium">Qty</th>
+            <th className="text-left p-2 font-medium">Unit</th>
+            <th className="text-right p-2 font-medium">Price</th>
+            <th className="text-right p-2 font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={i} className="border-t border-border">
+              <td className="p-2">{it.item_name || <span className="text-muted-foreground italic">—</span>}</td>
+              <td className="p-2 text-right">{Number(it.quantity || 0)}</td>
+              <td className="p-2">{it.unit || ""}</td>
+              <td className="p-2 text-right">${Number(it.unit_price || 0).toFixed(2)}</td>
+              <td className="p-2 text-right">${Number(it.total_price || 0).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
