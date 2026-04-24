@@ -7,8 +7,57 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const lineItemSchema = z.object({
+  item_name: z
+    .string()
+    .trim()
+    .min(1, "Name required")
+    .max(200, "Max 200 chars"),
+  quantity: z
+    .number({ invalid_type_error: "Number" })
+    .finite("Invalid")
+    .gt(0, "Must be > 0")
+    .max(100000, "Too large"),
+  unit: z
+    .string()
+    .trim()
+    .min(1, "Unit required")
+    .max(20, "Max 20 chars"),
+  unit_price: z
+    .number({ invalid_type_error: "Number" })
+    .finite("Invalid")
+    .min(0, "Must be ≥ 0")
+    .max(1000000, "Too large"),
+});
+
+type LineItemErrors = Partial<Record<"item_name" | "quantity" | "unit" | "unit_price", string>>;
+
+function validateLineItems(items: LineItem[]): { errors: Record<number, LineItemErrors>; firstMessage: string | null } {
+  const errors: Record<number, LineItemErrors> = {};
+  let firstMessage: string | null = null;
+  items.forEach((it, idx) => {
+    const result = lineItemSchema.safeParse({
+      item_name: it.item_name,
+      quantity: Number(it.quantity),
+      unit: it.unit,
+      unit_price: Number(it.unit_price),
+    });
+    if (!result.success) {
+      const rowErrors: LineItemErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as keyof LineItemErrors;
+        if (field && !rowErrors[field]) rowErrors[field] = issue.message;
+        if (!firstMessage) firstMessage = `Row ${idx + 1}: ${issue.message}`;
+      }
+      errors[idx] = rowErrors;
+    }
+  });
+  return { errors, firstMessage };
+}
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
@@ -71,6 +120,25 @@ function ReceiptsPage() {
   const [threshold, setThreshold] = useState<number>(DEFAULT_THRESHOLD);
   const [thresholdInput, setThresholdInput] = useState<string>(String(DEFAULT_THRESHOLD));
   const [savingThreshold, setSavingThreshold] = useState(false);
+  // Per-row, per-field validation errors for the Review dialog
+  const [lineItemErrors, setLineItemErrors] = useState<Record<number, LineItemErrors>>({});
+  const [savingLineItems, setSavingLineItems] = useState(false);
+  // Idle / loading / success / error state for each pending receipt's
+  // "Process & save" button so users see explicit feedback per row.
+  type ProcessState =
+    | { status: "loading" }
+    | { status: "success"; message: string }
+    | { status: "error"; message: string };
+  const [processState, setProcessState] = useState<Record<string, ProcessState>>({});
+
+  const setRowState = (id: string, state: ProcessState | null) => {
+    setProcessState((prev) => {
+      const next = { ...prev };
+      if (state === null) delete next[id];
+      else next[id] = state;
+      return next;
+    });
+  };
 
   const load = async () => {
     const [{ data: rData }, { data: iData }, { data: kv }] = await Promise.all([
@@ -180,10 +248,26 @@ function ReceiptsPage() {
   const openReview = (receipt: ReceiptRow) => {
     setReviewReceipt(receipt);
     setEditedLineItems(Array.isArray(receipt.extracted_line_items) ? [...receipt.extracted_line_items] : []);
+    setLineItemErrors({});
+  };
+
+  const clearRowError = (idx: number, field: keyof LineItemErrors) => {
+    setLineItemErrors((prev) => {
+      if (!prev[idx]?.[field]) return prev;
+      const nextRow = { ...prev[idx] };
+      delete nextRow[field];
+      const next = { ...prev };
+      if (Object.keys(nextRow).length === 0) delete next[idx];
+      else next[idx] = nextRow;
+      return next;
+    });
   };
 
   const updateLineItem = (idx: number, field: keyof LineItem, value: any) => {
     setEditedLineItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+    if (field === "item_name" || field === "unit" || field === "quantity" || field === "unit_price") {
+      clearRowError(idx, field);
+    }
   };
 
   const matchLineItem = (idx: number, inventoryId: string) => {
@@ -213,6 +297,15 @@ function ReceiptsPage() {
 
   const removeLineItem = (idx: number) => {
     setEditedLineItems((prev) => prev.filter((_, i) => i !== idx));
+    setLineItemErrors((prev) => {
+      const next: Record<number, LineItemErrors> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < idx) next[i] = v;
+        else if (i > idx) next[i - 1] = v;
+      });
+      return next;
+    });
   };
 
   const addAllUnmatchedToInventory = async () => {
@@ -262,6 +355,14 @@ function ReceiptsPage() {
 
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
+    // Field-level validation before persisting
+    const { errors, firstMessage } = validateLineItems(editedLineItems);
+    setLineItemErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(firstMessage || "Fix highlighted fields before saving");
+      return;
+    }
+    setSavingLineItems(true);
     const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
     const stillFlagged = editedLineItems.some((it) => it.needs_review);
     const update: Record<string, any> = {
@@ -276,6 +377,7 @@ function ReceiptsPage() {
       .from("receipts")
       .update(update as any)
       .eq("id", reviewReceipt.id);
+    setSavingLineItems(false);
     if (error) { toast.error(error.message); return; }
     toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
     load();
@@ -283,8 +385,14 @@ function ReceiptsPage() {
   };
 
   const handleProcessAndSave = async (receipt: ReceiptRow) => {
-    if (!receipt.image_url) { toast.error("No image to process"); return; }
+    if (!receipt.image_url) {
+      const msg = "No image to process";
+      toast.error(msg);
+      setRowState(receipt.id, { status: "error", message: msg });
+      return;
+    }
     setProcessing(receipt.id);
+    setRowState(receipt.id, { status: "loading" });
     try {
       const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
       const ocr = await processReceipt({
@@ -294,7 +402,9 @@ function ReceiptsPage() {
       const total = ocr.line_items?.length || 0;
       const flagged = (ocr as any).flagged_count ?? ocr.line_items?.filter((it: any) => it.needs_review).length ?? 0;
       if (flagged > 0) {
+        const msg = `Saved ${total} items · ${flagged} need review`;
         toast.warning(`Saved ${total} line items · ${flagged} flagged — review before applying costs`);
+        setRowState(receipt.id, { status: "success", message: msg });
         load();
         return;
       }
@@ -302,11 +412,15 @@ function ReceiptsPage() {
       const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
       const applied = await updateInventoryCosts({ data: { receiptId: receipt.id } });
       const updates = applied.updates || [];
+      const msg = `Saved ${total} items · updated ${updates.length} costs`;
       toast.success(`Saved ${total} items and updated costs for ${updates.length} inventory items`);
+      setRowState(receipt.id, { status: "success", message: msg });
       load();
     } catch (err: any) {
       console.error("Process & save error:", err);
-      toast.error(err.message || "Failed to process receipt");
+      const msg = err?.message || "Failed to process receipt";
+      toast.error(msg);
+      setRowState(receipt.id, { status: "error", message: msg });
     } finally {
       setProcessing(null);
     }
@@ -442,18 +556,69 @@ function ReceiptsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {r.status === "pending" && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
-                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
-                          {processing === r.id ? "Processing..." : "Run OCR"}
-                        </Button>
-                        <Button size="sm" onClick={() => handleProcessAndSave(r)} disabled={processing === r.id || applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
-                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-                          Process &amp; save
-                        </Button>
-                      </>
-                    )}
+                    {r.status === "pending" && (() => {
+                      const rs = processState[r.id];
+                      const isLoading = rs?.status === "loading";
+                      const isError = rs?.status === "error";
+                      const isSuccess = rs?.status === "success";
+                      return (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id || isLoading} className="gap-1.5">
+                            {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
+                            {processing === r.id ? "Processing..." : "Run OCR"}
+                          </Button>
+                          <div className="flex flex-col items-end gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleProcessAndSave(r)}
+                              disabled={processing === r.id || isLoading || applyingCosts}
+                              variant={isError ? "destructive" : "default"}
+                              className={
+                                isError
+                                  ? "gap-1.5"
+                                  : isSuccess
+                                    ? "gap-1.5 bg-success text-success-foreground hover:bg-success/90"
+                                    : "gap-1.5 bg-gradient-warm text-primary-foreground"
+                              }
+                              aria-label={
+                                isLoading
+                                  ? "Processing receipt"
+                                  : isError
+                                    ? `Retry processing: ${rs.message}`
+                                    : isSuccess
+                                      ? rs.message
+                                      : "Process and save receipt"
+                              }
+                            >
+                              {isLoading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : isSuccess ? (
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              ) : isError ? (
+                                <XCircle className="w-3.5 h-3.5" />
+                              ) : (
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              )}
+                              {isLoading
+                                ? "Processing..."
+                                : isError
+                                  ? "Retry"
+                                  : isSuccess
+                                    ? "Done"
+                                    : "Process & save"}
+                            </Button>
+                            {(isSuccess || isError) && (
+                              <p
+                                className={`text-[10px] max-w-[200px] text-right ${isError ? "text-destructive" : "text-muted-foreground"}`}
+                                role={isError ? "alert" : "status"}
+                              >
+                                {rs.message}
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                     {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
                         <Button size="sm" variant={r.status === "needs_review" ? "default" : "outline"} onClick={() => openReview(r)} className="gap-1.5">
@@ -533,21 +698,51 @@ function ReceiptsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {editedLineItems.map((item, idx) => (
-                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""}`}>
-                        <td className="py-2 px-2">
-                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
+                    {editedLineItems.map((item, idx) => {
+                      const rowErr = lineItemErrors[idx] || {};
+                      const errClass = "border-destructive focus-visible:ring-destructive";
+                      return (
+                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""} ${rowErr && Object.keys(rowErr).length > 0 ? "bg-destructive/5" : ""}`}>
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            value={item.item_name}
+                            onChange={(e) => updateLineItem(idx, "item_name", e.target.value)}
+                            className={`h-8 text-xs min-w-[140px] ${rowErr.item_name ? errClass : ""}`}
+                            aria-invalid={!!rowErr.item_name}
+                          />
+                          {rowErr.item_name && <p className="text-[10px] text-destructive mt-0.5">{rowErr.item_name}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input type="number" value={item.quantity} onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-16" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)}
+                            className={`h-8 text-xs w-16 ${rowErr.quantity ? errClass : ""}`}
+                            aria-invalid={!!rowErr.quantity}
+                          />
+                          {rowErr.quantity && <p className="text-[10px] text-destructive mt-0.5">{rowErr.quantity}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input value={item.unit} onChange={(e) => updateLineItem(idx, "unit", e.target.value)} className="h-8 text-xs w-16" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            value={item.unit}
+                            onChange={(e) => updateLineItem(idx, "unit", e.target.value)}
+                            className={`h-8 text-xs w-16 ${rowErr.unit ? errClass : ""}`}
+                            aria-invalid={!!rowErr.unit}
+                          />
+                          {rowErr.unit && <p className="text-[10px] text-destructive mt-0.5">{rowErr.unit}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-20" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.unit_price}
+                            onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)}
+                            className={`h-8 text-xs w-20 ${rowErr.unit_price ? errClass : ""}`}
+                            aria-invalid={!!rowErr.unit_price}
+                          />
+                          {rowErr.unit_price && <p className="text-[10px] text-destructive mt-0.5">{rowErr.unit_price}</p>}
                         </td>
-                        <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                        <td className="py-2 px-2 font-medium whitespace-nowrap align-top">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
                             <SelectTrigger className={`h-8 text-xs min-w-[140px] ${item.needs_review ? "border-warning" : ""}`}><SelectValue placeholder={item.needs_review && item.matched_inventory_name ? `Suggested: ${item.matched_inventory_name}` : "Match..."} /></SelectTrigger>
@@ -581,7 +776,8 @@ function ReceiptsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
                 </div>
@@ -602,9 +798,24 @@ function ReceiptsPage() {
                     </Button>
                   )}
                 </div>
-                <div className="flex justify-end gap-3 pt-2 border-t">
-                  <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
-                  <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
+                <div className="flex flex-col items-end gap-2 pt-2 border-t">
+                  {Object.keys(lineItemErrors).length > 0 && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {Object.keys(lineItemErrors).length} row{Object.keys(lineItemErrors).length === 1 ? "" : "s"} need fixing before save
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems}>Cancel</Button>
+                    <Button
+                      onClick={saveLineItems}
+                      disabled={savingLineItems || Object.keys(lineItemErrors).length > 0}
+                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                    >
+                      {savingLineItems ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {savingLineItems ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
