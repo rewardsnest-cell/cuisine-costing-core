@@ -172,6 +172,29 @@ function CostQueuePage() {
     finally { setVerifyBusy(false); }
   };
 
+  const runSimulation = async (ids: string[]) => {
+    if (ids.length === 0) { toast.error("Select at least one row to simulate"); return; }
+    setSimBusy(true);
+    setSimSourceIds(ids);
+    setSimOpen(true);
+    setSimResult(null);
+    try {
+      const res = await simulateApplyCostUpdates({ data: { queue_ids: ids } });
+      setSimResult(res);
+      toast.success(
+        `Simulated ${res.summary.queue_rows} update(s): ${res.summary.recipes} recipe(s), ${res.summary.quotes} quote(s) impacted`,
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Simulation failed");
+      setSimOpen(false);
+    } finally {
+      setSimBusy(false);
+    }
+  };
+
+  const onSimulateSelected = () => runSimulation(Array.from(selected));
+  const onSimulateOne = (id: string) => runSimulation([id]);
+
   return (
     <div className="space-y-6">
       <div>
