@@ -216,7 +216,11 @@ export const importVpsfinestRecipes = createServerFn({ method: "POST" })
           is_vegetarian: r.is_vegetarian,
           is_gluten_free: r.is_gluten_free,
           active: true,
-        })
+          // Imported recipes always start as draft so the publish gate runs
+          // after ingredients are inserted and resolved.
+          status: "draft",
+          created_source: "import",
+        } as any)
         .select("id")
         .single();
 
