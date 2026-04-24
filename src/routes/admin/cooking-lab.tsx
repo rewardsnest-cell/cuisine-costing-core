@@ -1129,6 +1129,14 @@ function EntryCard({
           </div>
         </Section>
 
+        {/* E2. Collections */}
+        <Section
+          label="Collections"
+          hint="Assign this entry to one or more curated sub-collections shown on /cooking-lab."
+        >
+          <EntryCollectionsEditor entryId={entry.id} />
+        </Section>
+
         {/* F. Quality Checklist */}
         <Section
           label="F. Quality Checklist (Required to Publish)"
