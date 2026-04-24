@@ -120,11 +120,19 @@ const CSV_EXPORTS: CsvSpec[] = [
   },
 ];
 
+type ExportPhase = "generating" | "uploading" | "ready" | "error";
+type ExportProgress = { phase: ExportPhase; message?: string };
+
 function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [savedFiles, setSavedFiles] = useState<Record<string, SavedExportFile>>({});
+  const [progress, setProgress] = useState<Record<string, ExportProgress | undefined>>({});
+
+  const setPhase = (key: string, phase: ExportPhase, message?: string) =>
+    setProgress((p) => ({ ...p, [key]: { phase, message } }));
+
   const [lastE2e, setLastE2e] = useState<{
     runId: string;
     total: number;
@@ -269,14 +277,18 @@ function ExportsPage() {
   const handleDownloadMarkdown = async () => {
     setBusy("md");
     setError(null);
+    setPhase("md", "generating", "Building markdown…");
     try {
       const snap = await fetchInventorySnapshot();
       const md = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
+      setPhase("md", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(md, `PROJECT_AUDIT_${today}.md`, "text/markdown;charset=utf-8");
       rememberSavedFile("md", saved);
+      setPhase("md", "ready");
       flashDone("md");
     } catch (e: any) {
       setError(e.message || "Markdown export failed");
+      setPhase("md", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -284,6 +296,7 @@ function ExportsPage() {
 
   const handleDownloadPdf = async () => {
     setBusy("pdf");
+    setPhase("pdf", "generating", "Rendering PDF…");
     try {
       const snap = await fetchInventorySnapshot();
       const fullMd = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
@@ -350,11 +363,14 @@ function ExportsPage() {
       }
 
       const pdfBlob = doc.output("blob");
+      setPhase("pdf", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
       rememberSavedFile("pdf", saved);
+      setPhase("pdf", "ready");
       flashDone("pdf");
     } catch (e: any) {
       setError(e.message || "PDF generation failed");
+      setPhase("pdf", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -363,6 +379,7 @@ function ExportsPage() {
   const handleDownloadJson = async () => {
     setBusy("json");
     setError(null);
+    setPhase("json", "generating", "Building JSON bundle…");
     try {
       const snap = await fetchInventorySnapshot();
       const bundle = {
@@ -379,15 +396,18 @@ function ExportsPage() {
         },
       };
       const json = JSON.stringify(bundle, null, 2);
+      setPhase("json", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(
         json,
         `PROJECT_AUDIT_${today}.json`,
         "application/json;charset=utf-8",
       );
       rememberSavedFile("json", saved);
+      setPhase("json", "ready");
       flashDone("json");
     } catch (e: any) {
       setError(e.message || "JSON export failed");
+      setPhase("json", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -396,6 +416,7 @@ function ExportsPage() {
   const handleExportCsv = async (spec: CsvSpec) => {
     setBusy(spec.key);
     setError(null);
+    setPhase(spec.key, "generating", "Querying rows…");
     try {
       // Page through results to bypass the 1000-row default limit.
       const all: any[] = [];
@@ -409,10 +430,12 @@ function ExportsPage() {
         if (e) throw e;
         const batch = data ?? [];
         all.push(...batch);
+        setPhase(spec.key, "generating", `Loaded ${all.length} rows…`);
         if (batch.length < PAGE) break;
         from += PAGE;
       }
 
+      setPhase(spec.key, "uploading", `Uploading ${all.length} rows…`);
       if (all.length === 0) {
         const saved = await saveExportFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
@@ -421,9 +444,11 @@ function ExportsPage() {
         const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
       }
+      setPhase(spec.key, "ready");
       flashDone(spec.key);
     } catch (e: any) {
       setError(`${spec.label}: ${e.message || "Export failed"}`);
+      setPhase(spec.key, "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -434,18 +459,21 @@ function ExportsPage() {
     setError(null);
     try {
       for (const spec of CSV_EXPORTS) {
+        setPhase(spec.key, "generating", "Querying rows…");
         const { data, error: e } = await (supabase as any)
           .from(spec.table)
           .select(spec.select)
           .range(0, 9999);
         if (e) {
+          setPhase(spec.key, "error", e.message);
           throw e;
         }
+        setPhase(spec.key, "uploading", `Uploading ${(data ?? []).length} rows…`);
         const csv = rowsToCsv(data ?? []);
         const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
         rememberSavedFile(spec.key, saved);
-        // small delay so browsers don't block bulk downloads
-        await new Promise((r) => setTimeout(r, 250));
+        setPhase(spec.key, "ready");
+        await new Promise((r) => setTimeout(r, 100));
       }
       flashDone("all");
     } catch (e: any) {
@@ -557,25 +585,15 @@ function ExportsPage() {
           <div className="space-y-2">
             {(["md", "pdf", "json"] as const).map((key) => {
               const file = savedFiles[key];
-              if (!file) return null;
+              const prog = progress[key];
+              if (!file && !prog) return null;
               return (
-                <div
+                <ExportProgressLine
                   key={key}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{file.filename}</div>
-                    <div className="text-xs text-muted-foreground">Saved to backend files</div>
-                  </div>
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-primary hover:underline shrink-0"
-                  >
-                    Open file
-                  </a>
-                </div>
+                  label={key === "md" ? "Markdown" : key === "pdf" ? "PDF" : "JSON bundle"}
+                  progress={prog}
+                  file={file}
+                />
               );
             })}
           </div>
@@ -665,53 +683,105 @@ function ExportsPage() {
           </div>
 
           <div className="space-y-2">
-            {CSV_EXPORTS.map((spec) => (
-              <div
-                key={spec.key}
-                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg p-3"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{spec.label}</p>
-                    <Badge variant="secondary" className="text-[10px] font-mono">
-                      {spec.table}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {spec.description}
-                  </p>
-                </div>
-                <Button
-                  onClick={() => handleExportCsv(spec)}
-                  disabled={!!busy}
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 shrink-0"
+            {CSV_EXPORTS.map((spec) => {
+              const prog = progress[spec.key];
+              const file = savedFiles[spec.key];
+              return (
+                <div
+                  key={spec.key}
+                  className="border border-border/60 rounded-lg p-3 space-y-2"
                 >
-                  {busy === spec.key ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : done[spec.key] ? (
-                    <Check className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Download className="w-4 h-4" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm truncate">{spec.label}</p>
+                        <Badge variant="secondary" className="text-[10px] font-mono">
+                          {spec.table}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {spec.description}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleExportCsv(spec)}
+                      disabled={!!busy}
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5 shrink-0"
+                    >
+                      {busy === spec.key ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : done[spec.key] ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      CSV
+                    </Button>
+                  </div>
+                  {(prog || file) && (
+                    <ExportProgressLine label={spec.label} progress={prog} file={file} compact />
                   )}
-                  CSV
-                </Button>
-                {savedFiles[spec.key] && (
-                  <a
-                    href={savedFiles[spec.key].url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-medium text-primary hover:underline shrink-0"
-                  >
-                    Open
-                  </a>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ExportProgressLine({
+  label,
+  progress,
+  file,
+  compact = false,
+}: {
+  label: string;
+  progress?: ExportProgress;
+  file?: SavedExportFile;
+  compact?: boolean;
+}) {
+  const phase = progress?.phase ?? (file ? "ready" : "generating");
+  const isError = phase === "error";
+  const isReady = phase === "ready" && !!file;
+  const inFlight = phase === "generating" || phase === "uploading";
+
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
+        isError
+          ? "border-destructive/40 bg-destructive/5"
+          : isReady
+            ? "border-primary/30 bg-primary/5"
+            : "border-border/60 bg-muted/30"
+      }`}
+    >
+      <div className="min-w-0 flex items-center gap-2">
+        {inFlight && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />}
+        {isReady && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+        <div className="min-w-0">
+          {!compact && <div className="font-medium truncate">{file?.filename ?? label}</div>}
+          <div className={`text-xs ${isError ? "text-destructive" : "text-muted-foreground"} truncate`}>
+            {phase === "generating" && (progress?.message || "Generating…")}
+            {phase === "uploading" && (progress?.message || "Uploading…")}
+            {phase === "ready" && (file ? "Saved to backend files" : "Ready")}
+            {phase === "error" && (progress?.message || "Failed")}
+          </div>
+        </div>
+      </div>
+      {isReady && file && (
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-medium text-primary hover:underline shrink-0"
+        >
+          Open file
+        </a>
+      )}
     </div>
   );
 }
