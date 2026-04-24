@@ -85,6 +85,10 @@ type CookingLabEntry = {
   qa_image_loads: boolean;
   qa_links_tested: boolean;
   qa_ready: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_canonical_url: string | null;
+  seo_og_image_url: string | null;
 };
 
 type LinkCheck = {
