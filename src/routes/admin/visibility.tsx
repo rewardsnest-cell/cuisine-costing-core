@@ -6,7 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Globe, EyeOff } from "lucide-react";
+import { Loader2, Save, Globe, EyeOff, Search, Power } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   listFeatureVisibility,
@@ -52,6 +53,8 @@ function VisibilityPage() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [quickToggling, setQuickToggling] = useState<string | null>(null);
 
   const refetch = async () => {
     setLoading(true);
@@ -102,6 +105,38 @@ function VisibilityPage() {
     }
   };
 
+  // Quick on/off toggle: ON = phase 'public' + nav_enabled true, OFF = phase 'off' + nav_enabled false.
+  // Writes immediately so the sidebar (which reads the same registry) updates without a redeploy.
+  const onQuickToggle = async (key: string, turnOn: boolean) => {
+    setQuickToggling(key);
+    try {
+      await updateFeatureVisibility({
+        data: {
+          feature_key: key,
+          phase: turnOn ? "public" : "off",
+          nav_enabled: turnOn,
+        },
+      });
+      toast.success(`${key} ${turnOn ? "enabled" : "disabled"}`);
+      await refetch();
+    } catch (e: any) {
+      toast.error(e?.message || "Toggle failed");
+    } finally {
+      setQuickToggling(null);
+    }
+  };
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.feature_key.toLowerCase().includes(q) ||
+        (r.notes ?? "").toLowerCase().includes(q) ||
+        r.phase.toLowerCase().includes(q),
+    );
+  }, [rows, search]);
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
@@ -131,18 +166,34 @@ function VisibilityPage() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by key, notes, or phase…"
+            className="pl-8"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {filteredRows.length} of {rows.length}
+        </p>
+      </div>
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading registry…
         </div>
       ) : (
         <div className="space-y-4">
-          {rows.map((r) => {
+          {filteredRows.map((r) => {
             const d = drafts[r.feature_key];
             const b = baseline[r.feature_key];
             if (!d || !b) return null;
             const dirty = isDirty(d, b);
             const seoForcedOff = d.phase === "soft_launch" || d.phase === "admin_preview" || d.phase === "off";
+            const isOn = r.phase === "public" && r.nav_enabled;
             return (
               <Card key={r.feature_key}>
                 <CardHeader className="pb-3">
@@ -159,10 +210,21 @@ function VisibilityPage() {
                         </Badge>
                       )}
                     </div>
-                    <Button size="sm" onClick={() => onSave(r.feature_key)} disabled={!dirty || savingKey === r.feature_key} className="gap-1.5">
-                      {savingKey === r.feature_key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Save
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
+                        <Power className={`w-3.5 h-3.5 ${isOn ? "text-emerald-500" : "text-muted-foreground"}`} />
+                        <span className="text-xs text-muted-foreground">{isOn ? "On" : "Off"}</span>
+                        <Switch
+                          checked={isOn}
+                          disabled={quickToggling === r.feature_key}
+                          onCheckedChange={(v) => onQuickToggle(r.feature_key, v)}
+                        />
+                      </div>
+                      <Button size="sm" onClick={() => onSave(r.feature_key)} disabled={!dirty || savingKey === r.feature_key} className="gap-1.5">
+                        {savingKey === r.feature_key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
