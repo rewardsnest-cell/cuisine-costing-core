@@ -222,8 +222,23 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
     setDirty(true);
   };
 
+  const qaItems = [
+    draft.qa_copy_reviewed,
+    draft.qa_video_loads,
+    draft.qa_image_loads,
+    draft.qa_links_tested,
+    draft.qa_ready,
+  ];
+  const qaPassedCount = qaItems.filter(Boolean).length;
+  const qaAllPassed = qaPassedCount === qaItems.length;
+  const wantsPublished = draft.status === "published";
+  const publishBlocked = wantsPublished && !qaAllPassed;
+
   const saveMut = useMutation({
     mutationFn: async () => {
+      if (publishBlocked) {
+        throw new Error("Complete all 5 QA checklist items before publishing.");
+      }
       const { id, ...rest } = draft;
       const { error } = await (supabase as any)
         .from("cooking_lab_entries")
@@ -389,8 +404,17 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
         </Section>
 
         {/* F. Quality Checklist */}
-        <Section label="F. Quality Checklist (Required)">
-          <div className="space-y-2 rounded-md border border-border p-4 bg-muted/20">
+        <Section
+          label="F. Quality Checklist (Required to Publish)"
+          hint={`All 5 items must be checked to publish. ${qaPassedCount}/5 complete.`}
+        >
+          <div
+            className={`space-y-2 rounded-md border p-4 ${
+              qaAllPassed
+                ? "border-emerald-500/30 bg-emerald-500/5"
+                : "border-border bg-muted/20"
+            }`}
+          >
             <CheckRow
               label="Copy reviewed"
               checked={draft.qa_copy_reviewed}
@@ -420,8 +444,19 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
         </Section>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-          {dirty && <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>}
-          <Button onClick={() => saveMut.mutate()} disabled={!dirty || saveMut.isPending} className="gap-2">
+          {publishBlocked && (
+            <span className="text-xs text-destructive">
+              Complete all QA items to publish ({qaPassedCount}/5)
+            </span>
+          )}
+          {dirty && !publishBlocked && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">Unsaved changes</span>
+          )}
+          <Button
+            onClick={() => saveMut.mutate()}
+            disabled={!dirty || saveMut.isPending || publishBlocked}
+            className="gap-2"
+          >
             <Save className="w-4 h-4" />
             {saveMut.isPending ? "Saving…" : "Save"}
           </Button>
