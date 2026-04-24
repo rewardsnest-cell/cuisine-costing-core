@@ -2,7 +2,23 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
+import { withAmazonAffiliateTag } from "@/lib/amazon-affiliate";
 import { FlaskConical, ExternalLink, Play } from "lucide-react";
+
+function useAmazonAssociateTag() {
+  return useQuery({
+    queryKey: ["amazon-associate-tag"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("app_kv")
+        .select("value")
+        .eq("key", "amazon_associate_tag")
+        .maybeSingle();
+      return ((data?.value as string | null) ?? "").trim() || null;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
 
 export type CookingLabEntry = {
   id: string;
@@ -147,8 +163,21 @@ function CookingLabPage() {
   );
 }
 
-export function CookingLabSection({ entry, reverse }: { entry: CookingLabEntry; reverse: boolean }) {
+export function CookingLabSection({
+  entry,
+  reverse,
+  associateTagOverride,
+}: {
+  entry: CookingLabEntry;
+  reverse: boolean;
+  /** Optional override for previewing in the admin. Falls back to live config. */
+  associateTagOverride?: string | null;
+}) {
   const embedUrl = youtubeEmbedUrl(entry.video_url);
+  const tagQuery = useAmazonAssociateTag();
+  const tag = associateTagOverride !== undefined ? associateTagOverride : tagQuery.data;
+  const primaryHref = withAmazonAffiliateTag(entry.primary_tool_url, tag);
+  const secondaryHref = withAmazonAffiliateTag(entry.secondary_tool_url, tag);
   const hasTools =
     (entry.primary_tool_name && entry.primary_tool_url) ||
     (entry.secondary_tool_name && entry.secondary_tool_url);
@@ -204,9 +233,12 @@ export function CookingLabSection({ entry, reverse }: { entry: CookingLabEntry; 
               {entry.primary_tool_name && entry.primary_tool_url && (
                 <li>
                   <a
-                    href={entry.primary_tool_url}
+                    href={primaryHref}
                     target="_blank"
                     rel="nofollow noopener sponsored"
+                    data-affiliate-network="amazon"
+                    data-affiliate-slot="cooking-lab-primary"
+                    data-affiliate-entry-id={entry.id}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     {entry.primary_tool_name}
@@ -217,9 +249,12 @@ export function CookingLabSection({ entry, reverse }: { entry: CookingLabEntry; 
               {entry.secondary_tool_name && entry.secondary_tool_url && (
                 <li>
                   <a
-                    href={entry.secondary_tool_url}
+                    href={secondaryHref}
                     target="_blank"
                     rel="nofollow noopener sponsored"
+                    data-affiliate-network="amazon"
+                    data-affiliate-slot="cooking-lab-secondary"
+                    data-affiliate-entry-id={entry.id}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                   >
                     {entry.secondary_tool_name}
