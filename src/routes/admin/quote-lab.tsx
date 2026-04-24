@@ -323,6 +323,23 @@ function QuoteLabPage() {
         </div>
       </header>
 
+      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/10">
+        <CardContent className="p-4 flex items-start gap-3">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-emerald-700 dark:text-emerald-300">
+              Lab guardrails are active
+            </p>
+            <ul className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80 list-disc pl-5 space-y-0.5">
+              <li>Lab actions only operate on quotes flagged <span className="font-mono">is_test=true</span>.</li>
+              <li>Pricing fields (subtotal, totals, theoretical/actual cost) and market intelligence outputs are blocked at the write layer.</li>
+              <li>Lab cannot promote a TEST quote into a REAL one.</li>
+              <li>New quotes from this page are always created as TEST.</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
