@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle, FlaskConical, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle, FlaskConical, TrendingUp, TrendingDown, Clock, Download, History, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -21,10 +21,12 @@ import {
   listIngredientCosts,
   recomputeAndVerifyInternalCosts,
   simulateApplyCostUpdates,
+  getCostQueueTimeline,
 } from "@/lib/server-fns/cost-intelligence.functions";
 import { CostBreakdownPanel } from "@/components/admin/CostBreakdownPanel";
 
 type SimulateResult = Awaited<ReturnType<typeof simulateApplyCostUpdates>>;
+type TimelineResult = Awaited<ReturnType<typeof getCostQueueTimeline>>;
 
 type VerifyResult = Awaited<ReturnType<typeof recomputeAndVerifyInternalCosts>>;
 
@@ -54,6 +56,55 @@ function CostQueuePage() {
   const [simResult, setSimResult] = useState<SimulateResult | null>(null);
   const [simOpen, setSimOpen] = useState(false);
   const [simSourceIds, setSimSourceIds] = useState<string[]>([]);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineBusy, setTimelineBusy] = useState(false);
+  const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
+
+  const openTimeline = async (queueId: string) => {
+    setTimelineOpen(true);
+    setTimelineBusy(true);
+    setTimelineResult(null);
+    try {
+      const res = await getCostQueueTimeline({ data: { queue_id: queueId } });
+      setTimelineResult(res);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load timeline");
+      setTimelineOpen(false);
+    } finally {
+      setTimelineBusy(false);
+    }
+  };
+
+  const downloadTimelineCSV = () => {
+    if (!timelineResult) return;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ["timestamp", "event", "actor_email", "actor_user_id", "notes", "details_json"];
+    const lines = [headers.join(",")];
+    for (const e of timelineResult.events) {
+      lines.push([
+        escape(e.at),
+        escape(e.label),
+        escape(e.actor_email ?? ""),
+        escape(e.actor_user_id ?? ""),
+        escape(e.notes ?? ""),
+        escape(JSON.stringify(e.details ?? {})),
+      ].join(","));
+    }
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeName = (timelineResult.item_name ?? "queue").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+    a.download = `cost-queue-timeline-${safeName}-${timelineResult.queue_id.slice(0, 8)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -275,6 +326,7 @@ function CostQueuePage() {
                             <TableCell className="text-right">
                               <div className="inline-flex gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
+                                <Button size="sm" variant="ghost" onClick={() => openTimeline(r.id)} className="gap-1" title="Status timeline & audit CSV"><History className="w-3.5 h-3.5" />Timeline</Button>
                                 <Button size="sm" variant="ghost" disabled={simBusy} onClick={() => onSimulateOne(r.id)} className="gap-1" title="Simulate apply (no writes)"><FlaskConical className="w-3.5 h-3.5" />Simulate</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onApprove(r.id)} className="gap-1"><Check className="w-3.5 h-3.5" />Approve</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onOverride(r.id)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Override</Button>
@@ -301,7 +353,7 @@ function CostQueuePage() {
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Old</TableHead><TableHead>Proposed</TableHead><TableHead>Applied</TableHead><TableHead>%</TableHead><TableHead>Reviewed</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Old</TableHead><TableHead>Proposed</TableHead><TableHead>Applied</TableHead><TableHead>%</TableHead><TableHead>Reviewed</TableHead><TableHead className="text-right">Audit</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {history.map((r: any) => (
                         <TableRow key={r.id}>
@@ -311,6 +363,9 @@ function CostQueuePage() {
                           <TableCell>${Number(r.final_applied_cost ?? 0).toFixed(4)}</TableCell>
                           <TableCell>{Number(r.percent_change ?? 0).toFixed(2)}%</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : "—"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="ghost" onClick={() => openTimeline(r.id)} className="gap-1"><History className="w-3.5 h-3.5" />Timeline</Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -664,6 +719,109 @@ function CostQueuePage() {
 
                 <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button variant="ghost" onClick={() => setSimOpen(false)}>Close</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={timelineOpen} onOpenChange={setTimelineOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2"><History className="w-4 h-4" />Cost update timeline</SheetTitle>
+            <SheetDescription>
+              Status transitions, approving admin, and notes for this queue row. Download the full audit trail as CSV.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-5">
+            {timelineBusy && !timelineResult && (
+              <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading timeline…</div>
+            )}
+            {timelineResult && (
+              <>
+                <div className="border rounded-md p-3 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{timelineResult.item_name ?? "—"}</span>
+                    {timelineResult.default_unit && (
+                      <span className="text-xs text-muted-foreground">/ {timelineResult.default_unit}</span>
+                    )}
+                    <Badge variant="outline" className="ml-1">{timelineResult.source}</Badge>
+                    <Badge
+                      variant={
+                        timelineResult.status === "approved" ? "default"
+                          : timelineResult.status === "rejected" ? "destructive"
+                          : timelineResult.status === "overridden" ? "secondary"
+                          : "outline"
+                      }
+                      className="capitalize"
+                    >
+                      {timelineResult.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Current </span>${Number(timelineResult.current_cost ?? 0).toFixed(4)}</div>
+                    <div><span className="text-muted-foreground">Proposed </span>${Number(timelineResult.proposed_cost ?? 0).toFixed(4)}</div>
+                    <div><span className="text-muted-foreground">Applied </span>{timelineResult.final_applied_cost == null ? "—" : `$${Number(timelineResult.final_applied_cost).toFixed(4)}`}</div>
+                    <div><span className="text-muted-foreground">Δ </span>{Number(timelineResult.percent_change ?? 0).toFixed(2)}%</div>
+                  </div>
+                  {timelineResult.reviewed_by_email && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
+                      <User className="w-3 h-3" />Reviewed by <span className="font-medium text-foreground">{timelineResult.reviewed_by_email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium">Status transitions ({timelineResult.events.length})</h3>
+                  <Button size="sm" variant="outline" onClick={downloadTimelineCSV} className="gap-1.5">
+                    <Download className="w-3.5 h-3.5" />Download CSV
+                  </Button>
+                </div>
+
+                <ol className="relative border-l border-border pl-5 space-y-4">
+                  {timelineResult.events.map((e, idx) => {
+                    const tone =
+                      e.kind === "approved" || e.kind === "bulk_approved" ? "bg-emerald-500"
+                        : e.kind === "rejected" || e.kind === "bulk_rejected" ? "bg-destructive"
+                        : e.kind === "overridden" ? "bg-amber-500"
+                        : e.kind === "bulk_approve_failed" || e.kind === "bulk_reject_failed" ? "bg-destructive"
+                        : "bg-muted-foreground";
+                    return (
+                      <li key={idx} className="relative">
+                        <span className={`absolute -left-[27px] top-1.5 w-3 h-3 rounded-full ring-2 ring-background ${tone}`} />
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="font-medium text-sm">{e.label}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />{new Date(e.at).toLocaleString()}
+                          </span>
+                        </div>
+                        {e.actor_email && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <User className="w-3 h-3" />{e.actor_email}
+                          </div>
+                        )}
+                        {e.notes && (
+                          <p className="text-xs mt-1 italic text-muted-foreground">"{e.notes}"</p>
+                        )}
+                        {e.details?.manual_cost != null && (
+                          <p className="text-xs mt-0.5">Manual override: <span className="font-mono">${Number(e.details.manual_cost).toFixed(4)}</span></p>
+                        )}
+                        {e.kind === "created" && (
+                          <p className="text-xs mt-0.5 text-muted-foreground">
+                            ${Number(e.details.current_cost ?? 0).toFixed(4)} → ${Number(e.details.proposed_cost ?? 0).toFixed(4)}
+                            {e.details.percent_change != null && (
+                              <> ({Number(e.details.percent_change) >= 0 ? "+" : ""}{Number(e.details.percent_change).toFixed(2)}%)</>
+                            )}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="ghost" onClick={() => setTimelineOpen(false)}>Close</Button>
                 </div>
               </>
             )}
