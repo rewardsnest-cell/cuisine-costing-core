@@ -58,6 +58,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     items: [
       { to: "/admin/recipe-hub", label: "Recipe Hub", icon: ChefHat },
       { to: "/admin/menu", label: "Public Menu", icon: UtensilsCrossed },
+      { to: "/admin/menu-modules", label: "Menu Modules", icon: UtensilsCrossed },
       { to: "/admin/generate-recipe-photos", label: "Generate Photos", icon: Sparkles },
       { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
     ],

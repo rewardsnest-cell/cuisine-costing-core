@@ -82,6 +82,7 @@ import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/prici
 import { Route as AdminPricingTestRouteImport } from './routes/admin/pricing-test'
 import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
+import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-modules'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
@@ -113,6 +114,7 @@ import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminGuidesNewRouteImport } from './routes/admin/guides.new'
 import { Route as AdminGuidesIdRouteImport } from './routes/admin/guides.$id'
@@ -496,6 +498,11 @@ const AdminNationalPricesRoute = AdminNationalPricesRouteImport.update({
   path: '/national-prices',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMenuModulesRoute = AdminMenuModulesRouteImport.update({
+  id: '/menu-modules',
+  path: '/menu-modules',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMenuRoute = AdminMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -655,6 +662,11 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   path: '/pricing/national',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AdminMenuModulesRoute,
+} as any)
 const AdminIngredientsReviewUnlinkedRoute =
   AdminIngredientsReviewUnlinkedRouteImport.update({
     id: '/ingredients/review-unlinked',
@@ -763,6 +775,7 @@ export interface FileRoutesByFullPath {
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/pricing-test': typeof AdminPricingTestRoute
@@ -816,6 +829,7 @@ export interface FileRoutesByFullPath {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -878,6 +892,7 @@ export interface FileRoutesByTo {
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/pricing-test': typeof AdminPricingTestRoute
@@ -931,6 +946,7 @@ export interface FileRoutesByTo {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -996,6 +1012,7 @@ export interface FileRoutesById {
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
   '/admin/pricing-test': typeof AdminPricingTestRoute
@@ -1049,6 +1066,7 @@ export interface FileRoutesById {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
@@ -1115,6 +1133,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
+    | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
     | '/admin/pricing-test'
@@ -1168,6 +1187,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/menu-modules/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1230,6 +1250,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
+    | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
     | '/admin/pricing-test'
@@ -1283,6 +1304,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/menu-modules/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1347,6 +1369,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
+    | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
     | '/admin/pricing-test'
@@ -1400,6 +1423,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/menu-modules/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
     | '/admin/recipe-hub/$id'
@@ -1983,6 +2007,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNationalPricesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/menu-modules': {
+      id: '/admin/menu-modules'
+      path: '/menu-modules'
+      fullPath: '/admin/menu-modules'
+      preLoaderRoute: typeof AdminMenuModulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu': {
       id: '/admin/menu'
       path: '/menu'
@@ -2200,6 +2231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/menu-modules/preview': {
+      id: '/admin/menu-modules/preview'
+      path: '/preview'
+      fullPath: '/admin/menu-modules/preview'
+      preLoaderRoute: typeof AdminMenuModulesPreviewRouteImport
+      parentRoute: typeof AdminMenuModulesRoute
+    }
     '/admin/ingredients/review-unlinked': {
       id: '/admin/ingredients/review-unlinked'
       path: '/ingredients/review-unlinked'
@@ -2294,6 +2332,17 @@ const AdminGuidesRouteWithChildren = AdminGuidesRoute._addFileChildren(
   AdminGuidesRouteChildren,
 )
 
+interface AdminMenuModulesRouteChildren {
+  AdminMenuModulesPreviewRoute: typeof AdminMenuModulesPreviewRoute
+}
+
+const AdminMenuModulesRouteChildren: AdminMenuModulesRouteChildren = {
+  AdminMenuModulesPreviewRoute: AdminMenuModulesPreviewRoute,
+}
+
+const AdminMenuModulesRouteWithChildren =
+  AdminMenuModulesRoute._addFileChildren(AdminMenuModulesRouteChildren)
+
 interface AdminQuotesRouteChildren {
   AdminQuotesIdRoute: typeof AdminQuotesIdRoute
 }
@@ -2368,6 +2417,7 @@ interface AdminRouteChildren {
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
+  AdminMenuModulesRoute: typeof AdminMenuModulesRouteWithChildren
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
   AdminPricingTestRoute: typeof AdminPricingTestRoute
@@ -2424,6 +2474,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
+  AdminMenuModulesRoute: AdminMenuModulesRouteWithChildren,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
   AdminPricingTestRoute: AdminPricingTestRoute,
