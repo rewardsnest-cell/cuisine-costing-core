@@ -827,3 +827,85 @@ export const listChartableItems = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+/**
+ * Unified ingest entry point with explicit mode + ZIP fallback.
+ *
+ * - mode "catalog_bootstrap": pulls a wider slice of inventory_items (default 500),
+ *   ordered by least-recently-updated first.
+ * - mode "daily_update": refreshes only items that already have a confirmed
+ *   kroger_sku_map entry (default 100). Falls back to the full inventory when
+ *   no SKU mappings exist yet.
+ *
+ * locationId resolution order:
+ *   1. explicit `location_id` param
+ *   2. saved `kroger_location_id` in app_kv
+ *   3. resolved from `zip_code` (default "44202") via Kroger Locations API
+ *
+ * Aborts if OAuth fails or if no locationId can be resolved.
+ */
+export const runKrogerIngest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; location_id?: string | null; limit?: number } | undefined) => d ?? {})
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    const enabled = await isKrogerEnabled();
+    if (!enabled) {
+      return { ran: false, reason: "feature_disabled", message: "Kroger ingest is disabled." } as const;
+    }
+    if (!process.env.KROGER_CLIENT_ID || !process.env.KROGER_CLIENT_SECRET) {
+      return { ran: false, reason: "missing_keys", message: "Kroger API keys not configured." } as const;
+    }
+
+    const mode: "catalog_bootstrap" | "daily_update" = data.mode ?? "daily_update";
+    const limit = Math.max(1, Math.min(5000, data.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
+
+    // Resolve locationId: explicit > saved > ZIP lookup
+    let locationId: string | null = null;
+    if (typeof data.location_id === "string" && data.location_id.trim()) {
+      locationId = data.location_id.trim();
+    } else {
+      locationId = await getKrogerLocationId();
+    }
+
+    let token: string;
+    try {
+      token = await getKrogerAccessToken();
+    } catch (e: any) {
+      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
+    }
+
+    if (!locationId) {
+      const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
+      locationId = await resolveLocationIdFromZip(zip, token);
+      if (!locationId) {
+        return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
+      }
+    }
+
+    const { data: runRow, error: insErr } = await supabaseAdmin
+      .from("kroger_ingest_runs")
+      .insert({
+        status: "queued",
+        triggered_by: context.userId,
+        location_id: locationId,
+        item_limit: limit,
+        message: `mode=${mode}`,
+      })
+      .select("id")
+      .single();
+    if (insErr || !runRow) throw new Error(insErr?.message ?? "Failed to enqueue run");
+
+    void performIngest(runRow.id, { limit, locationId });
+
+    return {
+      ran: true,
+      queued: true,
+      run_id: runRow.id,
+      mode,
+      location_id: locationId,
+      limit,
+      message: `${mode} ingest queued at locationId ${locationId}.`,
+    } as const;
+  });
