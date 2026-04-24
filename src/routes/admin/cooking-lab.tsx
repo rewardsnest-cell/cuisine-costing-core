@@ -3,6 +3,7 @@ import { useEffect, useState, type ComponentProps, type CSSProperties, type Reac
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveCookingLabEntry } from "@/lib/server-fns/save-cooking-lab-entry.functions";
+import { generateCookingLabOgImage } from "@/lib/server-fns/generate-cooking-lab-og.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import {
   ArrowUp,
   ArrowDown,
   GripVertical,
+  Sparkles,
 } from "lucide-react";
 import {
   DndContext,
@@ -354,6 +356,68 @@ function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
  * length warnings) and a social card preview (OG image + title + description)
  * so editors see exactly what crawlers will surface before saving.
  */
+/**
+ * Inline button next to the OG image URL field. When the editor leaves the
+ * field blank (or just wants a fresh hero), this calls the AI gateway via
+ * `generateCookingLabOgImage` and writes the resulting public URL back into
+ * the form. Disabled until the entry has a title — without one the model has
+ * nothing to compose around.
+ */
+function OgImageGenerator({
+  entryId,
+  hasTitle,
+  currentValue,
+  onGenerated,
+}: {
+  entryId: string;
+  hasTitle: boolean;
+  currentValue: string | null;
+  onGenerated: (url: string) => void;
+}) {
+  const generate = useServerFn(generateCookingLabOgImage);
+  const [running, setRunning] = useState(false);
+  const filled = !!currentValue?.trim();
+
+  const run = async () => {
+    setRunning(true);
+    try {
+      const out = await generate({ data: { entryId } });
+      onGenerated(out.url);
+      toast.success("OG image generated");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate OG image");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={run}
+        disabled={running || !hasTitle}
+        className="gap-1.5"
+        title={
+          !hasTitle
+            ? "Add a title first"
+            : filled
+              ? "Replace the current OG image with a fresh AI-generated one"
+              : "Auto-generate a 16:9 social image from this entry's title and cover image"
+        }
+      >
+        {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+        {running ? "Generating…" : filled ? "Regenerate from title + cover" : "Auto-generate from title + cover"}
+      </Button>
+      <span className="text-[11px] text-muted-foreground">
+        Saved to storage and filled in above. Free with your Lovable AI credits.
+      </span>
+    </div>
+  );
+}
+
 function SeoFieldsPanel({
   seoTitle,
   seoDescription,
@@ -484,6 +548,12 @@ function SeoFieldsPanel({
           value={seoOgImageUrl ?? ""}
           onChange={(e) => onChange("seo_og_image_url", e.target.value || null)}
           placeholder={fallbackImageUrl ?? "https://..."}
+        />
+        <OgImageGenerator
+          entryId={entryId}
+          hasTitle={!!fallbackTitle?.trim()}
+          currentValue={seoOgImageUrl}
+          onGenerated={(url) => onChange("seo_og_image_url", url)}
         />
       </Field>
 
