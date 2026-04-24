@@ -965,10 +965,9 @@ function EntryCard({
               />
             </Field>
             <Field label="Primary Amazon Link" error={toolFieldErrors.primary_tool_url}>
-              <Input
+              <AmazonUrlInput
                 value={draft.primary_tool_url ?? ""}
-                onChange={(e) => update("primary_tool_url", e.target.value)}
-                placeholder="https://www.amazon.com/..."
+                onChange={(v) => update("primary_tool_url", v)}
               />
             </Field>
             <Field label="Secondary Tool Name" error={toolFieldErrors.secondary_tool_name}>
@@ -978,10 +977,9 @@ function EntryCard({
               />
             </Field>
             <Field label="Secondary Amazon Link" error={toolFieldErrors.secondary_tool_url}>
-              <Input
+              <AmazonUrlInput
                 value={draft.secondary_tool_url ?? ""}
-                onChange={(e) => update("secondary_tool_url", e.target.value)}
-                placeholder="https://www.amazon.com/..."
+                onChange={(v) => update("secondary_tool_url", v)}
               />
             </Field>
           </div>
