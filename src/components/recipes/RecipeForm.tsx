@@ -270,7 +270,56 @@ export function RecipeForm({
   const servingsNum = parseInt(form.servings) || 0;
   const costPerServing = servingsNum > 0 ? totalCost / servingsNum : 0;
 
-  const handleSave = async () => {
+  // Auto-resolve a free-text ingredient to its canonical ingredient_reference
+  // using the existing fuzzy/synonym matcher RPC. Returns reference_id when a
+  // confident match is found.
+  const autoResolveReference = async (name: string): Promise<string | null> => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    try {
+      const { data } = await supabase.rpc("find_ingredient_matches", { _name: trimmed, _limit: 1 });
+      const top = (data as any[] | null)?.[0];
+      if (!top) return null;
+      // Synonym hits are exact; reference hits >=0.8 are safe to auto-link.
+      if (top.source === "synonym") return top.reference_id ?? null;
+      if ((top.similarity ?? 0) >= 0.8) return top.reference_id ?? null;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Resolve all rows that don't yet have a reference_id (or inventory link).
+  // Mutates state so the user immediately sees what got linked.
+  const runAutoMatch = async (): Promise<IngredientRow[]> => {
+    const next = await Promise.all(
+      ingredients.map(async (ing) => {
+        if (!ing.name.trim()) return ing;
+        if (ing.reference_id) return ing;
+        // If linked to inventory but no reference_id yet, prefer the inventory's reference
+        if (ing.inventory_item_id) {
+          const inv = inventory.find((i) => i.id === ing.inventory_item_id);
+          if (inv?.reference_id) return { ...ing, reference_id: inv.reference_id };
+        }
+        const refId = await autoResolveReference(ing.name);
+        return refId ? { ...ing, reference_id: refId } : ing;
+      }),
+    );
+    setIngredients(next);
+    return next;
+  };
+
+  const unresolvedRows = (rows: IngredientRow[]) =>
+    rows
+      .filter((i) => i.name.trim())
+      .filter(
+        (i) =>
+          !i.reference_id ||
+          !i.unit.trim() ||
+          !(parseFloat(i.quantity) > 0),
+      );
+
+  const persist = async (opts: { publish: boolean }): Promise<void> => {
     if (!form.name.trim()) {
       toast.error("Recipe name is required");
       return;
@@ -282,7 +331,24 @@ export function RecipeForm({
         .map((a) => a.trim())
         .filter(Boolean);
 
-      const payload = {
+      // Try to resolve any unlinked ingredients before publishing
+      const rowsForSave = opts.publish ? await runAutoMatch() : ingredients;
+
+      if (opts.publish) {
+        const blockers = unresolvedRows(rowsForSave);
+        if (rowsForSave.filter((i) => i.name.trim()).length === 0) {
+          toast.error("Add at least one ingredient before publishing");
+          return;
+        }
+        if (blockers.length > 0) {
+          toast.error(
+            `Cannot publish — ${blockers.length} ingredient${blockers.length === 1 ? "" : "s"} still need linking, a unit, or a positive quantity`,
+          );
+          return;
+        }
+      }
+
+      const payload: Record<string, unknown> = {
         name: form.name.trim(),
         description: form.description || null,
         category: form.category || null,
@@ -298,20 +364,34 @@ export function RecipeForm({
         total_cost: totalCost,
         cost_per_serving: costPerServing,
       };
+      if (mode === "create") {
+        // Force draft on creation regardless of publish intent — publish is a
+        // second step so the publish trigger sees ingredients already inserted.
+        payload.status = "draft";
+        payload.created_source = "manual";
+      }
 
       let savedId = recipeId;
       if (mode === "create") {
         const { data, error } = await supabase
           .from("recipes")
-          .insert(payload)
+          .insert(payload as any)
           .select()
           .single();
         if (error) throw error;
         savedId = data.id;
       } else if (mode === "edit" && recipeId) {
+        // Move to draft first if currently published — otherwise the
+        // recipe_ingredient_resolved_gate trigger blocks any free-text edits.
+        if (initial.recipe.status === "published") {
+          const { error: draftErr } = await supabase
+            .from("recipes")
+            .update({ status: "draft" } as any)
+            .eq("id", recipeId);
+          if (draftErr) throw draftErr;
+        }
         const { error } = await supabase.from("recipes").update(payload).eq("id", recipeId);
         if (error) throw error;
-        // Clear existing ingredients then re-insert (simpler than diffing)
         const { error: delErr } = await supabase
           .from("recipe_ingredients")
           .delete()
@@ -319,7 +399,7 @@ export function RecipeForm({
         if (delErr) throw delErr;
       }
 
-      const validIngredients = ingredients.filter((i) => i.name.trim());
+      const validIngredients = rowsForSave.filter((i) => i.name.trim());
       if (validIngredients.length > 0 && savedId) {
         const { error: ingErr } = await supabase.from("recipe_ingredients").insert(
           validIngredients.map((ing) => ({
@@ -330,12 +410,29 @@ export function RecipeForm({
             cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
             notes: ing.notes || null,
             inventory_item_id: ing.inventory_item_id,
+            reference_id: ing.reference_id,
           })),
         );
         if (ingErr) throw ingErr;
       }
 
-      toast.success(mode === "create" ? "Recipe created" : "Recipe updated");
+      // Flip to published only when the user explicitly asked. The DB trigger
+      // is the source of truth and will reject if anything is unresolved.
+      if (opts.publish && savedId) {
+        const { error: pubErr } = await supabase
+          .from("recipes")
+          .update({ status: "published" } as any)
+          .eq("id", savedId);
+        if (pubErr) throw pubErr;
+      }
+
+      toast.success(
+        opts.publish
+          ? "Recipe published"
+          : mode === "create"
+            ? "Draft saved"
+            : "Recipe updated",
+      );
       navigate({ to: "/admin/recipes" });
     } catch (e: any) {
       toast.error(e.message || "Failed to save recipe");
@@ -343,6 +440,41 @@ export function RecipeForm({
       setSaving(false);
     }
   };
+
+  const handleSaveDraft = () => persist({ publish: false });
+  const handlePublish = () => persist({ publish: true });
+
+  const handleUnpublish = async () => {
+    if (!recipeId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("recipes")
+        .update({ status: "draft" } as any)
+        .eq("id", recipeId);
+      if (error) throw error;
+      toast.success("Moved back to draft");
+      navigate({ to: "/admin/recipes" });
+    } catch (e: any) {
+      toast.error(e.message || "Failed to unpublish");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAutoMatchClick = async () => {
+    const before = ingredients.filter((i) => i.name.trim() && !i.reference_id).length;
+    const after = await runAutoMatch();
+    const remaining = after.filter((i) => i.name.trim() && !i.reference_id).length;
+    const linked = before - remaining;
+    if (linked > 0) toast.success(`Auto-linked ${linked} ingredient${linked === 1 ? "" : "s"}`);
+    else toast.info("No additional ingredients could be auto-linked");
+  };
+
+  const currentStatus: "draft" | "published" = initial.recipe.status ?? "draft";
+  const currentIntegrity = initial.recipe.ingredient_integrity ?? "ok";
+  const liveUnresolved = unresolvedRows(ingredients);
+  const canPublish = liveUnresolved.length === 0 && ingredients.some((i) => i.name.trim());
 
   return (
     <div className="space-y-6 max-w-4xl">
