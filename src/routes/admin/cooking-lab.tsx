@@ -481,6 +481,44 @@ function CookingLabManager() {
     onError: (e: any) => toast.error(e?.message ?? "Failed to create entry"),
   });
 
+  // Swap display_order between two entries — atomic from the user's POV.
+  // We persist whatever display_order each entry has, then re-sort client-side
+  // on next fetch. Two writes; both must succeed for the visible reorder.
+  const reorderMut = useMutation({
+    mutationFn: async ({ a, b }: { a: CookingLabEntry; b: CookingLabEntry }) => {
+      const { error: e1 } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .update({ display_order: b.display_order })
+        .eq("id", a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .update({ display_order: a.display_order })
+        .eq("id", b.id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Reorder failed"),
+  });
+
+  const sorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
+  const moveEntry = (idx: number, dir: -1 | 1) => {
+    const a = sorted[idx];
+    const b = sorted[idx + dir];
+    if (!a || !b) return;
+    // If both share the same display_order (legacy data), nudge b up by 1 first.
+    if (a.display_order === b.display_order) {
+      reorderMut.mutate({
+        a,
+        b: { ...b, display_order: b.display_order + (dir === 1 ? 1 : -1) },
+      });
+    } else {
+      reorderMut.mutate({ a, b });
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
