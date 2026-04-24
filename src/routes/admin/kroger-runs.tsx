@@ -40,6 +40,9 @@ function KrogerRunsPage() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [customLimit, setCustomLimit] = useState<string>("");
   const pollRef = useRef<number | null>(null);
+  const [filterErrors, setFilterErrors] = useState(false);
+  const [filterPriceRows, setFilterPriceRows] = useState(false);
+  const [filterZeroSkus, setFilterZeroSkus] = useState(false);
 
   const load = async () => {
     setLoading(true);
