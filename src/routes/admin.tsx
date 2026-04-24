@@ -1,9 +1,9 @@
-import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download, ScanLine, FileSearch, Building2, Inbox, BookOpen, Zap, Globe, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Activity, Plug, Handshake, MessageSquare, Mail, EyeOff, FlaskConical, Image as ImageIcon, ClipboardCheck, NotebookPen,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/LoadingState";
+import { useFeatureVisibilityMap, type FeatureVisibility } from "@/lib/feature-visibility";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -23,9 +24,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-// Round-2 governance: 6-group consolidated admin nav.
-// Every previously listed admin route is preserved — only grouping changed.
-export const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any; exact?: boolean }[] }[] = [
+// Phase-aligned admin navigation. Every item references a feature_key in the
+// feature_visibility table. Items are filtered out at render time when the
+// corresponding flag is hidden, but routes themselves remain reachable by
+// direct URL so admins can re-enable anything from /admin/visibility.
+type NavItem = { to: string; label: string; icon: any; exact?: boolean; featureKey?: string };
+type NavGroup = { label: string; items: NavItem[]; featureKey?: string; phaseNote?: string };
+
+export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
     items: [
@@ -34,99 +40,103 @@ export const NAV_GROUPS: { label: string; items: { to: string; label: string; ic
     ],
   },
   {
-    label: "Core Systems",
+    label: "Quotes",
     items: [
-      { to: "/admin/items", label: "Items & Cost Intelligence", icon: Package },
-      { to: "/admin/pricing-lab", label: "Pricing Lab", icon: FlaskConical },
-      { to: "/admin/pricing-test", label: "Pricing Test", icon: FlaskConical },
-      { to: "/admin/menu", label: "Public Menu", icon: UtensilsCrossed },
-      { to: "/admin/menu-modules", label: "Menu Modules", icon: UtensilsCrossed },
-      { to: "/admin/recipe-hub", label: "Recipe Hub", icon: ChefHat },
-      { to: "/admin/quick-quote", label: "Quick Quote", icon: Zap },
-      { to: "/admin/quote-lab", label: "Quote Lab", icon: FlaskConical },
-      { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
-      { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
+      { to: "/admin/quotes",     label: "Saved Quotes",     icon: FileText,     featureKey: "admin_quotes" },
+      { to: "/admin/quote-lab",  label: "Quote Lab",        icon: FlaskConical, featureKey: "admin_quote_lab" },
+      { to: "/admin/review-inbox", label: "AI Quote Review", icon: ClipboardCheck, featureKey: "admin_quote_ai_review" },
     ],
   },
   {
-    label: "Content",
+    label: "Menu & Content",
     items: [
-      { to: "/admin/recipes", label: "Recipes", icon: ChefHat },
-      { to: "/admin/inspired-preview", label: "Familiar Favorites Preview", icon: Sparkles },
-      { to: "/admin/guides", label: "Cooking Guides", icon: NotebookPen },
-      { to: "/admin/cooking-lab", label: "Cooking Lab", icon: FlaskConical },
-      { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
-    ],
-  },
-  {
-    label: "Governance",
-    items: [
-      { to: "/admin/visibility", label: "Visibility & Phases", icon: Globe2 },
-      { to: "/admin/audit", label: "Audit Log", icon: Shield },
-      { to: "/admin/change-log", label: "Change Log", icon: NotebookPen },
-      { to: "/admin/access", label: "Access Control", icon: ShieldCheck },
-      { to: "/admin/pricing-visibility", label: "Pricing Visibility", icon: EyeOff },
-    ],
-  },
-  {
-    label: "Intelligence & Diagnostics",
-    items: [
-      { to: "/admin/kroger-pricing", label: "Kroger · Pricing", icon: Tag },
-      { to: "/admin/kroger-sku-review", label: "Kroger · SKU Mapping", icon: ClipboardCheck },
-      { to: "/admin/kroger-price-signals", label: "Kroger · Price Signals", icon: Activity },
-      { to: "/admin/national-prices", label: "National Prices", icon: Globe2 },
-      { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
-      { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
-      { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
-      { to: "/admin/competitor-trends", label: "Competitor Trends", icon: TrendingUp },
-      { to: "/admin/competitor-quotes", label: "Competitor Quotes", icon: FileSearch },
-      { to: "/admin/competitors", label: "Competitors", icon: Building2 },
-      { to: "/admin/cost-queue", label: "Cost Update Queue", icon: ClipboardCheck },
-      { to: "/admin/review-inbox", label: "Review Inbox", icon: ClipboardCheck },
+      { to: "/admin/recipe-hub",        label: "Recipe Hub",                 icon: ChefHat,         featureKey: "admin_recipe_hub" },
+      { to: "/admin/menu",              label: "Public Menu Control",        icon: UtensilsCrossed, featureKey: "admin_menu_control" },
+      { to: "/admin/menu-modules",      label: "Menu Modules",               icon: UtensilsCrossed, featureKey: "admin_menu_modules" },
+      { to: "/admin/inspired-preview",  label: "Familiar Favorites Preview", icon: Sparkles,        featureKey: "admin_inspired_preview" },
+      { to: "/admin/guides",            label: "Cooking Guides",             icon: NotebookPen,     featureKey: "admin_cooking_guides" },
+      { to: "/admin/newsletter-guide",  label: "Newsletter Guide",           icon: Mail,            featureKey: "admin_newsletter_guide" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { to: "/admin/inventory", label: "Inventory", icon: Package },
-      { to: "/admin/receipts", label: "Receipts", icon: Receipt },
-      { to: "/admin/receipts/review-matches", label: "Receipt Match Review", icon: ClipboardCheck },
-      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
-      { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
-      { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },
-      { to: "/admin/employees", label: "Employees", icon: UserCog },
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/schedule", label: "Scheduling", icon: Calendar },
-      { to: "/admin/timesheet", label: "Timesheets", icon: Clock },
-      { to: "/admin/events", label: "Events", icon: CalendarDays },
+      { to: "/admin/events",          label: "Events",          icon: CalendarDays, featureKey: "admin_events" },
+      { to: "/admin/schedule",        label: "Schedule",        icon: Calendar,     featureKey: "admin_schedule" },
+      { to: "/admin/employees",       label: "Employees",       icon: UserCog,      featureKey: "admin_employees" },
+      { to: "/admin/timesheet",       label: "Timesheets",      icon: Clock,        featureKey: "admin_timesheets" },
+      { to: "/admin/inventory",       label: "Inventory",       icon: Package,      featureKey: "admin_inventory" },
+      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, featureKey: "admin_purchase_orders" },
     ],
   },
   {
-    label: "Utilities & Tools",
+    label: "Market Intelligence",
     items: [
-      { to: "/admin/import-recipes", label: "Import Legacy Recipes", icon: Globe },
-      { to: "/admin/uploads", label: "Uploads Inbox", icon: Inbox },
-      { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
-      { to: "/admin/scan-assets", label: "Scan Site Assets", icon: ScanLine },
-      { to: "/admin/generate-recipe-photos", label: "Photo Generation", icon: Sparkles },
-      { to: "/admin/exports", label: "Exports & Reports", icon: Download },
-      { to: "/admin/integrations", label: "API Integrations", icon: Plug },
-      { to: "/admin/brand-config", label: "Brand Config", icon: Palette },
-      { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
-      { to: "/admin/brand-assets", label: "Brand Assets", icon: ImageIcon },
-      { to: "/admin/affiliates", label: "Affiliates", icon: Handshake },
-      { to: "/admin/asset-debug", label: "Asset Debug", icon: FileSearch },
-      { to: "/admin/feedback", label: "Feedback", icon: MessageSquare },
-      { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
-      { to: "/admin/auto-link-ingredients", label: "Auto-link Ingredients", icon: ClipboardCheck },
-      { to: "/admin/ingredients/review-unlinked", label: "Unlinked Ingredients", icon: ClipboardCheck },
-      { to: "/admin/servings-review", label: "Servings Review", icon: ClipboardCheck },
-      { to: "/admin/set-password", label: "Set Password", icon: KeyRound },
+      { to: "/admin/competitors",        label: "Competitors",        icon: Building2,  featureKey: "admin_competitors" },
+      { to: "/admin/competitor-quotes",  label: "Competitor Quotes",  icon: FileSearch, featureKey: "admin_competitor_quotes" },
+      { to: "/admin/competitor-trends",  label: "Competitor Trends",  icon: TrendingUp, featureKey: "admin_competitor_trends" },
+      { to: "/admin/sales",              label: "Sales Flyers",       icon: Tag,        featureKey: "admin_sales_flyers" },
+    ],
+  },
+  {
+    label: "System & Governance",
+    items: [
+      { to: "/admin/visibility",       label: "Feature Visibility",     icon: Globe2,      featureKey: "admin_feature_visibility" },
+      { to: "/admin/page-inventory",   label: "Page Inventory",         icon: FileSearch,  featureKey: "admin_page_inventory" },
+      { to: "/admin/audit",            label: "Audit Log",              icon: Shield,      featureKey: "admin_audit_log" },
+      { to: "/admin/change-log",       label: "Change Log",             icon: NotebookPen, featureKey: "admin_change_log" },
+      { to: "/admin/intelligence",     label: "Project Intelligence",   icon: ShieldCheck, featureKey: "admin_project_intelligence" },
+      { to: "/admin/access",           label: "Access Control",         icon: ShieldCheck, featureKey: "admin_access_control" },
+      { to: "/admin/integrations",     label: "Integrations",           icon: Plug,        featureKey: "admin_integrations" },
+      { to: "/admin/brand-config",     label: "Brand Management",       icon: Palette,     featureKey: "admin_brand_management" },
+    ],
+  },
+  {
+    label: "Pricing Intelligence",
+    featureKey: "admin_pricing_intelligence",
+    phaseNote: "Phase Three · hidden until enabled",
+    items: [
+      { to: "/admin/pricing-lab",          label: "Pricing Lab",            icon: FlaskConical,    featureKey: "admin_pricing_lab" },
+      { to: "/admin/pricing-lab/preview",  label: "Pricing Lab Preview",    icon: FlaskConical,    featureKey: "admin_pricing_lab_preview" },
+      { to: "/admin/pricing-test",         label: "Pricing Test",           icon: FlaskConical,    featureKey: "admin_pricing_test" },
+      { to: "/admin/pricing-visibility",   label: "Pricing Visibility",     icon: EyeOff,          featureKey: "admin_pricing_visibility" },
+      { to: "/admin/margin-volatility",    label: "Margin & Volatility",    icon: TrendingUp,      featureKey: "admin_margin_volatility" },
+      { to: "/admin/national-prices",      label: "National Prices",        icon: Globe2,          featureKey: "admin_national_prices" },
+      { to: "/admin/trends",               label: "Price Trends",           icon: TrendingUp,      featureKey: "admin_price_trends" },
+      { to: "/admin/kroger-pricing",       label: "Kroger Pricing",         icon: Tag,             featureKey: "admin_kroger_pricing" },
+      { to: "/admin/kroger-sku-review",    label: "Kroger SKU Review",      icon: ClipboardCheck,  featureKey: "admin_kroger_sku_review" },
+      { to: "/admin/cost-queue",           label: "Cost Update Queue",      icon: ClipboardCheck,  featureKey: "admin_cost_queue" },
+      { to: "/admin/receipts",             label: "Receipt Diagnostics",    icon: Receipt,         featureKey: "admin_receipt_diagnostics" },
     ],
   },
 ];
 
-const NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
+/**
+ * A nav row is visible when:
+ *  - it has no featureKey (always-on shell items like Home/Dashboard), OR
+ *  - the registry hasn't loaded yet (avoid flicker — show until proven hidden), OR
+ *  - the flag's phase is not "off" AND nav_enabled is true.
+ *
+ * Routes themselves remain reachable by direct URL — this only filters the
+ * sidebar. Admins can re-enable any feature instantly via /admin/visibility.
+ */
+function isNavItemVisible(item: NavItem, map: Map<string, FeatureVisibility> | null): boolean {
+  if (!item.featureKey) return true;
+  if (!map) return true;
+  const row = map.get(item.featureKey);
+  if (!row) return false; // unregistered admin keys are hidden by default
+  if (row.phase === "off") return false;
+  return row.nav_enabled !== false;
+}
+
+function isNavGroupVisible(group: NavGroup, map: Map<string, FeatureVisibility> | null): boolean {
+  if (!group.featureKey) return true;
+  if (!map) return true;
+  const row = map.get(group.featureKey);
+  if (!row) return false;
+  if (row.phase === "off") return false;
+  return row.nav_enabled !== false;
+}
 
 function AdminLayout() {
   const { user, loading, isAdmin, signIn, signOut } = useAuth();
