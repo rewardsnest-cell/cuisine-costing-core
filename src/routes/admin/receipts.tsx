@@ -274,7 +274,7 @@ function ReceiptsPage() {
     }
     const { error } = await supabase
       .from("receipts")
-      .update(update)
+      .update(update as any)
       .eq("id", reviewReceipt.id);
     if (error) { toast.error(error.message); return; }
     toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
