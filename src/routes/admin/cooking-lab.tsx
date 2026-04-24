@@ -707,11 +707,16 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
 
         {/* B. Video */}
         <Section label="B. Video">
-          <Field label="Video URL" hint="AI-generated or YouTube. Replace later when you upgrade to on-camera footage.">
+          <VideoUploader
+            currentUrl={draft.video_url}
+            entryId={draft.id}
+            onUploaded={(url) => update("video_url", url)}
+          />
+          <Field label="Video URL" hint="Paste a YouTube URL, or upload an MP4/WebM above. Replace later with on-camera footage.">
             <Input
               value={draft.video_url ?? ""}
               onChange={(e) => update("video_url", e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/watch?v=... or uploaded video URL"
             />
           </Field>
         </Section>
