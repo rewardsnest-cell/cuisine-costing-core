@@ -739,6 +739,12 @@ function CookingLabManager() {
     if (oldIndex < 0 || newIndex < 0) return;
     reorderMut.mutate(arrayMove(ids, oldIndex, newIndex));
   };
+  const dndSensors = useSensors(
+    // Require a small drag distance so clicks on the card body / inputs
+    // aren't accidentally interpreted as drag starts.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Bulk delete selected entries.
   const bulkDeleteMut = useMutation({
