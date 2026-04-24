@@ -40,6 +40,9 @@ import {
   AlertTriangle,
   DollarSign,
   Copy,
+  Upload,
+  Video as VideoIcon,
+  Loader2,
 } from "lucide-react";
 
 type CookingLabEntry = {
@@ -707,11 +710,16 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
 
         {/* B. Video */}
         <Section label="B. Video">
-          <Field label="Video URL" hint="AI-generated or YouTube. Replace later when you upgrade to on-camera footage.">
+          <VideoUploader
+            currentUrl={draft.video_url}
+            entryId={draft.id}
+            onUploaded={(url) => update("video_url", url)}
+          />
+          <Field label="Video URL" hint="Paste a YouTube URL, or upload an MP4/WebM above. Replace later with on-camera footage.">
             <Input
               value={draft.video_url ?? ""}
               onChange={(e) => update("video_url", e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder="https://www.youtube.com/watch?v=... or uploaded video URL"
             />
           </Field>
         </Section>
@@ -880,6 +888,148 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       <Label className="text-sm">{label}</Label>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+const VIDEO_BUCKET = "cooking-lab-videos";
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"];
+
+function VideoUploader({
+  currentUrl,
+  entryId,
+  onUploaded,
+}: {
+  currentUrl: string | null;
+  entryId: string;
+  onUploaded: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const isUploadedVideo = !!currentUrl && currentUrl.includes(`/${VIDEO_BUCKET}/`);
+
+  async function handleFile(file: File) {
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+      toast.error("Unsupported file type. Use MP4, WebM, or MOV.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 500 MB.`);
+      return;
+    }
+
+    setUploading(true);
+    setProgress(0);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+      const ts = Date.now();
+      const path = `${entryId}/${ts}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from(VIDEO_BUCKET)
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+      if (uploadErr) throw uploadErr;
+
+      const { data: pub } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path);
+      if (!pub?.publicUrl) throw new Error("Failed to get public URL");
+
+      onUploaded(pub.publicUrl);
+      setProgress(100);
+      toast.success("Video uploaded — remember to Save the entry.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemove() {
+    if (!currentUrl || !isUploadedVideo) return;
+    if (!confirm("Remove uploaded video? You'll need to Save to persist this change.")) return;
+    try {
+      const marker = `/${VIDEO_BUCKET}/`;
+      const idx = currentUrl.indexOf(marker);
+      if (idx >= 0) {
+        const path = currentUrl.substring(idx + marker.length).split("?")[0];
+        await supabase.storage.from(VIDEO_BUCKET).remove([path]);
+      }
+      onUploaded("");
+      toast.success("Video removed");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Remove failed");
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <VideoIcon className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Upload video</span>
+        </div>
+        {isUploadedVideo && (
+          <Badge variant="secondary" className="text-xs">Stored video</Badge>
+        )}
+      </div>
+
+      {isUploadedVideo && currentUrl && (
+        <video
+          src={currentUrl}
+          controls
+          preload="metadata"
+          className="w-full max-h-64 rounded border border-border bg-background"
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex">
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime,video/x-m4v"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+          <Button asChild variant="outline" size="sm" disabled={uploading}>
+            <span className="cursor-pointer gap-1.5 inline-flex items-center">
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Uploading…
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" /> {isUploadedVideo ? "Replace video" : "Upload MP4 / WebM / MOV"}
+                </>
+              )}
+            </span>
+          </Button>
+        </label>
+        {isUploadedVideo && !uploading && (
+          <Button variant="ghost" size="sm" onClick={handleRemove} className="text-destructive">
+            <Trash2 className="w-4 h-4 mr-1" /> Remove
+          </Button>
+        )}
+      </div>
+
+      {uploading && (
+        <div className="h-1.5 w-full overflow-hidden rounded bg-muted">
+          <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Supported: MP4, WebM, MOV. Max 500 MB. Public URL is auto-filled below — works for AI-generated clips today and on-camera footage later.
+      </p>
     </div>
   );
 }
