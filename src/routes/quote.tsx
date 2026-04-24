@@ -532,8 +532,8 @@ export function QuotePage() {
                       </>
                     ) : (
                       <div className="text-center py-2">
-                        <p className="font-display text-lg font-semibold">Pricing available on request</p>
-                        <p className="text-xs text-muted-foreground mt-1">Submit your request and we'll send a personalized quote.</p>
+                        <p className="font-display text-lg font-semibold">Formal pricing sent after review</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">Submit your request and our team will send a formal quote with line-item pricing within 24 hours. You'll be able to review and accept it before anything is booked.</p>
                       </div>
                     )}
                   </div>
