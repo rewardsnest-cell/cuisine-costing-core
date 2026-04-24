@@ -136,6 +136,109 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  /**
+   * Fetch the route_inventory table (HTTP status, last review, thumbnails)
+   * and merge it with the static description registry so every audit bundle
+   * carries the same shareable inventory snapshot.
+   */
+  async function fetchInventorySnapshot(): Promise<{
+    rows: Array<{
+      route_path: string;
+      title: string | null;
+      group: string;
+      last_http_status: number | null;
+      last_http_checked_at: string | null;
+      last_http_error: string | null;
+      review_status: string | null;
+      review_notes: string | null;
+      reviewed_at: string | null;
+      thumbnail_url: string | null;
+      thumbnail_captured_at: string | null;
+    }>;
+    fetched_at: string;
+  }> {
+    const { data, error: invErr } = await (supabase as any)
+      .from("route_inventory")
+      .select(
+        "route_path, last_http_status, last_http_checked_at, last_http_error, review_status, review_notes, reviewed_at, thumbnail_url, thumbnail_captured_at",
+      )
+      .order("route_path");
+    if (invErr) throw invErr;
+    const byPath = new Map<string, any>();
+    for (const r of data ?? []) byPath.set(r.route_path, r);
+
+    const allPaths = Object.keys(ROUTE_DESCRIPTIONS);
+    const rows = allPaths.map((p) => {
+      const desc = (ROUTE_DESCRIPTIONS as any)[p] ?? {};
+      const inv = byPath.get(p) ?? {};
+      let group: string = "public";
+      if (p.startsWith("/admin")) group = "admin";
+      else if (p.startsWith("/employee")) group = "employee";
+      else if (p === "/dashboard" || p === "/my-quotes" || p === "/my-events")
+        group = "auth";
+      else if (
+        p.startsWith("/api/") ||
+        p.startsWith("/hooks/") ||
+        p.startsWith("/lovable/") ||
+        p.startsWith("/email/")
+      )
+        group = "system";
+      return {
+        route_path: p,
+        title: desc.title ?? null,
+        group,
+        last_http_status: inv.last_http_status ?? null,
+        last_http_checked_at: inv.last_http_checked_at ?? null,
+        last_http_error: inv.last_http_error ?? null,
+        review_status: inv.review_status ?? null,
+        review_notes: inv.review_notes ?? null,
+        reviewed_at: inv.reviewed_at ?? null,
+        thumbnail_url: inv.thumbnail_url ?? null,
+        thumbnail_captured_at: inv.thumbnail_captured_at ?? null,
+      };
+    });
+    return { rows, fetched_at: new Date().toISOString() };
+  }
+
+  function inventoryToMarkdown(snap: Awaited<ReturnType<typeof fetchInventorySnapshot>>): string {
+    const lines: string[] = [];
+    lines.push("");
+    lines.push("## 8. AUDIT INVENTORY TABLE");
+    lines.push("");
+    lines.push(`_Snapshot of \`route_inventory\` taken ${snap.fetched_at}._`);
+    lines.push("");
+    const groups = ["public", "auth", "employee", "admin", "system"] as const;
+    for (const g of groups) {
+      const rowsInGroup = snap.rows.filter((r) => r.group === g);
+      if (rowsInGroup.length === 0) continue;
+      lines.push(`### ${g.charAt(0).toUpperCase() + g.slice(1)} (${rowsInGroup.length})`);
+      lines.push("");
+      lines.push("| Path | Title | HTTP | Checked | Review | Reviewed | Thumbnail |");
+      lines.push("|---|---|---|---|---|---|---|");
+      for (const r of rowsInGroup) {
+        const httpCell =
+          r.last_http_status != null
+            ? String(r.last_http_status)
+            : r.last_http_error
+              ? `err`
+              : "—";
+        const checked = r.last_http_checked_at
+          ? new Date(r.last_http_checked_at).toISOString().slice(0, 10)
+          : "—";
+        const reviewed = r.reviewed_at
+          ? new Date(r.reviewed_at).toISOString().slice(0, 10)
+          : "—";
+        const thumb = r.thumbnail_url ? "✓" : "—";
+        const title = (r.title ?? "").replace(/\|/g, "\\|");
+        lines.push(
+          `| \`${r.route_path}\` | ${title} | ${httpCell} | ${checked} | ${r.review_status ?? "unreviewed"} | ${reviewed} | ${thumb} |`,
+        );
+      }
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+
   const handleRunE2e = async () => {
     setBusy("e2e");
     setError(null);
