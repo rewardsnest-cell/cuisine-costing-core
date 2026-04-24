@@ -1095,6 +1095,7 @@ function EntryCard({
               </Badge>
               <span className="text-xs text-muted-foreground">Order #{draft.display_order}</span>
             </div>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <div className="flex items-center mr-1 rounded-md border border-border">
