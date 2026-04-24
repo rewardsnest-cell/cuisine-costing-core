@@ -187,14 +187,23 @@ export function CookingLabPageBody({
   collections,
   activeCollectionId,
   onSelectCollection,
+  searchQuery,
+  onSearchQueryChange,
+  totalEntryCount,
 }: {
   entries: CookingLabEntry[] | null;
   isLoading: boolean;
   collections?: CookingLabCollection[] | null;
   activeCollectionId?: string | null;
   onSelectCollection?: (id: string | null) => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
+  totalEntryCount?: number;
 }) {
   const showCollectionsUi = !!collections && collections.length > 0;
+  const showSearch = !!onSearchQueryChange;
+  const trimmedQuery = (searchQuery ?? "").trim();
+  const hasActiveFilters = !!activeCollectionId || trimmedQuery.length > 0;
   return (
     <div className="bg-background">
       {/* Hero */}
