@@ -123,8 +123,39 @@ function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [lastE2e, setLastE2e] = useState<{
+    runId: string;
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    durationMs: number;
+  } | null>(null);
+
+  const runE2e = useServerFn(runE2eAudit);
 
   const today = new Date().toISOString().split("T")[0];
+
+  const handleRunE2e = async () => {
+    setBusy("e2e");
+    setError(null);
+    try {
+      const res = await runE2e({ data: {} });
+      setLastE2e({
+        runId: res.runId,
+        total: res.total,
+        passed: res.passed,
+        failed: res.failed,
+        skipped: res.skipped,
+        durationMs: res.durationMs,
+      });
+      flashDone("e2e");
+    } catch (e: any) {
+      setError(e.message || "E2E audit run failed");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const handleDownloadMarkdown = async () => {
     setBusy("md");
