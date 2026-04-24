@@ -705,6 +705,25 @@ type SimQueueRow = {
   estimate_delta_pct: number | null;
 };
 
+export type SimValidationSeverity = "error" | "warning" | "info";
+export type SimValidationCode =
+  | "missing_reference"
+  | "no_inventory_link"
+  | "no_recipe_usage"
+  | "no_inventory_or_recipe"
+  | "ref_already_actioned"
+  | "duplicate_reference";
+
+export type SimValidationIssue = {
+  queue_id: string;
+  reference_id: string | null;
+  item_name: string | null;
+  code: SimValidationCode;
+  severity: SimValidationSeverity;
+  message: string;
+  hint: string;
+};
+
 export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SimulateSchema.parse(d))
