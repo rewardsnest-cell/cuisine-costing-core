@@ -725,6 +725,109 @@ function CostQueuePage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={timelineOpen} onOpenChange={setTimelineOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2"><History className="w-4 h-4" />Cost update timeline</SheetTitle>
+            <SheetDescription>
+              Status transitions, approving admin, and notes for this queue row. Download the full audit trail as CSV.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-5">
+            {timelineBusy && !timelineResult && (
+              <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading timeline…</div>
+            )}
+            {timelineResult && (
+              <>
+                <div className="border rounded-md p-3 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{timelineResult.item_name ?? "—"}</span>
+                    {timelineResult.default_unit && (
+                      <span className="text-xs text-muted-foreground">/ {timelineResult.default_unit}</span>
+                    )}
+                    <Badge variant="outline" className="ml-1">{timelineResult.source}</Badge>
+                    <Badge
+                      variant={
+                        timelineResult.status === "approved" ? "default"
+                          : timelineResult.status === "rejected" ? "destructive"
+                          : timelineResult.status === "overridden" ? "secondary"
+                          : "outline"
+                      }
+                      className="capitalize"
+                    >
+                      {timelineResult.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Current </span>${Number(timelineResult.current_cost ?? 0).toFixed(4)}</div>
+                    <div><span className="text-muted-foreground">Proposed </span>${Number(timelineResult.proposed_cost ?? 0).toFixed(4)}</div>
+                    <div><span className="text-muted-foreground">Applied </span>{timelineResult.final_applied_cost == null ? "—" : `$${Number(timelineResult.final_applied_cost).toFixed(4)}`}</div>
+                    <div><span className="text-muted-foreground">Δ </span>{Number(timelineResult.percent_change ?? 0).toFixed(2)}%</div>
+                  </div>
+                  {timelineResult.reviewed_by_email && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
+                      <User className="w-3 h-3" />Reviewed by <span className="font-medium text-foreground">{timelineResult.reviewed_by_email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium">Status transitions ({timelineResult.events.length})</h3>
+                  <Button size="sm" variant="outline" onClick={downloadTimelineCSV} className="gap-1.5">
+                    <Download className="w-3.5 h-3.5" />Download CSV
+                  </Button>
+                </div>
+
+                <ol className="relative border-l border-border pl-5 space-y-4">
+                  {timelineResult.events.map((e, idx) => {
+                    const tone =
+                      e.kind === "approved" || e.kind === "bulk_approved" ? "bg-emerald-500"
+                        : e.kind === "rejected" || e.kind === "bulk_rejected" ? "bg-destructive"
+                        : e.kind === "overridden" ? "bg-amber-500"
+                        : e.kind === "bulk_approve_failed" || e.kind === "bulk_reject_failed" ? "bg-destructive"
+                        : "bg-muted-foreground";
+                    return (
+                      <li key={idx} className="relative">
+                        <span className={`absolute -left-[27px] top-1.5 w-3 h-3 rounded-full ring-2 ring-background ${tone}`} />
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="font-medium text-sm">{e.label}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />{new Date(e.at).toLocaleString()}
+                          </span>
+                        </div>
+                        {e.actor_email && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <User className="w-3 h-3" />{e.actor_email}
+                          </div>
+                        )}
+                        {e.notes && (
+                          <p className="text-xs mt-1 italic text-muted-foreground">"{e.notes}"</p>
+                        )}
+                        {e.details?.manual_cost != null && (
+                          <p className="text-xs mt-0.5">Manual override: <span className="font-mono">${Number(e.details.manual_cost).toFixed(4)}</span></p>
+                        )}
+                        {e.kind === "created" && (
+                          <p className="text-xs mt-0.5 text-muted-foreground">
+                            ${Number(e.details.current_cost ?? 0).toFixed(4)} → ${Number(e.details.proposed_cost ?? 0).toFixed(4)}
+                            {e.details.percent_change != null && (
+                              <> ({Number(e.details.percent_change) >= 0 ? "+" : ""}{Number(e.details.percent_change).toFixed(2)}%)</>
+                            )}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="ghost" onClick={() => setTimelineOpen(false)}>Close</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
