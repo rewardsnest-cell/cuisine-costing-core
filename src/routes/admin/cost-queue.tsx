@@ -512,6 +512,197 @@ function CostQueuePage() {
           <div className="mt-4">{breakdownRef && <CostBreakdownPanel referenceId={breakdownRef} />}</div>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={simOpen} onOpenChange={setSimOpen}>
+        <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2"><FlaskConical className="w-4 h-4" />Simulate apply — read-only impact</SheetTitle>
+            <SheetDescription>
+              Projects what would happen if you approved {simSourceIds.length} update{simSourceIds.length === 1 ? "" : "s"}.
+              No data is written. Approve manually if the projection looks right.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-5">
+            {simBusy && !simResult && (
+              <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Running simulation…</div>
+            )}
+            {simResult && (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <SimStat label="Queue rows" value={simResult.summary.queue_rows} />
+                  <SimStat label="Inventory items" value={simResult.summary.inventory_items} />
+                  <SimStat label="Recipes" value={simResult.summary.recipes} />
+                  <SimStat label="Quotes" value={simResult.summary.quotes} />
+                  <SimStat
+                    label="Total quote Δ"
+                    value={`${simResult.summary.total_quote_delta >= 0 ? "+" : ""}$${simResult.summary.total_quote_delta.toFixed(2)}`}
+                    tone={simResult.summary.total_quote_delta > 0 ? "up" : simResult.summary.total_quote_delta < 0 ? "down" : "flat"}
+                  />
+                </div>
+
+                {simResult.warnings.length > 0 && (
+                  <Alert>
+                    <Info className="w-4 h-4" />
+                    <AlertDescription>
+                      <ul className="list-disc list-inside text-xs">
+                        {simResult.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <SimSection title="Internal estimate changes">
+                  {simResult.queue.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No items to recompute.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Item</TableHead><TableHead>Source</TableHead>
+                        <TableHead>Current est.</TableHead><TableHead>Projected est.</TableHead><TableHead>Δ</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {simResult.queue.map((q) => (
+                          <TableRow key={q.queue_id}>
+                            <TableCell className="font-medium">{q.canonical_name} <span className="text-xs text-muted-foreground">/ {q.default_unit}</span></TableCell>
+                            <TableCell><Badge variant="outline">{q.source}</Badge></TableCell>
+                            <TableCell>{q.current_estimate == null ? "—" : `$${q.current_estimate.toFixed(4)}`}</TableCell>
+                            <TableCell>${q.proposed_estimate.toFixed(4)}</TableCell>
+                            <TableCell><DeltaBadge pct={q.estimate_delta_pct} /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </SimSection>
+
+                <SimSection title="Inventory item impact">
+                  {simResult.inventory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No inventory items linked.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Inventory item</TableHead>
+                        <TableHead>Current avg cost</TableHead><TableHead>Projected</TableHead><TableHead>Δ</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {simResult.inventory.map((i) => (
+                          <TableRow key={i.inventory_item_id}>
+                            <TableCell className="font-medium">{i.inventory_name}</TableCell>
+                            <TableCell>{i.current_avg_cost == null ? "—" : `$${i.current_avg_cost.toFixed(4)}`}</TableCell>
+                            <TableCell>{i.projected_avg_cost == null ? "—" : `$${i.projected_avg_cost.toFixed(4)}`}</TableCell>
+                            <TableCell><DeltaBadge pct={i.delta_pct} abs={i.delta_abs} /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </SimSection>
+
+                <SimSection title={`Recipe cost-per-serving impact (${simResult.recipes.length})`}>
+                  {simResult.recipes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No recipes use these ingredients.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Recipe</TableHead><TableHead>Current /serving</TableHead>
+                        <TableHead>Projected</TableHead><TableHead>Δ /serving</TableHead><TableHead>Δ %</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {simResult.recipes.slice(0, 100).map((r) => (
+                          <TableRow key={r.recipe_id}>
+                            <TableCell className="font-medium">{r.recipe_name} <span className="text-xs text-muted-foreground">({r.servings} sv)</span></TableCell>
+                            <TableCell>{r.current_cost_per_serving == null ? "—" : `$${r.current_cost_per_serving.toFixed(4)}`}</TableCell>
+                            <TableCell>${r.projected_cost_per_serving.toFixed(4)}</TableCell>
+                            <TableCell>{r.delta_per_serving >= 0 ? "+" : ""}${r.delta_per_serving.toFixed(4)}</TableCell>
+                            <TableCell><DeltaBadge pct={r.delta_pct} /></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  {simResult.recipes.length > 100 && (
+                    <p className="text-xs text-muted-foreground mt-2">Showing first 100 of {simResult.recipes.length} recipes.</p>
+                  )}
+                </SimSection>
+
+                <SimSection title={`Active quote impact (${simResult.quotes.length})`}>
+                  {simResult.quotes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No active quotes affected.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Quote</TableHead><TableHead>Status</TableHead>
+                        <TableHead>Items</TableHead><TableHead>Current subtotal</TableHead>
+                        <TableHead>Projected</TableHead><TableHead>Δ</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {simResult.quotes.slice(0, 50).map((q) => (
+                          <TableRow key={q.quote_id}>
+                            <TableCell className="font-medium">
+                              {q.client_name ?? "—"}
+                              {q.event_date && <div className="text-xs text-muted-foreground">{new Date(q.event_date).toLocaleDateString()}</div>}
+                            </TableCell>
+                            <TableCell><Badge variant="outline" className="text-xs">{q.status ?? "—"}</Badge></TableCell>
+                            <TableCell>{q.affected_items}</TableCell>
+                            <TableCell>${q.current_subtotal.toFixed(2)}</TableCell>
+                            <TableCell>${q.projected_subtotal.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <span className={q.delta_abs > 0 ? "text-destructive font-medium" : q.delta_abs < 0 ? "text-emerald-600 font-medium" : ""}>
+                                {q.delta_abs >= 0 ? "+" : ""}${q.delta_abs.toFixed(2)}
+                                {q.delta_pct != null && <span className="text-xs ml-1">({(q.delta_pct * 100).toFixed(2)}%)</span>}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  {simResult.quotes.length > 50 && (
+                    <p className="text-xs text-muted-foreground mt-2">Showing first 50 of {simResult.quotes.length} quotes.</p>
+                  )}
+                </SimSection>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Button variant="ghost" onClick={() => setSimOpen(false)}>Close</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function SimStat({ label, value, tone }: { label: string; value: number | string; tone?: "up" | "down" | "flat" }) {
+  const toneClass = tone === "up" ? "text-destructive" : tone === "down" ? "text-emerald-600" : "";
+  return (
+    <div className="border rounded-md p-2">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-lg font-semibold tabular-nums ${toneClass}`}>{value}</div>
+    </div>
+  );
+}
+
+function SimSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <div className="border rounded-md overflow-x-auto">{children}</div>
+    </div>
+  );
+}
+
+function DeltaBadge({ pct, abs }: { pct: number | null; abs?: number | null }) {
+  if (pct == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const p = pct * 100;
+  const Icon = p > 0 ? TrendingUp : p < 0 ? TrendingDown : null;
+  const variant: "destructive" | "secondary" | "outline" = Math.abs(p) > 5 ? "destructive" : Math.abs(p) > 0 ? "secondary" : "outline";
+  return (
+    <Badge variant={variant} className="gap-1">
+      {Icon && <Icon className="w-3 h-3" />}
+      {p >= 0 ? "+" : ""}{p.toFixed(2)}%
+      {abs != null && <span className="opacity-70 ml-1">({abs >= 0 ? "+" : ""}${abs.toFixed(4)})</span>}
+    </Badge>
   );
 }
