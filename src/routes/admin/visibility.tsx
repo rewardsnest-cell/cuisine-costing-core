@@ -105,6 +105,38 @@ function VisibilityPage() {
     }
   };
 
+  // Quick on/off toggle: ON = phase 'public' + nav_enabled true, OFF = phase 'off' + nav_enabled false.
+  // Writes immediately so the sidebar (which reads the same registry) updates without a redeploy.
+  const onQuickToggle = async (key: string, turnOn: boolean) => {
+    setQuickToggling(key);
+    try {
+      await updateFeatureVisibility({
+        data: {
+          feature_key: key,
+          phase: turnOn ? "public" : "off",
+          nav_enabled: turnOn,
+        },
+      });
+      toast.success(`${key} ${turnOn ? "enabled" : "disabled"}`);
+      await refetch();
+    } catch (e: any) {
+      toast.error(e?.message || "Toggle failed");
+    } finally {
+      setQuickToggling(null);
+    }
+  };
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) =>
+        r.feature_key.toLowerCase().includes(q) ||
+        (r.notes ?? "").toLowerCase().includes(q) ||
+        r.phase.toLowerCase().includes(q),
+    );
+  }, [rows, search]);
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
