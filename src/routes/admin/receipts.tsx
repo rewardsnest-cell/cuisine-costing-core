@@ -400,9 +400,9 @@ function ReceiptsPage() {
                         {processing === r.id ? "Processing..." : "Run OCR"}
                       </Button>
                     )}
-                    {r.status === "reviewed" && (
+                    {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                        <Button size="sm" variant={r.status === "needs_review" ? "default" : "outline"} onClick={() => openReview(r)} className="gap-1.5">
                           <FileText className="w-3.5 h-3.5" /> Review
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
