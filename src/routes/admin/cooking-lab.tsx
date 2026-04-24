@@ -59,6 +59,165 @@ type CookingLabEntry = {
   qa_ready: boolean;
 };
 
+type LinkCheck = {
+  id: string;
+  label: string;
+  status: "ok" | "warning" | "error" | "empty";
+  message: string;
+};
+
+/**
+ * Automated, synchronous validation of an entry's affiliate URLs.
+ * Runs on every keystroke — no network calls (Amazon blocks CORS HEAD checks
+ * from browsers, and a server probe would be slow + rate-limited). These
+ * structural checks catch ~all real-world authoring mistakes: missing links,
+ * shortener URLs, wrong host, malformed paths, missing product IDs.
+ */
+function validateEntryLinks(entry: CookingLabEntry): LinkCheck[] {
+  return [
+    validateAmazonLink({
+      id: "primary",
+      label: "Primary tool link",
+      name: entry.primary_tool_name,
+      url: entry.primary_tool_url,
+      required: true,
+    }),
+    validateAmazonLink({
+      id: "secondary",
+      label: "Secondary tool link",
+      name: entry.secondary_tool_name,
+      url: entry.secondary_tool_url,
+      required: false,
+    }),
+  ];
+}
+
+const AMAZON_HOSTS = [
+  "amazon.com", "www.amazon.com", "smile.amazon.com",
+  "amazon.co.uk", "www.amazon.co.uk",
+  "amazon.ca", "www.amazon.ca",
+  "amzn.to", // canonical Amazon short link — allowed but flagged as warning
+];
+const SHORTENER_HOSTS = ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "buff.ly"];
+
+function validateAmazonLink(args: {
+  id: string;
+  label: string;
+  name: string | null;
+  url: string | null;
+  required: boolean;
+}): LinkCheck {
+  const { id, label, name, url, required } = args;
+  const trimmedName = (name ?? "").trim();
+  const trimmedUrl = (url ?? "").trim();
+
+  // Both empty — only an error if required
+  if (!trimmedName && !trimmedUrl) {
+    return {
+      id, label,
+      status: required ? "error" : "empty",
+      message: required ? "Required: add a tool name and Amazon URL." : "Not set (optional).",
+    };
+  }
+
+  // Half-filled — name without URL or URL without name
+  if (trimmedName && !trimmedUrl) {
+    return { id, label, status: "error", message: `"${trimmedName}" has no Amazon URL.` };
+  }
+  if (!trimmedName && trimmedUrl) {
+    return { id, label, status: "error", message: "URL is set but tool name is missing." };
+  }
+
+  // URL parse + scheme
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmedUrl);
+  } catch {
+    return { id, label, status: "error", message: "Not a valid URL (must start with https://)." };
+  }
+  if (parsed.protocol !== "https:") {
+    return { id, label, status: "error", message: "URL must use https://." };
+  }
+
+  const host = parsed.hostname.toLowerCase();
+
+  // Disallowed shorteners
+  if (SHORTENER_HOSTS.some((h) => host === h || host.endsWith("." + h))) {
+    return {
+      id, label, status: "error",
+      message: `Shorteners (${host}) are not allowed — use the full Amazon URL.`,
+    };
+  }
+
+  // Wrong host
+  const isAmazon = AMAZON_HOSTS.includes(host) || host.endsWith(".amazon.com");
+  if (!isAmazon) {
+    return { id, label, status: "error", message: `Host "${host}" is not an Amazon domain.` };
+  }
+
+  // amzn.to short link → warning, not block
+  if (host === "amzn.to") {
+    return {
+      id, label, status: "warning",
+      message: "amzn.to short link works but a full /dp/ URL is preferred for transparency.",
+    };
+  }
+
+  // Amazon product URL must contain /dp/ASIN or /gp/product/ASIN
+  const path = parsed.pathname;
+  const asinMatch = path.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:[/?]|$)/i);
+  if (!asinMatch) {
+    return {
+      id, label, status: "error",
+      message: "Amazon URL must contain /dp/ASIN or /gp/product/ASIN (10-char product ID).",
+    };
+  }
+
+  return { id, label, status: "ok", message: `Valid Amazon link · ASIN ${asinMatch[1].toUpperCase()}` };
+}
+
+function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
+  const errorCount = checks.filter((c) => c.status === "error").length;
+  const warnCount = checks.filter((c) => c.status === "warning").length;
+  const okCount = checks.filter((c) => c.status === "ok").length;
+
+  let panelTone = "border-border bg-muted/20";
+  if (errorCount > 0) panelTone = "border-destructive/40 bg-destructive/5";
+  else if (warnCount > 0) panelTone = "border-amber-500/40 bg-amber-500/5";
+  else if (okCount > 0) panelTone = "border-emerald-500/30 bg-emerald-500/5";
+
+  return (
+    <div className={`mt-3 rounded-md border p-3 space-y-2 ${panelTone}`}>
+      <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+        <ListChecks className="w-3.5 h-3.5" />
+        Automated link checks
+        <span className="text-muted-foreground font-normal">
+          · {okCount} ok · {warnCount} warning · {errorCount} error
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {checks.map((c) => (
+          <li key={c.id} className="flex items-start gap-2 text-xs">
+            {c.status === "ok" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />}
+            {c.status === "error" && <XCircle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />}
+            {c.status === "warning" && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />}
+            {c.status === "empty" && <span className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />}
+            <div>
+              <span className="font-medium text-foreground">{c.label}:</span>{" "}
+              <span className="text-muted-foreground">{c.message}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {errorCount > 0 && (
+        <p className="text-[11px] text-destructive pt-1 border-t border-destructive/20">
+          Publishing is blocked until all errors are resolved.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/cooking-lab")({
   head: () => ({
     meta: [
