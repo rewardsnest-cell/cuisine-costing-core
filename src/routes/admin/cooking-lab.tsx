@@ -75,29 +75,77 @@ type LinkCheck = {
 };
 
 /**
+ * Affiliate tool slot registry — single source of truth for which tool fields
+ * exist on a Cooking Lab entry, which are required to publish, and how each
+ * pair (name + URL) is keyed on the entry record.
+ *
+ * To add a new optional tool link (e.g. tertiary), do TWO things:
+ *   1. Add the columns `tertiary_tool_name` / `tertiary_tool_url` via a
+ *      Supabase migration AND extend the `CookingLabEntry` type.
+ *   2. Append `{ id: "tertiary", label: "Tertiary tool link",
+ *      nameKey: "tertiary_tool_name", urlKey: "tertiary_tool_url",
+ *      required: false }` to TOOL_SLOTS below.
+ *
+ * Both publish-gating (`computeToolFieldErrors`) and the live LinkChecksPanel
+ * (`validateEntryLinks`) iterate this registry, so no other code changes are
+ * needed — every new slot automatically gets:
+ *   • inline per-field error messages,
+ *   • LinkChecksPanel status row,
+ *   • publish blocking when required (or when half-filled if optional).
+ */
+type ToolSlotKey =
+  | "primary_tool_name" | "primary_tool_url"
+  | "secondary_tool_name" | "secondary_tool_url";
+
+type ToolSlot = {
+  id: string;
+  label: string;
+  nameKey: Extract<ToolSlotKey, `${string}_tool_name`>;
+  urlKey: Extract<ToolSlotKey, `${string}_tool_url`>;
+  /** True = both name + URL must be filled to publish. False = optional, but if one side is filled the other becomes required. */
+  required: boolean;
+};
+
+const TOOL_SLOTS: ToolSlot[] = [
+  {
+    id: "primary",
+    label: "Primary tool link",
+    nameKey: "primary_tool_name",
+    urlKey: "primary_tool_url",
+    required: true,
+  },
+  {
+    id: "secondary",
+    label: "Secondary tool link",
+    nameKey: "secondary_tool_name",
+    urlKey: "secondary_tool_url",
+    required: false,
+  },
+];
+
+/** Per-field publish-blocking errors keyed by the entry field name. */
+export type ToolFieldErrors = Partial<Record<ToolSlotKey, string | null>>;
+
+/**
  * Automated, synchronous validation of an entry's affiliate URLs.
  * Runs on every keystroke — no network calls (Amazon blocks CORS HEAD checks
  * from browsers, and a server probe would be slow + rate-limited). These
  * structural checks catch ~all real-world authoring mistakes: missing links,
  * shortener URLs, wrong host, malformed paths, missing product IDs.
+ *
+ * Iterates TOOL_SLOTS so additional optional tool slots are picked up
+ * automatically.
  */
 function validateEntryLinks(entry: CookingLabEntry): LinkCheck[] {
-  return [
+  return TOOL_SLOTS.map((slot) =>
     validateAmazonLink({
-      id: "primary",
-      label: "Primary tool link",
-      name: entry.primary_tool_name,
-      url: entry.primary_tool_url,
-      required: true,
+      id: slot.id,
+      label: slot.label,
+      name: (entry as any)[slot.nameKey] ?? null,
+      url: (entry as any)[slot.urlKey] ?? null,
+      required: slot.required,
     }),
-    validateAmazonLink({
-      id: "secondary",
-      label: "Secondary tool link",
-      name: entry.secondary_tool_name,
-      url: entry.secondary_tool_url,
-      required: false,
-    }),
-  ];
+  );
 }
 
 const AMAZON_HOSTS = [
@@ -185,48 +233,48 @@ function validateAmazonLink(args: {
 }
 
 /**
- * Returns inline, publish-blocking errors per individual tool field.
- * - Primary name + URL: both required.
- * - Secondary: optional, but if either side is filled the OTHER side becomes required.
- * - Any malformed URL (per validateAmazonLink) bubbles to the URL field only.
+ * Returns inline, publish-blocking errors per individual tool field, driven
+ * by the TOOL_SLOTS registry. Adding a new slot to TOOL_SLOTS automatically
+ * extends publish gating with no further changes here.
+ *
+ * Rules per slot:
+ *  - required=true: both name + URL must be filled, URL must validate.
+ *  - required=false: pair-required only if one side is filled; URL still
+ *    must validate when present.
  */
-function computeToolFieldErrors(entry: CookingLabEntry): {
-  primary_tool_name: string | null;
-  primary_tool_url: string | null;
-  secondary_tool_name: string | null;
-  secondary_tool_url: string | null;
-} {
-  const pName = (entry.primary_tool_name ?? "").trim();
-  const pUrl = (entry.primary_tool_url ?? "").trim();
-  const sName = (entry.secondary_tool_name ?? "").trim();
-  const sUrl = (entry.secondary_tool_url ?? "").trim();
+function computeToolFieldErrors(entry: CookingLabEntry): ToolFieldErrors {
+  const errors: ToolFieldErrors = {};
 
-  const errors = {
-    primary_tool_name: null as string | null,
-    primary_tool_url: null as string | null,
-    secondary_tool_name: null as string | null,
-    secondary_tool_url: null as string | null,
-  };
+  for (const slot of TOOL_SLOTS) {
+    const name = ((entry as any)[slot.nameKey] ?? "").trim();
+    const url = ((entry as any)[slot.urlKey] ?? "").trim();
 
-  // Primary — required pair
-  if (!pName) errors.primary_tool_name = "Required — add the tool name shown to readers.";
-  if (!pUrl) {
-    errors.primary_tool_url = "Required — paste the full Amazon product URL.";
-  } else {
-    const check = validateAmazonLink({ id: "primary", label: "Primary", name: pName || "x", url: pUrl, required: true });
-    if (check.status === "error") errors.primary_tool_url = check.message;
-  }
-
-  // Secondary — pair-required only if one side is filled
-  if (sName && !sUrl) errors.secondary_tool_url = "Required — name is set, add the Amazon URL too.";
-  if (!sName && sUrl) errors.secondary_tool_name = "Required — URL is set, add the tool name too.";
-  if (sUrl) {
-    const check = validateAmazonLink({ id: "secondary", label: "Secondary", name: sName || "x", url: sUrl, required: false });
-    if (check.status === "error") errors.secondary_tool_url = check.message;
+    if (slot.required) {
+      if (!name) errors[slot.nameKey] = "Required — add the tool name shown to readers.";
+      if (!url) {
+        errors[slot.urlKey] = "Required — paste the full Amazon product URL.";
+      } else {
+        const check = validateAmazonLink({
+          id: slot.id, label: slot.label, name: name || "x", url, required: true,
+        });
+        if (check.status === "error") errors[slot.urlKey] = check.message;
+      }
+    } else {
+      // Optional pair — gate only if half-filled or URL malformed.
+      if (name && !url) errors[slot.urlKey] = "Required — name is set, add the Amazon URL too.";
+      if (!name && url) errors[slot.nameKey] = "Required — URL is set, add the tool name too.";
+      if (url) {
+        const check = validateAmazonLink({
+          id: slot.id, label: slot.label, name: name || "x", url, required: false,
+        });
+        if (check.status === "error") errors[slot.urlKey] = check.message;
+      }
+    }
   }
 
   return errors;
 }
+
 
 function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
   const errorCount = checks.filter((c) => c.status === "error").length;
