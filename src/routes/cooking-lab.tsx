@@ -330,9 +330,40 @@ export function CookingLabPageBody({
             </p>
           </div>
         ) : (
-          entries.map((entry, idx) => (
-            <CookingLabSection key={entry.id} entry={entry} reverse={idx % 2 === 1} />
-          ))
+          <>
+            {/*
+              Per-entry SEO: emit one JSON-LD ItemList of Article items so each
+              entry's seo_title / seo_description / og_image / canonical surface
+              to crawlers, even though all entries share the /cooking-lab route.
+              Falls back to title/description/image_url when an SEO field is blank.
+            */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "ItemList",
+                  itemListElement: entries.map((e, i) => ({
+                    "@type": "ListItem",
+                    position: i + 1,
+                    item: {
+                      "@type": "Article",
+                      headline: (e.seo_title?.trim() || e.title || "").slice(0, 110),
+                      description:
+                        (e.seo_description?.trim() || e.description || "").slice(0, 300),
+                      image: e.seo_og_image_url?.trim() || e.image_url || undefined,
+                      url:
+                        e.seo_canonical_url?.trim() ||
+                        `https://www.vpsfinest.com/cooking-lab#entry-${e.id}`,
+                    },
+                  })),
+                }),
+              }}
+            />
+            {entries.map((entry, idx) => (
+              <CookingLabSection key={entry.id} entry={entry} reverse={idx % 2 === 1} />
+            ))}
+          </>
         )}
       </section>
 
