@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CookingLabSection } from "@/routes/cooking-lab";
+import { withAmazonAffiliateTag, isTaggableAmazonUrl } from "@/lib/amazon-affiliate";
 import {
   FlaskConical,
   Plus,
@@ -37,6 +38,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  DollarSign,
+  Copy,
 } from "lucide-react";
 
 type CookingLabEntry = {
