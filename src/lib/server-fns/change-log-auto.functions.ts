@@ -109,6 +109,66 @@ export const generateChangeLogDrafts = createServerFn({ method: "POST" })
         });
         continue;
       }
+
+      // Pattern 5: Feature visibility phase transition (off ↔ admin_preview ↔ soft_launch ↔ public)
+      if (action === "visibility_phase_changed") {
+        const featureLabel = String(d.feature_key ?? "feature").replace(/_/g, " ");
+        drafts.push({
+          title: `${featureLabel}: phase changed to ${d.new_phase ?? "?"}`,
+          summary:
+            `Visibility phase for "${featureLabel}" changed ` +
+            (d.previous_phase ? `from "${d.previous_phase}" ` : "") +
+            (d.new_phase ? `to "${d.new_phase}" ` : "") +
+            `on ${new Date(row.created_at).toLocaleDateString()} by ${row.actor_email ?? "admin"}.`,
+          ids: [row.id],
+        });
+        continue;
+      }
+
+      // Pattern 6: Familiar Favorites (recipe inspired_phase) toggled or moved to public
+      if (
+        action === "familiar_favorite_phase_changed" ||
+        action === "inspired_phase_changed" ||
+        action === "recipe_inspired_phase_changed"
+      ) {
+        const verb =
+          d.new_phase === "public"
+            ? "promoted to public"
+            : d.new_phase === "off"
+              ? "disabled"
+              : `set to ${d.new_phase ?? "updated"}`;
+        drafts.push({
+          title: `Familiar Favorites: recipe ${verb}`,
+          summary:
+            `A Familiar Favorites recipe (${d.recipe_id ?? "unknown id"}) was ${verb} ` +
+            (d.previous_phase ? `from "${d.previous_phase}" ` : "") +
+            `on ${new Date(row.created_at).toLocaleDateString()} by ${row.actor_email ?? "admin"}.`,
+          ids: [row.id],
+        });
+        continue;
+      }
+
+      // Pattern 7: Cooking guide published / unpublished
+      if (
+        action === "guide_published" ||
+        action === "guide_unpublished" ||
+        action === "cooking_guide_published" ||
+        action === "cooking_guide_unpublished" ||
+        (action === "cooking_guide_updated" &&
+          (d.new_status === "published" || d.previous_status === "published"))
+      ) {
+        const wasPublished =
+          d.new_status === "published" || action.includes("published");
+        const verb = wasPublished && !action.includes("unpublished") ? "published" : "unpublished";
+        drafts.push({
+          title: `Cooking guide ${verb}: ${d.title ?? d.slug ?? d.guide_id ?? ""}`.trim(),
+          summary:
+            `Cooking guide "${d.title ?? d.slug ?? "(untitled)"}" was ${verb} ` +
+            `on ${new Date(row.created_at).toLocaleDateString()} by ${row.actor_email ?? "admin"}.`,
+          ids: [row.id],
+        });
+        continue;
+      }
     }
 
     if (drafts.length === 0) {
