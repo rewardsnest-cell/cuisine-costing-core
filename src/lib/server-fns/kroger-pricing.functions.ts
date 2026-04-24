@@ -168,8 +168,23 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
     for (const item of items ?? []) {
       itemsQueried++;
       try {
+        // Kroger /v1/products requires:
+        //  - filter.term length 3..128 chars
+        //  - no parentheses or special chars; alphanumerics + spaces work best
+        //  - filter.locationId is required when you want pricing in the response
+        const cleanedTerm = item.name
+          .replace(/\([^)]*\)/g, " ") // strip "(16/20)", "(Large)" etc.
+          .replace(/[^A-Za-z0-9 ]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 128);
+        if (cleanedTerm.length < 3) {
+          errors.push({ item: item.name, error: "Skipped: search term <3 chars after cleaning" });
+          continue;
+        }
+
         const url = new URL("https://api.kroger.com/v1/products");
-        url.searchParams.set("filter.term", item.name);
+        url.searchParams.set("filter.term", cleanedTerm);
         url.searchParams.set("filter.limit", "5");
         if (opts.locationId) url.searchParams.set("filter.locationId", opts.locationId);
 
@@ -177,7 +192,11 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         });
         if (!res.ok) {
-          errors.push({ item: item.name, error: `HTTP ${res.status}` });
+          const body = await res.text().catch(() => "");
+          errors.push({
+            item: item.name,
+            error: `HTTP ${res.status}${opts.locationId ? "" : " (no locationId set)"}: ${body.slice(0, 200)}`,
+          });
           continue;
         }
         const body = (await res.json()) as { data?: any[] };
