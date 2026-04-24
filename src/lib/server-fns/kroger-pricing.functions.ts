@@ -348,16 +348,22 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           );
           if (!mapErr) skuMapRowsTouched++;
 
+          // Per-unit normalization: divide observed price by parsed pack size when possible.
+          const normalized = normalizePerUnitPrice(observed, unit);
+          const finalUnitPrice = normalized?.unitPrice ?? observed;
+          const finalUnit = normalized?.canonicalUnit ?? unit ?? item.unit;
+
           const noteParts = [
             promo != null ? `promo=${promo}` : null,
             regular != null ? `regular=${regular}` : null,
             opts.locationId ? `loc=${opts.locationId}` : null,
+            normalized ? `pack=${unit ?? ""} per_unit=${normalized.unitPrice}` : null,
           ].filter(Boolean);
 
           const { error: phErr } = await supabaseAdmin.from("price_history").insert({
             inventory_item_id: item.id,
-            unit_price: observed,
-            unit: unit ?? item.unit,
+            unit_price: finalUnitPrice,
+            unit: finalUnit,
             source: "kroger_api",
             source_id: sku,
             notes: noteParts.join(" "),
