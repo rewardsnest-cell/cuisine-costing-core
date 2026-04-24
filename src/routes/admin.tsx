@@ -6,6 +6,7 @@ import {
   LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, Download, ScanLine, FileSearch, Building2, Inbox, BookOpen, Zap, Globe, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Activity, Plug, Handshake, MessageSquare, Mail, EyeOff, FlaskConical, Image as ImageIcon, ClipboardCheck,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
+import { useBrandName } from "@/lib/brand-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,6 +95,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     label: "System",
     items: [
       { to: "/admin/integrations", label: "API Integrations", icon: Plug },
+      { to: "/admin/brand-config", label: "Brand Config", icon: Palette },
       { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
       { to: "/admin/brand-assets", label: "Brand Assets", icon: ImageIcon },
       { to: "/admin/affiliates", label: "Affiliates", icon: Handshake },
@@ -155,7 +157,7 @@ function AdminLayout() {
           <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border">
             <Link to="/" className="flex items-center gap-2">
               <AdminSidebarLogo />
-              <span className="font-display text-lg font-semibold text-sidebar-foreground">VPS Finest</span>
+              <AdminSidebarBrandName />
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground">
               <X className="w-5 h-5" />
@@ -284,11 +286,12 @@ function AdminLoginGate() {
 
 function AdminSidebarLogo() {
   const { data: brandLogoUrl } = useBrandAsset("primary_logo");
+  const { display } = useBrandName();
   if (brandLogoUrl) {
     return (
       <img
         src={brandLogoUrl}
-        alt="VPS Finest"
+        alt={display}
         className="w-7 h-7 rounded-lg object-contain"
       />
     );
@@ -298,4 +301,9 @@ function AdminSidebarLogo() {
       <span className="text-gold-foreground font-bold text-xs">TQ</span>
     </div>
   );
+}
+
+function AdminSidebarBrandName() {
+  const { display } = useBrandName();
+  return <span className="font-display text-lg font-semibold text-sidebar-foreground">{display}</span>;
 }
