@@ -208,10 +208,16 @@ function AdminLayout() {
             </button>
           </div>
           <nav className="flex-1 py-4 px-3 overflow-y-auto">
-            {NAV_GROUPS.map((group) => (
+            {visibleGroups.map((group) => (
               <div key={group.label} className="mb-4 last:mb-0">
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-                  {group.label}
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1.5">
+                  <span>{group.label}</span>
+                  {group.phaseNote && (
+                    <span className="inline-flex items-center gap-1 normal-case tracking-normal text-[10px] text-amber-500/80">
+                      <Lock className="w-3 h-3" />
+                      {group.phaseNote}
+                    </span>
+                  )}
                 </p>
                 <div className="space-y-1">
                   {group.items.map((item) => {
