@@ -1052,6 +1052,43 @@ function AffiliateConfigCard() {
   );
 }
 
+/**
+ * Sortable wrapper around EntryCard. Provides the drag transform/transition
+ * via dnd-kit's useSortable, and passes a drag handle render-slot down so
+ * only the GripVertical icon initiates a drag — not the entire card body
+ * (which contains inputs, buttons, dialogs, etc).
+ */
+function SortableEntryCard(
+  props: Omit<React.ComponentProps<typeof EntryCard>, "dragHandleSlot">,
+) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.entry.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  const handle = (
+    <button
+      type="button"
+      ref={setNodeRef as any}
+      {...attributes}
+      {...listeners}
+      aria-label="Drag to reorder"
+      title="Drag to reorder"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <GripVertical className="w-4 h-4" />
+    </button>
+  );
+  return (
+    <div ref={setNodeRef} style={style}>
+      <EntryCard {...props} dragHandleSlot={handle} />
+    </div>
+  );
+}
+
 function EntryCard({
   entry,
   canMoveUp,
@@ -1061,6 +1098,7 @@ function EntryCard({
   reordering,
   selected,
   onToggleSelected,
+  dragHandleSlot,
 }: {
   entry: CookingLabEntry;
   canMoveUp: boolean;
@@ -1070,6 +1108,7 @@ function EntryCard({
   reordering: boolean;
   selected: boolean;
   onToggleSelected: (checked: boolean) => void;
+  dragHandleSlot?: React.ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
