@@ -448,6 +448,10 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  // Per-field publish-blocking errors for the Tools section.
+  // Mirrors validateAmazonLink so the Field-level error and the LinkChecksPanel agree.
+  const toolFieldErrors = computeToolFieldErrors(draft);
+
   return (
     <Card>
       <CardHeader className="border-b border-border bg-muted/20">
