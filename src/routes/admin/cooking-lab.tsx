@@ -14,6 +14,15 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CookingLabSection } from "@/routes/cooking-lab";
+import {
   FlaskConical,
   Plus,
   Trash2,
@@ -24,6 +33,7 @@ import {
   ListChecks,
   CalendarRange,
   BookOpen,
+  Eye,
 } from "lucide-react";
 
 type CookingLabEntry = {
