@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { withAmazonAffiliateTag } from "@/lib/amazon-affiliate";
-import { FlaskConical, ExternalLink, Play, Layers } from "lucide-react";
+import { FlaskConical, ExternalLink, Play, Layers, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export type CookingLabCollection = {
   id: string;
