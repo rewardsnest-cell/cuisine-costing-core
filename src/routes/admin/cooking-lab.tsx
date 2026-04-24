@@ -899,6 +899,10 @@ function EntryCard({
   const wantsPublished = draft.status === "published";
   const publishBlocked = wantsPublished && (!qaAllPassed || !linksAllPassed);
 
+  // Save goes through the server function `saveCookingLabEntry`, which re-runs
+  // `validateCookingLabEntryForPublish` server-side. The client publish gate
+  // below is for UX only — the server is the source of truth and will reject
+  // any tampered request that tries to publish an invalid entry.
   const saveMut = useMutation({
     mutationFn: async () => {
       if (publishBlocked) {
@@ -907,12 +911,7 @@ function EntryCard({
         }
         throw new Error("Fix all link validation errors before publishing.");
       }
-      const { id, ...rest } = draft;
-      const { error } = await (supabase as any)
-        .from("cooking_lab_entries")
-        .update(rest)
-        .eq("id", id);
-      if (error) throw error;
+      await saveCookingLabEntryFn({ data: draft });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
