@@ -161,7 +161,18 @@ function CostQueuePage() {
 
         <TabsContent value="pending">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><ShieldAlert className="w-4 h-4" />Pending approval</CardTitle></CardHeader>
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2"><ShieldAlert className="w-4 h-4" />Pending approval</CardTitle>
+                {selected.size > 0 && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+                    <Button size="sm" variant="outline" disabled={bulkBusy} onClick={onBulkApprove} className="gap-1"><Check className="w-3.5 h-3.5" />Bulk Approve</Button>
+                    <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={onBulkReject} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Bulk Reject</Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div>
@@ -172,6 +183,7 @@ function CostQueuePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8"><Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" /></TableHead>
                         <TableHead>Item</TableHead>
                         <TableHead>Current</TableHead>
                         <TableHead>Proposed</TableHead>
@@ -187,6 +199,7 @@ function CostQueuePage() {
                         const direction = pct >= 0 ? "+" : "";
                         return (
                           <TableRow key={r.id}>
+                            <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} aria-label="Select row" /></TableCell>
                             <TableCell className="font-medium">{r.ingredient_reference?.canonical_name ?? r.reference_id} <span className="text-xs text-muted-foreground">/ {r.ingredient_reference?.default_unit}</span></TableCell>
                             <TableCell>${Number(r.current_cost ?? 0).toFixed(4)}</TableCell>
                             <TableCell>${Number(r.proposed_cost ?? 0).toFixed(4)}</TableCell>
@@ -195,6 +208,7 @@ function CostQueuePage() {
                             <TableCell className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</TableCell>
                             <TableCell className="text-right">
                               <div className="inline-flex gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onApprove(r.id)} className="gap-1"><Check className="w-3.5 h-3.5" />Approve</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onOverride(r.id)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Override</Button>
                                 <Button size="sm" variant="ghost" disabled={actingId === r.id} onClick={() => onReject(r.id)} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Reject</Button>
