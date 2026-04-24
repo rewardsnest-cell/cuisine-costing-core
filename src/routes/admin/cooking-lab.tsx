@@ -34,6 +34,9 @@ import {
   CalendarRange,
   BookOpen,
   Eye,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 type CookingLabEntry = {
