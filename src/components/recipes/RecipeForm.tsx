@@ -560,7 +560,7 @@ export function RecipeForm({
           </Button>
         </CardContent>
       </Card>
-
+      {initial.recipe.pricing_status && initial.recipe.pricing_status !== "valid" && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-5">
             <div className="flex items-start gap-3">
