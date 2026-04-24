@@ -590,25 +590,15 @@ function ExportsPage() {
           <div className="space-y-2">
             {(["md", "pdf", "json"] as const).map((key) => {
               const file = savedFiles[key];
-              if (!file) return null;
+              const prog = progress[key];
+              if (!file && !prog) return null;
               return (
-                <div
+                <ExportProgressLine
                   key={key}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{file.filename}</div>
-                    <div className="text-xs text-muted-foreground">Saved to backend files</div>
-                  </div>
-                  <a
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-primary hover:underline shrink-0"
-                  >
-                    Open file
-                  </a>
-                </div>
+                  label={key === "md" ? "Markdown" : key === "pdf" ? "PDF" : "JSON bundle"}
+                  progress={prog}
+                  file={file}
+                />
               );
             })}
           </div>
