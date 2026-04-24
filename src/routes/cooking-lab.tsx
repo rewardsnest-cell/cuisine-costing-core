@@ -55,6 +55,21 @@ export const Route = createFileRoute("/cooking-lab")({
           "Fun cooking techniques, simple food science, and the tools we actually use.",
       },
       { property: "og:type", content: "website" },
+      { rel: "canonical", href: "https://www.vpsfinest.com/cooking-lab" } as any,
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Cooking Lab",
+          description:
+            "Fun cooking techniques, simple food science, and the tools we actually use.",
+          url: "https://www.vpsfinest.com/cooking-lab",
+          isPartOf: { "@type": "WebSite", name: "VPS Finest", url: "https://www.vpsfinest.com" },
+        }),
+      },
     ],
   }),
   component: CookingLabPage,
