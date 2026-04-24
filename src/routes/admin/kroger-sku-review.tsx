@@ -272,3 +272,138 @@ function StatusBadge({ status }: { status: string }) {
     status === "suggested" ? "default" : "outline";
   return <Badge variant={variant}>{status}</Badge>;
 }
+
+function classifyUnmatchedReason(row: Row): { code: string; label: string } {
+  if (!row.product_name || !row.product_name.trim()) {
+    return { code: "missing_name", label: "No product name from Kroger" };
+  }
+  if (row.status === "rejected") {
+    return { code: "rejected", label: "Manually rejected" };
+  }
+  const conf = row.match_confidence;
+  if (conf == null) {
+    return { code: "no_suggestion", label: "No ingredient suggestion found" };
+  }
+  if (conf < 0.5) {
+    return { code: "low_confidence", label: `Low confidence (${(conf * 100).toFixed(0)}%) — needs review` };
+  }
+  return { code: "awaiting_review", label: `Suggested (${(conf * 100).toFixed(0)}%) — awaiting confirmation` };
+}
+
+function MatchingBreakdown({ rows, loading }: { rows: Row[]; loading: boolean }) {
+  const summary = useMemo(() => {
+    const matched = rows.filter((r) => r.status === "confirmed" && r.reference_id);
+    const unmatched = rows.filter((r) => !(r.status === "confirmed" && r.reference_id));
+    const reasonGroups = new Map<string, { label: string; count: number; samples: Row[] }>();
+    for (const r of unmatched) {
+      const { code, label } = classifyUnmatchedReason(r);
+      const existing = reasonGroups.get(code);
+      if (existing) {
+        existing.count++;
+        if (existing.samples.length < 3) existing.samples.push(r);
+      } else {
+        reasonGroups.set(code, { label, count: 1, samples: [r] });
+      }
+    }
+    const reasons = Array.from(reasonGroups.entries())
+      .map(([code, v]) => ({ code, ...v }))
+      .sort((a, b) => b.count - a.count);
+    return { matched, unmatched, reasons };
+  }, [rows]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ListChecks className="w-4 h-4" />
+          Matching breakdown
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Summary of which SKUs in the current view linked to an inventory ingredient and why others didn't.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No SKUs in this view.</p>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="border rounded-md">
+              <div className="px-3 py-2 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wide flex items-center justify-between">
+                <span>Matched ({summary.matched.length})</span>
+                {summary.matched.length > 0 && (
+                  <span className="text-muted-foreground normal-case font-normal">Showing top {Math.min(8, summary.matched.length)}</span>
+                )}
+              </div>
+              {summary.matched.length === 0 ? (
+                <div className="p-3 text-xs text-muted-foreground">No confirmed matches in this view.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Inventory ingredient</TableHead>
+                      <TableHead className="text-xs">Matched on (Kroger name)</TableHead>
+                      <TableHead className="text-xs text-right">Conf.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {summary.matched.slice(0, 8).map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs font-medium">
+                          {(r as any).reference_name ?? <span className="text-muted-foreground">(unnamed)</span>}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[18rem] truncate" title={r.product_name ?? ""}>
+                          {r.product_name ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">
+                          {r.match_confidence == null ? "—" : `${(r.match_confidence * 100).toFixed(0)}%`}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+
+            <div className="border rounded-md">
+              <div className="px-3 py-2 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wide">
+                Unmatched ({summary.unmatched.length}) — reason
+              </div>
+              {summary.reasons.length === 0 ? (
+                <div className="p-3 text-xs text-muted-foreground">Everything in this view is matched 🎉</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Reason</TableHead>
+                      <TableHead className="text-xs">Examples</TableHead>
+                      <TableHead className="text-xs text-right">Count</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {summary.reasons.map((g) => (
+                      <TableRow key={g.code}>
+                        <TableCell className="text-xs font-medium align-top">{g.label}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground align-top">
+                          <ul className="space-y-0.5">
+                            {g.samples.map((s) => (
+                              <li key={s.id} className="truncate max-w-[18rem]" title={s.product_name ?? s.sku}>
+                                · {s.product_name ?? <span className="font-mono">{s.sku}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums align-top">{g.count}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
