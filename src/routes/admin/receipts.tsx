@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -53,6 +53,14 @@ function ReceiptsPage() {
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
+  const [compare, setCompare] = useState<{
+    receiptId: string;
+    previousText: string;
+    previousItems: LineItem[];
+    newText: string;
+    newItems: LineItem[];
+    newTotal: number;
+  } | null>(null);
 
   const load = async () => {
     const [{ data: rData }, { data: iData }] = await Promise.all([
@@ -102,14 +110,27 @@ function ReceiptsPage() {
     if (file) handleUpload(file);
   };
 
-  const handleOCR = async (receipt: ReceiptRow) => {
+  const handleOCR = async (receipt: ReceiptRow, opts: { rerun?: boolean } = {}) => {
     if (!receipt.image_url) { toast.error("No image to process"); return; }
     setProcessing(receipt.id);
     try {
       const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
-      const data = await processReceipt({ data: { imageUrl: receipt.image_url, receiptId: receipt.id } });
+      const data = await processReceipt({
+        data: { imageUrl: receipt.image_url, receiptId: receipt.id, rerun: opts.rerun },
+      });
       if (!data.success) throw new Error(data.error || "OCR failed");
       toast.success(`Extracted ${data.line_items?.length || 0} line items`);
+      // On a re-run, surface a side-by-side comparison of OCR text + line items
+      if (opts.rerun) {
+        setCompare({
+          receiptId: receipt.id,
+          previousText: data.previous?.raw_ocr_text ?? receipt.raw_ocr_text ?? "",
+          previousItems: (data.previous?.line_items ?? receipt.extracted_line_items ?? []) as LineItem[],
+          newText: data.raw_ocr_text ?? "",
+          newItems: (data.line_items ?? []) as LineItem[],
+          newTotal: Number(data.total_amount) || 0,
+        });
+      }
       load();
     } catch (err: any) {
       console.error("OCR error:", err);
@@ -226,6 +247,7 @@ function ReceiptsPage() {
     switch (status) {
       case "processed": return <CheckCircle className="w-4 h-4 text-success" />;
       case "reviewed": return <FileText className="w-4 h-4 text-gold" />;
+      case "failed": return <AlertTriangle className="w-4 h-4 text-destructive" />;
       default: return <Clock className="w-4 h-4 text-warning" />;
     }
   };
@@ -299,16 +321,32 @@ function ReceiptsPage() {
                         <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
                           <FileText className="w-3.5 h-3.5" /> Review
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Re-run OCR
+                        </Button>
                         <Button size="sm" onClick={() => handleApplyCosts(r.id)} disabled={applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
                           {applyingCosts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                           Apply Costs
                         </Button>
                       </>
                     )}
-                    {r.status === "processed" && (
-                      <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
-                        <Pencil className="w-3.5 h-3.5" /> Edit
+                    {r.status === "failed" && (
+                      <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                        {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        {processing === r.id ? "Processing..." : "Re-run OCR"}
                       </Button>
+                    )}
+                    {r.status === "processed" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                          <Pencil className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Re-run OCR
+                        </Button>
+                      </>
                     )}
                   </div>
                   <p className="font-display text-lg font-bold whitespace-nowrap">${Number(r.total_amount).toFixed(2)}</p>
@@ -417,6 +455,100 @@ function ReceiptsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* OCR Re-run Comparison Dialog */}
+      <Dialog open={!!compare} onOpenChange={(open) => !open && setCompare(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <RefreshCw className="w-5 h-5" /> OCR Re-run Comparison
+            </DialogTitle>
+          </DialogHeader>
+          {compare && (
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Previous OCR text</p>
+                  <pre className="text-xs bg-muted/40 border border-border rounded-md p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                    {compare.previousText || <span className="text-muted-foreground italic">No previous OCR text on record.</span>}
+                  </pre>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">New OCR text</p>
+                  <pre className="text-xs bg-muted/40 border border-border rounded-md p-3 max-h-72 overflow-auto whitespace-pre-wrap">
+                    {compare.newText || <span className="text-muted-foreground italic">No raw text returned.</span>}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Previous line items ({compare.previousItems.length})
+                  </p>
+                  <LineItemsTable items={compare.previousItems} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    New line items ({compare.newItems.length}) · total ${compare.newTotal.toFixed(2)}
+                  </p>
+                  <LineItemsTable items={compare.newItems} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 border-t">
+                <Button variant="outline" onClick={() => setCompare(null)}>Close</Button>
+                <Button
+                  onClick={() => {
+                    const updated = receipts.find((r) => r.id === compare.receiptId);
+                    setCompare(null);
+                    if (updated) openReview(updated);
+                  }}
+                  className="bg-gradient-warm text-primary-foreground"
+                >
+                  Review new line items
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function LineItemsTable({ items }: { items: LineItem[] }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground italic border border-dashed border-border rounded-md p-4 text-center">
+        No line items.
+      </div>
+    );
+  }
+  return (
+    <div className="border border-border rounded-md overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40">
+          <tr>
+            <th className="text-left p-2 font-medium">Item</th>
+            <th className="text-right p-2 font-medium">Qty</th>
+            <th className="text-left p-2 font-medium">Unit</th>
+            <th className="text-right p-2 font-medium">Price</th>
+            <th className="text-right p-2 font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={i} className="border-t border-border">
+              <td className="p-2">{it.item_name || <span className="text-muted-foreground italic">—</span>}</td>
+              <td className="p-2 text-right">{Number(it.quantity || 0)}</td>
+              <td className="p-2">{it.unit || ""}</td>
+              <td className="p-2 text-right">${Number(it.unit_price || 0).toFixed(2)}</td>
+              <td className="p-2 text-right">${Number(it.total_price || 0).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
