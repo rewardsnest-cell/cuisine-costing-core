@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, Search, Check, X, RotateCcw, Link2 } from "lucide-react";
+import { Loader2, Search, Check, X, RotateCcw, Link2, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import {
   listKrogerSkuMap,
