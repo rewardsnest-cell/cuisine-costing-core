@@ -103,6 +103,13 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     ],
   },
   {
+    label: "Governance",
+    items: [
+      { to: "/admin/audit", label: "Audit Log", icon: Shield },
+      { to: "/admin/change-log", label: "Change Log", icon: NotebookPen },
+    ],
+  },
+  {
     label: "System",
     items: [
       { to: "/admin/integrations", label: "API Integrations", icon: Plug },
