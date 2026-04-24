@@ -443,10 +443,16 @@ function ReceiptsPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {r.status === "pending" && (
-                      <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
-                        {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
-                        {processing === r.id ? "Processing..." : "Run OCR"}
-                      </Button>
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
+                          {processing === r.id ? "Processing..." : "Run OCR"}
+                        </Button>
+                        <Button size="sm" onClick={() => handleProcessAndSave(r)} disabled={processing === r.id || applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                          Process &amp; save
+                        </Button>
+                      </>
                     )}
                     {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
