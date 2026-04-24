@@ -294,6 +294,7 @@ function RecipeDetailPage() {
               pricePerPerson={showPricing ? (r.menu_price ?? r.selling_price_per_person ?? null) : null}
               totalRecipeCost={showPricing ? (r.total_cost ?? null) : null}
               hidePricing={!showPricing}
+              publicLimit={!!r.inspired}
             />
           </aside>
 
