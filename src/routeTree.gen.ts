@@ -93,7 +93,6 @@ import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-module
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminKrogerSkuReviewRouteImport } from './routes/admin/kroger-sku-review'
-import { Route as AdminKrogerRunsRouteImport } from './routes/admin/kroger-runs'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
 import { Route as AdminKrogerPriceSignalsRouteImport } from './routes/admin/kroger-price-signals'
 import { Route as AdminItemsRouteImport } from './routes/admin/items'
@@ -573,11 +572,6 @@ const AdminKrogerSkuReviewRoute = AdminKrogerSkuReviewRouteImport.update({
   path: '/kroger-sku-review',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminKrogerRunsRoute = AdminKrogerRunsRouteImport.update({
-  id: '/kroger-runs',
-  path: '/kroger-runs',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminKrogerPricingRoute = AdminKrogerPricingRouteImport.update({
   id: '/kroger-pricing',
   path: '/kroger-pricing',
@@ -899,7 +893,6 @@ export interface FileRoutesByFullPath {
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-runs': typeof AdminKrogerRunsRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1035,7 +1028,6 @@ export interface FileRoutesByTo {
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-runs': typeof AdminKrogerRunsRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1174,7 +1166,6 @@ export interface FileRoutesById {
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-runs': typeof AdminKrogerRunsRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1314,7 +1305,6 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
-    | '/admin/kroger-runs'
     | '/admin/kroger-sku-review'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1450,7 +1440,6 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
-    | '/admin/kroger-runs'
     | '/admin/kroger-sku-review'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1588,7 +1577,6 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
-    | '/admin/kroger-runs'
     | '/admin/kroger-sku-review'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -2319,13 +2307,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKrogerSkuReviewRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/kroger-runs': {
-      id: '/admin/kroger-runs'
-      path: '/kroger-runs'
-      fullPath: '/admin/kroger-runs'
-      preLoaderRoute: typeof AdminKrogerRunsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/kroger-pricing': {
       id: '/admin/kroger-pricing'
       path: '/kroger-pricing'
@@ -2814,7 +2795,6 @@ interface AdminRouteChildren {
   AdminItemsRoute: typeof AdminItemsRoute
   AdminKrogerPriceSignalsRoute: typeof AdminKrogerPriceSignalsRoute
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
-  AdminKrogerRunsRoute: typeof AdminKrogerRunsRoute
   AdminKrogerSkuReviewRoute: typeof AdminKrogerSkuReviewRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -2884,7 +2864,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminItemsRoute: AdminItemsRoute,
   AdminKrogerPriceSignalsRoute: AdminKrogerPriceSignalsRoute,
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
-  AdminKrogerRunsRoute: AdminKrogerRunsRoute,
   AdminKrogerSkuReviewRoute: AdminKrogerSkuReviewRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
