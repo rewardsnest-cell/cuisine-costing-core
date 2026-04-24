@@ -690,12 +690,38 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** Inline error text. When set, the wrapped <Input /> gets a red ring via [data-field-error] CSS targeting. */
+  error?: string | null;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
-      {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    <div className="space-y-1.5" data-field-error={error ? "true" : undefined}>
+      <Label className={`text-sm ${error ? "text-destructive" : ""}`}>{label}</Label>
+      <div
+        className={
+          error
+            ? "[&_input]:border-destructive [&_input]:ring-1 [&_input]:ring-destructive/40 [&_input]:focus-visible:ring-destructive"
+            : ""
+        }
+      >
+        {children}
+      </div>
+      {error ? (
+        <p className="text-xs text-destructive flex items-start gap-1">
+          <XCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </p>
+      ) : (
+        hint && <p className="text-xs text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }
