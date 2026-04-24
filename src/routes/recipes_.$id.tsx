@@ -184,6 +184,12 @@ function RecipeDetailPage() {
             {r.cuisine && <span>· {r.cuisine}</span>}
             {r.use_case && <span>· {r.use_case}</span>}
           </div>
+          {r.inspired && (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs text-foreground">
+              <span className="font-medium">Inspired by familiar flavors</span>
+              <span className="text-muted-foreground">— not an official or branded replica</span>
+            </div>
+          )}
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-primary mb-4">{r.name}</h1>
           {r.hook && (
             <p className="text-lg text-muted-foreground max-w-2xl">{r.hook}</p>
