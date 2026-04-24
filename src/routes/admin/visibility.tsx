@@ -53,6 +53,8 @@ function VisibilityPage() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [quickToggling, setQuickToggling] = useState<string | null>(null);
 
   const refetch = async () => {
     setLoading(true);
