@@ -136,6 +136,22 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  const openPendingDownloadWindow = () => {
+    try {
+      if (typeof window === "undefined") return null;
+      const inIframe = window.self !== window.top;
+      if (!inIframe) return null;
+      const popup = window.open("", "_blank", "noopener,noreferrer");
+      if (!popup) return null;
+      popup.document.title = "Preparing download…";
+      popup.document.body.innerHTML =
+        '<div style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Preparing your file…</h1><p style="margin: 0; color: #555;">Your download will open here when it is ready.</p></div>';
+      return popup;
+    } catch {
+      return null;
+    }
+  };
+
   /**
    * Fetch the route_inventory table (HTTP status, last review, thumbnails)
    * and merge it with the static description registry so every audit bundle
