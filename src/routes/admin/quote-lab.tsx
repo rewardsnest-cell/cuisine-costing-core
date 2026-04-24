@@ -15,8 +15,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink } from "lucide-react";
+import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { PRICING_VISIBILITY_KEY, usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 export const Route = createFileRoute("/admin/quote-lab")({
   head: () => ({
