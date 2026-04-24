@@ -687,7 +687,77 @@ function CookingLabManager() {
     }
   };
 
-  return (
+  // Bulk delete selected entries.
+  const bulkDeleteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setSelectedIds(new Set());
+      toast.success(`Deleted ${count} ${count === 1 ? "entry" : "entries"}`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Bulk delete failed"),
+  });
+
+  // Bulk duplicate: clone each selected entry as a draft, hidden, with a new
+  // display_order appended after the current max. Tool/QA fields and other
+  // editable content are copied so editors only need to tweak titles.
+  const bulkDuplicateMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const all = entries ?? [];
+      const selected = all.filter((e) => ids.includes(e.id));
+      if (selected.length === 0) return 0;
+      let nextOrder = all.reduce((m, e) => Math.max(m, e.display_order), 0) + 1;
+      const rows = selected
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((e) => ({
+          title: `${e.title} (copy)`,
+          description: e.description,
+          video_url: e.video_url,
+          image_url: e.image_url,
+          primary_tool_name: e.primary_tool_name,
+          primary_tool_url: e.primary_tool_url,
+          secondary_tool_name: e.secondary_tool_name,
+          secondary_tool_url: e.secondary_tool_url,
+          status: "draft" as const,
+          visible: false,
+          qa_copy_reviewed: false,
+          qa_video_loads: false,
+          qa_image_loads: false,
+          qa_links_tested: false,
+          qa_ready: false,
+          display_order: nextOrder++,
+        }));
+      const { error } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setSelectedIds(new Set());
+      toast.success(`Duplicated ${count} ${count === 1 ? "entry" : "entries"} as drafts`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Bulk duplicate failed"),
+  });
+
+  const allSorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
+  const allSelected = allSorted.length > 0 && allSorted.every((e) => selectedIds.has(e.id));
+  const someSelected = selectedIds.size > 0 && !allSelected;
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(allSorted.map((e) => e.id)));
+  };
+  const bulkBusy = bulkDeleteMut.isPending || bulkDuplicateMut.isPending;
+
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div>
