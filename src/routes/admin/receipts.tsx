@@ -120,6 +120,25 @@ function ReceiptsPage() {
   const [threshold, setThreshold] = useState<number>(DEFAULT_THRESHOLD);
   const [thresholdInput, setThresholdInput] = useState<string>(String(DEFAULT_THRESHOLD));
   const [savingThreshold, setSavingThreshold] = useState(false);
+  // Per-row, per-field validation errors for the Review dialog
+  const [lineItemErrors, setLineItemErrors] = useState<Record<number, LineItemErrors>>({});
+  const [savingLineItems, setSavingLineItems] = useState(false);
+  // Idle / loading / success / error state for each pending receipt's
+  // "Process & save" button so users see explicit feedback per row.
+  type ProcessState =
+    | { status: "loading" }
+    | { status: "success"; message: string }
+    | { status: "error"; message: string };
+  const [processState, setProcessState] = useState<Record<string, ProcessState>>({});
+
+  const setRowState = (id: string, state: ProcessState | null) => {
+    setProcessState((prev) => {
+      const next = { ...prev };
+      if (state === null) delete next[id];
+      else next[id] = state;
+      return next;
+    });
+  };
 
   const load = async () => {
     const [{ data: rData }, { data: iData }, { data: kv }] = await Promise.all([
