@@ -49,10 +49,12 @@ type ChangeLogEntry = {
 
 function ChangeLogPage() {
   const { user } = useAuth();
+  const generateDrafts = useServerFn(generateChangeLogDrafts);
   const [entries, setEntries] = useState<ChangeLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<ChangeLogEntry | null>(null);
@@ -110,7 +112,7 @@ function ChangeLogPage() {
   const unarchive = async (entry: ChangeLogEntry) => {
     const { error } = await supabase
       .from("change_log_entries")
-      .update({ archived: false, archived_at: null })
+      .update({ archived: false, archived_at: null, status: "published" })
       .eq("id", entry.id);
     if (error) {
       toast.error(error.message);
@@ -118,6 +120,32 @@ function ChangeLogPage() {
     }
     toast.success("Entry restored");
     load();
+  };
+
+  const publish = async (entry: ChangeLogEntry) => {
+    const { error } = await supabase
+      .from("change_log_entries")
+      .update({ status: "published" })
+      .eq("id", entry.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Draft published");
+    load();
+  };
+
+  const handleGenerateDrafts = async () => {
+    setGenerating(true);
+    try {
+      const res = await generateDrafts();
+      toast.success(res.message);
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to generate drafts");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -133,6 +161,10 @@ function ChangeLogPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleGenerateDrafts} disabled={generating}>
+            <Sparkles className="w-4 h-4 mr-2" />
+            {generating ? "Scanning…" : "Generate drafts from audit"}
+          </Button>
           <Button variant="outline" onClick={() => setShowArchived((v) => !v)}>
             {showArchived ? "Hide archived" : "Show archived"}
           </Button>
@@ -169,20 +201,36 @@ function ChangeLogPage() {
                       <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">
                         {new Date(e.created_at).toLocaleDateString()}
                       </td>
-                      <td className="p-3 font-medium">{e.title}</td>
+                      <td className="p-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{e.title}</span>
+                          {e.auto_generated && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <Sparkles className="w-3 h-3" /> System-generated
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-3 text-xs">{e.author_email ?? "—"}</td>
                       <td className="p-3 text-xs">{e.linked_audit_event_ids.length}</td>
                       <td className="p-3">
                         {e.archived ? (
                           <Badge variant="secondary">Archived</Badge>
+                        ) : e.status === "draft" ? (
+                          <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">Draft</Badge>
                         ) : (
-                          <Badge variant="outline">Active</Badge>
+                          <Badge variant="outline">Published</Badge>
                         )}
                       </td>
                       <td className="p-3">
                         <div className="flex gap-1 justify-end">
                           <Button size="sm" variant="ghost" onClick={() => setDetail(e)} title="View"><Eye className="w-4 h-4" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => openEdit(e)} title="Edit"><Pencil className="w-4 h-4" /></Button>
+                          {e.status === "draft" && !e.archived && (
+                            <Button size="sm" variant="ghost" onClick={() => publish(e)} title="Publish">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </Button>
+                          )}
                           {e.archived ? (
                             <Button size="sm" variant="ghost" onClick={() => unarchive(e)} title="Restore">
                               <FileText className="w-4 h-4" />
