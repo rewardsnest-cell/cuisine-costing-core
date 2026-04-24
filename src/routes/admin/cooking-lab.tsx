@@ -612,6 +612,14 @@ function FullPagePreviewButton({ entries }: { entries: CookingLabEntry[] }) {
 
 function CookingLabManager() {
   const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
   const { data: entries, isLoading } = useQuery({
     queryKey: ["cooking-lab", "admin"],
     queryFn: async () => {
@@ -679,6 +687,77 @@ function CookingLabManager() {
     }
   };
 
+  // Bulk delete selected entries.
+  const bulkDeleteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setSelectedIds(new Set());
+      toast.success(`Deleted ${count} ${count === 1 ? "entry" : "entries"}`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Bulk delete failed"),
+  });
+
+  // Bulk duplicate: clone each selected entry as a draft, hidden, with a new
+  // display_order appended after the current max. Tool/QA fields and other
+  // editable content are copied so editors only need to tweak titles.
+  const bulkDuplicateMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const all = entries ?? [];
+      const selected = all.filter((e) => ids.includes(e.id));
+      if (selected.length === 0) return 0;
+      let nextOrder = all.reduce((m, e) => Math.max(m, e.display_order), 0) + 1;
+      const rows = selected
+        .slice()
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((e) => ({
+          title: `${e.title} (copy)`,
+          description: e.description,
+          video_url: e.video_url,
+          image_url: e.image_url,
+          primary_tool_name: e.primary_tool_name,
+          primary_tool_url: e.primary_tool_url,
+          secondary_tool_name: e.secondary_tool_name,
+          secondary_tool_url: e.secondary_tool_url,
+          status: "draft" as const,
+          visible: false,
+          qa_copy_reviewed: false,
+          qa_video_loads: false,
+          qa_image_loads: false,
+          qa_links_tested: false,
+          qa_ready: false,
+          display_order: nextOrder++,
+        }));
+      const { error } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setSelectedIds(new Set());
+      toast.success(`Duplicated ${count} ${count === 1 ? "entry" : "entries"} as drafts`);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Bulk duplicate failed"),
+  });
+
+  const allSorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
+  const allSelected = allSorted.length > 0 && allSorted.every((e) => selectedIds.has(e.id));
+  const someSelected = selectedIds.size > 0 && !allSelected;
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(allSorted.map((e) => e.id)));
+  };
+  const bulkBusy = bulkDeleteMut.isPending || bulkDuplicateMut.isPending;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
@@ -729,18 +808,65 @@ function CookingLabManager() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {sorted.map((e, idx) => (
-            <EntryCard
-              key={e.id}
-              entry={e}
-              canMoveUp={idx > 0}
-              canMoveDown={idx < sorted.length - 1}
-              onMoveUp={() => moveEntry(idx, -1)}
-              onMoveDown={() => moveEntry(idx, 1)}
-              reordering={reorderMut.isPending}
-            />
-          ))}
+        <div className="space-y-3">
+          {/* Bulk action toolbar */}
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Select all entries"
+              />
+              <span className="text-muted-foreground">
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} selected`
+                  : `Select all (${allSorted.length})`}
+              </span>
+            </label>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={selectedIds.size === 0 || bulkBusy}
+              onClick={() => bulkDuplicateMut.mutate(Array.from(selectedIds))}
+            >
+              <Copy className="w-4 h-4" />
+              Duplicate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-destructive hover:text-destructive"
+              disabled={selectedIds.size === 0 || bulkBusy}
+              onClick={() => {
+                const ids = Array.from(selectedIds);
+                if (ids.length === 0) return;
+                if (confirm(`Delete ${ids.length} ${ids.length === 1 ? "entry" : "entries"}? This cannot be undone.`)) {
+                  bulkDeleteMut.mutate(ids);
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
+
+          <div className="space-y-6">
+            {allSorted.map((e, idx) => (
+              <EntryCard
+                key={e.id}
+                entry={e}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < allSorted.length - 1}
+                onMoveUp={() => moveEntry(idx, -1)}
+                onMoveDown={() => moveEntry(idx, 1)}
+                reordering={reorderMut.isPending}
+                selected={selectedIds.has(e.id)}
+                onToggleSelected={(checked) => toggleSelected(e.id, checked)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -863,6 +989,8 @@ function EntryCard({
   onMoveUp,
   onMoveDown,
   reordering,
+  selected,
+  onToggleSelected,
 }: {
   entry: CookingLabEntry;
   canMoveUp: boolean;
@@ -870,6 +998,8 @@ function EntryCard({
   onMoveUp: () => void;
   onMoveDown: () => void;
   reordering: boolean;
+  selected: boolean;
+  onToggleSelected: (checked: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
@@ -944,11 +1074,18 @@ function EntryCard({
   const toolFieldErrors = computeToolFieldErrors(draft);
 
   return (
-    <Card>
+    <Card className={selected ? "ring-2 ring-primary/40" : undefined}>
       <CardHeader className="border-b border-border bg-muted/20">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(v) => onToggleSelected(v === true)}
+              aria-label={`Select ${draft.title || "entry"} for bulk actions`}
+              className="mt-1"
+            />
+            <div>
+              <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
             <div className="flex items-center gap-2 mt-1.5">
               <Badge variant={draft.status === "published" ? "default" : "secondary"}>
                 {draft.status}
@@ -957,6 +1094,7 @@ function EntryCard({
                 {draft.visible ? "Shown" : "Hidden"}
               </Badge>
               <span className="text-xs text-muted-foreground">Order #{draft.display_order}</span>
+            </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
