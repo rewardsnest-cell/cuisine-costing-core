@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
+import { convertQty, getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecipePhoto, generateRecipeSocialPhoto } from "@/lib/server/generate-recipe-photos";
