@@ -355,6 +355,14 @@ function ReceiptsPage() {
 
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
+    // Field-level validation before persisting
+    const { errors, firstMessage } = validateLineItems(editedLineItems);
+    setLineItemErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(firstMessage || "Fix highlighted fields before saving");
+      return;
+    }
+    setSavingLineItems(true);
     const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
     const stillFlagged = editedLineItems.some((it) => it.needs_review);
     const update: Record<string, any> = {
@@ -369,6 +377,7 @@ function ReceiptsPage() {
       .from("receipts")
       .update(update as any)
       .eq("id", reviewReceipt.id);
+    setSavingLineItems(false);
     if (error) { toast.error(error.message); return; }
     toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
     load();
@@ -376,8 +385,14 @@ function ReceiptsPage() {
   };
 
   const handleProcessAndSave = async (receipt: ReceiptRow) => {
-    if (!receipt.image_url) { toast.error("No image to process"); return; }
+    if (!receipt.image_url) {
+      const msg = "No image to process";
+      toast.error(msg);
+      setRowState(receipt.id, { status: "error", message: msg });
+      return;
+    }
     setProcessing(receipt.id);
+    setRowState(receipt.id, { status: "loading" });
     try {
       const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
       const ocr = await processReceipt({
@@ -387,7 +402,9 @@ function ReceiptsPage() {
       const total = ocr.line_items?.length || 0;
       const flagged = (ocr as any).flagged_count ?? ocr.line_items?.filter((it: any) => it.needs_review).length ?? 0;
       if (flagged > 0) {
+        const msg = `Saved ${total} items · ${flagged} need review`;
         toast.warning(`Saved ${total} line items · ${flagged} flagged — review before applying costs`);
+        setRowState(receipt.id, { status: "success", message: msg });
         load();
         return;
       }
@@ -395,11 +412,15 @@ function ReceiptsPage() {
       const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
       const applied = await updateInventoryCosts({ data: { receiptId: receipt.id } });
       const updates = applied.updates || [];
+      const msg = `Saved ${total} items · updated ${updates.length} costs`;
       toast.success(`Saved ${total} items and updated costs for ${updates.length} inventory items`);
+      setRowState(receipt.id, { status: "success", message: msg });
       load();
     } catch (err: any) {
       console.error("Process & save error:", err);
-      toast.error(err.message || "Failed to process receipt");
+      const msg = err?.message || "Failed to process receipt";
+      toast.error(msg);
+      setRowState(receipt.id, { status: "error", message: msg });
     } finally {
       setProcessing(null);
     }
