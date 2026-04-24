@@ -99,19 +99,31 @@ export const blankInitial: RecipeFormInitial = {
   ingredients: [emptyIngredient()],
 };
 
-function InventoryPicker({
+function IngredientLinker({
   inventory,
-  value,
+  references,
+  inventoryId,
+  referenceId,
   displayName,
-  onPick,
+  onPickInventory,
+  onPickReference,
+  onTypeFreeText,
 }: {
   inventory: InvItem[];
-  value: string | null;
+  references: RefItem[];
+  inventoryId: string | null;
+  referenceId: string | null;
   displayName: string;
-  onPick: (inv: InvItem | null, freeText?: string) => void;
+  onPickInventory: (inv: InvItem) => void;
+  onPickReference: (ref: RefItem) => void;
+  onTypeFreeText: (text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = value ? inventory.find((i) => i.id === value) : null;
+  const linkedInv = inventoryId ? inventory.find((i) => i.id === inventoryId) : null;
+  const linkedRef = referenceId ? references.find((r) => r.id === referenceId) : null;
+  // Hide reference rows that are already represented by an inventory item to avoid duplicates.
+  const inventoryRefIds = new Set(inventory.map((i) => i.reference_id).filter(Boolean) as string[]);
+  const refsOnly = references.filter((r) => !inventoryRefIds.has(r.id));
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -124,15 +136,15 @@ function InventoryPicker({
           )}
         >
           <span className="truncate">{displayName || "Pick or type ingredient…"}</span>
-          {selected && <Check className="w-3.5 h-3.5 text-success shrink-0 ml-2" />}
+          {(linkedInv || linkedRef) && <Check className="w-3.5 h-3.5 text-success shrink-0 ml-2" />}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[280px]" align="start">
+      <PopoverContent className="p-0 w-[320px]" align="start">
         <Command>
           <CommandInput
-            placeholder="Search inventory or type new…"
+            placeholder="Search inventory or canonical ingredients…"
             defaultValue={displayName}
-            onValueChange={(v) => onPick(null, v)}
+            onValueChange={(v) => onTypeFreeText(v)}
           />
           <CommandList>
             <CommandEmpty>
@@ -140,25 +152,48 @@ function InventoryPicker({
                 No match — your typed text will be used as a manual ingredient.
               </span>
             </CommandEmpty>
-            <CommandGroup heading="Inventory items">
-              {inventory.map((inv) => (
-                <CommandItem
-                  key={inv.id}
-                  value={inv.name}
-                  onSelect={() => {
-                    onPick(inv);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex justify-between w-full items-center">
-                    <span>{inv.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ${Number(inv.average_cost_per_unit).toFixed(2)}/{inv.unit}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {inventory.length > 0 && (
+              <CommandGroup heading="Inventory items">
+                {inventory.map((inv) => (
+                  <CommandItem
+                    key={`inv-${inv.id}`}
+                    value={`inv ${inv.name}`}
+                    onSelect={() => {
+                      onPickInventory(inv);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex justify-between w-full items-center gap-2">
+                      <span className="truncate">{inv.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        ${Number(inv.average_cost_per_unit).toFixed(2)}/{inv.unit}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {refsOnly.length > 0 && (
+              <CommandGroup heading="Canonical ingredients (no inventory yet)">
+                {refsOnly.map((ref) => (
+                  <CommandItem
+                    key={`ref-${ref.id}`}
+                    value={`ref ${ref.canonical_name}`}
+                    onSelect={() => {
+                      onPickReference(ref);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex justify-between w-full items-center gap-2">
+                      <span className="truncate">{ref.canonical_name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {ref.category ? `${ref.category} · ` : ""}{ref.default_unit}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
