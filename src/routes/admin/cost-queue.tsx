@@ -498,9 +498,14 @@ function CostQueuePage() {
                                       )}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1">
-                                        <Eye className="w-3.5 h-3.5" />
-                                      </Button>
+                                      <div className="flex justify-end gap-1">
+                                        <Button size="sm" variant="ghost" onClick={() => setFormulaRow(r)} className="gap-1" title="Show weighted formula">
+                                          <Sigma className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1" title="Open full breakdown">
+                                          <Eye className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 );
