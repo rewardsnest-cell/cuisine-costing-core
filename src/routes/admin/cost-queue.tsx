@@ -50,6 +50,10 @@ function CostQueuePage() {
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [verifyOnlyFlagged, setVerifyOnlyFlagged] = useState(true);
+  const [simBusy, setSimBusy] = useState(false);
+  const [simResult, setSimResult] = useState<SimulateResult | null>(null);
+  const [simOpen, setSimOpen] = useState(false);
+  const [simSourceIds, setSimSourceIds] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
