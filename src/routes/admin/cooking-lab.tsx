@@ -372,6 +372,9 @@ function CookingLabManager() {
         </div>
       )}
 
+      {/* Affiliate config — applies to all entries */}
+      <AffiliateConfigCard />
+
       {/* Editorial guidance */}
       <EditorialGuidance />
       <BrandVoiceCard />
@@ -379,6 +382,105 @@ function CookingLabManager() {
       <QAChecklistCard />
       <RoadmapCard />
     </div>
+  );
+}
+
+function useAmazonAssociateTagAdmin() {
+  return useQuery({
+    queryKey: ["amazon-associate-tag"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("app_kv")
+        .select("value")
+        .eq("key", "amazon_associate_tag")
+        .maybeSingle();
+      return ((data?.value as string | null) ?? "").trim() || null;
+    },
+  });
+}
+
+function AffiliateConfigCard() {
+  const queryClient = useQueryClient();
+  const { data: currentTag, isLoading } = useAmazonAssociateTagAdmin();
+  const [tag, setTag] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setTag(currentTag ?? "");
+    setDirty(false);
+  }, [currentTag]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const trimmed = tag.trim();
+      // Basic shape check — Amazon associate tags are typically "name-XX".
+      if (trimmed && !/^[a-z0-9][a-z0-9-]{2,29}$/i.test(trimmed)) {
+        throw new Error("Tag should be 3–30 chars, letters/numbers/hyphens (e.g. vpsfinest-20).");
+      }
+      const { error } = await (supabase as any)
+        .from("app_kv")
+        .upsert({ key: "amazon_associate_tag", value: trimmed }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["amazon-associate-tag"] });
+      setDirty(false);
+      toast.success("Affiliate tag saved — all outbound links updated");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to save"),
+  });
+
+  const sampleUrl = "https://www.amazon.com/dp/B00FLYWNYQ";
+  const taggedSample = withAmazonAffiliateTag(sampleUrl, tag.trim() || null);
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <DollarSign className="w-4 h-4" />
+          Amazon Affiliate Tag (Global)
+        </CardTitle>
+        <CardDescription>
+          One tag applies to every Cooking Lab tool link. Editors paste clean Amazon URLs;
+          the tag is appended automatically at render time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Field
+          label="Associate tag"
+          hint="From Amazon Associates Central → Account Settings. Example: vpsfinest-20"
+        >
+          <Input
+            value={tag}
+            onChange={(e) => {
+              setTag(e.target.value);
+              setDirty(true);
+            }}
+            placeholder="vpsfinest-20"
+            disabled={isLoading}
+          />
+        </Field>
+        <div className="rounded-md border border-border bg-background p-3 text-xs space-y-1.5">
+          <p className="font-medium text-foreground">Live preview</p>
+          <p className="text-muted-foreground">Sample URL → outbound link:</p>
+          <code className="block break-all text-[11px] text-foreground bg-muted p-2 rounded">
+            {taggedSample || "(set a tag to see preview)"}
+          </code>
+          {!tag.trim() && (
+            <p className="text-amber-600 dark:text-amber-400">
+              ⚠ No tag set — outbound links will NOT earn commissions.
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2">
+          {dirty && <span className="text-xs text-amber-600 dark:text-amber-400 self-center">Unsaved</span>}
+          <Button onClick={() => saveMut.mutate()} disabled={!dirty || saveMut.isPending} className="gap-2">
+            <Save className="w-4 h-4" />
+            {saveMut.isPending ? "Saving…" : "Save tag"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
