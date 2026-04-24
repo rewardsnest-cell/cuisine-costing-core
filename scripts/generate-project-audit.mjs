@@ -176,25 +176,28 @@ ${tables.map((t) => `- ${t}`).join("\n") || "- (no migrations found)"}
 
 ## 3. SCREENS / PAGES
 
+_${describedCount} of ${routes.length} routes have human-readable descriptions._
+${undescribedRoutes.length ? `\n_Missing descriptions (add to \`src/lib/admin/page-descriptions.ts\`):_\n${undescribedRoutes.join("\n")}\n` : ""}
+
 ### Public (${grouped.public.length})
-| Path | File |
-|---|---|
-${grouped.public.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.public.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Auth-gated (${grouped.auth.length})
-| Path | File |
-|---|---|
-${grouped.auth.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.auth.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Employee-gated (${grouped.employee.length})
-| Path | File |
-|---|---|
-${grouped.employee.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.employee.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Admin-gated (${grouped.admin.length})
-| Path | File |
-|---|---|
-${grouped.admin.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.admin.map(routeRow).join("\n") || "| — | — | — |"}
 
 ## 4. EDGE FUNCTIONS
 
