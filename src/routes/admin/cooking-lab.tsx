@@ -235,6 +235,10 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
     setDirty(true);
   };
 
+  const linkChecks = validateEntryLinks(draft);
+  const linksAllPassed = linkChecks.every((c) => c.status === "ok");
+  const linksHaveErrors = linkChecks.some((c) => c.status === "error");
+
   const qaItems = [
     draft.qa_copy_reviewed,
     draft.qa_video_loads,
@@ -245,12 +249,15 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
   const qaPassedCount = qaItems.filter(Boolean).length;
   const qaAllPassed = qaPassedCount === qaItems.length;
   const wantsPublished = draft.status === "published";
-  const publishBlocked = wantsPublished && !qaAllPassed;
+  const publishBlocked = wantsPublished && (!qaAllPassed || !linksAllPassed);
 
   const saveMut = useMutation({
     mutationFn: async () => {
       if (publishBlocked) {
-        throw new Error("Complete all 5 QA checklist items before publishing.");
+        if (!qaAllPassed) {
+          throw new Error("Complete all 5 QA checklist items before publishing.");
+        }
+        throw new Error("Fix all link validation errors before publishing.");
       }
       const { id, ...rest } = draft;
       const { error } = await (supabase as any)
