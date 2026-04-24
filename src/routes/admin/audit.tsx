@@ -21,6 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Download, Search, Eye, Shield } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
+import { downloadFile } from "@/lib/admin/project-audit";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/audit")({
   head: () => ({
@@ -188,7 +190,11 @@ function AuditLogPage() {
     });
   }, [rows, search, actor, entityType, highlightIds]);
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    if (filtered.length === 0) {
+      toast.error("No rows to export with the current filters.");
+      return;
+    }
     const headers = ["timestamp", "event_type", "entity_type", "entity_id", "summary", "actor", "id"];
     const lines = [headers.join(",")];
     for (const r of filtered) {
@@ -203,11 +209,25 @@ function AuditLogPage() {
       ].map((c) => `"${String(c).replace(/"/g, '""')}"`);
       lines.push(cells.join(","));
     }
-    downloadFile(lines.join("\n"), "audit-log.csv", "text/csv");
+    try {
+      await downloadFile(lines.join("\n"), "audit-log.csv", "text/csv");
+      toast.success(`Exported ${filtered.length} rows to CSV.`);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") toast.error(err?.message || "Export failed");
+    }
   };
 
-  const exportJson = () => {
-    downloadFile(JSON.stringify(filtered, null, 2), "audit-log.json", "application/json");
+  const exportJson = async () => {
+    if (filtered.length === 0) {
+      toast.error("No rows to export with the current filters.");
+      return;
+    }
+    try {
+      await downloadFile(JSON.stringify(filtered, null, 2), "audit-log.json", "application/json");
+      toast.success(`Exported ${filtered.length} rows to JSON.`);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") toast.error(err?.message || "Export failed");
+    }
   };
 
   return (
