@@ -49,9 +49,11 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-display text-xl font-bold">{t.label}</h3>
-                      <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                        {t.multiplier === 1 ? "Base price" : `+${Math.round((t.multiplier - 1) * 100)}%`}
-                      </span>
+                      {showPricing && (
+                        <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {t.multiplier === 1 ? "Base price" : `+${Math.round((t.multiplier - 1) * 100)}%`}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{t.desc}</p>
                     {showPricing && basePerGuest > 0 && (
