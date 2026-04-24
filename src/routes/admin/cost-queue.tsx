@@ -684,7 +684,7 @@ function SimStat({ label, value, tone }: { label: string; value: number | string
   );
 }
 
-function SimSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SimSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium">{title}</h3>
