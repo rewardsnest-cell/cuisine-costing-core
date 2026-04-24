@@ -166,18 +166,34 @@ function VisibilityPage() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by key, notes, or phase…"
+            className="pl-8"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {filteredRows.length} of {rows.length}
+        </p>
+      </div>
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" /> Loading registry…
         </div>
       ) : (
         <div className="space-y-4">
-          {rows.map((r) => {
+          {filteredRows.map((r) => {
             const d = drafts[r.feature_key];
             const b = baseline[r.feature_key];
             if (!d || !b) return null;
             const dirty = isDirty(d, b);
             const seoForcedOff = d.phase === "soft_launch" || d.phase === "admin_preview" || d.phase === "off";
+            const isOn = r.phase === "public" && r.nav_enabled;
             return (
               <Card key={r.feature_key}>
                 <CardHeader className="pb-3">
