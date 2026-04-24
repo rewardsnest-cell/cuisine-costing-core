@@ -26,6 +26,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InspiredRouteImport } from './routes/inspired'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FollowRouteImport } from './routes/follow'
+import { Route as FamiliarFavoritesRouteImport } from './routes/familiar-favorites'
 import { Route as EmployeeRouteImport } from './routes/employee'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -47,6 +48,7 @@ import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
 import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
+import { Route as FamiliarFavoritesIdRouteImport } from './routes/familiar-favorites_.$id'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CouponItemIdRouteImport } from './routes/coupon.$itemId'
@@ -223,6 +225,11 @@ const FollowRoute = FollowRouteImport.update({
   path: '/follow',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FamiliarFavoritesRoute = FamiliarFavoritesRouteImport.update({
+  id: '/familiar-favorites',
+  path: '/familiar-favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmployeeRoute = EmployeeRouteImport.update({
   id: '/employee',
   path: '/employee',
@@ -329,6 +336,11 @@ const HooksNationalPricesMonthlyRoute =
 const GuidesSlugRoute = GuidesSlugRouteImport.update({
   id: '/guides/$slug',
   path: '/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FamiliarFavoritesIdRoute = FamiliarFavoritesIdRouteImport.update({
+  id: '/familiar-favorites_/$id',
+  path: '/familiar-favorites/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventReferenceRoute = EventReferenceRouteImport.update({
@@ -802,6 +814,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/familiar-favorites': typeof FamiliarFavoritesRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inspired': typeof InspiredRoute
@@ -887,6 +900,7 @@ export interface FileRoutesByFullPath {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/familiar-favorites/$id': typeof FamiliarFavoritesIdRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
@@ -931,6 +945,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/familiar-favorites': typeof FamiliarFavoritesRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inspired': typeof InspiredRoute
@@ -1015,6 +1030,7 @@ export interface FileRoutesByTo {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/familiar-favorites/$id': typeof FamiliarFavoritesIdRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
@@ -1061,6 +1077,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
+  '/familiar-favorites': typeof FamiliarFavoritesRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inspired': typeof InspiredRoute
@@ -1146,6 +1163,7 @@ export interface FileRoutesById {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/familiar-favorites_/$id': typeof FamiliarFavoritesIdRoute
   '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
@@ -1193,6 +1211,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/familiar-favorites'
     | '/follow'
     | '/forgot-password'
     | '/inspired'
@@ -1278,6 +1297,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/familiar-favorites/$id'
     | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
@@ -1322,6 +1342,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/familiar-favorites'
     | '/follow'
     | '/forgot-password'
     | '/inspired'
@@ -1406,6 +1427,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/familiar-favorites/$id'
     | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
@@ -1451,6 +1473,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/dashboard'
     | '/employee'
+    | '/familiar-favorites'
     | '/follow'
     | '/forgot-password'
     | '/inspired'
@@ -1536,6 +1559,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/familiar-favorites_/$id'
     | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
@@ -1582,6 +1606,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
+  FamiliarFavoritesRoute: typeof FamiliarFavoritesRoute
   FollowRoute: typeof FollowRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InspiredRoute: typeof InspiredRoute
@@ -1610,6 +1635,7 @@ export interface RootRouteChildren {
   CouponItemIdRoute: typeof CouponItemIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
+  FamiliarFavoritesIdRoute: typeof FamiliarFavoritesIdRoute
   GuidesSlugRoute: typeof GuidesSlugRoute
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   HooksRecipeDripRoute: typeof HooksRecipeDripRoute
@@ -1746,6 +1772,13 @@ declare module '@tanstack/react-router' {
       path: '/follow'
       fullPath: '/follow'
       preLoaderRoute: typeof FollowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/familiar-favorites': {
+      id: '/familiar-favorites'
+      path: '/familiar-favorites'
+      fullPath: '/familiar-favorites'
+      preLoaderRoute: typeof FamiliarFavoritesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/employee': {
@@ -1893,6 +1926,13 @@ declare module '@tanstack/react-router' {
       path: '/guides/$slug'
       fullPath: '/guides/$slug'
       preLoaderRoute: typeof GuidesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/familiar-favorites_/$id': {
+      id: '/familiar-favorites_/$id'
+      path: '/familiar-favorites/$id'
+      fullPath: '/familiar-favorites/$id'
+      preLoaderRoute: typeof FamiliarFavoritesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/event/$reference': {
@@ -2789,6 +2829,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
+  FamiliarFavoritesRoute: FamiliarFavoritesRoute,
   FollowRoute: FollowRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InspiredRoute: InspiredRoute,
@@ -2817,6 +2858,7 @@ const rootRouteChildren: RootRouteChildren = {
   CouponItemIdRoute: CouponItemIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
+  FamiliarFavoritesIdRoute: FamiliarFavoritesIdRoute,
   GuidesSlugRoute: GuidesSlugRoute,
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   HooksRecipeDripRoute: HooksRecipeDripRoute,
