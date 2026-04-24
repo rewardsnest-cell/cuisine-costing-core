@@ -29,7 +29,7 @@ const STATIC_GROUPS: Record<string, string[]> = {
     "/blog/winter-wedding-catering-guide",
   ],
   guides: ["/guides"],
-  inspired: ["/inspired"],
+  familiar_favorites: ["/familiar-favorites"],
   quote: ["/catering/quote"],
 };
 

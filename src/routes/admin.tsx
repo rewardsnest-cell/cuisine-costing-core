@@ -51,7 +51,7 @@ export const NAV_GROUPS: { label: string; items: { to: string; label: string; ic
     label: "Content",
     items: [
       { to: "/admin/recipes", label: "Recipes", icon: ChefHat },
-      { to: "/admin/inspired-preview", label: "Inspired Preview", icon: Sparkles },
+      { to: "/admin/inspired-preview", label: "Familiar Favorites Preview", icon: Sparkles },
       { to: "/admin/guides", label: "Cooking Guides", icon: NotebookPen },
       { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
     ],

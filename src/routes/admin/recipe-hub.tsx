@@ -616,9 +616,9 @@ function RecipeHub() {
             value={inspiredFilter}
             onChange={setInspiredFilter}
             options={[
-              ["all", "Any inspired"],
-              ["inspired", "Inspired only"],
-              ["non-inspired", "Non-inspired"],
+              ["all", "Any Familiar Favorite"],
+              ["inspired", "Familiar Favorites only"],
+              ["non-inspired", "Not a Familiar Favorite"],
               ["phase-off", "Phase: off"],
               ["phase-admin_preview", "Phase: preview"],
               ["phase-soft_launch", "Phase: soft"],

@@ -29,7 +29,8 @@ export const PHASE_BADGE_CLASS: Record<VisibilityPhase, string> = {
 };
 
 export type FeatureKey =
-  | "inspired"
+  | "familiar_favorites"
+  | "inspired" // legacy alias, kept for backward compatibility — prefer familiar_favorites
   | "recipes"
   | "guides"
   | "menu"

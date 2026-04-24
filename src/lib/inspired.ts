@@ -13,9 +13,9 @@ export const PHASE_LABEL: Record<InspiredPhase, string> = {
 
 export const PHASE_DESCRIPTION: Record<InspiredPhase, string> = {
   off: "Hidden everywhere.",
-  admin_preview: "Visible only to admins on /admin/inspired-preview.",
+  admin_preview: "Visible only to admins on the Familiar Favorites preview page.",
   soft_launch: "Reachable by direct URL only — not in nav or index.",
-  public: "Visible on /inspired and counts toward nav visibility.",
+  public: "Visible on /familiar-favorites and counts toward nav visibility.",
 };
 
 export const PHASE_BADGE_CLASS: Record<InspiredPhase, string> = {
@@ -26,9 +26,12 @@ export const PHASE_BADGE_CLASS: Record<InspiredPhase, string> = {
 };
 
 /**
- * Reads the public app_kv toggle that gates whether the Inspired link
- * appears in the public nav, and also confirms ≥1 recipe is in `public`
- * phase. Both must be true for the nav link to render.
+ * Reads the public feature_visibility row that gates whether the Familiar
+ * Favorites link appears in the public nav, and also confirms ≥1 recipe is in
+ * `public` phase. Both must be true for the nav link to render.
+ *
+ * Note: internal recipe column is still `inspired` / `inspired_phase` for
+ * backward compatibility — only the public label and feature_key are renamed.
  */
 export function useInspiredNavVisible() {
   const [navEnabled, setNavEnabled] = useState<boolean | null>(null);
@@ -37,11 +40,11 @@ export function useInspiredNavVisible() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: kv }, { count }] = await Promise.all([
+      const [{ data: vis }, { count }] = await Promise.all([
         (supabase as any)
-          .from("app_kv")
-          .select("value")
-          .eq("key", "inspired.nav_enabled")
+          .from("feature_visibility")
+          .select("phase, nav_enabled")
+          .eq("feature_key", "familiar_favorites")
           .maybeSingle(),
         (supabase as any)
           .from("recipes")
@@ -52,7 +55,7 @@ export function useInspiredNavVisible() {
           .eq("active", true),
       ]);
       if (cancelled) return;
-      setNavEnabled(kv?.value === "true");
+      setNavEnabled(!!vis && vis.phase === "public" && !!vis.nav_enabled);
       setHasPublic((count ?? 0) > 0);
     })();
     return () => { cancelled = true; };

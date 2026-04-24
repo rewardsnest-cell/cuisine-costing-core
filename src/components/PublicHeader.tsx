@@ -50,8 +50,8 @@ export function PublicHeader() {
           {showLink("menu") && <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>}
           {showLink("weddings") && <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>}
           {showLink("recipes") && <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>}
-          {(showLink("inspired") || isAdmin) && (
-            <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
+          {(showLink("familiar_favorites") || isAdmin) && (
+            <Link to="/familiar-favorites" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Familiar Favorites</Link>
           )}
           {showLink("guides") && <Link to="/guides" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>}
           {showLink("blog") && <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Blog</Link>}
@@ -80,8 +80,8 @@ export function PublicHeader() {
               {showLink("menu") && <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>}
               {showLink("weddings") && <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>}
               {showLink("recipes") && <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>}
-              {(showLink("inspired") || isAdmin) && (
-                <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
+              {(showLink("familiar_favorites") || isAdmin) && (
+                <DropdownMenuItem asChild><Link to="/familiar-favorites">Familiar Favorites</Link></DropdownMenuItem>
               )}
               {showLink("guides") && <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>}
               {showLink("blog") && <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>}

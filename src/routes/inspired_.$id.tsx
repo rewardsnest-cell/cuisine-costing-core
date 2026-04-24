@@ -1,9 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 /**
- * /inspired/$id is a stable public URL for an Inspired recipe, but the actual
- * detail rendering lives at /recipes/$id (single source of truth). We redirect
- * server-side so links/SEO resolve cleanly.
+ * Legacy /inspired/$id route. The detail page lives at /recipes/$id; we
+ * redirect there directly to preserve SEO continuity.
  */
 export const Route = createFileRoute("/inspired_/$id")({
   loader: ({ params }) => {
