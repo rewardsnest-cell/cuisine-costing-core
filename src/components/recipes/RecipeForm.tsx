@@ -617,6 +617,7 @@ export function RecipeForm({
                           );
                           updateIngredient(idx, {
                             inventory_item_id: inv.id,
+                            reference_id: inv.reference_id ?? null,
                             name: inv.name,
                             unit: ing.unit || inv.unit,
                             cost_per_unit:
@@ -627,6 +628,7 @@ export function RecipeForm({
                         } else if (typeof freeText === "string") {
                           updateIngredient(idx, {
                             inventory_item_id: null,
+                            reference_id: null,
                             name: freeText,
                           });
                         }
