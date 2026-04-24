@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
-// Public scaling rule for home-cook recipes: only 1, 5, or 10 servings.
+// Public scaling rule for home-cook recipes: 1 through 10 servings.
 // Anything beyond that funnels to /catering/quote.
-const PUBLIC_SERVING_OPTIONS = [1, 5, 10] as const;
+const PUBLIC_MIN = 1;
+const PUBLIC_MAX = 10;
 
 type Ingredient = {
   id: string;
