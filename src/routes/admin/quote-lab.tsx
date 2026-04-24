@@ -15,97 +15,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff, ShieldCheck, Lock } from "lucide-react";
+import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { PRICING_VISIBILITY_KEY, usePricingVisibility } from "@/lib/use-pricing-visibility";
-
-/**
- * Guardrails — Quote Lab safety contract
- * --------------------------------------
- * Quote Lab is admin-only sandbox. To prevent test actions from ever writing
- * pricing or market intelligence data into production quote records, every
- * write path in this file MUST go through these helpers:
- *
- *   - LAB_ALLOWED_QUOTE_UPDATE_FIELDS — whitelist of safe columns Lab may write.
- *   - LAB_FORBIDDEN_QUOTE_FIELDS      — explicit deny-list (pricing/cost/market).
- *   - assertLabSafeQuoteUpdate(patch) — throws if any patch key is forbidden or
- *                                       not on the whitelist.
- *   - assertLabTargetQuote(quote)     — throws if the quote is not is_test=true.
- *
- * Any new write must extend the whitelist deliberately. Anything pricing- or
- * market-intelligence-related (subtotal, tax_rate, total, theoretical_cost,
- * actual_cost, competitor_*, market_*, pricing_*) is permanently denied.
- */
-
-// Columns Quote Lab is allowed to write on the `quotes` table.
-const LAB_ALLOWED_QUOTE_UPDATE_FIELDS = new Set<string>([
-  "client_name",
-  "client_email",
-  "client_phone",
-  "event_type",
-  "event_date",
-  "guest_count",
-  "dietary_preferences",
-  "notes",
-  "location_name",
-  "location_address",
-  "quote_state",
-  "status",
-  "is_test",
-  "conversation",
-]);
-
-// Explicit deny-list — pricing & market intelligence outputs. Even if added to
-// the whitelist by mistake, these patterns are double-checked at runtime.
-const LAB_FORBIDDEN_FIELD_PATTERNS = [
-  /^subtotal$/i,
-  /^total$/i,
-  /^tax_/i,
-  /^theoretical_cost$/i,
-  /^actual_cost$/i,
-  /^.*_cost$/i,
-  /^.*_price$/i,
-  /^pricing_/i,
-  /^competitor_/i,
-  /^market_/i,
-  /^margin_/i,
-];
-
-function isForbiddenField(key: string): boolean {
-  if (!LAB_ALLOWED_QUOTE_UPDATE_FIELDS.has(key)) return true;
-  return LAB_FORBIDDEN_FIELD_PATTERNS.some((re) => re.test(key));
-}
-
-function assertLabSafeQuoteUpdate(patch: Record<string, unknown>) {
-  const offenders = Object.keys(patch).filter(isForbiddenField);
-  if (offenders.length) {
-    const msg = `Quote Lab guardrail blocked write to: ${offenders.join(", ")}`;
-    console.error("[quote-lab guardrail]", msg, patch);
-    throw new Error(msg);
-  }
-}
-
-function assertLabTargetQuote(q: { is_test: boolean; reference_number: string | null; id: string }) {
-  if (!q.is_test) {
-    const ref = q.reference_number ?? q.id.slice(0, 8);
-    throw new Error(`Refusing to operate on non-TEST quote ${ref}. Promote to TEST first or open it in Saved Quotes.`);
-  }
-}
-
-/**
- * Safe wrapper for any Lab-originated quote update. Validates the patch and
- * the target row's is_test flag before issuing the Supabase update. Returns
- * the Supabase response so callers can keep their existing error handling.
- */
-async function labSafeUpdateQuote(
-  target: { id: string; is_test: boolean; reference_number: string | null },
-  patch: Record<string, unknown>,
-) {
-  assertLabTargetQuote(target);
-  assertLabSafeQuoteUpdate(patch);
-  return (supabase as any).from("quotes").update(patch).eq("id", target.id).eq("is_test", true);
-}
 
 export const Route = createFileRoute("/admin/quote-lab")({
   head: () => ({
@@ -215,82 +128,56 @@ function QuoteLabPage() {
     setCreating(true);
     try {
       const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
-      // Build the insert payload through the same whitelist + force is_test=true.
-      const insertPayload = {
-        client_name: `TEST Client (${stamp})`,
-        client_email: `test+${Date.now()}@example.com`,
-        event_type: "Wedding",
-        guest_count: 1,
-        dietary_preferences: { intake: { sourcePage: "admin/quote-lab", venue: "Test venue" } },
-        quote_state: "initiated",
-        status: "draft",
-        is_test: true as const, // hard-locked: Lab never creates real quotes.
-        user_id: user?.id || null,
-      };
-      // Defensive: ensure no pricing fields slipped in.
-      assertLabSafeQuoteUpdate({
-        client_name: insertPayload.client_name,
-        client_email: insertPayload.client_email,
-        event_type: insertPayload.event_type,
-        guest_count: insertPayload.guest_count,
-        dietary_preferences: insertPayload.dietary_preferences,
-        quote_state: insertPayload.quote_state,
-        status: insertPayload.status,
-        is_test: insertPayload.is_test,
-      });
       const { data, error } = await (supabase as any)
         .from("quotes")
-        .insert(insertPayload)
+        .insert({
+          client_name: `TEST Client (${stamp})`,
+          client_email: `test+${Date.now()}@example.com`,
+          event_type: "Wedding",
+          guest_count: 1,
+          dietary_preferences: { intake: { sourcePage: "admin/quote-lab", venue: "Test venue" } },
+          quote_state: "initiated",
+          status: "draft",
+          is_test: true,
+          user_id: user?.id || null,
+        })
         .select("id, reference_number")
         .single();
       if (error) throw error;
       toast.success("Test quote created", { description: `Reference: ${data?.reference_number ?? "—"}` });
       await load();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(err?.message || "Couldn't create test quote");
+      toast.error("Couldn't create test quote");
     } finally {
       setCreating(false);
     }
   };
 
   const toggleTest = async (q: LabQuote, value: boolean) => {
-    // Guardrail: Quote Lab will not promote a TEST quote into a REAL one.
-    // Real quotes must be created through the public intake flow.
-    if (q.is_test && !value) {
-      toast.error("Quote Lab can't convert TEST → REAL. Use Saved Quotes for promotions.");
+    const { error } = await (supabase as any)
+      .from("quotes")
+      .update({ is_test: value })
+      .eq("id", q.id);
+    if (error) {
+      toast.error("Couldn't update TEST flag");
       return;
     }
-    if (!q.is_test && value) {
-      // Marking an existing real quote as TEST is allowed (it removes it from
-      // production reporting), but we surface a clear confirmation toast.
-      const ok = typeof window === "undefined" ? true : window.confirm(
-        `Mark real quote ${q.reference_number ?? q.id.slice(0, 8)} as TEST? It will be excluded from production analytics.`,
-      );
-      if (!ok) return;
-    }
-    try {
-      const { error } = await (supabase as any)
-        .from("quotes")
-        .update({ is_test: value })
-        .eq("id", q.id);
-      if (error) throw error;
-      setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, is_test: value } : x)));
-      toast.success(value ? "Marked as TEST" : "Marked as REAL");
-    } catch (err: any) {
-      toast.error(err?.message || "Couldn't update TEST flag");
-    }
+    setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, is_test: value } : x)));
+    toast.success(value ? "Marked as TEST" : "Marked as REAL");
   };
 
   const setState = async (q: LabQuote, state: QuoteState) => {
-    try {
-      const { error } = await labSafeUpdateQuote(q, { quote_state: state });
-      if (error) throw error;
-      setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, quote_state: state } : x)));
-      toast.success(`State set to ${state}`);
-    } catch (err: any) {
-      toast.error(err?.message || "Couldn't change state");
+    const { error } = await (supabase as any)
+      .from("quotes")
+      .update({ quote_state: state })
+      .eq("id", q.id);
+    if (error) {
+      toast.error("Couldn't change state");
+      return;
     }
+    setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, quote_state: state } : x)));
+    toast.success(`State set to ${state}`);
   };
 
   const transcript: { role: string; content: string }[] | null = (() => {
@@ -322,23 +209,6 @@ function QuoteLabPage() {
           </Button>
         </div>
       </header>
-
-      <Card className="border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/10">
-        <CardContent className="p-4 flex items-start gap-3">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-semibold text-emerald-700 dark:text-emerald-300">
-              Lab guardrails are active
-            </p>
-            <ul className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80 list-disc pl-5 space-y-0.5">
-              <li>Lab actions only operate on quotes flagged <span className="font-mono">is_test=true</span>.</li>
-              <li>Pricing fields (subtotal, totals, theoretical/actual cost) and market intelligence outputs are blocked at the write layer.</li>
-              <li>Lab cannot promote a TEST quote into a REAL one.</li>
-              <li>New quotes from this page are always created as TEST.</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="p-5 flex flex-wrap items-center justify-between gap-4">
@@ -442,14 +312,8 @@ function QuoteLabPage() {
                         onCheckedChange={(v) => toggleTest(q, v)}
                       />
                     </div>
-                    <Select
-                      value={q.quote_state}
-                      onValueChange={(v) => setState(q, v as QuoteState)}
-                      disabled={!q.is_test}
-                    >
-                      <SelectTrigger className="h-8 w-[170px] text-xs" title={!q.is_test ? "Disabled — not a TEST quote" : undefined}>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={q.quote_state} onValueChange={(v) => setState(q, v as QuoteState)}>
+                      <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {QUOTE_STATES.map((s) => (
                           <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
@@ -461,16 +325,8 @@ function QuoteLabPage() {
                         <MessageSquare className="w-3.5 h-3.5" /> Transcript
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={() => setEditing(q)}
-                      disabled={!q.is_test}
-                      title={!q.is_test ? "Disabled — not a TEST quote" : undefined}
-                    >
-                      {q.is_test ? <Eye className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                      Edit intake
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditing(q)}>
+                      <Eye className="w-3.5 h-3.5" /> Edit intake
                     </Button>
                     <Link to="/admin/quotes/$id" params={{ id: q.id }}>
                       <Button size="sm" variant="ghost" className="gap-1">
@@ -539,22 +395,23 @@ function EditIntakeDialog({
 
   const save = async () => {
     setSaving(true);
-    try {
-      const { error } = await labSafeUpdateQuote(quote, {
+    const { error } = await (supabase as any)
+      .from("quotes")
+      .update({
         client_name: name || null,
         client_email: email || null,
         event_type: eventType || null,
         event_date: eventDate || null,
-      });
-      if (error) throw error;
-      toast.success("Intake updated");
-      onSaved();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Save failed");
-    } finally {
-      setSaving(false);
+      })
+      .eq("id", quote.id);
+    setSaving(false);
+    if (error) {
+      console.error(error);
+      toast.error("Save failed");
+      return;
     }
+    toast.success("Intake updated");
+    onSaved();
   };
 
   return (
