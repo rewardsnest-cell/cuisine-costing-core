@@ -53,36 +53,88 @@ export type FeatureVisibility = {
   updated_at: string;
 };
 
-/**
- * Subscribe to the entire registry. Returns a Map keyed by feature_key.
- * Safe to call from many components — Supabase coalesces requests.
- */
-export function useFeatureVisibilityMap() {
-  const [map, setMap] = useState<Map<string, FeatureVisibility> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const subscribers = new Set<() => void>();
+let sharedMap: Map<string, FeatureVisibility> | null = null;
+let sharedLoading = true;
+let sharedError: string | null = null;
+let inFlight: Promise<void> | null = null;
 
-  const refetch = useCallback(async () => {
+function notifySubscribers() {
+  for (const subscriber of subscribers) subscriber();
+}
+
+function buildVisibilityMap(rows: FeatureVisibility[]) {
+  const map = new Map<string, FeatureVisibility>();
+  for (const row of rows) {
+    map.set(row.feature_key, row);
+  }
+  return map;
+}
+
+async function fetchFeatureVisibilityRegistry() {
+  if (inFlight) return inFlight;
+
+  sharedLoading = true;
+  notifySubscribers();
+
+  inFlight = (async () => {
     try {
       const { data, error } = await (supabase as any)
         .from("feature_visibility")
         .select("feature_key, phase, nav_enabled, seo_indexing_enabled, notes, updated_by, updated_at");
       if (error) throw error;
-      const m = new Map<string, FeatureVisibility>();
-      for (const row of (data ?? []) as FeatureVisibility[]) {
-        m.set(row.feature_key, row);
-      }
-      setMap(m);
-      setError(null);
+
+      sharedMap = buildVisibilityMap((data ?? []) as FeatureVisibility[]);
+      sharedError = null;
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load feature visibility");
+      sharedError = e?.message ?? "Failed to load feature visibility";
     } finally {
-      setLoading(false);
+      sharedLoading = false;
+      inFlight = null;
+      notifySubscribers();
     }
+  })();
+
+  return inFlight;
+}
+
+export function syncFeatureVisibilityRows(rows: FeatureVisibility[]) {
+  sharedMap = buildVisibilityMap(rows);
+  sharedLoading = false;
+  sharedError = null;
+  notifySubscribers();
+}
+
+/**
+ * Subscribe to the entire registry. Returns a Map keyed by feature_key.
+ * Safe to call from many components — Supabase coalesces requests.
+ */
+export function useFeatureVisibilityMap() {
+  const [map, setMap] = useState<Map<string, FeatureVisibility> | null>(sharedMap);
+  const [loading, setLoading] = useState(sharedLoading);
+  const [error, setError] = useState<string | null>(sharedError);
+
+  const refetch = useCallback(async () => {
+    await fetchFeatureVisibilityRegistry();
   }, []);
 
   useEffect(() => {
-    void refetch();
+    const syncFromStore = () => {
+      setMap(sharedMap);
+      setLoading(sharedLoading);
+      setError(sharedError);
+    };
+
+    subscribers.add(syncFromStore);
+    syncFromStore();
+
+    if (sharedMap === null && sharedLoading) {
+      void fetchFeatureVisibilityRegistry();
+    }
+
+    return () => {
+      subscribers.delete(syncFromStore);
+    };
   }, [refetch]);
 
   return { map, loading, error, refetch };
