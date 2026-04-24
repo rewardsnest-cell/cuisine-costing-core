@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info } from "lucide-react";
+import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import {
   ingestKrogerPrices,
@@ -36,6 +37,7 @@ function KrogerRunsPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [customLimit, setCustomLimit] = useState<string>("");
   const pollRef = useRef<number | null>(null);
 
   const load = async () => {
@@ -66,8 +68,12 @@ function KrogerRunsPage() {
     if (pollRef.current) return;
     pollRef.current = window.setInterval(async () => {
       try {
-        const r = await listKrogerRuns({ data: { limit: 25 } });
+        const [r, s] = await Promise.all([
+          listKrogerRuns({ data: { limit: 25 } }),
+          getKrogerStatus(),
+        ]);
         setRuns(r);
+        setStatus(s);
       } catch {}
     }, 2500);
     return () => {
@@ -75,12 +81,12 @@ function KrogerRunsPage() {
     };
   }, [runs]);
 
-  const onRun = async () => {
+  const triggerIngest = async (limit: number) => {
     setRunning(true);
     try {
-      const res = await ingestKrogerPrices({ data: {} });
+      const res = await ingestKrogerPrices({ data: { limit } });
       if (res.ran) {
-        toast.success(res.message);
+        toast.success(res.message + (limit === 0 ? " (all items)" : ` (limit ${limit})`));
         setActiveRunId(res.run_id ?? null);
       } else {
         toast.message(res.message);
@@ -91,6 +97,14 @@ function KrogerRunsPage() {
     } finally {
       setRunning(false);
     }
+  };
+
+  const onRunDefault = () => triggerIngest(25);
+  const onRunAll = () => triggerIngest(0);
+  const onRunCustom = () => {
+    const n = parseInt(customLimit, 10);
+    if (!Number.isFinite(n) || n < 1) { toast.error("Enter a number ≥ 1"); return; }
+    triggerIngest(n);
   };
 
   const latest = runs[0] ?? null;
@@ -105,13 +119,29 @@ function KrogerRunsPage() {
             Trigger and monitor background Kroger price ingest runs. Refresh anytime — runs continue server-side.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={onRun} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
+          <Link to="/admin/kroger-sku-review"><Button size="sm" variant="outline" className="gap-1"><ListChecks className="w-3.5 h-3.5" />SKUs ({status?.mapped_skus ?? 0}+{status?.unmapped_skus ?? 0})</Button></Link>
+          <Link to="/admin/kroger-pricing"><Button size="sm" variant="outline" className="gap-1"><LineChartIcon className="w-3.5 h-3.5" />Price history ({status?.price_history_rows ?? 0})</Button></Link>
+          <Button size="sm" variant="outline" onClick={onRunDefault} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
-            Run ingest
+            Run 25
+          </Button>
+          <div className="flex items-center gap-1">
+            <Input
+              value={customLimit}
+              onChange={(e) => setCustomLimit(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder="N"
+              className="h-8 w-16 text-sm"
+              disabled={running || !status?.enabled || !status?.keys_configured}
+            />
+            <Button size="sm" variant="outline" onClick={onRunCustom} disabled={running || !status?.enabled || !status?.keys_configured || !customLimit}>Run N</Button>
+          </div>
+          <Button size="sm" onClick={onRunAll} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
+            {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+            Run all items
           </Button>
         </div>
       </div>
