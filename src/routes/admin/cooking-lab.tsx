@@ -1295,6 +1295,41 @@ function EntryCard({
                 </div>
               </DialogContent>
             </Dialog>
+            {draft.status === "published" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => unpublishMut.mutate()}
+                disabled={unpublishMut.isPending}
+                title="Move back to draft and hide from public site"
+              >
+                {unpublishMut.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Unpublish</>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => publishMut.mutate()}
+                disabled={publishMut.isPending || !qaAllPassed || !linksAllPassed}
+                title={
+                  !qaAllPassed
+                    ? "Complete all 5 QA checklist items first"
+                    : !linksAllPassed
+                      ? "Fix link validation errors first"
+                      : "Publish and show on /cooking-lab"
+                }
+              >
+                {publishMut.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Publish</>
+                )}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
