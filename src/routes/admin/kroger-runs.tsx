@@ -206,6 +206,94 @@ function KrogerRunsPage() {
         </Alert>
       )}
 
+      <Card className="border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FlaskConical className="w-4 h-4" /> Test ingest
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Run a small synchronous batch against an optional location override. Returns matching counts and top error reasons inline. Saved location is not changed.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <label className="text-xs font-medium flex items-center gap-1"><MapPin className="w-3 h-3" />Location ID (override)</label>
+              <Input
+                value={testLocation}
+                onChange={(e) => setTestLocation(e.target.value)}
+                placeholder={status?.location_id ?? "e.g. 01400943"}
+                className="h-8 w-48 text-sm font-mono"
+                disabled={testRunning || !status?.enabled || !status?.keys_configured}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium">Items (1–25)</label>
+              <Input
+                value={testLimit}
+                onChange={(e) => setTestLimit(e.target.value.replace(/[^0-9]/g, ""))}
+                className="h-8 w-20 text-sm"
+                disabled={testRunning || !status?.enabled || !status?.keys_configured}
+              />
+            </div>
+            <Button size="sm" onClick={onRunTest} disabled={testRunning || !status?.enabled || !status?.keys_configured} className="gap-1 h-8">
+              {testRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+              Run test ingest
+            </Button>
+            {testResult && (
+              <Button size="sm" variant="ghost" onClick={() => setTestResult(null)} className="h-8 text-xs">
+                Clear result
+              </Button>
+            )}
+          </div>
+
+          {testResult && testResult.ran && (
+            <div className="space-y-3 rounded-md border bg-background p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant="outline">loc: {testResult.location_id ?? "(none)"}</Badge>
+                <Badge variant="outline">limit: {testResult.item_limit}</Badge>
+                <Badge variant="outline">match rate: {(testResult.summary.match_rate * 100).toFixed(0)}%</Badge>
+                <span className="text-muted-foreground ml-auto">run id: {testResult.run_id.slice(0, 8)}…</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <StatCard label="Queried" value={testResult.summary.items_queried} icon={ListChecks} tone="neutral" />
+                <StatCard label="Matched" value={testResult.summary.items_matched} icon={CheckCircle2} tone="success" />
+                <StatCard label="Errors" value={testResult.summary.items_with_errors} icon={AlertTriangle} tone={testResult.summary.items_with_errors > 0 ? "destructive" : "neutral"} />
+                <StatCard label="Price rows" value={testResult.summary.price_rows_written} icon={LineChartIcon} tone="primary" />
+                <StatCard label="SKUs touched" value={testResult.summary.sku_map_rows_touched} icon={ListChecks} tone="primary" />
+              </div>
+              {testResult.top_error_reasons.length > 0 ? (
+                <div className="border rounded-md border-destructive/30">
+                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium text-destructive flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />Top error reasons
+                  </div>
+                  <div className="divide-y">
+                    {testResult.top_error_reasons.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 items-center">
+                        <Badge variant="destructive" className="tabular-nums">{r.count}×</Badge>
+                        <span className="font-mono break-all">{r.reason}</span>
+                        <span className="text-muted-foreground truncate" title={r.example_item}>e.g. {r.example_item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />No errors in this batch.
+                </p>
+              )}
+            </div>
+          )}
+
+          {testResult && !testResult.ran && (
+            <Alert variant="destructive">
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription>{testResult.message}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="border-primary/30">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
