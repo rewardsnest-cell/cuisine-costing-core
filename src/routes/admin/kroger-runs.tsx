@@ -161,51 +161,64 @@ function KrogerRunsPage() {
         </Alert>
       )}
 
-      <Card>
+      <Card className="border-primary/30">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="w-4 h-4" /> Latest run summary
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Activity className="w-4 h-4" /> Last run
+            </CardTitle>
+            {latest && (
+              <div className="flex items-center gap-2">
+                <RunStatusBadge status={latest.status} />
+                <span className="text-xs text-muted-foreground">{new Date(latest.created_at).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {!latest ? (
-            <p className="text-sm text-muted-foreground">No runs yet. Click "Run ingest" to start one.</p>
+            <p className="text-sm text-muted-foreground">No runs yet. Click "Run 25" or "Run all items" to start one.</p>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <RunStatusBadge status={latest.status} />
-                <span className="text-sm text-muted-foreground">
-                  {new Date(latest.created_at).toLocaleString()}
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
                 {latest.location_id && (
                   <Badge variant="outline" className="text-xs">loc: {latest.location_id}</Badge>
                 )}
-                {latest.item_limit && (
-                  <Badge variant="outline" className="text-xs">limit: {latest.item_limit}</Badge>
+                {latest.item_limit != null && (
+                  <Badge variant="outline" className="text-xs">limit: {latest.item_limit === 0 ? "all" : latest.item_limit}</Badge>
+                )}
+                {latest.started_at && latest.finished_at && (
+                  <Badge variant="outline" className="text-xs">
+                    duration: {Math.max(0, Math.round((new Date(latest.finished_at).getTime() - new Date(latest.started_at).getTime()) / 1000))}s
+                  </Badge>
                 )}
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <Stat label="Items queried" value={latest.items_queried} />
-                <Stat label="Price rows" value={latest.price_rows_written} />
-                <Stat label="SKU map rows" value={latest.sku_map_rows_touched} />
-                <Stat label="Errors" value={latestErrors.length} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard label="SKUs queried" value={latest.items_queried} icon={ListChecks} tone="neutral" />
+                <StatCard label="Prices written" value={latest.price_rows_written} icon={LineChartIcon} tone="primary" />
+                <StatCard label="SKUs mapped" value={latest.sku_map_rows_touched} icon={CheckCircle2} tone="success" />
+                <StatCard label="Errors" value={latestErrors.length} icon={AlertTriangle} tone={latestErrors.length > 0 ? "destructive" : "neutral"} />
               </div>
               {latest.message && (
                 <p className="text-sm text-muted-foreground italic">{latest.message}</p>
               )}
-              {latestErrors.length > 0 && (
-                <div className="border rounded-md">
-                  <div className="px-3 py-2 border-b bg-muted/30 text-xs font-medium">Recent errors ({latestErrors.length})</div>
-                  <div className="max-h-64 overflow-auto divide-y">
-                    {latestErrors.slice(0, 50).map((e, i) => (
-                      <div key={i} className="px-3 py-1.5 text-xs flex gap-3">
-                        <span className="font-medium min-w-0 truncate">{e.item}</span>
-                        <span className="text-destructive flex-1 min-w-0 truncate">{e.error}</span>
+              {latestErrors.length > 0 ? (
+                <div className="border rounded-md border-destructive/30">
+                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-destructive"><AlertTriangle className="w-3.5 h-3.5" />All errors ({latestErrors.length})</span>
+                  </div>
+                  <div className="max-h-80 overflow-auto divide-y">
+                    {latestErrors.map((e, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
+                        <span className="font-medium truncate" title={e.item}>{e.item}</span>
+                        <span className="text-destructive break-words" title={e.error}>{e.error}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : latest.status === "completed" ? (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />No errors reported.</p>
+              ) : null}
             </div>
           )}
         </CardContent>
