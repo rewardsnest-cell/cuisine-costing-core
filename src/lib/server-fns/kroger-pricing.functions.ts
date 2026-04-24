@@ -391,6 +391,107 @@ export const ingestKrogerPrices = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * Synchronous "test ingest" — runs a small batch inline (no background queue)
+ * with an optional location override, and returns rich summary stats so the
+ * admin can see matching counts and top error reasons immediately.
+ *
+ * Does NOT mutate app_kv (the saved location). Override is per-call only.
+ * Still writes to price_history / kroger_sku_map / kroger_ingest_runs like a normal run.
+ */
+export const testIngestKrogerPrices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { limit?: number; location_id?: string | null } | undefined) => d ?? {})
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    const enabled = await isKrogerEnabled();
+    if (!enabled) {
+      return { ran: false, reason: "feature_disabled", message: "Kroger ingest is disabled. Enable it in Admin → Kroger Pricing." } as const;
+    }
+    if (!process.env.KROGER_CLIENT_ID || !process.env.KROGER_CLIENT_SECRET) {
+      return { ran: false, reason: "missing_keys", message: "Kroger API keys are not configured." } as const;
+    }
+
+    const limit = Math.max(1, Math.min(25, data.limit ?? 5));
+    let locationId: string | null = null;
+    if (typeof data.location_id === "string") {
+      const v = data.location_id.trim();
+      if (v.length > 0) {
+        if (!/^[A-Za-z0-9-]{1,32}$/.test(v)) {
+          return { ran: false, reason: "bad_location", message: "Invalid locationId format (alphanumerics/dashes, ≤32 chars)." } as const;
+        }
+        locationId = v;
+      }
+    } else {
+      locationId = await getKrogerLocationId();
+    }
+
+    const { data: runRow, error: insErr } = await supabaseAdmin
+      .from("kroger_ingest_runs")
+      .insert({
+        status: "queued",
+        triggered_by: context.userId,
+        location_id: locationId,
+        item_limit: limit,
+        message: "Test ingest (synchronous)",
+      })
+      .select("id")
+      .single();
+    if (insErr || !runRow) throw new Error(insErr?.message ?? "Failed to enqueue test run");
+
+    // Run inline so we can return summary stats immediately.
+    await performIngest(runRow.id, { limit, locationId });
+
+    const { data: finished } = await supabaseAdmin
+      .from("kroger_ingest_runs")
+      .select("id,status,items_queried,price_rows_written,sku_map_rows_touched,errors,message,location_id,item_limit,started_at,finished_at,created_at")
+      .eq("id", runRow.id)
+      .maybeSingle();
+
+    const errs = ((finished?.errors as any[]) ?? []) as Array<{ item: string; error: string; http_status?: number }>;
+
+    // Group top error reasons. Use http_status when present; otherwise first
+    // 80 chars of error text (collapsing differing item names / response bodies).
+    const reasonCounts = new Map<string, { count: number; example: string; http_status?: number }>();
+    for (const e of errs) {
+      const key = e.http_status != null
+        ? `HTTP ${e.http_status}`
+        : (e.error || "unknown").slice(0, 80);
+      const cur = reasonCounts.get(key);
+      if (cur) cur.count++;
+      else reasonCounts.set(key, { count: 1, example: e.item, http_status: e.http_status });
+    }
+    const topReasons = Array.from(reasonCounts.entries())
+      .map(([reason, v]) => ({ reason, count: v.count, example_item: v.example, http_status: v.http_status }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    const itemsQueried = finished?.items_queried ?? 0;
+    const priceRows = finished?.price_rows_written ?? 0;
+    const skuTouched = finished?.sku_map_rows_touched ?? 0;
+    const errorCount = errs.length;
+    const matchedItems = Math.max(0, itemsQueried - errorCount);
+
+    return {
+      ran: true,
+      run_id: runRow.id,
+      status: finished?.status ?? "completed",
+      location_id: locationId,
+      item_limit: limit,
+      summary: {
+        items_queried: itemsQueried,
+        items_matched: matchedItems,
+        items_with_errors: errorCount,
+        price_rows_written: priceRows,
+        sku_map_rows_touched: skuTouched,
+        match_rate: itemsQueried > 0 ? matchedItems / itemsQueried : 0,
+      },
+      top_error_reasons: topReasons,
+      message: finished?.message ?? null,
+    } as const;
+  });
+
 export const listKrogerRuns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { limit?: number } | undefined) => d ?? {})
