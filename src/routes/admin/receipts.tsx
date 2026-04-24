@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -53,6 +53,14 @@ function ReceiptsPage() {
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
+  const [compare, setCompare] = useState<{
+    receiptId: string;
+    previousText: string;
+    previousItems: LineItem[];
+    newText: string;
+    newItems: LineItem[];
+    newTotal: number;
+  } | null>(null);
 
   const load = async () => {
     const [{ data: rData }, { data: iData }] = await Promise.all([
@@ -102,14 +110,27 @@ function ReceiptsPage() {
     if (file) handleUpload(file);
   };
 
-  const handleOCR = async (receipt: ReceiptRow) => {
+  const handleOCR = async (receipt: ReceiptRow, opts: { rerun?: boolean } = {}) => {
     if (!receipt.image_url) { toast.error("No image to process"); return; }
     setProcessing(receipt.id);
     try {
       const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
-      const data = await processReceipt({ data: { imageUrl: receipt.image_url, receiptId: receipt.id } });
+      const data = await processReceipt({
+        data: { imageUrl: receipt.image_url, receiptId: receipt.id, rerun: opts.rerun },
+      });
       if (!data.success) throw new Error(data.error || "OCR failed");
       toast.success(`Extracted ${data.line_items?.length || 0} line items`);
+      // On a re-run, surface a side-by-side comparison of OCR text + line items
+      if (opts.rerun) {
+        setCompare({
+          receiptId: receipt.id,
+          previousText: data.previous?.raw_ocr_text ?? receipt.raw_ocr_text ?? "",
+          previousItems: (data.previous?.line_items ?? receipt.extracted_line_items ?? []) as LineItem[],
+          newText: data.raw_ocr_text ?? "",
+          newItems: (data.line_items ?? []) as LineItem[],
+          newTotal: Number(data.total_amount) || 0,
+        });
+      }
       load();
     } catch (err: any) {
       console.error("OCR error:", err);
@@ -226,6 +247,7 @@ function ReceiptsPage() {
     switch (status) {
       case "processed": return <CheckCircle className="w-4 h-4 text-success" />;
       case "reviewed": return <FileText className="w-4 h-4 text-gold" />;
+      case "failed": return <AlertTriangle className="w-4 h-4 text-destructive" />;
       default: return <Clock className="w-4 h-4 text-warning" />;
     }
   };
