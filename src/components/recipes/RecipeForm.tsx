@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
+import { convertQty, getConvertedUnitCost, getIngredientCostMetrics } from "@/lib/recipe-costing";
 import { FlippGenerateButton } from "@/components/admin/FlippGenerateButton";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecipePhoto, generateRecipeSocialPhoto } from "@/lib/server/generate-recipe-photos";
@@ -35,6 +35,15 @@ type InvItem = {
   unit: string;
   average_cost_per_unit: number;
   reference_id?: string | null;
+};
+
+type RefItem = {
+  id: string;
+  canonical_name: string;
+  default_unit: string;
+  category: string | null;
+  // present when this reference is already linked to an inventory item
+  inventory_item_id?: string | null;
 };
 
 const emptyIngredient = (): IngredientRow => ({
@@ -90,19 +99,31 @@ export const blankInitial: RecipeFormInitial = {
   ingredients: [emptyIngredient()],
 };
 
-function InventoryPicker({
+function IngredientLinker({
   inventory,
-  value,
+  references,
+  inventoryId,
+  referenceId,
   displayName,
-  onPick,
+  onPickInventory,
+  onPickReference,
+  onTypeFreeText,
 }: {
   inventory: InvItem[];
-  value: string | null;
+  references: RefItem[];
+  inventoryId: string | null;
+  referenceId: string | null;
   displayName: string;
-  onPick: (inv: InvItem | null, freeText?: string) => void;
+  onPickInventory: (inv: InvItem) => void;
+  onPickReference: (ref: RefItem) => void;
+  onTypeFreeText: (text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = value ? inventory.find((i) => i.id === value) : null;
+  const linkedInv = inventoryId ? inventory.find((i) => i.id === inventoryId) : null;
+  const linkedRef = referenceId ? references.find((r) => r.id === referenceId) : null;
+  // Hide reference rows that are already represented by an inventory item to avoid duplicates.
+  const inventoryRefIds = new Set(inventory.map((i) => i.reference_id).filter(Boolean) as string[]);
+  const refsOnly = references.filter((r) => !inventoryRefIds.has(r.id));
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -115,15 +136,15 @@ function InventoryPicker({
           )}
         >
           <span className="truncate">{displayName || "Pick or type ingredient…"}</span>
-          {selected && <Check className="w-3.5 h-3.5 text-success shrink-0 ml-2" />}
+          {(linkedInv || linkedRef) && <Check className="w-3.5 h-3.5 text-success shrink-0 ml-2" />}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[280px]" align="start">
+      <PopoverContent className="p-0 w-[320px]" align="start">
         <Command>
           <CommandInput
-            placeholder="Search inventory or type new…"
+            placeholder="Search inventory or canonical ingredients…"
             defaultValue={displayName}
-            onValueChange={(v) => onPick(null, v)}
+            onValueChange={(v) => onTypeFreeText(v)}
           />
           <CommandList>
             <CommandEmpty>
@@ -131,25 +152,48 @@ function InventoryPicker({
                 No match — your typed text will be used as a manual ingredient.
               </span>
             </CommandEmpty>
-            <CommandGroup heading="Inventory items">
-              {inventory.map((inv) => (
-                <CommandItem
-                  key={inv.id}
-                  value={inv.name}
-                  onSelect={() => {
-                    onPick(inv);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex justify-between w-full items-center">
-                    <span>{inv.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ${Number(inv.average_cost_per_unit).toFixed(2)}/{inv.unit}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {inventory.length > 0 && (
+              <CommandGroup heading="Inventory items">
+                {inventory.map((inv) => (
+                  <CommandItem
+                    key={`inv-${inv.id}`}
+                    value={`inv ${inv.name}`}
+                    onSelect={() => {
+                      onPickInventory(inv);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex justify-between w-full items-center gap-2">
+                      <span className="truncate">{inv.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        ${Number(inv.average_cost_per_unit).toFixed(2)}/{inv.unit}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {refsOnly.length > 0 && (
+              <CommandGroup heading="Canonical ingredients (no inventory yet)">
+                {refsOnly.map((ref) => (
+                  <CommandItem
+                    key={`ref-${ref.id}`}
+                    value={`ref ${ref.canonical_name}`}
+                    onSelect={() => {
+                      onPickReference(ref);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex justify-between w-full items-center gap-2">
+                      <span className="truncate">{ref.canonical_name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {ref.category ? `${ref.category} · ` : ""}{ref.default_unit}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
@@ -173,6 +217,7 @@ export function RecipeForm({
     initial.ingredients.length ? initial.ingredients : [emptyIngredient()],
   );
   const [inventory, setInventory] = useState<InvItem[]>([]);
+  const [references, setReferences] = useState<RefItem[]>([]);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [socialUrl, setSocialUrl] = useState<string | null>(null);
   const [genHero, setGenHero] = useState(false);
@@ -182,13 +227,20 @@ export function RecipeForm({
 
   useEffect(() => {
     (async () => {
-      // Pull reference_id alongside so picking an inventory item auto-resolves
-      // the canonical ingredient_reference link required to publish.
-      const { data } = await supabase
-        .from("inventory_items")
-        .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
-        .order("name");
-      const mapped = (data ?? []).map((row: any) => ({
+      // Pull inventory items + their canonical reference link, AND the full
+      // canonical reference list. This lets admins pick a canonical ingredient
+      // even when no inventory item exists for it yet.
+      const [{ data: invData }, { data: refData }] = await Promise.all([
+        supabase
+          .from("inventory_items")
+          .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
+          .order("name"),
+        supabase
+          .from("ingredient_reference")
+          .select("id,canonical_name,default_unit,category,inventory_item_id")
+          .order("canonical_name"),
+      ]);
+      const mappedInv = (invData ?? []).map((row: any) => ({
         id: row.id,
         name: row.name,
         unit: row.unit,
@@ -197,7 +249,8 @@ export function RecipeForm({
           ? row.ingredient_reference[0]?.id ?? null
           : row.ingredient_reference?.id ?? null,
       })) as InvItem[];
-      setInventory(mapped);
+      setInventory(mappedInv);
+      setReferences((refData ?? []) as RefItem[]);
     })();
   }, []);
 
@@ -401,17 +454,51 @@ export function RecipeForm({
 
       const validIngredients = rowsForSave.filter((i) => i.name.trim());
       if (validIngredients.length > 0 && savedId) {
+        // Force-canonical: for any row with a resolved reference_id, convert
+        // qty into ingredient_reference.default_unit when convertible. Falls
+        // back to the user-entered unit if conversion isn't possible (e.g.
+        // count↔weight without a density).
+        const refIds = Array.from(
+          new Set(validIngredients.map((i) => i.reference_id).filter(Boolean) as string[]),
+        );
+        const refUnitMap = new Map<string, string>();
+        if (refIds.length > 0) {
+          const { data: refRows } = await supabase
+            .from("ingredient_reference")
+            .select("id,default_unit")
+            .in("id", refIds);
+          for (const row of (refRows ?? []) as Array<{ id: string; default_unit: string }>) {
+            if (row.default_unit?.trim()) refUnitMap.set(row.id, row.default_unit.trim());
+          }
+        }
         const { error: ingErr } = await supabase.from("recipe_ingredients").insert(
-          validIngredients.map((ing) => ({
-            recipe_id: savedId!,
-            name: ing.name.trim(),
-            quantity: parseFloat(ing.quantity) || 0,
-            unit: ing.unit.trim() || "each",
-            cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
-            notes: ing.notes || null,
-            inventory_item_id: ing.inventory_item_id,
-            reference_id: ing.reference_id,
-          })),
+          validIngredients.map((ing) => {
+            const rawQty = parseFloat(ing.quantity) || 0;
+            const rawUnit = ing.unit.trim() || "each";
+            const targetUnit = ing.reference_id ? refUnitMap.get(ing.reference_id) : null;
+            let storeQty = rawQty;
+            let storeUnit = rawUnit;
+            if (targetUnit && targetUnit.toLowerCase() !== rawUnit.toLowerCase() && rawQty > 0) {
+              const converted = convertQty(rawQty, rawUnit, targetUnit);
+              if (converted !== null) {
+                storeQty = converted;
+                storeUnit = targetUnit;
+              }
+              // else: keep raw — incompatible families. Surface via UI hint.
+            } else if (targetUnit && !rawUnit) {
+              storeUnit = targetUnit;
+            }
+            return {
+              recipe_id: savedId!,
+              name: ing.name.trim(),
+              quantity: storeQty,
+              unit: storeUnit,
+              cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
+              notes: ing.notes || null,
+              inventory_item_id: ing.inventory_item_id,
+              reference_id: ing.reference_id,
+            };
+          }),
         );
         if (ingErr) throw ingErr;
       }
@@ -746,6 +833,7 @@ export function RecipeForm({
 
             {ingredients.map((ing, idx) => {
               const inv = ing.inventory_item_id ? inventory.find((item) => item.id === ing.inventory_item_id) : null;
+              const ref = ing.reference_id ? references.find((r) => r.id === ing.reference_id) : null;
               const lineTotal = getIngredientCostMetrics({
                 quantity: parseFloat(ing.quantity) || 0,
                 unit: ing.unit,
@@ -754,45 +842,77 @@ export function RecipeForm({
                   ? { average_cost_per_unit: inv.average_cost_per_unit, unit: inv.unit }
                   : null,
               }).lineTotal;
+              // Preview canonical-unit normalization that will run on save.
+              const targetUnit = ref?.default_unit?.trim() || null;
+              const qtyNum = parseFloat(ing.quantity);
+              const willNormalize =
+                !!targetUnit &&
+                ing.unit.trim() !== "" &&
+                ing.unit.trim().toLowerCase() !== targetUnit.toLowerCase() &&
+                Number.isFinite(qtyNum) &&
+                qtyNum > 0;
+              const convertedPreview = willNormalize
+                ? convertQty(qtyNum, ing.unit, targetUnit!)
+                : null;
+              const cannotConvert = willNormalize && convertedPreview === null;
               return (
                 <div
                   key={idx}
                   className="grid grid-cols-12 gap-2 items-center border border-border/50 sm:border-0 rounded-md p-2 sm:p-0"
                 >
                   <div className="col-span-12 sm:col-span-4 space-y-1">
-                    <InventoryPicker
+                    <IngredientLinker
                       inventory={inventory}
-                      value={ing.inventory_item_id}
+                      references={references}
+                      inventoryId={ing.inventory_item_id}
+                      referenceId={ing.reference_id}
                       displayName={ing.name}
-                      onPick={(inv, freeText) => {
-                        if (inv) {
-                          const convertedUnitCost = getConvertedUnitCost(
-                            ing.unit || inv.unit,
-                            inv.unit,
-                            inv.average_cost_per_unit,
-                          );
-                          updateIngredient(idx, {
-                            inventory_item_id: inv.id,
-                            reference_id: inv.reference_id ?? null,
-                            name: inv.name,
-                            unit: ing.unit || inv.unit,
-                            cost_per_unit:
-                              inv.average_cost_per_unit > 0
-                                ? String(convertedUnitCost ?? inv.average_cost_per_unit)
-                                : ing.cost_per_unit,
-                          });
-                        } else if (typeof freeText === "string") {
-                          updateIngredient(idx, {
-                            inventory_item_id: null,
-                            reference_id: null,
-                            name: freeText,
-                          });
-                        }
+                      onPickInventory={(inv) => {
+                        const convertedUnitCost = getConvertedUnitCost(
+                          ing.unit || inv.unit,
+                          inv.unit,
+                          inv.average_cost_per_unit,
+                        );
+                        updateIngredient(idx, {
+                          inventory_item_id: inv.id,
+                          reference_id: inv.reference_id ?? null,
+                          name: inv.name,
+                          unit: ing.unit || inv.unit,
+                          cost_per_unit:
+                            inv.average_cost_per_unit > 0
+                              ? String(convertedUnitCost ?? inv.average_cost_per_unit)
+                              : ing.cost_per_unit,
+                        });
+                      }}
+                      onPickReference={(ref) => {
+                        updateIngredient(idx, {
+                          inventory_item_id: null,
+                          reference_id: ref.id,
+                          name: ref.canonical_name,
+                          unit: ing.unit || ref.default_unit,
+                        });
+                      }}
+                      onTypeFreeText={(freeText) => {
+                        updateIngredient(idx, {
+                          inventory_item_id: null,
+                          reference_id: null,
+                          name: freeText,
+                        });
                       }}
                     />
                     {ing.name.trim() && !ing.reference_id && (
                       <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
-                        <CircleAlert className="w-3 h-3" /> Unlinked — pick from inventory or add to ingredient reference
+                        <CircleAlert className="w-3 h-3" /> Unlinked — pick a canonical ingredient or add to ingredient reference
+                      </span>
+                    )}
+                    {ing.reference_id && willNormalize && convertedPreview !== null && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        → stored as {convertedPreview.toFixed(4).replace(/\.?0+$/, "")} {targetUnit}
+                      </span>
+                    )}
+                    {cannotConvert && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-600">
+                        <AlertTriangle className="w-3 h-3" /> Cannot convert {ing.unit} → {targetUnit}; original unit will be kept.
                       </span>
                     )}
                   </div>
