@@ -48,7 +48,8 @@ export function PublicHeader() {
           <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>
           <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>
           <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
-          <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
+          <Link to="/guides" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
+          <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Blog</Link>
           <Link to="/about" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>About</Link>
           <Link to="/contact" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Contact</Link>
         </div>
@@ -73,7 +74,8 @@ export function PublicHeader() {
               <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/blog">Guides</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/about">About</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/contact">Contact</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/catering/quote">Get a Quote</Link></DropdownMenuItem>
