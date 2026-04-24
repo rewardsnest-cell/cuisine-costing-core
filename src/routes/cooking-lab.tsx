@@ -46,6 +46,13 @@ export type CookingLabEntry = {
   secondary_tool_name: string | null;
   secondary_tool_url: string | null;
   display_order: number;
+  // Optional per-entry SEO overrides. Falls back to title/description/image_url
+  // when blank. Surfaced via JSON-LD on /cooking-lab so each entry shows up
+  // with its own metadata in search results, even though entries share one route.
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_canonical_url?: string | null;
+  seo_og_image_url?: string | null;
 };
 
 export const Route = createFileRoute("/cooking-lab")({
