@@ -53,6 +53,9 @@ const EMAIL_TOGGLE_KEY = "quote_lab_emails_enabled";
 
 function QuoteLabPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { showPricing, loading: pricingLoading } = usePricingVisibility();
+  const [pricingSaving, setPricingSaving] = useState(false);
   const [quotes, setQuotes] = useState<LabQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"test" | "real" | "all">("test");
@@ -70,6 +73,32 @@ function QuoteLabPage() {
   const updateEmailsEnabled = (v: boolean) => {
     setEmailsEnabled(v);
     if (typeof window !== "undefined") localStorage.setItem(EMAIL_TOGGLE_KEY, String(v));
+  };
+
+  const togglePricing = async (visible: boolean) => {
+    setPricingSaving(true);
+    // value === "false" means pricing is SHOWN; anything else hides it.
+    const { error } = await (supabase as any)
+      .from("app_kv")
+      .upsert({
+        key: PRICING_VISIBILITY_KEY,
+        value: visible ? "false" : "true",
+        updated_by: user?.id || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+    setPricingSaving(false);
+    if (error) {
+      console.error(error);
+      toast.error("Couldn't update pricing visibility");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["app_kv", PRICING_VISIBILITY_KEY] });
+    toast.success(visible ? "Pricing is now VISIBLE on public pages" : "Pricing is now HIDDEN on public pages");
+  };
+
+  const openPreview = (path: string) => {
+    if (typeof window === "undefined") return;
+    window.open(path, "_blank", "noopener,noreferrer");
   };
 
   const load = async () => {
