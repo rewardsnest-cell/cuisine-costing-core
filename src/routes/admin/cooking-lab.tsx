@@ -696,7 +696,21 @@ function AffiliateConfigCard() {
   );
 }
 
-function EntryCard({ entry }: { entry: CookingLabEntry }) {
+function EntryCard({
+  entry,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  reordering,
+}: {
+  entry: CookingLabEntry;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  reordering: boolean;
+}) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
   const [dirty, setDirty] = useState(false);
