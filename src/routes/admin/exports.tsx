@@ -14,12 +14,13 @@ import {
   Download,
   PlayCircle,
 } from "lucide-react";
-import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
+import { PROJECT_AUDIT_MD, rowsToCsv } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
+import { saveExportFile, type SavedExportFile } from "@/lib/admin/export-storage";
 
 export const Route = createFileRoute("/admin/exports")({
   head: () => ({
@@ -123,6 +124,7 @@ function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [savedFiles, setSavedFiles] = useState<Record<string, SavedExportFile>>({});
   const [lastE2e, setLastE2e] = useState<{
     runId: string;
     total: number;
@@ -136,20 +138,8 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const openPendingDownloadWindow = () => {
-    try {
-      if (typeof window === "undefined") return null;
-      const inIframe = window.self !== window.top;
-      if (!inIframe) return null;
-      const popup = window.open("", "_blank", "noopener,noreferrer");
-      if (!popup) return null;
-      popup.document.title = "Preparing download…";
-      popup.document.body.innerHTML =
-        '<div style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Preparing your file…</h1><p style="margin: 0; color: #555;">Your download will open here when it is ready.</p></div>';
-      return popup;
-    } catch {
-      return null;
-    }
+  const rememberSavedFile = (key: string, file: SavedExportFile) => {
+    setSavedFiles((current) => ({ ...current, [key]: file }));
   };
 
   /**
@@ -277,21 +267,15 @@ function ExportsPage() {
   };
 
   const handleDownloadMarkdown = async () => {
-    const pendingWindow = openPendingDownloadWindow();
     setBusy("md");
     setError(null);
     try {
       const snap = await fetchInventorySnapshot();
       const md = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
-      await downloadFile(
-        md,
-        `PROJECT_AUDIT_${today}.md`,
-        "text/markdown;charset=utf-8",
-        pendingWindow,
-      );
+      const saved = await saveExportFile(md, `PROJECT_AUDIT_${today}.md`, "text/markdown;charset=utf-8");
+      rememberSavedFile("md", saved);
       flashDone("md");
     } catch (e: any) {
-      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "Markdown export failed");
     } finally {
       setBusy(null);
@@ -299,7 +283,6 @@ function ExportsPage() {
   };
 
   const handleDownloadPdf = async () => {
-    const pendingWindow = openPendingDownloadWindow();
     setBusy("pdf");
     try {
       const snap = await fetchInventorySnapshot();
@@ -367,10 +350,10 @@ function ExportsPage() {
       }
 
       const pdfBlob = doc.output("blob");
-      await downloadFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf", pendingWindow);
+      const saved = await saveExportFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
+      rememberSavedFile("pdf", saved);
       flashDone("pdf");
     } catch (e: any) {
-      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "PDF generation failed");
     } finally {
       setBusy(null);
@@ -378,7 +361,6 @@ function ExportsPage() {
   };
 
   const handleDownloadJson = async () => {
-    const pendingWindow = openPendingDownloadWindow();
     setBusy("json");
     setError(null);
     try {
@@ -397,15 +379,14 @@ function ExportsPage() {
         },
       };
       const json = JSON.stringify(bundle, null, 2);
-      await downloadFile(
+      const saved = await saveExportFile(
         json,
         `PROJECT_AUDIT_${today}.json`,
         "application/json;charset=utf-8",
-        pendingWindow,
       );
+      rememberSavedFile("json", saved);
       flashDone("json");
     } catch (e: any) {
-      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "JSON export failed");
     } finally {
       setBusy(null);
@@ -413,7 +394,6 @@ function ExportsPage() {
   };
 
   const handleExportCsv = async (spec: CsvSpec) => {
-    const pendingWindow = openPendingDownloadWindow();
     setBusy(spec.key);
     setError(null);
     try {
@@ -434,14 +414,15 @@ function ExportsPage() {
       }
 
       if (all.length === 0) {
-        await downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8", pendingWindow);
+        const saved = await saveExportFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
+        rememberSavedFile(spec.key, saved);
       } else {
         const csv = rowsToCsv(all);
-        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8", pendingWindow);
+        const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
+        rememberSavedFile(spec.key, saved);
       }
       flashDone(spec.key);
     } catch (e: any) {
-      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(`${spec.label}: ${e.message || "Export failed"}`);
     } finally {
       setBusy(null);
@@ -453,17 +434,16 @@ function ExportsPage() {
     setError(null);
     try {
       for (const spec of CSV_EXPORTS) {
-        const pendingWindow = openPendingDownloadWindow();
         const { data, error: e } = await (supabase as any)
           .from(spec.table)
           .select(spec.select)
           .range(0, 9999);
         if (e) {
-          if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
           throw e;
         }
         const csv = rowsToCsv(data ?? []);
-        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8", pendingWindow);
+        const saved = await saveExportFile(csv, spec.filename, "text/csv;charset=utf-8");
+        rememberSavedFile(spec.key, saved);
         // small delay so browsers don't block bulk downloads
         await new Promise((r) => setTimeout(r, 250));
       }
@@ -573,6 +553,31 @@ function ExportsPage() {
               )}
               Download JSON bundle
             </Button>
+          </div>
+          <div className="space-y-2">
+            {(["md", "pdf", "json"] as const).map((key) => {
+              const file = savedFiles[key];
+              if (!file) return null;
+              return (
+                <div
+                  key={key}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{file.filename}</div>
+                    <div className="text-xs text-muted-foreground">Saved to backend files</div>
+                  </div>
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-primary hover:underline shrink-0"
+                  >
+                    Open file
+                  </a>
+                </div>
+              );
+            })}
           </div>
 
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
@@ -692,6 +697,16 @@ function ExportsPage() {
                   )}
                   CSV
                 </Button>
+                {savedFiles[spec.key] && (
+                  <a
+                    href={savedFiles[spec.key].url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-primary hover:underline shrink-0"
+                  >
+                    Open
+                  </a>
+                )}
               </div>
             ))}
           </div>
