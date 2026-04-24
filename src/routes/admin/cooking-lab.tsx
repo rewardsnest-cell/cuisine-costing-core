@@ -600,26 +600,26 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
         {/* D. Tools */}
         <Section label="D. Tools & Affiliate Links" hint="Use full Amazon URLs only (no shorteners).">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Primary Tool Name">
+            <Field label="Primary Tool Name" error={toolFieldErrors.primary_tool_name}>
               <Input
                 value={draft.primary_tool_name ?? ""}
                 onChange={(e) => update("primary_tool_name", e.target.value)}
               />
             </Field>
-            <Field label="Primary Amazon Link">
+            <Field label="Primary Amazon Link" error={toolFieldErrors.primary_tool_url}>
               <Input
                 value={draft.primary_tool_url ?? ""}
                 onChange={(e) => update("primary_tool_url", e.target.value)}
                 placeholder="https://www.amazon.com/..."
               />
             </Field>
-            <Field label="Secondary Tool Name">
+            <Field label="Secondary Tool Name" error={toolFieldErrors.secondary_tool_name}>
               <Input
                 value={draft.secondary_tool_name ?? ""}
                 onChange={(e) => update("secondary_tool_name", e.target.value)}
               />
             </Field>
-            <Field label="Secondary Amazon Link">
+            <Field label="Secondary Amazon Link" error={toolFieldErrors.secondary_tool_url}>
               <Input
                 value={draft.secondary_tool_url ?? ""}
                 onChange={(e) => update("secondary_tool_url", e.target.value)}
