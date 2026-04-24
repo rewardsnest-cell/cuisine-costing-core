@@ -11,7 +11,8 @@ interface Props {
 }
 
 export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
-  const { showPricing } = usePricingVisibility();
+  usePricingVisibility();
+  const showPricing = false;
   const guests = Math.max(selections.guestCount || 0, 1);
   const dishPerGuest = selections.proteins.length * PRICE_PER_DISH;
   const extrasPerGuest = selections.extras.reduce((sum, id) => {
