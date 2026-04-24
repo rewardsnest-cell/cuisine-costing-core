@@ -2385,9 +2385,11 @@ export type Database = {
           event_type: string | null
           guest_count: number
           id: string
+          is_test: boolean
           location_address: string | null
           location_name: string | null
           notes: string | null
+          quote_state: Database["public"]["Enums"]["quote_state"]
           reference_number: string | null
           status: string
           subtotal: number | null
@@ -2409,9 +2411,11 @@ export type Database = {
           event_type?: string | null
           guest_count?: number
           id?: string
+          is_test?: boolean
           location_address?: string | null
           location_name?: string | null
           notes?: string | null
+          quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
           status?: string
           subtotal?: number | null
@@ -2433,9 +2437,11 @@ export type Database = {
           event_type?: string | null
           guest_count?: number
           id?: string
+          is_test?: boolean
           location_address?: string | null
           location_name?: string | null
           notes?: string | null
+          quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
           status?: string
           subtotal?: number | null
@@ -3627,6 +3633,11 @@ export type Database = {
       inspired_phase: "off" | "admin_preview" | "soft_launch" | "public"
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
+      quote_state:
+        | "initiated"
+        | "info_collected"
+        | "structured"
+        | "awaiting_pricing"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
       visibility_phase: "off" | "admin_preview" | "soft_launch" | "public"
@@ -3763,6 +3774,12 @@ export const Constants = {
       inspired_phase: ["off", "admin_preview", "soft_launch", "public"],
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
+      quote_state: [
+        "initiated",
+        "info_collected",
+        "structured",
+        "awaiting_pricing",
+      ],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
       visibility_phase: ["off", "admin_preview", "soft_launch", "public"],
