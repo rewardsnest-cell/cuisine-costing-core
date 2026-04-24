@@ -217,6 +217,7 @@ export function RecipeForm({
     initial.ingredients.length ? initial.ingredients : [emptyIngredient()],
   );
   const [inventory, setInventory] = useState<InvItem[]>([]);
+  const [references, setReferences] = useState<RefItem[]>([]);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [socialUrl, setSocialUrl] = useState<string | null>(null);
   const [genHero, setGenHero] = useState(false);
@@ -226,13 +227,20 @@ export function RecipeForm({
 
   useEffect(() => {
     (async () => {
-      // Pull reference_id alongside so picking an inventory item auto-resolves
-      // the canonical ingredient_reference link required to publish.
-      const { data } = await supabase
-        .from("inventory_items")
-        .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
-        .order("name");
-      const mapped = (data ?? []).map((row: any) => ({
+      // Pull inventory items + their canonical reference link, AND the full
+      // canonical reference list. This lets admins pick a canonical ingredient
+      // even when no inventory item exists for it yet.
+      const [{ data: invData }, { data: refData }] = await Promise.all([
+        supabase
+          .from("inventory_items")
+          .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
+          .order("name"),
+        supabase
+          .from("ingredient_reference")
+          .select("id,canonical_name,default_unit,category,inventory_item_id")
+          .order("canonical_name"),
+      ]);
+      const mappedInv = (invData ?? []).map((row: any) => ({
         id: row.id,
         name: row.name,
         unit: row.unit,
@@ -241,7 +249,8 @@ export function RecipeForm({
           ? row.ingredient_reference[0]?.id ?? null
           : row.ingredient_reference?.id ?? null,
       })) as InvItem[];
-      setInventory(mapped);
+      setInventory(mappedInv);
+      setReferences((refData ?? []) as RefItem[]);
     })();
   }, []);
 
