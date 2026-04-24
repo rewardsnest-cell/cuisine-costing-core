@@ -275,6 +275,7 @@ function CostQueuePage() {
                             <TableCell className="text-right">
                               <div className="inline-flex gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
+                                <Button size="sm" variant="ghost" disabled={simBusy} onClick={() => onSimulateOne(r.id)} className="gap-1" title="Simulate apply (no writes)"><FlaskConical className="w-3.5 h-3.5" />Simulate</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onApprove(r.id)} className="gap-1"><Check className="w-3.5 h-3.5" />Approve</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onOverride(r.id)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Override</Button>
                                 <Button size="sm" variant="ghost" disabled={actingId === r.id} onClick={() => onReject(r.id)} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Reject</Button>
