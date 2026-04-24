@@ -480,7 +480,7 @@ function ReceiptsPage() {
                   </thead>
                   <tbody>
                     {editedLineItems.map((item, idx) => (
-                      <tr key={idx} className="border-b border-border/50">
+                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""}`}>
                         <td className="py-2 px-2">
                           <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
                         </td>
@@ -496,13 +496,30 @@ function ReceiptsPage() {
                         <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
-                            <SelectTrigger className="h-8 text-xs min-w-[140px]"><SelectValue placeholder="Match..." /></SelectTrigger>
+                            <SelectTrigger className={`h-8 text-xs min-w-[140px] ${item.needs_review ? "border-warning" : ""}`}><SelectValue placeholder={item.needs_review && item.matched_inventory_name ? `Suggested: ${item.matched_inventory_name}` : "Match..."} /></SelectTrigger>
                             <SelectContent>
                               {inventoryItems.map((inv) => (
                                 <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                        </td>
+                        <td className="py-2 px-2 whitespace-nowrap">
+                          {typeof item.match_score === "number" ? (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                item.needs_review
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-success/15 text-success"
+                              }`}
+                              title={item.review_reason || `Source: ${item.match_source ?? "—"}`}
+                            >
+                              {item.needs_review && <ShieldAlert className="w-3 h-3" />}
+                              {(item.match_score * 100).toFixed(0)}%
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">—</span>
+                          )}
                         </td>
                         <td className="py-2 px-1">
                           <Button size="icon" variant="ghost" onClick={() => removeLineItem(idx)} className="h-7 w-7 text-destructive hover:text-destructive">
