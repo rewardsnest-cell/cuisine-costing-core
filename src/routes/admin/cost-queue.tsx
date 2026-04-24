@@ -615,8 +615,8 @@ function CostQueuePage() {
                 </div>
 
                 {simResult.warnings.length > 0 && (
-                  <Alert variant={simResult.summary.validation?.errors > 0 ? "destructive" : "default"}>
-                    {simResult.summary.validation?.errors > 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                  <Alert variant={(simResult.summary.validation?.errors ?? 0) > 0 ? "destructive" : "default"}>
+                    {(simResult.summary.validation?.errors ?? 0) > 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
                     <AlertDescription>
                       <ul className="list-disc list-inside text-xs">
                         {simResult.warnings.map((w, i) => <li key={i}>{w}</li>)}
