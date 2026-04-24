@@ -5,6 +5,7 @@ import logo from "@/assets/vpsfinest-logo.png";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
 import { useBrandAsset } from "@/lib/brand-assets";
+import { useBrandName } from "@/lib/brand-config";
 
 const EMAIL = "hello@vpsfinest.com";
 const PHONE_DISPLAY = "(330) 555-0199";
@@ -16,6 +17,7 @@ const LOGO_FALLBACK_URL =
 
 export function PublicFooter() {
   const { data: brandLogoUrl } = useBrandAsset("primary_logo");
+  const { display: brandDisplay } = useBrandName();
   const [logoSrc, setLogoSrc] = useState<string>(logo);
   const effectiveSrc = brandLogoUrl || logoSrc;
   return (
@@ -36,14 +38,14 @@ export function PublicFooter() {
             <div className="flex items-center gap-2">
               <img
                 src={effectiveSrc}
-                alt="VPS Finest"
+                alt={brandDisplay}
                 className="h-9 w-auto object-contain bg-background/90 rounded-md p-1"
                 loading="lazy"
                 onError={() => {
                   if (!brandLogoUrl && logoSrc !== LOGO_FALLBACK_URL) setLogoSrc(LOGO_FALLBACK_URL);
                 }}
               />
-              <span className="font-display text-lg font-semibold">VPS Finest</span>
+              <span className="font-display text-lg font-semibold">{brandDisplay}</span>
             </div>
             <p className="text-sm text-background/60 leading-relaxed">
               Thoughtful catering and calm recipes from Aurora, Ohio.
@@ -113,7 +115,7 @@ export function PublicFooter() {
         <div className="mt-12 pt-6 border-t border-background/10 space-y-4">
           <ServiceAreaBadges tone="light" />
           <p className="text-xs text-background/50 text-center">
-            © {new Date().getFullYear()} VPS Finest Catering. Crafted with care for unforgettable events.
+            © {new Date().getFullYear()} {brandDisplay} Catering. Crafted with care for unforgettable events.
           </p>
         </div>
       </div>

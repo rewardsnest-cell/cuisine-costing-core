@@ -244,6 +244,87 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_config: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          brand_display_name: string
+          brand_name: string
+          id: number
+          primary_color: string | null
+          secondary_color: string | null
+          text_color: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_display_name?: string
+          brand_name?: string
+          id?: number
+          primary_color?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_display_name?: string
+          brand_name?: string
+          id?: number
+          primary_color?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      brand_config_history: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          brand_display_name: string
+          brand_name: string
+          change_note: string | null
+          changed_at: string
+          changed_by: string | null
+          id: string
+          primary_color: string | null
+          secondary_color: string | null
+          text_color: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_display_name: string
+          brand_name: string
+          change_note?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          brand_display_name?: string
+          brand_name?: string
+          change_note?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          text_color?: string | null
+        }
+        Relationships: []
+      }
       change_impact_analyses: {
         Row: {
           audit_export_id: string | null

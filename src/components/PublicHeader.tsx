@@ -12,6 +12,7 @@ import { Menu } from "lucide-react";
 import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { useBrandAsset } from "@/lib/brand-assets";
+import { useBrandName } from "@/lib/brand-config";
 
 // CDN-hosted fallback so the logo still renders if the bundled asset 404s
 // in production (e.g. cache mismatch right after a deploy).
@@ -21,6 +22,7 @@ const LOGO_FALLBACK_URL =
 export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
   const { data: brandLogoUrl } = useBrandAsset("primary_logo");
+  const { display: brandDisplay } = useBrandName();
   const [logoSrc, setLogoSrc] = useState<string>(logo);
   const effectiveSrc = brandLogoUrl || logoSrc;
 
@@ -30,14 +32,14 @@ export function PublicHeader() {
         <Link to="/" className="flex items-center gap-2">
           <img
             src={effectiveSrc}
-            alt="VPS Finest"
+            alt={brandDisplay}
             className="h-9 w-auto object-contain"
             loading="eager"
             onError={() => {
               if (!brandLogoUrl && logoSrc !== LOGO_FALLBACK_URL) setLogoSrc(LOGO_FALLBACK_URL);
             }}
           />
-          <span className="font-display text-xl font-semibold text-foreground">VPS Finest</span>
+          <span className="font-display text-xl font-semibold text-foreground">{brandDisplay}</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-6 text-sm">

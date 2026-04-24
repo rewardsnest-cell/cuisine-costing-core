@@ -2,6 +2,7 @@ import { Outlet, createRootRouteWithContext, HeadContent, Scripts, useRouterStat
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
+import { BrandConfigProvider } from "@/lib/brand-config";
 import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { MobileQuoteBar } from "@/components/MobileQuoteBar";
@@ -97,6 +98,7 @@ function RootComponent() {
   const showChrome = shouldShowPublicChrome(pathname);
   return (
     <QueryClientProvider client={queryClient}>
+      <BrandConfigProvider>
       <AuthProvider>
         <ConfirmProvider>
           <SkipToContent />
@@ -117,6 +119,7 @@ function RootComponent() {
           <FeedbackButton />
         </ConfirmProvider>
       </AuthProvider>
+      </BrandConfigProvider>
     </QueryClientProvider>
   );
 }
