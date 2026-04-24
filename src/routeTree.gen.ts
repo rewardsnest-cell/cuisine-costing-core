@@ -98,6 +98,7 @@ import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
+import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminBrandConfigRouteImport } from './routes/admin/brand-config'
@@ -582,6 +583,11 @@ const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
+  id: '/cost-queue',
+  path: '/cost-queue',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorsRoute = AdminCompetitorsRouteImport.update({
   id: '/competitors',
   path: '/competitors',
@@ -773,6 +779,7 @@ export interface FileRoutesByFullPath {
   '/admin/brand-config': typeof AdminBrandConfigRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -892,6 +899,7 @@ export interface FileRoutesByTo {
   '/admin/brand-config': typeof AdminBrandConfigRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1014,6 +1022,7 @@ export interface FileRoutesById {
   '/admin/brand-config': typeof AdminBrandConfigRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1137,6 +1146,7 @@ export interface FileRouteTypes {
     | '/admin/brand-config'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1256,6 +1266,7 @@ export interface FileRouteTypes {
     | '/admin/brand-config'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1377,6 +1388,7 @@ export interface FileRouteTypes {
     | '/admin/brand-config'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -2143,6 +2155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmployeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cost-queue': {
+      id: '/admin/cost-queue'
+      path: '/cost-queue'
+      fullPath: '/admin/cost-queue'
+      preLoaderRoute: typeof AdminCostQueueRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitors': {
       id: '/admin/competitors'
       path: '/competitors'
@@ -2453,6 +2472,7 @@ interface AdminRouteChildren {
   AdminBrandConfigRoute: typeof AdminBrandConfigRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
+  AdminCostQueueRoute: typeof AdminCostQueueRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
@@ -2511,6 +2531,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBrandConfigRoute: AdminBrandConfigRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,
+  AdminCostQueueRoute: AdminCostQueueRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
