@@ -221,6 +221,79 @@ function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
   );
 }
 
+/**
+ * Shows the actual outbound URL each tool link will produce — with the
+ * configured Amazon associate tag injected. Editors can copy and test it
+ * to confirm Amazon attributes the click to the right account.
+ */
+function TaggedLinkPreview({
+  primaryName,
+  primaryUrl,
+  secondaryName,
+  secondaryUrl,
+}: {
+  primaryName: string | null;
+  primaryUrl: string | null;
+  secondaryName: string | null;
+  secondaryUrl: string | null;
+}) {
+  const { data: tag } = useAmazonAssociateTagAdmin();
+  const items = [
+    { name: primaryName, url: primaryUrl, label: "Primary" },
+    { name: secondaryName, url: secondaryUrl, label: "Secondary" },
+  ].filter((i) => i.url && i.name && isTaggableAmazonUrl(i.url));
+
+  if (items.length === 0) return null;
+
+  const tagSet = !!(tag && tag.trim());
+
+  return (
+    <div className="mt-3 rounded-md border border-border bg-background p-3 space-y-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+        <DollarSign className="w-3.5 h-3.5" />
+        Tracking-tagged outbound URLs
+        {!tagSet && (
+          <span className="text-amber-600 dark:text-amber-400 font-normal">
+            · No tag set — set it in Amazon Affiliate Tag card below
+          </span>
+        )}
+      </div>
+      <ul className="space-y-2">
+        {items.map((i) => {
+          const tagged = withAmazonAffiliateTag(i.url!, tag ?? null);
+          return (
+            <li key={i.label} className="text-xs">
+              <p className="text-muted-foreground mb-0.5">
+                <span className="font-medium text-foreground">{i.label}:</span> {i.name}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <code className="block break-all text-[11px] text-foreground bg-muted p-2 rounded flex-1">
+                  {tagged}
+                </code>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  title="Copy tagged URL"
+                  onClick={() => {
+                    navigator.clipboard.writeText(tagged).then(
+                      () => toast.success("Tagged URL copied"),
+                      () => toast.error("Could not copy"),
+                    );
+                  }}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/cooking-lab")({
   head: () => ({
     meta: [
