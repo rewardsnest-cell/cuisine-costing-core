@@ -2077,12 +2077,14 @@ export type Database = {
           coupon_text: string | null
           coupon_valid_until: string | null
           created_at: string
+          created_source: string
           cta_type: string | null
           cuisine: string | null
           description: string | null
           hook: string | null
           id: string
           image_url: string | null
+          ingredient_integrity: string
           instructions: string | null
           is_copycat: boolean
           is_gluten_free: boolean | null
@@ -2111,6 +2113,7 @@ export type Database = {
           skill_level: string | null
           social_image_url: string | null
           source_competitor_quote_id: string | null
+          status: Database["public"]["Enums"]["recipe_status"]
           storage_instructions: string | null
           total_cost: number | null
           updated_at: string
@@ -2130,12 +2133,14 @@ export type Database = {
           coupon_text?: string | null
           coupon_valid_until?: string | null
           created_at?: string
+          created_source?: string
           cta_type?: string | null
           cuisine?: string | null
           description?: string | null
           hook?: string | null
           id?: string
           image_url?: string | null
+          ingredient_integrity?: string
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
@@ -2164,6 +2169,7 @@ export type Database = {
           skill_level?: string | null
           social_image_url?: string | null
           source_competitor_quote_id?: string | null
+          status?: Database["public"]["Enums"]["recipe_status"]
           storage_instructions?: string | null
           total_cost?: number | null
           updated_at?: string
@@ -2183,12 +2189,14 @@ export type Database = {
           coupon_text?: string | null
           coupon_valid_until?: string | null
           created_at?: string
+          created_source?: string
           cta_type?: string | null
           cuisine?: string | null
           description?: string | null
           hook?: string | null
           id?: string
           image_url?: string | null
+          ingredient_integrity?: string
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
@@ -2217,6 +2225,7 @@ export type Database = {
           skill_level?: string | null
           social_image_url?: string | null
           source_competitor_quote_id?: string | null
+          status?: Database["public"]["Enums"]["recipe_status"]
           storage_instructions?: string | null
           total_cost?: number | null
           updated_at?: string
@@ -2812,6 +2821,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recipe_has_unresolved_ingredients: {
+        Args: { _recipe_id: string }
+        Returns: boolean
+      }
       recipe_pricing_health: { Args: { _recipe_id: string }; Returns: Json }
       recipe_pricing_health_summary: {
         Args: never
@@ -2829,6 +2842,10 @@ export type Database = {
         Args: { _recipe_id: string }
         Returns: undefined
       }
+      refresh_recipe_integrity_flag: {
+        Args: { _recipe_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
@@ -2836,6 +2853,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "employee"
       fred_priority: "primary" | "fallback"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
+      recipe_status: "draft" | "published"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2966,6 +2984,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "employee"],
       fred_priority: ["primary", "fallback"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
+      recipe_status: ["draft", "published"],
     },
   },
 } as const
