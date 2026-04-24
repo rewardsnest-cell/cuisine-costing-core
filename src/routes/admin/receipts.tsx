@@ -24,6 +24,10 @@ type LineItem = {
   total_price: number;
   matched_inventory_id: string | null;
   matched_inventory_name: string | null;
+  match_source?: string | null;
+  match_score?: number | null;
+  needs_review?: boolean;
+  review_reason?: string | null;
 };
 
 type ReceiptRow = {
@@ -42,6 +46,9 @@ type InventoryItem = {
   id: string;
   name: string;
 };
+
+const THRESHOLD_KEY = "receipt_match_confidence_threshold";
+const DEFAULT_THRESHOLD = 0.6;
 
 function ReceiptsPage() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
