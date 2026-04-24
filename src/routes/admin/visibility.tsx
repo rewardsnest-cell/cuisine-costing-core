@@ -110,13 +110,15 @@ function VisibilityPage() {
   // Writes immediately so the sidebar (which reads the same registry) updates without a redeploy.
   const onQuickToggle = async (key: string, turnOn: boolean) => {
     setQuickToggling(key);
-    setRows((current) =>
-      current.map((row) =>
+    setRows((current) => {
+      const nextRows = current.map((row) =>
         row.feature_key === key
           ? { ...row, phase: turnOn ? "public" : "off", nav_enabled: turnOn }
           : row,
-      ),
-    );
+      );
+      syncFeatureVisibilityRows(nextRows);
+      return nextRows;
+    });
     try {
       await updateFeatureVisibility({
         data: {
