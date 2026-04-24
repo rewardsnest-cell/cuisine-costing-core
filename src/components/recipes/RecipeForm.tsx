@@ -77,6 +77,8 @@ export type RecipeFormInitial = {
     ingredient_integrity?: "ok" | "needs_cleanup";
     /** Mark this home_public recipe as part of the "Inspired / Familiar Favorites" public section. */
     inspired?: boolean;
+    /** Rollout phase for Inspired content. Admin-only field. */
+    inspired_phase?: "off" | "admin_preview" | "soft_launch" | "public";
   };
   ingredients: IngredientRow[];
 };
@@ -98,6 +100,7 @@ export const blankInitial: RecipeFormInitial = {
     status: "draft",
     ingredient_integrity: "ok",
     inspired: false,
+    inspired_phase: "off",
   },
   ingredients: [emptyIngredient()],
 };
@@ -421,6 +424,7 @@ export function RecipeForm({
         cost_per_serving: costPerServing,
         // Inspired / Familiar Favorites flag — DB trigger enforces home_public scope.
         inspired: !!form.inspired,
+        inspired_phase: form.inspired ? (form.inspired_phase ?? "off") : "off",
       };
       if (mode === "create") {
         // Force draft on creation regardless of publish intent — publish is a
