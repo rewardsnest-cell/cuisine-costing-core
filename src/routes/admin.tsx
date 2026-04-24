@@ -43,6 +43,7 @@ export const NAV_GROUPS: { label: string; items: { to: string; label: string; ic
       { to: "/admin/menu-modules", label: "Menu Modules", icon: UtensilsCrossed },
       { to: "/admin/recipe-hub", label: "Recipe Hub", icon: ChefHat },
       { to: "/admin/quick-quote", label: "Quick Quote", icon: Zap },
+      { to: "/admin/quote-lab", label: "Quote Lab", icon: FlaskConical },
       { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
       { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
     ],

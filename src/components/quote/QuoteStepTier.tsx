@@ -28,8 +28,10 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
   return (
     <div>
       <h1 className="font-display text-3xl font-bold text-foreground mb-2">Choose Your Service Tier</h1>
-      <p className="text-muted-foreground mb-2">Each tier sets the quality of ingredients, serviceware, and staffing for your event.</p>
-      <p className="text-xs text-muted-foreground mb-8">The tier multiplier is applied to your subtotal — Silver is the base price, Gold is +35%, Platinum is +75%.</p>
+      <p className="text-muted-foreground mb-8">Each tier sets the quality of ingredients, serviceware, and staffing for your event.</p>
+      {showPricing && (
+        <p className="text-xs text-muted-foreground mb-6 -mt-6">The tier multiplier is applied to your subtotal — Silver is the base price, Gold is +35%, Platinum is +75%.</p>
+      )}
       <div className="grid grid-cols-1 gap-4">
         {TIERS.map((t) => {
           const selected = selections.tier === t.id;
@@ -47,9 +49,11 @@ export function QuoteStepTier({ selections, setSelections, setStep }: Props) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-display text-xl font-bold">{t.label}</h3>
-                      <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                        {t.multiplier === 1 ? "Base price" : `+${Math.round((t.multiplier - 1) * 100)}%`}
-                      </span>
+                      {showPricing && (
+                        <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {t.multiplier === 1 ? "Base price" : `+${Math.round((t.multiplier - 1) * 100)}%`}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{t.desc}</p>
                     {showPricing && basePerGuest > 0 && (
