@@ -50,6 +50,96 @@ async function getKrogerLocationId(): Promise<string | null> {
   return v && v.trim().length > 0 ? v.trim() : null;
 }
 
+const DEFAULT_ZIP = "44202";
+
+/**
+ * Resolve a Kroger locationId from a US ZIP code via the Locations API.
+ * Caches the answer in app_kv (`kroger_location_for_zip:<zip>`) for 30 days.
+ * Never throws — returns null if resolution fails so callers can fall back.
+ */
+async function resolveLocationIdFromZip(zip: string, token: string): Promise<string | null> {
+  const cleanZip = (zip || "").trim();
+  if (!/^\d{5}$/.test(cleanZip)) return null;
+
+  const cacheKey = `kroger_location_for_zip:${cleanZip}`;
+  const cached = await getKv(cacheKey);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached) as { locationId: string; cachedAt: string };
+      const ageMs = Date.now() - new Date(parsed.cachedAt).getTime();
+      if (ageMs < 30 * 86400000 && parsed.locationId) return parsed.locationId;
+    } catch {
+      /* fall through to refresh */
+    }
+  }
+
+  const url = new URL("https://api.kroger.com/v1/locations");
+  url.searchParams.set("filter.zipCode.near", cleanZip);
+  url.searchParams.set("filter.limit", "1");
+
+  const res = await krogerFetchWithBackoff(url.toString(), {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => null)) as { data?: Array<{ locationId?: string }> } | null;
+  const id = body?.data?.[0]?.locationId ?? null;
+  if (id) {
+    await supabaseAdmin.from("app_kv").upsert({
+      key: cacheKey,
+      value: JSON.stringify({ locationId: id, cachedAt: new Date().toISOString() }),
+      updated_at: new Date().toISOString(),
+    });
+  }
+  return id;
+}
+
+/**
+ * Fetch wrapper that retries on 429 / 503 with exponential backoff and
+ * honors the Retry-After header when present. Caps at 4 attempts so a stuck
+ * upstream cannot hang an ingest run indefinitely.
+ */
+async function krogerFetchWithBackoff(url: string, init: RequestInit, attempt = 0): Promise<Response> {
+  const res = await fetch(url, init);
+  if ((res.status === 429 || res.status === 503) && attempt < 3) {
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 30000)
+      : Math.min(500 * Math.pow(2, attempt), 8000);
+    await new Promise((r) => setTimeout(r, waitMs));
+    return krogerFetchWithBackoff(url, init, attempt + 1);
+  }
+  return res;
+}
+
+/**
+ * Per-unit price normalization. Kroger returns sizes like "16 oz", "1 lb",
+ * "12 ct", "1 gal". We extract the numeric magnitude and convert to a
+ * canonical unit (matching the `unit` we store on price_history).
+ *
+ * Returns { unitPrice, canonicalUnit } when parseable; otherwise null and
+ * callers fall back to the raw observed price + the inventory item's unit.
+ */
+function normalizePerUnitPrice(observedPrice: number, sizeText: string | null): { unitPrice: number; canonicalUnit: string } | null {
+  if (!sizeText || observedPrice <= 0) return null;
+  const m = sizeText.toLowerCase().match(/([\d.]+)\s*(oz|fl\s*oz|lb|lbs|pound|pounds|g|kg|ml|l|liter|liters|gal|gallon|ct|count|each|ea)\b/);
+  if (!m) return null;
+  const qty = Number(m[1]);
+  if (!Number.isFinite(qty) || qty <= 0) return null;
+  const unitToken = m[2].replace(/\s+/g, "");
+  const unit =
+    unitToken === "lbs" || unitToken === "pound" || unitToken === "pounds" ? "lb"
+    : unitToken === "floz" ? "fl_oz"
+    : unitToken === "kg" ? "kg"
+    : unitToken === "g" ? "g"
+    : unitToken === "ml" ? "ml"
+    : unitToken === "l" || unitToken === "liter" || unitToken === "liters" ? "l"
+    : unitToken === "gal" || unitToken === "gallon" ? "gal"
+    : unitToken === "ct" || unitToken === "count" ? "each"
+    : unitToken === "ea" ? "each"
+    : unitToken;
+  return { unitPrice: Number((observedPrice / qty).toFixed(4)), canonicalUnit: unit };
+}
+
 export const getKrogerStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
