@@ -2475,6 +2475,8 @@ export type Database = {
           image_url: string | null
           ingredient_integrity: string
           inspired: boolean
+          inspired_phase: Database["public"]["Enums"]["inspired_phase"]
+          inspired_slug: string | null
           instructions: string | null
           is_copycat: boolean
           is_gluten_free: boolean | null
@@ -2532,6 +2534,8 @@ export type Database = {
           image_url?: string | null
           ingredient_integrity?: string
           inspired?: boolean
+          inspired_phase?: Database["public"]["Enums"]["inspired_phase"]
+          inspired_slug?: string | null
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
@@ -2589,6 +2593,8 @@ export type Database = {
           image_url?: string | null
           ingredient_integrity?: string
           inspired?: boolean
+          inspired_phase?: Database["public"]["Enums"]["inspired_phase"]
+          inspired_slug?: string | null
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
@@ -3271,6 +3277,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "employee"
       cooking_guide_status: "draft" | "published"
       fred_priority: "primary" | "fallback"
+      inspired_phase: "off" | "admin_preview" | "soft_launch" | "public"
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
@@ -3405,6 +3412,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "employee"],
       cooking_guide_status: ["draft", "published"],
       fred_priority: ["primary", "fallback"],
+      inspired_phase: ["off", "admin_preview", "soft_launch", "public"],
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
