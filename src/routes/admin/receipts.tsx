@@ -109,6 +109,8 @@ function ReceiptsPage() {
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [compare, setCompare] = useState<{
     receiptId: string;
     previousText: string;
