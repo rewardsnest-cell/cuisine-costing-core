@@ -402,7 +402,7 @@ export function CookingLabSection({
     (entry.secondary_tool_name && entry.secondary_tool_url);
 
   return (
-    <article className="grid lg:grid-cols-2 gap-10 items-center">
+    <article id={`entry-${entry.id}`} className="grid lg:grid-cols-2 gap-10 items-center scroll-mt-24">
       <div className={reverse ? "lg:order-2" : ""}>
         {embedUrl ? (
           <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
