@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2, AlertTriangle, CircleAlert, CheckCircle2, FileEdit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -181,11 +182,22 @@ export function RecipeForm({
 
   useEffect(() => {
     (async () => {
+      // Pull reference_id alongside so picking an inventory item auto-resolves
+      // the canonical ingredient_reference link required to publish.
       const { data } = await supabase
         .from("inventory_items")
-        .select("id,name,unit,average_cost_per_unit")
+        .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
         .order("name");
-      setInventory((data ?? []) as InvItem[]);
+      const mapped = (data ?? []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        unit: row.unit,
+        average_cost_per_unit: row.average_cost_per_unit,
+        reference_id: Array.isArray(row.ingredient_reference)
+          ? row.ingredient_reference[0]?.id ?? null
+          : row.ingredient_reference?.id ?? null,
+      })) as InvItem[];
+      setInventory(mapped);
     })();
   }, []);
 
