@@ -106,7 +106,7 @@ function CookingLabPage() {
       const { data, error } = await (supabase as any)
         .from("cooking_lab_entries")
         .select(
-          "id,title,description,video_url,image_url,primary_tool_name,primary_tool_url,secondary_tool_name,secondary_tool_url,display_order",
+          "id,title,description,video_url,image_url,primary_tool_name,primary_tool_url,secondary_tool_name,secondary_tool_url,display_order,seo_title,seo_description,seo_canonical_url,seo_og_image_url",
         )
         .eq("visible", true)
         .eq("status", "published")
