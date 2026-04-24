@@ -425,6 +425,58 @@ function ExportsPage() {
               Download JSON bundle
             </Button>
           </div>
+
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <div className="font-medium text-sm">E2E checklist</div>
+                <div className="text-xs text-muted-foreground">
+                  Runs the source-derived checklist (renders / loads data /
+                  primary action) plus a live HTTP sweep of every public route,
+                  then saves the run to history.
+                </div>
+              </div>
+              <Button
+                onClick={handleRunE2e}
+                disabled={!!busy}
+                size="sm"
+                className="gap-2 shrink-0"
+              >
+                {busy === "e2e" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : done.e2e ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <PlayCircle className="w-4 h-4" />
+                )}
+                Run E2E & save
+              </Button>
+            </div>
+            {lastE2e && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant="secondary" className="font-mono">
+                  {lastE2e.total} routes
+                </Badge>
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-transparent">
+                  ✓ {lastE2e.passed} passed
+                </Badge>
+                {lastE2e.failed > 0 && (
+                  <Badge variant="destructive">
+                    ✗ {lastE2e.failed} failed
+                  </Badge>
+                )}
+                {lastE2e.skipped > 0 && (
+                  <Badge variant="outline">
+                    ➖ {lastE2e.skipped} skipped
+                  </Badge>
+                )}
+                <span className="text-muted-foreground">
+                  in {(lastE2e.durationMs / 1000).toFixed(1)}s · saved as run{" "}
+                  <code className="font-mono">{lastE2e.runId.slice(0, 8)}</code>
+                </span>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
