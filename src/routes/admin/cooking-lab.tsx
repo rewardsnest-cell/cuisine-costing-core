@@ -685,6 +685,12 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
             </Field>
           </div>
           <LinkChecksPanel checks={linkChecks} />
+          <TaggedLinkPreview
+            primaryName={draft.primary_tool_name}
+            primaryUrl={draft.primary_tool_url}
+            secondaryName={draft.secondary_tool_name}
+            secondaryUrl={draft.secondary_tool_url}
+          />
         </Section>
 
         {/* E. Status & Order */}
