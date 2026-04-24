@@ -9,6 +9,7 @@ const SENDER_DOMAIN = 'notify.vpfinest.com'
 const FROM_DOMAIN = 'notify.vpfinest.com'
 
 const VALID_MAGNETS = ['printable', 'scaling', 'checklist', 'pack'] as const
+const VALID_SOURCES = ['facebook','instagram','tiktok','youtube','pinterest','email','direct','other'] as const
 
 function isEmail(s: unknown): s is string {
   return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 254
