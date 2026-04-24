@@ -733,7 +733,9 @@ function ReceiptsPage() {
               </Card>
             ))}
           </div>
-        )}
+        )
+          );
+        })()}
       </div>
 
       {/* Review Dialog */}
