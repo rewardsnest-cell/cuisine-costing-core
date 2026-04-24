@@ -12,12 +12,31 @@ type RawLine = {
 
 export const processReceipt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { imageUrl: string; receiptId: string }) => {
+  .inputValidator((input: { imageUrl: string; receiptId: string; rerun?: boolean }) => {
     if (!input?.imageUrl || !input?.receiptId) throw new Error("imageUrl and receiptId required");
     return input;
   })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
+
+    // Snapshot previous OCR data for side-by-side comparison on re-runs
+    let previous: { raw_ocr_text: string | null; line_items: RawLine[] } | null = null;
+    if (data.rerun) {
+      const { data: prior } = await sb
+        .from("receipts")
+        .select("raw_ocr_text, extracted_line_items")
+        .eq("id", data.receiptId)
+        .maybeSingle();
+      if (prior) {
+        previous = {
+          raw_ocr_text: (prior as any).raw_ocr_text ?? null,
+          line_items: Array.isArray((prior as any).extracted_line_items)
+            ? ((prior as any).extracted_line_items as RawLine[])
+            : [],
+        };
+      }
+    }
+
     try {
       const aiResp = await aiPost({
         model: "google/gemini-2.5-flash",
