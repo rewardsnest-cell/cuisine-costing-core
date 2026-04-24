@@ -199,8 +199,8 @@ function VisibilityPage() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
@@ -212,6 +212,28 @@ function VisibilityPage() {
         <p className="text-xs text-muted-foreground">
           {filteredRows.length} of {rows.length}
         </p>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onBulkToggle(true)}
+            disabled={bulkBusy || loading || filteredRows.length === 0}
+            className="gap-1.5"
+          >
+            {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+            Enable {search.trim() ? "filtered" : "all"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onBulkToggle(false)}
+            disabled={bulkBusy || loading || filteredRows.length === 0}
+            className="gap-1.5"
+          >
+            {bulkBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 text-muted-foreground" />}
+            Disable {search.trim() ? "filtered" : "all"}
+          </Button>
+        </div>
       </div>
 
       {loading ? (
