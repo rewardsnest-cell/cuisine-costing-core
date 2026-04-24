@@ -844,16 +844,30 @@ export function RecipeForm({
         </CardContent>
       </Card>
 
-      <div className="flex gap-3 justify-end">
+      <div className="flex gap-3 justify-end flex-wrap">
         <Button variant="outline" onClick={() => navigate({ to: "/admin/recipes" })}>
           Cancel
         </Button>
+        {mode === "edit" && currentStatus === "published" && (
+          <Button variant="outline" onClick={handleUnpublish} disabled={saving} className="gap-2">
+            <FileEdit className="w-4 h-4" /> Move to draft
+          </Button>
+        )}
         <Button
-          onClick={handleSave}
+          variant="outline"
+          onClick={handleSaveDraft}
           disabled={saving || !form.name.trim()}
-          className="bg-gradient-warm text-primary-foreground"
         >
-          {saving ? "Saving..." : mode === "create" ? "Create Recipe" : "Save changes"}
+          {saving ? "Saving..." : mode === "create" ? "Save as draft" : "Save changes"}
+        </Button>
+        <Button
+          onClick={handlePublish}
+          disabled={saving || !form.name.trim() || !canPublish}
+          className="bg-gradient-warm text-primary-foreground gap-2"
+          title={!canPublish ? "Resolve all ingredient lines to publish" : undefined}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          {mode === "edit" && currentStatus === "published" ? "Save & re-publish" : "Publish"}
         </Button>
       </div>
     </div>
