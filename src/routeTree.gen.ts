@@ -109,6 +109,7 @@ import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
+import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminChangeLogRouteImport } from './routes/admin/change-log'
@@ -653,6 +654,11 @@ const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
   path: '/cost-queue',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCookingLabRoute = AdminCookingLabRouteImport.update({
+  id: '/cooking-lab',
+  path: '/cooking-lab',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorsRoute = AdminCompetitorsRouteImport.update({
   id: '/competitors',
   path: '/competitors',
@@ -870,6 +876,7 @@ export interface FileRoutesByFullPath {
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1004,6 +1011,7 @@ export interface FileRoutesByTo {
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1141,6 +1149,7 @@ export interface FileRoutesById {
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
+  '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1279,6 +1288,7 @@ export interface FileRouteTypes {
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cooking-lab'
     | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
@@ -1413,6 +1423,7 @@ export interface FileRouteTypes {
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cooking-lab'
     | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
@@ -1549,6 +1560,7 @@ export interface FileRouteTypes {
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
+    | '/admin/cooking-lab'
     | '/admin/cost-queue'
     | '/admin/employees'
     | '/admin/events'
@@ -2407,6 +2419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCostQueueRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cooking-lab': {
+      id: '/admin/cooking-lab'
+      path: '/cooking-lab'
+      fullPath: '/admin/cooking-lab'
+      preLoaderRoute: typeof AdminCookingLabRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitors': {
       id: '/admin/competitors'
       path: '/competitors'
@@ -2759,6 +2778,7 @@ interface AdminRouteChildren {
   AdminChangeLogRoute: typeof AdminChangeLogRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
+  AdminCookingLabRoute: typeof AdminCookingLabRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
@@ -2827,6 +2847,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminChangeLogRoute: AdminChangeLogRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,
+  AdminCookingLabRoute: AdminCookingLabRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
