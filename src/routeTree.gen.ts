@@ -88,6 +88,7 @@ import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligen
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
+import { Route as AdminGuidesRouteImport } from './routes/admin/guides'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
@@ -111,6 +112,8 @@ import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
+import { Route as AdminGuidesNewRouteImport } from './routes/admin/guides.new'
+import { Route as AdminGuidesIdRouteImport } from './routes/admin/guides.$id'
 import { Route as AdminCompetitorQuotesIdRouteImport } from './routes/admin/competitor-quotes.$id'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -522,6 +525,11 @@ const AdminImportRecipesRoute = AdminImportRecipesRouteImport.update({
   path: '/import-recipes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGuidesRoute = AdminGuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGenerateRecipePhotosRoute =
   AdminGenerateRecipePhotosRouteImport.update({
     id: '/generate-recipe-photos',
@@ -641,6 +649,16 @@ const AdminIngredientsReviewUnlinkedRoute =
     path: '/ingredients/review-unlinked',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminGuidesNewRoute = AdminGuidesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminGuidesRoute,
+} as any)
+const AdminGuidesIdRoute = AdminGuidesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminGuidesRoute,
+} as any)
 const AdminCompetitorQuotesIdRoute = AdminCompetitorQuotesIdRouteImport.update({
   id: '/competitor-quotes/$id',
   path: '/competitor-quotes/$id',
@@ -724,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
+  '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -780,6 +799,8 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/guides/$id': typeof AdminGuidesIdRoute
+  '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -834,6 +855,7 @@ export interface FileRoutesByTo {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
+  '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -890,6 +912,8 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/guides/$id': typeof AdminGuidesIdRoute
+  '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -947,6 +971,7 @@ export interface FileRoutesById {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
+  '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -1003,6 +1028,8 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
+  '/admin/guides/$id': typeof AdminGuidesIdRoute
+  '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1061,6 +1088,7 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/feedback'
     | '/admin/generate-recipe-photos'
+    | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
     | '/admin/integrations'
@@ -1117,6 +1145,8 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/guides/$id'
+    | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
@@ -1171,6 +1201,7 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/feedback'
     | '/admin/generate-recipe-photos'
+    | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
     | '/admin/integrations'
@@ -1227,6 +1258,8 @@ export interface FileRouteTypes {
     | '/blog'
     | '/weddings'
     | '/admin/competitor-quotes/$id'
+    | '/admin/guides/$id'
+    | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
@@ -1283,6 +1316,7 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/feedback'
     | '/admin/generate-recipe-photos'
+    | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
     | '/admin/integrations'
@@ -1339,6 +1373,8 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
+    | '/admin/guides/$id'
+    | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
@@ -1963,6 +1999,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminImportRecipesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/guides': {
+      id: '/admin/guides'
+      path: '/guides'
+      fullPath: '/admin/guides'
+      preLoaderRoute: typeof AdminGuidesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/generate-recipe-photos': {
       id: '/admin/generate-recipe-photos'
       path: '/generate-recipe-photos'
@@ -2124,6 +2167,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIngredientsReviewUnlinkedRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/guides/new': {
+      id: '/admin/guides/new'
+      path: '/new'
+      fullPath: '/admin/guides/new'
+      preLoaderRoute: typeof AdminGuidesNewRouteImport
+      parentRoute: typeof AdminGuidesRoute
+    }
+    '/admin/guides/$id': {
+      id: '/admin/guides/$id'
+      path: '/$id'
+      fullPath: '/admin/guides/$id'
+      preLoaderRoute: typeof AdminGuidesIdRouteImport
+      parentRoute: typeof AdminGuidesRoute
+    }
     '/admin/competitor-quotes/$id': {
       id: '/admin/competitor-quotes/$id'
       path: '/competitor-quotes/$id'
@@ -2182,6 +2239,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminGuidesRouteChildren {
+  AdminGuidesIdRoute: typeof AdminGuidesIdRoute
+  AdminGuidesNewRoute: typeof AdminGuidesNewRoute
+}
+
+const AdminGuidesRouteChildren: AdminGuidesRouteChildren = {
+  AdminGuidesIdRoute: AdminGuidesIdRoute,
+  AdminGuidesNewRoute: AdminGuidesNewRoute,
+}
+
+const AdminGuidesRouteWithChildren = AdminGuidesRoute._addFileChildren(
+  AdminGuidesRouteChildren,
+)
 
 interface AdminQuotesRouteChildren {
   AdminQuotesIdRoute: typeof AdminQuotesIdRoute
@@ -2248,6 +2319,7 @@ interface AdminRouteChildren {
   AdminExportsRoute: typeof AdminExportsRoute
   AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
+  AdminGuidesRoute: typeof AdminGuidesRouteWithChildren
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
@@ -2303,6 +2375,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExportsRoute: AdminExportsRoute,
   AdminFeedbackRoute: AdminFeedbackRoute,
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
+  AdminGuidesRoute: AdminGuidesRouteWithChildren,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
