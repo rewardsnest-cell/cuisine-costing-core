@@ -132,8 +132,25 @@ function v(name) {
 const today = new Date().toISOString().split("T")[0];
 
 function routeRow(r) {
-  return `| ${r.path} | \\\`src/routes/${r.file}\\\` |`;
+  const d = descriptions[r.path];
+  if (!d) {
+    return `| \`${r.path}\` | _(no description — add to page-descriptions.ts)_ | \`src/routes/${r.file}\` |`;
+  }
+  let purpose = d.purpose || "";
+  if (d.whenToUse) purpose += ` _When:_ ${d.whenToUse}`;
+  if (d.keyActions && d.keyActions.length) {
+    purpose += ` _Actions:_ ${d.keyActions.join("; ")}`;
+  }
+  // Escape pipe chars so they don't break the markdown table
+  purpose = purpose.replace(/\|/g, "\\|");
+  const title = (d.title || "").replace(/\|/g, "\\|");
+  return `| \`${r.path}\` | **${title}** — ${purpose} | \`src/routes/${r.file}\` |`;
 }
+
+const describedCount = routes.filter((r) => descriptions[r.path]).length;
+const undescribedRoutes = routes
+  .filter((r) => !descriptions[r.path])
+  .map((r) => `- \`${r.path}\` (\`src/routes/${r.file}\`)`);
 
 const md = `# Project Audit — ${pkg.name}
 
