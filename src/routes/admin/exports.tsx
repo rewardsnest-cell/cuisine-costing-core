@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,11 @@ import {
   Loader2,
   Check,
   Download,
+  PlayCircle,
 } from "lucide-react";
 import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
+import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
