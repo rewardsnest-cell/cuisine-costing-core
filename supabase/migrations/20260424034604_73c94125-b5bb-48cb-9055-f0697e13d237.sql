@@ -1,0 +1,1 @@
+UPDATE public.app_kv SET value = NULL, updated_at = now() WHERE key = 'kroger_location_id';
