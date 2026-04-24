@@ -13,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
+import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -210,6 +211,32 @@ function ExportsPage() {
     }
   };
 
+  const handleDownloadJson = async () => {
+    setBusy("json");
+    setError(null);
+    try {
+      const bundle = {
+        generated_at: new Date().toISOString(),
+        project: "VP Finest",
+        format_version: 1,
+        markdown: PROJECT_AUDIT_MD,
+        routes: ROUTE_DESCRIPTIONS,
+        route_count: Object.keys(ROUTE_DESCRIPTIONS).length,
+      };
+      const json = JSON.stringify(bundle, null, 2);
+      await downloadFile(
+        json,
+        `PROJECT_AUDIT_${today}.json`,
+        "application/json;charset=utf-8",
+      );
+      flashDone("json");
+    } catch (e: any) {
+      setError(e.message || "JSON export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleExportCsv = async (spec: CsvSpec) => {
     setBusy(spec.key);
     setError(null);
@@ -333,6 +360,21 @@ function ExportsPage() {
                 <FileDown className="w-4 h-4" />
               )}
               Download PDF
+            </Button>
+            <Button
+              onClick={handleDownloadJson}
+              disabled={!!busy}
+              variant="outline"
+              className="gap-2"
+            >
+              {busy === "json" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : done.json ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              Download JSON bundle
             </Button>
           </div>
         </CardContent>
