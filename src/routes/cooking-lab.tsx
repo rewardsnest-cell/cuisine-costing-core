@@ -406,45 +406,90 @@ export function CookingLabSection({
         <p className="mt-4 text-lg text-muted-foreground leading-relaxed">{entry.description}</p>
 
         {hasTools && (
-          <div className="mt-6 rounded-xl border border-border bg-card p-5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Tools We Used
-            </h3>
-            <ul className="space-y-2">
-              {entry.primary_tool_name && entry.primary_tool_url && (
-                <li>
-                  <a
-                    href={primaryHref}
-                    target="_blank"
-                    rel="nofollow noopener sponsored"
-                    data-affiliate-network="amazon"
-                    data-affiliate-slot="cooking-lab-primary"
-                    data-affiliate-entry-id={entry.id}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    {entry.primary_tool_name}
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </li>
-              )}
-              {entry.secondary_tool_name && entry.secondary_tool_url && (
-                <li>
-                  <a
-                    href={secondaryHref}
-                    target="_blank"
-                    rel="nofollow noopener sponsored"
-                    data-affiliate-network="amazon"
-                    data-affiliate-slot="cooking-lab-secondary"
-                    data-affiliate-entry-id={entry.id}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    {entry.secondary_tool_name}
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
+          <Collapsible defaultOpen className="mt-6 rounded-xl border border-border bg-card">
+            <CollapsibleTrigger className="group w-full flex items-center justify-between gap-3 p-5 text-left">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Tools used</span>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Affiliate disclosure"
+                        className="inline-flex items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-center">
+                      These are Amazon affiliate links. As an Amazon Associate, VPS Finest earns
+                      from qualifying purchases — at no extra cost to you.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-5 pb-5 -mt-1">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Affiliate links · we may earn a commission on purchases.
+                </p>
+                <ul className="space-y-2">
+                  {entry.primary_tool_name && entry.primary_tool_url && (
+                    <li className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {entry.primary_tool_name}
+                        </div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          Primary · Amazon affiliate
+                        </div>
+                      </div>
+                      <a
+                        href={primaryHref}
+                        target="_blank"
+                        rel="nofollow noopener sponsored"
+                        data-affiliate-network="amazon"
+                        data-affiliate-slot="cooking-lab-primary"
+                        data-affiliate-entry-id={entry.id}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
+                      >
+                        View on Amazon
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                  )}
+                  {entry.secondary_tool_name && entry.secondary_tool_url && (
+                    <li className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {entry.secondary_tool_name}
+                        </div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          Also used · Amazon affiliate
+                        </div>
+                      </div>
+                      <a
+                        href={secondaryHref}
+                        target="_blank"
+                        rel="nofollow noopener sponsored"
+                        data-affiliate-network="amazon"
+                        data-affiliate-slot="cooking-lab-secondary"
+                        data-affiliate-entry-id={entry.id}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors shrink-0"
+                      >
+                        View on Amazon
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </div>
     </article>
