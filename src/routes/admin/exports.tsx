@@ -255,7 +255,7 @@ function ExportsPage() {
           .range(0, 9999);
         if (e) throw e;
         const csv = rowsToCsv(data ?? []);
-        downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
         // small delay so browsers don't block bulk downloads
         await new Promise((r) => setTimeout(r, 250));
       }
