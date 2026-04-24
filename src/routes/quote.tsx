@@ -242,7 +242,7 @@ export function QuotePage() {
         <div className="pt-24 pb-16 px-4">
           <div className="max-w-lg mx-auto text-center">
             <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-            <h1 className="font-display text-3xl font-bold text-foreground mb-2">Quote Submitted!</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground mb-2">Request Received!</h1>
             {referenceNumber && (
               <div className="bg-muted rounded-lg p-4 mb-4">
                 <p className="text-xs text-muted-foreground mb-1">Your reference number</p>
@@ -258,10 +258,11 @@ export function QuotePage() {
                 >
                   <Copy className="w-3 h-3" /> Copy reference
                 </button>
-                <p className="text-xs text-muted-foreground mt-1">Save this to look up your quote anytime</p>
+                <p className="text-xs text-muted-foreground mt-1">Save this to look up your request anytime</p>
               </div>
             )}
-            <p className="text-muted-foreground mb-6">We'll review your request and get back to you within 24 hours.</p>
+            <p className="text-muted-foreground mb-2">Thanks! Your request is in.</p>
+            <p className="text-muted-foreground mb-6 text-sm">Our team will review the details, fine-tune your menu, and email you a <strong>formal quote with pricing</strong> — usually within 24 hours.</p>
             {!linked && !user && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
                 <p className="text-sm font-medium text-foreground mb-2">Save this quote to an account?</p>
