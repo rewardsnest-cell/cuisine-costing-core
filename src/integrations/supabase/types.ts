@@ -2713,6 +2713,54 @@ export type Database = {
         }
         Relationships: []
       }
+      route_inventory: {
+        Row: {
+          created_at: string
+          last_http_checked_at: string | null
+          last_http_error: string | null
+          last_http_status: number | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          route_path: string
+          thumbnail_captured_at: string | null
+          thumbnail_error: string | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          last_http_checked_at?: string | null
+          last_http_error?: string | null
+          last_http_status?: number | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_path: string
+          thumbnail_captured_at?: string | null
+          thumbnail_error?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          last_http_checked_at?: string | null
+          last_http_error?: string | null
+          last_http_status?: number | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_path?: string
+          thumbnail_captured_at?: string | null
+          thumbnail_error?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sale_flyer_items: {
         Row: {
           brand: string | null

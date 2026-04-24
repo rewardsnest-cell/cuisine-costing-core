@@ -587,6 +587,17 @@ export const ROUTE_DESCRIPTIONS: Record<string, RouteDescription> = {
       "Download a Markdown/PDF project audit and export operational data tables as CSV.",
     audience: "admin",
   },
+  "/admin/page-inventory": {
+    title: "Page Inventory",
+    purpose:
+      "One row per app route with HTTP reachability, manual review status, and a thumbnail screenshot for public pages.",
+    audience: "admin",
+    keyActions: [
+      "Re-check every route's HTTP status",
+      "Capture missing thumbnails via the screenshot service",
+      "Mark routes as Reviewed / Needs review / Broken",
+    ],
+  },
   "/admin/audit": {
     title: "Internal Audit Log",
     purpose: "Read-only system event log with filters and CSV/JSON export.",

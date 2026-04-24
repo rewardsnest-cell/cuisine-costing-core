@@ -85,6 +85,7 @@ import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase
 import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/pricing-visibility'
 import { Route as AdminPricingTestRouteImport } from './routes/admin/pricing-test'
 import { Route as AdminPricingLabRouteImport } from './routes/admin/pricing-lab'
+import { Route as AdminPageInventoryRouteImport } from './routes/admin/page-inventory'
 import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-modules'
@@ -528,6 +529,11 @@ const AdminPricingLabRoute = AdminPricingLabRouteImport.update({
   path: '/pricing-lab',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPageInventoryRoute = AdminPageInventoryRouteImport.update({
+  id: '/page-inventory',
+  path: '/page-inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNewsletterGuideRoute = AdminNewsletterGuideRouteImport.update({
   id: '/newsletter-guide',
   path: '/newsletter-guide',
@@ -872,6 +878,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
@@ -1003,6 +1010,7 @@ export interface FileRoutesByTo {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
@@ -1137,6 +1145,7 @@ export interface FileRoutesById {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
@@ -1272,6 +1281,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/page-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
@@ -1403,6 +1413,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/page-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
@@ -1536,6 +1547,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/page-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-test'
     | '/admin/pricing-visibility'
@@ -2200,6 +2212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingLabRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/page-inventory': {
+      id: '/admin/page-inventory'
+      path: '/page-inventory'
+      fullPath: '/admin/page-inventory'
+      preLoaderRoute: typeof AdminPageInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/newsletter-guide': {
       id: '/admin/newsletter-guide'
       path: '/newsletter-guide'
@@ -2721,6 +2740,7 @@ interface AdminRouteChildren {
   AdminMenuModulesRoute: typeof AdminMenuModulesRouteWithChildren
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
+  AdminPageInventoryRoute: typeof AdminPageInventoryRoute
   AdminPricingLabRoute: typeof AdminPricingLabRouteWithChildren
   AdminPricingTestRoute: typeof AdminPricingTestRoute
   AdminPricingVisibilityRoute: typeof AdminPricingVisibilityRoute
@@ -2788,6 +2808,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuModulesRoute: AdminMenuModulesRouteWithChildren,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
+  AdminPageInventoryRoute: AdminPageInventoryRoute,
   AdminPricingLabRoute: AdminPricingLabRouteWithChildren,
   AdminPricingTestRoute: AdminPricingTestRoute,
   AdminPricingVisibilityRoute: AdminPricingVisibilityRoute,
