@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { withAmazonAffiliateTag } from "@/lib/amazon-affiliate";
-import { FlaskConical, ExternalLink, Play, Layers } from "lucide-react";
+import { FlaskConical, ExternalLink, Play, Layers, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export type CookingLabCollection = {
   id: string;
@@ -86,6 +87,7 @@ export const Route = createFileRoute("/cooking-lab")({
 
 function CookingLabPage() {
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["cooking-lab", "public"],
@@ -137,10 +139,27 @@ function CookingLabPage() {
 
   const filteredEntries = useMemo(() => {
     if (!entries) return null;
-    if (!activeCollectionId) return entries;
-    const map = entryCollectionMap;
-    return entries.filter((e) => map?.get(e.id)?.has(activeCollectionId));
-  }, [entries, activeCollectionId, entryCollectionMap]);
+    let result = entries;
+    if (activeCollectionId) {
+      const map = entryCollectionMap;
+      result = result.filter((e) => map?.get(e.id)?.has(activeCollectionId));
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter((e) => {
+        const haystack = [
+          e.title,
+          e.description,
+          e.primary_tool_name ?? "",
+          e.secondary_tool_name ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+    return result;
+  }, [entries, activeCollectionId, entryCollectionMap, searchQuery]);
 
   return (
     <CookingLabPageBody
@@ -149,6 +168,9 @@ function CookingLabPage() {
       collections={collections ?? null}
       activeCollectionId={activeCollectionId}
       onSelectCollection={setActiveCollectionId}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      totalEntryCount={entries?.length ?? 0}
     />
   );
 }
@@ -165,14 +187,23 @@ export function CookingLabPageBody({
   collections,
   activeCollectionId,
   onSelectCollection,
+  searchQuery,
+  onSearchQueryChange,
+  totalEntryCount,
 }: {
   entries: CookingLabEntry[] | null;
   isLoading: boolean;
   collections?: CookingLabCollection[] | null;
   activeCollectionId?: string | null;
   onSelectCollection?: (id: string | null) => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
+  totalEntryCount?: number;
 }) {
   const showCollectionsUi = !!collections && collections.length > 0;
+  const showSearch = !!onSearchQueryChange;
+  const trimmedQuery = (searchQuery ?? "").trim();
+  const hasActiveFilters = !!activeCollectionId || trimmedQuery.length > 0;
   return (
     <div className="bg-background">
       {/* Hero */}
@@ -300,6 +331,76 @@ export function CookingLabPageBody({
         </section>
       )}
 
+      {/* Search & filter bar */}
+      {showSearch && (
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
+          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+            <label htmlFor="cooking-lab-search" className="sr-only">
+              Search techniques
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="cooking-lab-search"
+                type="search"
+                value={searchQuery ?? ""}
+                onChange={(e) => onSearchQueryChange?.(e.target.value)}
+                placeholder="Search by keyword, tool, or technique…"
+                className="pl-9 pr-10 h-11"
+                autoComplete="off"
+              />
+              {trimmedQuery.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onSearchQueryChange?.("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {hasActiveFilters && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground">
+                  {entries?.length ?? 0} of {totalEntryCount ?? 0} matching
+                </span>
+                {activeCollectionId && collections && onSelectCollection && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCollection(null)}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    {collections.find((c) => c.id === activeCollectionId)?.name ?? "Collection"}
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+                {trimmedQuery.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onSearchQueryChange?.("")}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    “{trimmedQuery}”
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectCollection?.(null);
+                    onSearchQueryChange?.("");
+                  }}
+                  className="ml-auto text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Sections */}
       <section id="videos" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20">
         {isLoading ? (
@@ -308,13 +409,31 @@ export function CookingLabPageBody({
           <div className="text-center py-20">
             <FlaskConical className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
             <h2 className="font-display text-2xl font-semibold text-foreground">
-              {activeCollectionId ? "No techniques in this collection yet" : "New techniques coming soon"}
+              {trimmedQuery
+                ? "No techniques match your search"
+                : activeCollectionId
+                  ? "No techniques in this collection yet"
+                  : "New techniques coming soon"}
             </h2>
             <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-              {activeCollectionId
-                ? "Try another collection or view all techniques."
-                : "We're prepping the first round of Cooking Lab videos. Check back shortly."}
+              {trimmedQuery
+                ? "Try a different keyword or clear filters to see all techniques."
+                : activeCollectionId
+                  ? "Try another collection or view all techniques."
+                  : "We're prepping the first round of Cooking Lab videos. Check back shortly."}
             </p>
+            {(trimmedQuery || activeCollectionId) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectCollection?.(null);
+                  onSearchQueryChange?.("");
+                }}
+                className="mt-5 inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           entries.map((entry, idx) => (
