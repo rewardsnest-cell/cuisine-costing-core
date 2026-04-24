@@ -176,6 +176,50 @@ function validateAmazonLink(args: {
   return { id, label, status: "ok", message: `Valid Amazon link · ASIN ${asinMatch[1].toUpperCase()}` };
 }
 
+/**
+ * Returns inline, publish-blocking errors per individual tool field.
+ * - Primary name + URL: both required.
+ * - Secondary: optional, but if either side is filled the OTHER side becomes required.
+ * - Any malformed URL (per validateAmazonLink) bubbles to the URL field only.
+ */
+function computeToolFieldErrors(entry: CookingLabEntry): {
+  primary_tool_name: string | null;
+  primary_tool_url: string | null;
+  secondary_tool_name: string | null;
+  secondary_tool_url: string | null;
+} {
+  const pName = (entry.primary_tool_name ?? "").trim();
+  const pUrl = (entry.primary_tool_url ?? "").trim();
+  const sName = (entry.secondary_tool_name ?? "").trim();
+  const sUrl = (entry.secondary_tool_url ?? "").trim();
+
+  const errors = {
+    primary_tool_name: null as string | null,
+    primary_tool_url: null as string | null,
+    secondary_tool_name: null as string | null,
+    secondary_tool_url: null as string | null,
+  };
+
+  // Primary — required pair
+  if (!pName) errors.primary_tool_name = "Required — add the tool name shown to readers.";
+  if (!pUrl) {
+    errors.primary_tool_url = "Required — paste the full Amazon product URL.";
+  } else {
+    const check = validateAmazonLink({ id: "primary", label: "Primary", name: pName || "x", url: pUrl, required: true });
+    if (check.status === "error") errors.primary_tool_url = check.message;
+  }
+
+  // Secondary — pair-required only if one side is filled
+  if (sName && !sUrl) errors.secondary_tool_url = "Required — name is set, add the Amazon URL too.";
+  if (!sName && sUrl) errors.secondary_tool_name = "Required — URL is set, add the tool name too.";
+  if (sUrl) {
+    const check = validateAmazonLink({ id: "secondary", label: "Secondary", name: sName || "x", url: sUrl, required: false });
+    if (check.status === "error") errors.secondary_tool_url = check.message;
+  }
+
+  return errors;
+}
+
 function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
   const errorCount = checks.filter((c) => c.status === "error").length;
   const warnCount = checks.filter((c) => c.status === "warning").length;
