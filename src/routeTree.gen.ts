@@ -58,6 +58,7 @@ import { Route as ApiRecipeSignupRouteImport } from './routes/api/recipe-signup'
 import { Route as ApiQuoteAssistantRouteImport } from './routes/api/quote-assistant'
 import { Route as ApiFlippRouteImport } from './routes/api/flipp'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
+import { Route as AdminVisibilityRouteImport } from './routes/admin/visibility'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminUploadsRouteImport } from './routes/admin/uploads'
 import { Route as AdminTrendsRouteImport } from './routes/admin/trends'
@@ -387,6 +388,11 @@ const ApiContactRoute = ApiContactRouteImport.update({
   id: '/api/contact',
   path: '/api/contact',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVisibilityRoute = AdminVisibilityRouteImport.update({
+  id: '/visibility',
+  path: '/visibility',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -869,6 +875,7 @@ export interface FileRoutesByFullPath {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/api/contact': typeof ApiContactRoute
   '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
@@ -996,6 +1003,7 @@ export interface FileRoutesByTo {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/api/contact': typeof ApiContactRoute
   '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
@@ -1126,6 +1134,7 @@ export interface FileRoutesById {
   '/admin/trends': typeof AdminTrendsRoute
   '/admin/uploads': typeof AdminUploadsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/visibility': typeof AdminVisibilityRoute
   '/api/contact': typeof ApiContactRoute
   '/api/flipp': typeof ApiFlippRoute
   '/api/quote-assistant': typeof ApiQuoteAssistantRoute
@@ -1257,6 +1266,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/admin/visibility'
     | '/api/contact'
     | '/api/flipp'
     | '/api/quote-assistant'
@@ -1384,6 +1394,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/admin/visibility'
     | '/api/contact'
     | '/api/flipp'
     | '/api/quote-assistant'
@@ -1513,6 +1524,7 @@ export interface FileRouteTypes {
     | '/admin/trends'
     | '/admin/uploads'
     | '/admin/users'
+    | '/admin/visibility'
     | '/api/contact'
     | '/api/flipp'
     | '/api/quote-assistant'
@@ -1959,6 +1971,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/contact'
       preLoaderRoute: typeof ApiContactRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/visibility': {
+      id: '/admin/visibility'
+      path: '/visibility'
+      fullPath: '/admin/visibility'
+      preLoaderRoute: typeof AdminVisibilityRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/users': {
       id: '/admin/users'
@@ -2665,6 +2684,7 @@ interface AdminRouteChildren {
   AdminTrendsRoute: typeof AdminTrendsRoute
   AdminUploadsRoute: typeof AdminUploadsRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminVisibilityRoute: typeof AdminVisibilityRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
@@ -2730,6 +2750,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminTrendsRoute: AdminTrendsRoute,
   AdminUploadsRoute: AdminUploadsRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminVisibilityRoute: AdminVisibilityRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
