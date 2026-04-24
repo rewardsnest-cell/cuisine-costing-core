@@ -47,6 +47,7 @@ export function PublicHeader() {
           <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>
           <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>
           <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>
+          <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
           <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
           <Link to="/about" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>About</Link>
           <Link to="/contact" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Contact</Link>
@@ -71,6 +72,7 @@ export function PublicHeader() {
               <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/blog">Guides</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/about">About</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/contact">Contact</Link></DropdownMenuItem>
