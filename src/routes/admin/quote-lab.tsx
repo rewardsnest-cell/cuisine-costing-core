@@ -215,27 +215,40 @@ function QuoteLabPage() {
     setCreating(true);
     try {
       const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+      // Build the insert payload through the same whitelist + force is_test=true.
+      const insertPayload = {
+        client_name: `TEST Client (${stamp})`,
+        client_email: `test+${Date.now()}@example.com`,
+        event_type: "Wedding",
+        guest_count: 1,
+        dietary_preferences: { intake: { sourcePage: "admin/quote-lab", venue: "Test venue" } },
+        quote_state: "initiated",
+        status: "draft",
+        is_test: true as const, // hard-locked: Lab never creates real quotes.
+        user_id: user?.id || null,
+      };
+      // Defensive: ensure no pricing fields slipped in.
+      assertLabSafeQuoteUpdate({
+        client_name: insertPayload.client_name,
+        client_email: insertPayload.client_email,
+        event_type: insertPayload.event_type,
+        guest_count: insertPayload.guest_count,
+        dietary_preferences: insertPayload.dietary_preferences,
+        quote_state: insertPayload.quote_state,
+        status: insertPayload.status,
+        is_test: insertPayload.is_test,
+      });
       const { data, error } = await (supabase as any)
         .from("quotes")
-        .insert({
-          client_name: `TEST Client (${stamp})`,
-          client_email: `test+${Date.now()}@example.com`,
-          event_type: "Wedding",
-          guest_count: 1,
-          dietary_preferences: { intake: { sourcePage: "admin/quote-lab", venue: "Test venue" } },
-          quote_state: "initiated",
-          status: "draft",
-          is_test: true,
-          user_id: user?.id || null,
-        })
+        .insert(insertPayload)
         .select("id, reference_number")
         .single();
       if (error) throw error;
       toast.success("Test quote created", { description: `Reference: ${data?.reference_number ?? "—"}` });
       await load();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Couldn't create test quote");
+      toast.error(err?.message || "Couldn't create test quote");
     } finally {
       setCreating(false);
     }
