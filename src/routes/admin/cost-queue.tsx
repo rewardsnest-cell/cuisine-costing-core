@@ -575,6 +575,18 @@ function CostQueuePage() {
         </SheetContent>
       </Sheet>
 
+      <Sheet open={!!formulaRow} onOpenChange={(o) => !o && setFormulaRow(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2"><Sigma className="w-4 h-4" />Weighted formula drill-down</SheetTitle>
+            <SheetDescription>
+              Exact inputs, weights, and arithmetic the verification report used for this item.
+            </SheetDescription>
+          </SheetHeader>
+          {formulaRow && <FormulaDrilldown row={formulaRow} thresholdPct={verifyResult?.summary.delta_threshold_pct ?? 0.05} />}
+        </SheetContent>
+      </Sheet>
+
       <Sheet open={simOpen} onOpenChange={setSimOpen}>
         <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader>
