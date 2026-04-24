@@ -196,6 +196,11 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           errors.push({
             item: item.name,
             error: `HTTP ${res.status}${opts.locationId ? "" : " (no locationId set)"}: ${body.slice(0, 200)}`,
+            http_status: res.status,
+            response_body: body.slice(0, 4000),
+            request_url: url.toString(),
+            request_term: cleanedTerm,
+            location_id: opts.locationId ?? null,
           });
           continue;
         }
