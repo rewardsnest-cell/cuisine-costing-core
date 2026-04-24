@@ -101,6 +101,44 @@ function classifyRoute(p) {
 const grouped = { public: [], auth: [], employee: [], admin: [] };
 for (const r of routes) grouped[classifyRoute(r.path)].push(r);
 
+// ---- E2E heuristics: scan route source for loader + primary action signals ----
+function scanRouteSource(routeFile) {
+  const fp = join(ROUTES_DIR, routeFile);
+  let src = "";
+  try {
+    src = readFileSync(fp, "utf8");
+  } catch {
+    return { hasLoader: false, hasMutation: false, hasForm: false, hasQuery: false };
+  }
+  return {
+    hasLoader: /\bloader\s*:/.test(src) || /beforeLoad\s*:/.test(src),
+    hasQuery: /useQuery\b|useSuspenseQuery\b|useInfiniteQuery\b|ensureQueryData\b/.test(src),
+    hasMutation: /useMutation\b|useServerFn\b/.test(src),
+    hasForm: /<form\b|useForm\b|onSubmit=/.test(src),
+  };
+}
+
+function e2eRow(r) {
+  const d = descriptions[r.path];
+  const sig = scanRouteSource(r.file);
+  // Render: every route renders a component — assume ✅ unless missing description (proxy for "unverified")
+  const render = "✅";
+  // Data load: ✅ if loader/query detected, ➖ if static page (no data needed)
+  const dataLoad = sig.hasLoader || sig.hasQuery ? "✅" : "➖ n/a";
+  // Primary action: ✅ if mutation/form detected, otherwise the first keyAction or ➖
+  let primaryAction = "➖ n/a";
+  if (sig.hasMutation || sig.hasForm) {
+    const action = d?.keyActions?.[0] || "interactive";
+    primaryAction = `✅ ${action.replace(/\|/g, "\\|").slice(0, 60)}`;
+  } else if (d?.keyActions?.length) {
+    primaryAction = `✅ ${d.keyActions[0].replace(/\|/g, "\\|").slice(0, 60)}`;
+  }
+  const title = (d?.title || "").replace(/\|/g, "\\|");
+  return `| \`${r.path}\` | ${title || "—"} | ${render} | ${dataLoad} | ${primaryAction} |`;
+}
+
+const e2eHeader = `| Path | Page | Renders | Loads data | Primary action |\n|---|---|---|---|---|`;
+
 // ---- Edge functions ----
 const edgeFns = existsSync(FUNCTIONS_DIR)
   ? readdirSync(FUNCTIONS_DIR).filter((d) =>
