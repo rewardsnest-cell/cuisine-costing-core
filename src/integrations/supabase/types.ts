@@ -629,6 +629,75 @@ export type Database = {
         }
         Relationships: []
       }
+      cooking_lab_entries: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string | null
+          primary_tool_name: string | null
+          primary_tool_url: string | null
+          qa_copy_reviewed: boolean
+          qa_image_loads: boolean
+          qa_links_tested: boolean
+          qa_ready: boolean
+          qa_video_loads: boolean
+          secondary_tool_name: string | null
+          secondary_tool_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+          video_url: string | null
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          primary_tool_name?: string | null
+          primary_tool_url?: string | null
+          qa_copy_reviewed?: boolean
+          qa_image_loads?: boolean
+          qa_links_tested?: boolean
+          qa_ready?: boolean
+          qa_video_loads?: boolean
+          secondary_tool_name?: string | null
+          secondary_tool_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          primary_tool_name?: string | null
+          primary_tool_url?: string | null
+          qa_copy_reviewed?: boolean
+          qa_image_loads?: boolean
+          qa_links_tested?: boolean
+          qa_ready?: boolean
+          qa_video_loads?: boolean
+          secondary_tool_name?: string | null
+          secondary_tool_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+          visible?: boolean
+        }
+        Relationships: []
+      }
       cost_update_queue: {
         Row: {
           created_at: string
