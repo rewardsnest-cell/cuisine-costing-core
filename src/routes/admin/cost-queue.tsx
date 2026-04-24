@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle, FlaskConical, TrendingUp, TrendingDown, Clock, Download, History, User } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle, FlaskConical, TrendingUp, TrendingDown, Clock, Download, History, User, Calculator, Sigma } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ type SimulateResult = Awaited<ReturnType<typeof simulateApplyCostUpdates>>;
 type TimelineResult = Awaited<ReturnType<typeof getCostQueueTimeline>>;
 
 type VerifyResult = Awaited<ReturnType<typeof recomputeAndVerifyInternalCosts>>;
+type VerifyRowType = VerifyResult["rows"][number];
 
 export const Route = createFileRoute("/admin/cost-queue")({
   head: () => ({ meta: [{ title: "Cost Update Queue — Admin" }] }),
@@ -59,6 +60,7 @@ function CostQueuePage() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
   const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
+  const [formulaRow, setFormulaRow] = useState<VerifyRowType | null>(null);
 
   const openTimeline = async (queueId: string) => {
     setTimelineOpen(true);
@@ -496,9 +498,14 @@ function CostQueuePage() {
                                       )}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1">
-                                        <Eye className="w-3.5 h-3.5" />
-                                      </Button>
+                                      <div className="flex justify-end gap-1">
+                                        <Button size="sm" variant="ghost" onClick={() => setFormulaRow(r)} className="gap-1" title="Show weighted formula">
+                                          <Sigma className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1" title="Open full breakdown">
+                                          <Eye className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 );
@@ -565,6 +572,18 @@ function CostQueuePage() {
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader><SheetTitle>Cost Breakdown</SheetTitle></SheetHeader>
           <div className="mt-4">{breakdownRef && <CostBreakdownPanel referenceId={breakdownRef} />}</div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!formulaRow} onOpenChange={(o) => !o && setFormulaRow(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2"><Sigma className="w-4 h-4" />Weighted formula drill-down</SheetTitle>
+            <SheetDescription>
+              Exact inputs, weights, and arithmetic the verification report used for this item.
+            </SheetDescription>
+          </SheetHeader>
+          {formulaRow && <FormulaDrilldown row={formulaRow} thresholdPct={verifyResult?.summary.delta_threshold_pct ?? 0.05} />}
         </SheetContent>
       </Sheet>
 
@@ -862,5 +881,130 @@ function DeltaBadge({ pct, abs }: { pct: number | null; abs?: number | null }) {
       {p >= 0 ? "+" : ""}{p.toFixed(2)}%
       {abs != null && <span className="opacity-70 ml-1">({abs >= 0 ? "+" : ""}${abs.toFixed(4)})</span>}
     </Badge>
+  );
+}
+
+function FormulaDrilldown({ row, thresholdPct }: { row: VerifyRowType; thresholdPct: number }) {
+  const fmt = (n: number | null | undefined, d = 4) =>
+    n == null || !Number.isFinite(Number(n)) ? "—" : `$${Number(n).toFixed(d)}`;
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+  const inputs = [
+    { key: "kroger" as const, label: "Kroger", base: 0.4, value: row.inputs.kroger, applied: row.applied_weights.kroger },
+    { key: "manual" as const, label: "Manual / Local", base: 0.4, value: row.inputs.manual, applied: row.applied_weights.manual },
+    { key: "historical" as const, label: "Historical avg", base: 0.2, value: row.inputs.historical, applied: row.applied_weights.historical },
+  ];
+
+  const contributions = inputs.map((s) => ({
+    ...s,
+    contribution: s.value != null && s.applied > 0 ? s.value * s.applied : null,
+  }));
+
+  const totalApplied = contributions.reduce((s, c) => s + c.applied, 0);
+  const sumContrib = contributions.reduce((s, c) => s + (c.contribution ?? 0), 0);
+
+  const formulaParts = contributions
+    .filter((c) => c.contribution != null)
+    .map((c) => `(${pct(c.applied)} × $${(c.value as number).toFixed(4)})`);
+  const formulaStr = formulaParts.length > 0 ? formulaParts.join(" + ") : "no available sources";
+
+  const dPct = row.delta_pct == null ? null : row.delta_pct * 100;
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="font-display text-lg font-bold">{row.canonical_name}</div>
+          <div className="text-xs text-muted-foreground">canonical unit <span className="font-mono">{row.default_unit}</span></div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {row.no_sources && <Badge variant="destructive">no sources</Badge>}
+          {row.abnormal && (
+            <Badge variant="destructive">
+              abnormal Δ &gt; {pct(thresholdPct)}
+            </Badge>
+          )}
+          {row.missing_sources.map((m) => (
+            <Badge key={m} variant="secondary" className="text-[10px]">
+              missing {m.replace("missing_", "")}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div className="border rounded-md p-2">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Stored estimate</div>
+          <div className="text-base font-semibold tabular-nums">{fmt(row.stored_estimate)}</div>
+        </div>
+        <div className="border rounded-md p-2 border-primary/40 bg-primary/5">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Computed</div>
+          <div className="text-base font-semibold tabular-nums">{fmt(row.computed_estimate)}</div>
+        </div>
+        <div className="border rounded-md p-2">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Δ vs stored</div>
+          <div className="text-base font-semibold tabular-nums">
+            {dPct == null ? "—" : (
+              <span className={row.abnormal ? "text-destructive" : ""}>
+                {dPct >= 0 ? "+" : ""}{dPct.toFixed(2)}%
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <div className="px-3 py-2 border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Calculator className="w-3.5 h-3.5" />Weighted inputs used
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Source</TableHead>
+              <TableHead className="text-right">Value</TableHead>
+              <TableHead className="text-right">Base wt.</TableHead>
+              <TableHead className="text-right">Applied wt.</TableHead>
+              <TableHead className="text-right">Contribution</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {contributions.map((c) => (
+              <TableRow key={c.key} className={c.value == null ? "opacity-60" : ""}>
+                <TableCell className="font-medium">{c.label}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {c.value == null ? <span className="text-muted-foreground">missing</span> : `$${c.value.toFixed(4)}`}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground tabular-nums">{pct(c.base)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {c.applied === 0 ? <span className="text-muted-foreground">0%</span> : pct(c.applied)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {c.contribution == null ? <span className="text-muted-foreground">—</span> : `$${c.contribution.toFixed(4)}`}
+                </TableCell>
+              </TableRow>
+            ))}
+            <TableRow className="bg-muted/30 font-semibold">
+              <TableCell>Total</TableCell>
+              <TableCell />
+              <TableCell className="text-right tabular-nums text-muted-foreground">100%</TableCell>
+              <TableCell className="text-right tabular-nums">{pct(totalApplied)}</TableCell>
+              <TableCell className="text-right tabular-nums">${sumContrib.toFixed(4)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+        <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Formula</div>
+        <div className="font-mono text-xs leading-relaxed break-words">
+          computed = {formulaStr} = <span className="font-bold">{fmt(row.computed_estimate)}</span>
+        </div>
+        <p className="text-[11px] text-muted-foreground italic">
+          Default weights: Kroger 40% · Manual 40% · Historical 20%. When a source is missing, its weight is
+          redistributed proportionally across the remaining sources so the applied weights still sum to 100%.
+          {row.no_sources && " No sources are available for this item — computed estimate is null."}
+        </p>
+      </div>
+    </div>
   );
 }
