@@ -19,6 +19,23 @@ export const processReceipt = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
 
+    // Load configurable confidence threshold (0..1). Matches below this score
+    // are auto-queued for manual review (match dropped, flagged with reason).
+    let confidenceThreshold = 0.6;
+    try {
+      const { data: kv } = await sb
+        .from("app_kv")
+        .select("value")
+        .eq("key", "receipt_match_confidence_threshold")
+        .maybeSingle();
+      const parsed = parseFloat((kv as any)?.value ?? "");
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) {
+        confidenceThreshold = parsed;
+      }
+    } catch {
+      // ignore — fall back to default
+    }
+
     // Snapshot previous OCR data for side-by-side comparison on re-runs
     let previous: { raw_ocr_text: string | null; line_items: RawLine[] } | null = null;
     if (data.rerun) {
