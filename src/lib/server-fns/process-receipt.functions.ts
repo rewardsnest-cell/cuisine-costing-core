@@ -148,10 +148,29 @@ export const processReceipt = createServerFn({ method: "POST" })
         success: true,
         line_items: enriched,
         total_amount: extracted.total_amount,
+        raw_ocr_text: extracted.raw_text || "",
+        previous,
       };
     } catch (e) {
+      // Mark receipt as failed so the UI can surface a Re-run OCR action
+      try {
+        await sb
+          .from("receipts")
+          .update({ status: "failed" })
+          .eq("id", data.receiptId);
+      } catch {
+        // ignore secondary failure
+      }
       if (e instanceof AiGatewayError) {
-        return { success: false, error: e.message, status: e.status, line_items: [], total_amount: 0 };
+        return {
+          success: false,
+          error: e.message,
+          status: e.status,
+          line_items: [],
+          total_amount: 0,
+          raw_ocr_text: "",
+          previous,
+        };
       }
       throw e;
     }
