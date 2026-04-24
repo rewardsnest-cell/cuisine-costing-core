@@ -93,6 +93,7 @@ import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
+import { Route as AdminInspiredPreviewRouteImport } from './routes/admin/inspired-preview'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGuidesRouteImport } from './routes/admin/guides'
@@ -562,6 +563,11 @@ const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   path: '/integrations',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInspiredPreviewRoute = AdminInspiredPreviewRouteImport.update({
+  id: '/inspired-preview',
+  path: '/inspired-preview',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIngredientReferenceRoute =
   AdminIngredientReferenceRouteImport.update({
     id: '/ingredient-reference',
@@ -827,6 +833,7 @@ export interface FileRoutesByFullPath {
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -953,6 +960,7 @@ export interface FileRoutesByTo {
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -1082,6 +1090,7 @@ export interface FileRoutesById {
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
+  '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
@@ -1212,6 +1221,7 @@ export interface FileRouteTypes {
     | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
@@ -1338,6 +1348,7 @@ export interface FileRouteTypes {
     | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
@@ -1466,6 +1477,7 @@ export interface FileRouteTypes {
     | '/admin/guides'
     | '/admin/import-recipes'
     | '/admin/ingredient-reference'
+    | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
@@ -2193,6 +2205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegrationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/inspired-preview': {
+      id: '/admin/inspired-preview'
+      path: '/inspired-preview'
+      fullPath: '/admin/inspired-preview'
+      preLoaderRoute: typeof AdminInspiredPreviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ingredient-reference': {
       id: '/admin/ingredient-reference'
       path: '/ingredient-reference'
@@ -2610,6 +2629,7 @@ interface AdminRouteChildren {
   AdminGuidesRoute: typeof AdminGuidesRouteWithChildren
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
+  AdminInspiredPreviewRoute: typeof AdminInspiredPreviewRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
@@ -2674,6 +2694,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGuidesRoute: AdminGuidesRouteWithChildren,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
+  AdminInspiredPreviewRoute: AdminInspiredPreviewRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,

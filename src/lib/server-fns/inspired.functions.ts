@@ -36,7 +36,7 @@ export const setRecipeInspiredPhase = createServerFn({ method: "POST" })
     await ensureAdmin(context.userId);
     const update: Record<string, any> = { inspired_phase: data.phase };
     if (data.phase !== "off") update.inspired = true;
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("recipes")
       .update(update)
       .eq("id", data.recipeId);
@@ -56,7 +56,7 @@ export const bulkSetInspiredPhase = createServerFn({ method: "POST" })
     await ensureAdmin(context.userId);
     const update: Record<string, any> = { inspired_phase: data.phase };
     if (data.phase !== "off") update.inspired = true;
-    const { error, count } = await supabaseAdmin
+    const { error, count } = await (supabaseAdmin as any)
       .from("recipes")
       .update(update, { count: "exact" })
       .in("id", data.recipeIds);
