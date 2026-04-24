@@ -322,6 +322,8 @@ function AdminDashboard() {
         </CardContent>
       </Card>
 
+      <AdminCategoryGrid />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-warm border-border/50">
           <CardContent className="p-6">
