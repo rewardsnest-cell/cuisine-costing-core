@@ -433,6 +433,25 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
   return lines.join("\\n");
 }
 
+function buildDownloadLandingHtml(downloadUrl: string, downloadLabel: string): string {
+  const safeUrl = downloadUrl.replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
+  const safeLabel = downloadLabel
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;");
+
+  return [
+    '<!doctype html><html><head><meta charset="utf-8" /><title>Download ready</title></head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;">',
+    '<h1 style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1>',
+    '<p style="margin: 0 0 16px; color: #555;">If the download does not start automatically, use the button below.</p>',
+    '<p style="margin: 0 0 12px;"><a id="download-link" href="', safeUrl, '" download="', safeLabel, '" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;">Download ', safeLabel, '</a></p>',
+    '<p id="status" style="margin: 0; color: #555; font-size: 14px;">If nothing happens, tap the button again.</p>',
+    "<script>const a=document.getElementById('download-link');const s=document.getElementById('status');if(a){setTimeout(function(){try{a.click();if(s)s.textContent='Download started. You can close this tab after saving.';}catch(e){if(s)s.textContent='Automatic download was blocked. Use the button above.';}},50);}</script>",
+    '</body></html>',
+  ].join("");
+}
+
 export async function downloadFile(
   content: string | Blob,
   filename: string,
@@ -474,16 +493,8 @@ export async function downloadFile(
 
   if (targetWindow && !targetWindow.closed) {
     try {
-      const escapedFilename = filename
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;");
-      const escapedUrl = url.replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
       targetWindow.document.open();
-      targetWindow.document.write(
-        `<!doctype html><html><head><meta charset="utf-8" /><title>Downloading…</title></head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1><p style="margin: 0 0 16px; color: #555;">If the download does not start automatically, use the button below.</p><p style="margin: 0;"><a id="download-link" href="${escapedUrl}" download="${escapedFilename}" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;">Download ${escapedFilename}</a></p><script>const a=document.getElementById('download-link');if(a){a.click();setTimeout(function(){location.href='${url}';},1200);}</script></body></html>`,
-      );
+      targetWindow.document.write(buildDownloadLandingHtml(url, filename));
       targetWindow.document.close();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
       return;
@@ -531,8 +542,11 @@ export async function downloadFile(
   }
 
   try {
-    const popup = window.open(url, "_blank", "noopener,noreferrer");
+    const popup = window.open("", "_blank", "noopener,noreferrer");
     if (popup) {
+      popup.document.open();
+      popup.document.write(buildDownloadLandingHtml(url, filename));
+      popup.document.close();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
       return;
     }
