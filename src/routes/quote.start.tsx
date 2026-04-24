@@ -392,20 +392,6 @@ function QuoteStartPage() {
                   </label>
                 </div>
 
-                <div>
-                  <Label>Projected budget <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Select value={form.budgetRange} onValueChange={(v) => update("budgetRange", v)}>
-                    <SelectTrigger><SelectValue placeholder="Not sure yet" /></SelectTrigger>
-                    <SelectContent>
-                      {BUDGET_RANGES.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    We don't share figures at this stage — this just helps us understand your starting point.
-                  </p>
-                </div>
 
                 <div className="pt-3">
                   <Button type="submit" disabled={submitting} className="w-full">
