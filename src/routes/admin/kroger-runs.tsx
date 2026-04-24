@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket } from "lucide-react";
+import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket, Filter } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import { toast } from "sonner";
 import {
   ingestKrogerPrices,
