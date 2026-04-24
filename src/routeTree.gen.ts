@@ -102,10 +102,12 @@ import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
+import { Route as AdminChangeLogRouteImport } from './routes/admin/change-log'
 import { Route as AdminBrandConfigRouteImport } from './routes/admin/brand-config'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
 import { Route as AdminBrandAssetsRouteImport } from './routes/admin/brand-assets'
 import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as AdminAssetDebugRouteImport } from './routes/admin/asset-debug'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
@@ -605,6 +607,11 @@ const AdminCompetitorTrendsRoute = AdminCompetitorTrendsRouteImport.update({
   path: '/competitor-trends',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminChangeLogRoute = AdminChangeLogRouteImport.update({
+  id: '/change-log',
+  path: '/change-log',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBrandConfigRoute = AdminBrandConfigRouteImport.update({
   id: '/brand-config',
   path: '/brand-config',
@@ -626,6 +633,11 @@ const AdminAutoLinkIngredientsRoute =
     path: '/auto-link-ingredients',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAssetDebugRoute = AdminAssetDebugRouteImport.update({
   id: '/asset-debug',
   path: '/asset-debug',
@@ -786,10 +798,12 @@ export interface FileRoutesByFullPath {
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
@@ -908,10 +922,12 @@ export interface FileRoutesByTo {
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
@@ -1033,10 +1049,12 @@ export interface FileRoutesById {
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
@@ -1159,10 +1177,12 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/affiliates'
     | '/admin/asset-debug'
+    | '/admin/audit'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
     | '/admin/cost-queue'
@@ -1281,10 +1301,12 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/affiliates'
     | '/admin/asset-debug'
+    | '/admin/audit'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
     | '/admin/cost-queue'
@@ -1405,10 +1427,12 @@ export interface FileRouteTypes {
     | '/admin/access'
     | '/admin/affiliates'
     | '/admin/asset-debug'
+    | '/admin/audit'
     | '/admin/auto-link-ingredients'
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
     | '/admin/cost-queue'
@@ -2208,6 +2232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCompetitorTrendsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/change-log': {
+      id: '/admin/change-log'
+      path: '/change-log'
+      fullPath: '/admin/change-log'
+      preLoaderRoute: typeof AdminChangeLogRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/brand-config': {
       id: '/admin/brand-config'
       path: '/brand-config'
@@ -2234,6 +2265,13 @@ declare module '@tanstack/react-router' {
       path: '/auto-link-ingredients'
       fullPath: '/admin/auto-link-ingredients'
       preLoaderRoute: typeof AdminAutoLinkIngredientsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/asset-debug': {
@@ -2517,10 +2555,12 @@ interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
   AdminAffiliatesRoute: typeof AdminAffiliatesRoute
   AdminAssetDebugRoute: typeof AdminAssetDebugRoute
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
   AdminBrandAssetsRoute: typeof AdminBrandAssetsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminBrandConfigRoute: typeof AdminBrandConfigRoute
+  AdminChangeLogRoute: typeof AdminChangeLogRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
@@ -2577,10 +2617,12 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
   AdminAffiliatesRoute: AdminAffiliatesRoute,
   AdminAssetDebugRoute: AdminAssetDebugRoute,
+  AdminAuditRoute: AdminAuditRoute,
   AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
   AdminBrandAssetsRoute: AdminBrandAssetsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminBrandConfigRoute: AdminBrandConfigRoute,
+  AdminChangeLogRoute: AdminChangeLogRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
