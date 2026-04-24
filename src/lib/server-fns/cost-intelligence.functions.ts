@@ -302,8 +302,11 @@ export const setReceiptLineItemMatch = createServerFn({ method: "POST" })
         .maybeSingle();
       invName = inv?.name ?? null;
     }
+    const prev = items[data.line_index] ?? {};
+    const previousSource = prev.match_source ?? null;
+    const previousScore = prev.match_score ?? null;
     items[data.line_index] = {
-      ...items[data.line_index],
+      ...prev,
       matched_inventory_id: data.inventory_item_id,
       matched_inventory_name: invName,
       match_source: data.inventory_item_id ? "manual_review" : null,
