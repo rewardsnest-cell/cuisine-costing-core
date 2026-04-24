@@ -442,12 +442,16 @@ function buildDownloadLandingHtml(downloadUrl: string, downloadLabel: string): s
     .replace(/\"/g, "&quot;");
 
   return [
-    '<!doctype html><html><head><meta charset="utf-8" /><title>Download ready</title></head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;">',
-    '<h1 style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1>',
+    '<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Download ready</title>',
+    '<style>*:focus-visible{outline:3px solid #2563eb;outline-offset:2px;border-radius:8px;}.dl-btn:hover{background:#000;}.dl-btn:active{transform:translateY(1px);}</style>',
+    '</head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5; color: #111;">',
+    '<main role="main" aria-labelledby="dl-title">',
+    '<h1 id="dl-title" style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1>',
     '<p style="margin: 0 0 16px; color: #555;">If the download does not start automatically, use the button below.</p>',
-    '<p style="margin: 0 0 12px;"><a id="download-link" href="', safeUrl, '" download="', safeLabel, '" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;">Download ', safeLabel, '</a></p>',
-    '<p id="status" style="margin: 0; color: #555; font-size: 14px;">If nothing happens, tap the button again.</p>',
-    "<script>const a=document.getElementById('download-link');const s=document.getElementById('status');if(a){setTimeout(function(){try{a.click();if(s)s.textContent='Download started. You can close this tab after saving.';}catch(e){if(s)s.textContent='Automatic download was blocked. Use the button above.';}},50);}</script>",
+    '<p style="margin: 0 0 12px;"><a id="download-link" class="dl-btn" href="', safeUrl, '" download="', safeLabel, '" role="button" aria-label="Download ', safeLabel, '" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500;">Download ', safeLabel, '</a></p>',
+    '<p id="status" role="status" aria-live="polite" style="margin: 0; color: #555; font-size: 14px;">If nothing happens, press Enter or Space on the button above.</p>',
+    '</main>',
+    "<script>(function(){var a=document.getElementById('download-link');var s=document.getElementById('status');if(!a)return;a.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Spacebar'){e.preventDefault();a.click();}});try{a.focus({preventScroll:false});}catch(_){a.focus();}setTimeout(function(){try{a.click();if(s)s.textContent='Download started. You can close this tab after saving.';}catch(e){if(s)s.textContent='Automatic download was blocked. Activate the button above to save the file.';}},80);})();</script>",
     '</body></html>',
   ].join("");
 }
