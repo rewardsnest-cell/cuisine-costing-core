@@ -22,7 +22,7 @@ export function QuoteStepExtras({ selections, setSelections, setStep }: Props) {
   return (
     <div>
       <h1 className="font-display text-3xl font-bold text-foreground mb-2">Sides & Extras</h1>
-      <p className="text-muted-foreground mb-8">Add courses and beverages (per guest pricing)</p>
+      <p className="text-muted-foreground mb-8">Add courses and beverages{showPricing ? " (per guest pricing)" : ""}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {SIDES_AND_EXTRAS.map((item) => (
           <Card
