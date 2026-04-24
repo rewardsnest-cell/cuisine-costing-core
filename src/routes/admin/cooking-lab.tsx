@@ -1511,6 +1511,27 @@ function EntryCard({
           </div>
         </Section>
 
+        {/* F. SEO — per-entry metadata. All optional; falls back to Title /
+            Description / Image / page URL when blank. Surfaces via JSON-LD on
+            the public /cooking-lab page so each entry has its own headline,
+            description, image, and canonical URL for crawlers and shares. */}
+        <Section
+          label="F. SEO & Social Sharing"
+          hint="All fields optional. Leave blank to fall back to Title, Description, Image, and the page URL."
+        >
+          <SeoFieldsPanel
+            seoTitle={draft.seo_title}
+            seoDescription={draft.seo_description}
+            seoCanonicalUrl={draft.seo_canonical_url}
+            seoOgImageUrl={draft.seo_og_image_url}
+            fallbackTitle={draft.title}
+            fallbackDescription={draft.description}
+            fallbackImageUrl={draft.image_url}
+            entryId={draft.id}
+            onChange={(field, value) => update(field, value)}
+          />
+        </Section>
+
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-border flex-wrap">
           {publishBlocked && !qaAllPassed && (
             <span className="text-xs text-destructive">
