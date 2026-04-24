@@ -1528,6 +1528,44 @@ export type Database = {
           },
         ]
       }
+      kroger_bootstrap_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          page: number
+          products_seen: number
+          run_id: string
+          search_term: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          page?: number
+          products_seen?: number
+          run_id: string
+          search_term: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          page?: number
+          products_seen?: number
+          run_id?: string
+          search_term?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kroger_bootstrap_progress_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "kroger_ingest_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kroger_ingest_runs: {
         Row: {
           created_at: string
@@ -1593,6 +1631,7 @@ export type Database = {
           promo_price: number | null
           reference_id: string | null
           regular_price: number | null
+          review_state: string
           sku: string
           status: string
           upc: string | null
@@ -1614,6 +1653,7 @@ export type Database = {
           promo_price?: number | null
           reference_id?: string | null
           regular_price?: number | null
+          review_state?: string
           sku: string
           status?: string
           upc?: string | null
@@ -1635,6 +1675,7 @@ export type Database = {
           promo_price?: number | null
           reference_id?: string | null
           regular_price?: number | null
+          review_state?: string
           sku?: string
           status?: string
           upc?: string | null
@@ -1838,9 +1879,13 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          ingest_run_id: string | null
           inventory_item_id: string
+          location_id: string | null
           notes: string | null
           observed_at: string
+          promo: boolean
+          raw_package_price: number | null
           source: string
           source_id: string | null
           supplier_id: string | null
@@ -1850,9 +1895,13 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          ingest_run_id?: string | null
           inventory_item_id: string
+          location_id?: string | null
           notes?: string | null
           observed_at?: string
+          promo?: boolean
+          raw_package_price?: number | null
           source: string
           source_id?: string | null
           supplier_id?: string | null
@@ -1862,9 +1911,13 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          ingest_run_id?: string | null
           inventory_item_id?: string
+          location_id?: string | null
           notes?: string | null
           observed_at?: string
+          promo?: boolean
+          raw_package_price?: number | null
           source?: string
           source_id?: string | null
           supplier_id?: string | null
