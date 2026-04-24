@@ -353,7 +353,7 @@ function CostQueuePage() {
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Old</TableHead><TableHead>Proposed</TableHead><TableHead>Applied</TableHead><TableHead>%</TableHead><TableHead>Reviewed</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Old</TableHead><TableHead>Proposed</TableHead><TableHead>Applied</TableHead><TableHead>%</TableHead><TableHead>Reviewed</TableHead><TableHead className="text-right">Audit</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {history.map((r: any) => (
                         <TableRow key={r.id}>
@@ -363,6 +363,9 @@ function CostQueuePage() {
                           <TableCell>${Number(r.final_applied_cost ?? 0).toFixed(4)}</TableCell>
                           <TableCell>{Number(r.percent_change ?? 0).toFixed(2)}%</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{r.reviewed_at ? new Date(r.reviewed_at).toLocaleString() : "—"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="ghost" onClick={() => openTimeline(r.id)} className="gap-1"><History className="w-3.5 h-3.5" />Timeline</Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
