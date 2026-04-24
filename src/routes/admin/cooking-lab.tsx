@@ -758,6 +758,7 @@ function CookingLabManager() {
   };
   const bulkBusy = bulkDeleteMut.isPending || bulkDuplicateMut.isPending;
 
+  return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div>
