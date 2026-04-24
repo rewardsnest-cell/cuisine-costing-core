@@ -508,23 +508,22 @@ function EditIntakeDialog({
 
   const save = async () => {
     setSaving(true);
-    const { error } = await (supabase as any)
-      .from("quotes")
-      .update({
+    try {
+      const { error } = await labSafeUpdateQuote(quote, {
         client_name: name || null,
         client_email: email || null,
         event_type: eventType || null,
         event_date: eventDate || null,
-      })
-      .eq("id", quote.id);
-    setSaving(false);
-    if (error) {
-      console.error(error);
-      toast.error("Save failed");
-      return;
+      });
+      if (error) throw error;
+      toast.success("Intake updated");
+      onSaved();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Save failed");
+    } finally {
+      setSaving(false);
     }
-    toast.success("Intake updated");
-    onSaved();
   };
 
   return (
