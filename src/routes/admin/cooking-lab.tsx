@@ -43,6 +43,8 @@ import {
   Upload,
   Video as VideoIcon,
   Loader2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 type CookingLabEntry = {
