@@ -442,8 +442,14 @@ function QuoteLabPage() {
                         onCheckedChange={(v) => toggleTest(q, v)}
                       />
                     </div>
-                    <Select value={q.quote_state} onValueChange={(v) => setState(q, v as QuoteState)}>
-                      <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+                    <Select
+                      value={q.quote_state}
+                      onValueChange={(v) => setState(q, v as QuoteState)}
+                      disabled={!q.is_test}
+                    >
+                      <SelectTrigger className="h-8 w-[170px] text-xs" title={!q.is_test ? "Disabled — not a TEST quote" : undefined}>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         {QUOTE_STATES.map((s) => (
                           <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
@@ -455,8 +461,16 @@ function QuoteLabPage() {
                         <MessageSquare className="w-3.5 h-3.5" /> Transcript
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditing(q)}>
-                      <Eye className="w-3.5 h-3.5" /> Edit intake
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => setEditing(q)}
+                      disabled={!q.is_test}
+                      title={!q.is_test ? "Disabled — not a TEST quote" : undefined}
+                    >
+                      {q.is_test ? <Eye className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                      Edit intake
                     </Button>
                     <Link to="/admin/quotes/$id" params={{ id: q.id }}>
                       <Button size="sm" variant="ghost" className="gap-1">
