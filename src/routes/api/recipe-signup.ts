@@ -34,6 +34,7 @@ export const Route = createFileRoute('/api/recipe-signup')({
         const email = String(body.email || '').trim().toLowerCase()
         const recipeId = body.recipeId ? String(body.recipeId) : null
         const leadMagnet = VALID_MAGNETS.includes(body.leadMagnet) ? body.leadMagnet : 'printable'
+        const entrySource = VALID_SOURCES.includes(body.entrySource) ? body.entrySource : 'direct'
 
         if (!isEmail(email)) return Response.json({ error: 'Invalid email' }, { status: 400 })
         if (recipeId && !/^[0-9a-f-]{36}$/i.test(recipeId)) return Response.json({ error: 'Invalid recipeId' }, { status: 400 })
