@@ -122,10 +122,10 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const handleDownloadMarkdown = () => {
+  const handleDownloadMarkdown = async () => {
     setBusy("md");
     try {
-      downloadFile(
+      await downloadFile(
         PROJECT_AUDIT_MD,
         `PROJECT_AUDIT_${today}.md`,
         "text/markdown;charset=utf-8",
@@ -136,7 +136,7 @@ function ExportsPage() {
     }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     setBusy("pdf");
     try {
       const doc = new jsPDF({ unit: "pt", format: "letter" });
@@ -200,7 +200,8 @@ function ExportsPage() {
         }
       }
 
-      doc.save(`PROJECT_AUDIT_${today}.pdf`);
+      const pdfBlob = doc.output("blob");
+      await downloadFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
       flashDone("pdf");
     } catch (e: any) {
       setError(e.message || "PDF generation failed");
@@ -230,10 +231,10 @@ function ExportsPage() {
       }
 
       if (all.length === 0) {
-        downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
+        await downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
       } else {
         const csv = rowsToCsv(all);
-        downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
       }
       flashDone(spec.key);
     } catch (e: any) {
@@ -254,7 +255,7 @@ function ExportsPage() {
           .range(0, 9999);
         if (e) throw e;
         const csv = rowsToCsv(data ?? []);
-        downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
         // small delay so browsers don't block bulk downloads
         await new Promise((r) => setTimeout(r, 250));
       }

@@ -22,8 +22,56 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
   return lines.join("\n");
 }
 
-export function downloadFile(content: string | Blob, filename: string, mime: string) {
+// Map common MIME types to File System Access API "accept" entries so the
+// Save As picker can suggest the right extension.
+function pickerAcceptFor(mime: string, filename: string): Record<string, string[]> {
+  const baseMime = mime.split(";")[0].trim().toLowerCase();
+  const ext = (() => {
+    const m = filename.match(/\.[A-Za-z0-9]+$/);
+    if (m) return m[0].toLowerCase();
+    if (baseMime === "text/csv") return ".csv";
+    if (baseMime === "text/markdown") return ".md";
+    if (baseMime === "application/pdf") return ".pdf";
+    if (baseMime === "application/json") return ".json";
+    return ".txt";
+  })();
+  return { [baseMime || "application/octet-stream"]: [ext] };
+}
+
+/**
+ * Save a file. If the browser supports the File System Access API
+ * (Chrome/Edge desktop, etc.), the user gets a native "Save As" dialog so
+ * they can choose the destination. Otherwise we fall back to the standard
+ * anchor-download flow (which honors the browser's "Always ask where to
+ * save" setting if the user has it enabled).
+ *
+ * Async so callers can await user choice; safe to ignore the returned promise.
+ */
+export async function downloadFile(
+  content: string | Blob,
+  filename: string,
+  mime: string,
+): Promise<void> {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+
+  const w = typeof window !== "undefined" ? (window as any) : undefined;
+  if (w && typeof w.showSaveFilePicker === "function") {
+    try {
+      const handle = await w.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: filename, accept: pickerAcceptFor(mime, filename) }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err: any) {
+      // User cancelled — do nothing, don't fall back (they explicitly said no).
+      if (err?.name === "AbortError") return;
+      // Other errors (e.g. permission denied) → fall through to anchor fallback.
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
