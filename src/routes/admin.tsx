@@ -36,6 +36,8 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     items: [
       { to: "/admin/national-prices", label: "Pricing Intelligence", icon: Globe2 },
       { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
+      { to: "/admin/kroger-runs", label: "Kroger Runs", icon: Activity },
+      { to: "/admin/kroger-sku-review", label: "Kroger SKU Review", icon: ClipboardCheck },
       { to: "/admin/items", label: "Items & Cost Intelligence", icon: Package },
       { to: "/admin/cost-queue", label: "Cost Update Queue", icon: ClipboardCheck },
       { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
