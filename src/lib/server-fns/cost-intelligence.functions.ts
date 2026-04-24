@@ -64,9 +64,9 @@ export const proposeCostUpdate = createServerFn({ method: "POST" })
     const { data: result, error } = await supabaseAdmin.rpc("propose_internal_cost_update", {
       _reference_id: data.reference_id,
       _source: data.source,
-      _new_kroger: data.kroger_cost ?? null,
-      _new_manual: data.manual_cost ?? null,
-      _new_historical: data.historical_cost ?? null,
+      _new_kroger: data.kroger_cost ?? undefined,
+      _new_manual: data.manual_cost ?? undefined,
+      _new_historical: data.historical_cost ?? undefined,
     });
     if (error) throw new Error(error.message);
     return result as any;
@@ -79,7 +79,7 @@ export const approveCostUpdate = createServerFn({ method: "POST" })
     await ensureAdmin(context.supabase, context.userId);
     const { data: result, error } = await supabaseAdmin.rpc("approve_cost_update", {
       _queue_id: data.queue_id,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? undefined,
     });
     if (error) throw new Error(error.message);
     return result as any;
@@ -92,7 +92,7 @@ export const rejectCostUpdate = createServerFn({ method: "POST" })
     await ensureAdmin(context.supabase, context.userId);
     const { data: result, error } = await supabaseAdmin.rpc("reject_cost_update", {
       _queue_id: data.queue_id,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? undefined,
     });
     if (error) throw new Error(error.message);
     return result as any;
@@ -106,7 +106,7 @@ export const overrideCostUpdate = createServerFn({ method: "POST" })
     const { data: result, error } = await supabaseAdmin.rpc("override_cost_update", {
       _queue_id: data.queue_id,
       _manual_cost: data.manual_cost,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? undefined,
     });
     if (error) throw new Error(error.message);
     return result as any;
