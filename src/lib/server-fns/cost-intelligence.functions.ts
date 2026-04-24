@@ -705,6 +705,25 @@ type SimQueueRow = {
   estimate_delta_pct: number | null;
 };
 
+export type SimValidationSeverity = "error" | "warning" | "info";
+export type SimValidationCode =
+  | "missing_reference"
+  | "no_inventory_link"
+  | "no_recipe_usage"
+  | "no_inventory_or_recipe"
+  | "ref_already_actioned"
+  | "duplicate_reference";
+
+export type SimValidationIssue = {
+  queue_id: string;
+  reference_id: string | null;
+  item_name: string | null;
+  code: SimValidationCode;
+  severity: SimValidationSeverity;
+  message: string;
+  hint: string;
+};
+
 export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => SimulateSchema.parse(d))
@@ -964,6 +983,118 @@ export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
       warnings.push("No recipes use these ingredients — only inventory cost would change.");
     }
 
+    // ---------- Per-queue-row validation ----------
+    // Detect rows that cannot map cleanly to inventory or recipes BEFORE approving.
+    // The admin should fix the data (link an inventory item, fix the reference, or
+    // dismiss the queue row) so approval doesn't silently no-op.
+    const validation: SimValidationIssue[] = [];
+
+    // Index which references actually appear on a recipe ingredient
+    const refsUsedInRecipes = new Set<string>();
+    const invsUsedInRecipes = new Set<string>();
+    for (const ing of (affectedRI ?? []) as any[]) {
+      if (ing.reference_id) refsUsedInRecipes.add(ing.reference_id);
+      if (ing.inventory_item_id) invsUsedInRecipes.add(ing.inventory_item_id);
+    }
+
+    // Track first occurrence per reference_id to catch duplicates in this batch
+    const refFirstQueueId = new Map<string, string>();
+    const pendingMap = new Map(pending.map((r) => [r.id, r]));
+
+    for (const queueId of data.queue_ids) {
+      const row = pendingMap.get(queueId);
+      if (!row) {
+        // Already actioned, archived, or not loaded — flag as info
+        validation.push({
+          queue_id: queueId,
+          reference_id: null,
+          item_name: null,
+          code: "ref_already_actioned",
+          severity: "info",
+          message: "Queue row was not pending and was skipped.",
+          hint: "It may have already been approved, rejected, or removed. Refresh the queue to confirm current status.",
+        });
+        continue;
+      }
+
+      const ref: any = refMap.get(row.reference_id);
+      if (!ref) {
+        validation.push({
+          queue_id: queueId,
+          reference_id: row.reference_id,
+          item_name: null,
+          code: "missing_reference",
+          severity: "error",
+          message: "The ingredient reference for this proposal no longer exists.",
+          hint: "Reject this row, then re-run the source (Kroger pull / receipt scan / FRED pull) so it generates a proposal against a valid reference.",
+        });
+        continue;
+      }
+
+      const refId: string = ref.id;
+      const itemName: string = ref.canonical_name;
+
+      // Duplicate reference within the same simulation batch
+      if (refFirstQueueId.has(refId)) {
+        validation.push({
+          queue_id: queueId,
+          reference_id: refId,
+          item_name: itemName,
+          code: "duplicate_reference",
+          severity: "warning",
+          message: `Another selected proposal targets the same ingredient (${itemName}). Last-write-wins on apply.`,
+          hint: "Approve only one of the duplicate proposals or you may overwrite the result you wanted to keep.",
+        });
+      } else {
+        refFirstQueueId.set(refId, queueId);
+      }
+
+      const hasInventory = !!ref.inventory_item_id;
+      const usedInRecipes = refsUsedInRecipes.has(refId) || (hasInventory && invsUsedInRecipes.has(ref.inventory_item_id));
+
+      if (!hasInventory && !usedInRecipes) {
+        validation.push({
+          queue_id: queueId,
+          reference_id: refId,
+          item_name: itemName,
+          code: "no_inventory_or_recipe",
+          severity: "error",
+          message: `"${itemName}" isn't linked to any inventory item and isn't used in any recipe.`,
+          hint: "Link this reference to an inventory item on the Ingredient Reference page, or attach it to at least one recipe before approving — otherwise the cost update has nothing to update.",
+        });
+      } else if (!hasInventory) {
+        validation.push({
+          queue_id: queueId,
+          reference_id: refId,
+          item_name: itemName,
+          code: "no_inventory_link",
+          severity: "warning",
+          message: `"${itemName}" has no linked inventory item.`,
+          hint: "Recipes using this reference will recost, but inventory_items.average_cost_per_unit won't update. Link an inventory item on Ingredient Reference if you want both to stay in sync.",
+        });
+      } else if (!usedInRecipes) {
+        validation.push({
+          queue_id: queueId,
+          reference_id: refId,
+          item_name: itemName,
+          code: "no_recipe_usage",
+          severity: "warning",
+          message: `"${itemName}" isn't used in any recipe.`,
+          hint: "Inventory cost will update but no recipe or quote pricing will change. Confirm this is intended (e.g., it's a pantry-only item).",
+        });
+      }
+    }
+
+    const validationSummary = {
+      errors: validation.filter((v) => v.severity === "error").length,
+      warnings_count: validation.filter((v) => v.severity === "warning").length,
+      info: validation.filter((v) => v.severity === "info").length,
+    };
+
+    if (validationSummary.errors > 0) {
+      warnings.push(`${validationSummary.errors} row(s) cannot be applied cleanly — see "Mapping issues" below.`);
+    }
+
     // Audit the simulation (read-only event)
     await supabaseAdmin.from("access_audit_log").insert({
       action: "cost_update_simulated",
@@ -975,6 +1106,8 @@ export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
         recipes_affected: recipes.length,
         quotes_affected: quotes.length,
         total_quote_delta: Math.round(totalQuoteDelta * 100) / 100,
+        validation_errors: validationSummary.errors,
+        validation_warnings: validationSummary.warnings_count,
       },
     });
 
@@ -985,12 +1118,14 @@ export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
         recipes: recipes.length,
         quotes: quotes.length,
         total_quote_delta: Math.round(totalQuoteDelta * 100) / 100,
+        validation: validationSummary,
       },
       queue,
       inventory,
       recipes,
       quotes,
       warnings,
+      validation,
     };
   });
 
