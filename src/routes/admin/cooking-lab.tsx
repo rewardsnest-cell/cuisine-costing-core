@@ -1115,7 +1115,7 @@ function EntryCard({
   reordering: boolean;
   selected: boolean;
   onToggleSelected: (checked: boolean) => void;
-  dragHandleSlot?: React.ReactNode;
+  dragHandleSlot?: ReactNode;
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
