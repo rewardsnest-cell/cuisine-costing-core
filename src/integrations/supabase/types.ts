@@ -584,6 +584,71 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_update_queue: {
+        Row: {
+          created_at: string
+          current_cost: number | null
+          final_applied_cost: number | null
+          id: string
+          percent_change: number | null
+          proposed_cost: number
+          proposed_historical_cost: number | null
+          proposed_kroger_cost: number | null
+          proposed_manual_cost: number | null
+          reference_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_cost?: number | null
+          final_applied_cost?: number | null
+          id?: string
+          percent_change?: number | null
+          proposed_cost: number
+          proposed_historical_cost?: number | null
+          proposed_kroger_cost?: number | null
+          proposed_manual_cost?: number | null
+          reference_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_cost?: number | null
+          final_applied_cost?: number | null
+          id?: string
+          percent_change?: number | null
+          proposed_cost?: number
+          proposed_historical_cost?: number | null
+          proposed_kroger_cost?: number | null
+          proposed_manual_cost?: number | null
+          reference_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_update_queue_reference_id_fkey"
+            columns: ["reference_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_logs: {
         Row: {
           created_at: string
@@ -1108,8 +1173,18 @@ export type Database = {
           density_g_per_ml: number | null
           fred_series_id: string | null
           fred_unit: string | null
+          historical_avg_unit_cost: number | null
+          historical_avg_updated_at: string | null
           id: string
+          internal_cost_weights: Json | null
+          internal_estimated_unit_cost: number | null
+          internal_estimated_unit_cost_updated_at: string | null
           inventory_item_id: string | null
+          kroger_unit_cost: number | null
+          kroger_unit_cost_updated_at: string | null
+          manual_unit_cost: number | null
+          manual_unit_cost_updated_at: string | null
+          manual_unit_cost_updated_by: string | null
           notes: string | null
           updated_at: string
           waste_factor: number
@@ -1123,8 +1198,18 @@ export type Database = {
           density_g_per_ml?: number | null
           fred_series_id?: string | null
           fred_unit?: string | null
+          historical_avg_unit_cost?: number | null
+          historical_avg_updated_at?: string | null
           id?: string
+          internal_cost_weights?: Json | null
+          internal_estimated_unit_cost?: number | null
+          internal_estimated_unit_cost_updated_at?: string | null
           inventory_item_id?: string | null
+          kroger_unit_cost?: number | null
+          kroger_unit_cost_updated_at?: string | null
+          manual_unit_cost?: number | null
+          manual_unit_cost_updated_at?: string | null
+          manual_unit_cost_updated_by?: string | null
           notes?: string | null
           updated_at?: string
           waste_factor?: number
@@ -1138,8 +1223,18 @@ export type Database = {
           density_g_per_ml?: number | null
           fred_series_id?: string | null
           fred_unit?: string | null
+          historical_avg_unit_cost?: number | null
+          historical_avg_updated_at?: string | null
           id?: string
+          internal_cost_weights?: Json | null
+          internal_estimated_unit_cost?: number | null
+          internal_estimated_unit_cost_updated_at?: string | null
           inventory_item_id?: string | null
+          kroger_unit_cost?: number | null
+          kroger_unit_cost_updated_at?: string | null
+          manual_unit_cost?: number | null
+          manual_unit_cost_updated_at?: string | null
+          manual_unit_cost_updated_by?: string | null
           notes?: string | null
           updated_at?: string
           waste_factor?: number
@@ -2947,6 +3042,14 @@ export type Database = {
     }
     Functions: {
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
+      approve_cost_update: {
+        Args: { _notes?: string; _queue_id: string }
+        Returns: Json
+      }
+      compute_internal_estimated_cost: {
+        Args: { _historical: number; _kroger: number; _manual: number }
+        Returns: Json
+      }
       compute_recipe_selling_price: {
         Args: { _cost_per_serving: number; _markup_percentage: number }
         Returns: number
@@ -3017,6 +3120,20 @@ export type Database = {
         Returns: number
       }
       normalize_ingredient_name: { Args: { _name: string }; Returns: string }
+      override_cost_update: {
+        Args: { _manual_cost: number; _notes?: string; _queue_id: string }
+        Returns: Json
+      }
+      propose_internal_cost_update: {
+        Args: {
+          _new_historical?: number
+          _new_kroger?: number
+          _new_manual?: number
+          _reference_id: string
+          _source: string
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -3049,6 +3166,10 @@ export type Database = {
       refresh_recipe_integrity_flag: {
         Args: { _recipe_id: string }
         Returns: undefined
+      }
+      reject_cost_update: {
+        Args: { _notes?: string; _queue_id: string }
+        Returns: Json
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
