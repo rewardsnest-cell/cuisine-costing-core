@@ -282,6 +282,36 @@ function ReceiptsPage() {
     setReviewReceipt(null);
   };
 
+  const handleProcessAndSave = async (receipt: ReceiptRow) => {
+    if (!receipt.image_url) { toast.error("No image to process"); return; }
+    setProcessing(receipt.id);
+    try {
+      const { processReceipt } = await import("@/lib/server-fns/process-receipt.functions");
+      const ocr = await processReceipt({
+        data: { imageUrl: receipt.image_url, receiptId: receipt.id },
+      });
+      if (!ocr.success) throw new Error((ocr as any).error || "OCR failed");
+      const total = ocr.line_items?.length || 0;
+      const flagged = (ocr as any).flagged_count ?? ocr.line_items?.filter((it: any) => it.needs_review).length ?? 0;
+      if (flagged > 0) {
+        toast.warning(`Saved ${total} line items · ${flagged} flagged — review before applying costs`);
+        load();
+        return;
+      }
+      // Auto-apply costs when nothing needs review
+      const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
+      const applied = await updateInventoryCosts({ data: { receiptId: receipt.id } });
+      const updates = applied.updates || [];
+      toast.success(`Saved ${total} items and updated costs for ${updates.length} inventory items`);
+      load();
+    } catch (err: any) {
+      console.error("Process & save error:", err);
+      toast.error(err.message || "Failed to process receipt");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   const handleApplyCosts = async (receiptId: string) => {
     setApplyingCosts(true);
     try {
@@ -413,10 +443,16 @@ function ReceiptsPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {r.status === "pending" && (
-                      <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
-                        {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
-                        {processing === r.id ? "Processing..." : "Run OCR"}
-                      </Button>
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r)} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Scan className="w-3.5 h-3.5" />}
+                          {processing === r.id ? "Processing..." : "Run OCR"}
+                        </Button>
+                        <Button size="sm" onClick={() => handleProcessAndSave(r)} disabled={processing === r.id || applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                          Process &amp; save
+                        </Button>
+                      </>
                     )}
                     {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
