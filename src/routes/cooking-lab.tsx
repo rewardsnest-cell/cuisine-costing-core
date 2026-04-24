@@ -4,8 +4,13 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { youtubeEmbedUrl } from "@/lib/recipe-video";
 import { withAmazonAffiliateTag } from "@/lib/amazon-affiliate";
-import { FlaskConical, ExternalLink, Play, Layers, Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FlaskConical, ExternalLink, Play, Layers, ChevronDown, Info, Wrench } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type CookingLabCollection = {
   id: string;
@@ -87,7 +92,6 @@ export const Route = createFileRoute("/cooking-lab")({
 
 function CookingLabPage() {
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["cooking-lab", "public"],
@@ -139,27 +143,10 @@ function CookingLabPage() {
 
   const filteredEntries = useMemo(() => {
     if (!entries) return null;
-    let result = entries;
-    if (activeCollectionId) {
-      const map = entryCollectionMap;
-      result = result.filter((e) => map?.get(e.id)?.has(activeCollectionId));
-    }
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      result = result.filter((e) => {
-        const haystack = [
-          e.title,
-          e.description,
-          e.primary_tool_name ?? "",
-          e.secondary_tool_name ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(q);
-      });
-    }
-    return result;
-  }, [entries, activeCollectionId, entryCollectionMap, searchQuery]);
+    if (!activeCollectionId) return entries;
+    const map = entryCollectionMap;
+    return entries.filter((e) => map?.get(e.id)?.has(activeCollectionId));
+  }, [entries, activeCollectionId, entryCollectionMap]);
 
   return (
     <CookingLabPageBody
@@ -168,9 +155,6 @@ function CookingLabPage() {
       collections={collections ?? null}
       activeCollectionId={activeCollectionId}
       onSelectCollection={setActiveCollectionId}
-      searchQuery={searchQuery}
-      onSearchQueryChange={setSearchQuery}
-      totalEntryCount={entries?.length ?? 0}
     />
   );
 }
@@ -187,23 +171,14 @@ export function CookingLabPageBody({
   collections,
   activeCollectionId,
   onSelectCollection,
-  searchQuery,
-  onSearchQueryChange,
-  totalEntryCount,
 }: {
   entries: CookingLabEntry[] | null;
   isLoading: boolean;
   collections?: CookingLabCollection[] | null;
   activeCollectionId?: string | null;
   onSelectCollection?: (id: string | null) => void;
-  searchQuery?: string;
-  onSearchQueryChange?: (q: string) => void;
-  totalEntryCount?: number;
 }) {
   const showCollectionsUi = !!collections && collections.length > 0;
-  const showSearch = !!onSearchQueryChange;
-  const trimmedQuery = (searchQuery ?? "").trim();
-  const hasActiveFilters = !!activeCollectionId || trimmedQuery.length > 0;
   return (
     <div className="bg-background">
       {/* Hero */}
@@ -331,76 +306,6 @@ export function CookingLabPageBody({
         </section>
       )}
 
-      {/* Search & filter bar */}
-      {showSearch && (
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
-          <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
-            <label htmlFor="cooking-lab-search" className="sr-only">
-              Search techniques
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                id="cooking-lab-search"
-                type="search"
-                value={searchQuery ?? ""}
-                onChange={(e) => onSearchQueryChange?.(e.target.value)}
-                placeholder="Search by keyword, tool, or technique…"
-                className="pl-9 pr-10 h-11"
-                autoComplete="off"
-              />
-              {trimmedQuery.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onSearchQueryChange?.("")}
-                  aria-label="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            {hasActiveFilters && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-muted-foreground">
-                  {entries?.length ?? 0} of {totalEntryCount ?? 0} matching
-                </span>
-                {activeCollectionId && collections && onSelectCollection && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectCollection(null)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium hover:bg-primary/20 transition-colors"
-                  >
-                    {collections.find((c) => c.id === activeCollectionId)?.name ?? "Collection"}
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-                {trimmedQuery.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onSearchQueryChange?.("")}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium hover:bg-primary/20 transition-colors"
-                  >
-                    “{trimmedQuery}”
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelectCollection?.(null);
-                    onSearchQueryChange?.("");
-                  }}
-                  className="ml-auto text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       {/* Sections */}
       <section id="videos" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20">
         {isLoading ? (
@@ -409,31 +314,13 @@ export function CookingLabPageBody({
           <div className="text-center py-20">
             <FlaskConical className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
             <h2 className="font-display text-2xl font-semibold text-foreground">
-              {trimmedQuery
-                ? "No techniques match your search"
-                : activeCollectionId
-                  ? "No techniques in this collection yet"
-                  : "New techniques coming soon"}
+              {activeCollectionId ? "No techniques in this collection yet" : "New techniques coming soon"}
             </h2>
             <p className="mt-2 text-muted-foreground max-w-md mx-auto">
-              {trimmedQuery
-                ? "Try a different keyword or clear filters to see all techniques."
-                : activeCollectionId
-                  ? "Try another collection or view all techniques."
-                  : "We're prepping the first round of Cooking Lab videos. Check back shortly."}
+              {activeCollectionId
+                ? "Try another collection or view all techniques."
+                : "We're prepping the first round of Cooking Lab videos. Check back shortly."}
             </p>
-            {(trimmedQuery || activeCollectionId) && (
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectCollection?.(null);
-                  onSearchQueryChange?.("");
-                }}
-                className="mt-5 inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
           </div>
         ) : (
           entries.map((entry, idx) => (
@@ -519,45 +406,90 @@ export function CookingLabSection({
         <p className="mt-4 text-lg text-muted-foreground leading-relaxed">{entry.description}</p>
 
         {hasTools && (
-          <div className="mt-6 rounded-xl border border-border bg-card p-5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Tools We Used
-            </h3>
-            <ul className="space-y-2">
-              {entry.primary_tool_name && entry.primary_tool_url && (
-                <li>
-                  <a
-                    href={primaryHref}
-                    target="_blank"
-                    rel="nofollow noopener sponsored"
-                    data-affiliate-network="amazon"
-                    data-affiliate-slot="cooking-lab-primary"
-                    data-affiliate-entry-id={entry.id}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    {entry.primary_tool_name}
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </li>
-              )}
-              {entry.secondary_tool_name && entry.secondary_tool_url && (
-                <li>
-                  <a
-                    href={secondaryHref}
-                    target="_blank"
-                    rel="nofollow noopener sponsored"
-                    data-affiliate-network="amazon"
-                    data-affiliate-slot="cooking-lab-secondary"
-                    data-affiliate-entry-id={entry.id}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    {entry.secondary_tool_name}
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
+          <Collapsible defaultOpen className="mt-6 rounded-xl border border-border bg-card">
+            <CollapsibleTrigger className="group w-full flex items-center justify-between gap-3 p-5 text-left">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Tools used</span>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Affiliate disclosure"
+                        className="inline-flex items-center justify-center rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-center">
+                      These are Amazon affiliate links. As an Amazon Associate, VPS Finest earns
+                      from qualifying purchases — at no extra cost to you.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-5 pb-5 -mt-1">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Affiliate links · we may earn a commission on purchases.
+                </p>
+                <ul className="space-y-2">
+                  {entry.primary_tool_name && entry.primary_tool_url && (
+                    <li className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {entry.primary_tool_name}
+                        </div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          Primary · Amazon affiliate
+                        </div>
+                      </div>
+                      <a
+                        href={primaryHref}
+                        target="_blank"
+                        rel="nofollow noopener sponsored"
+                        data-affiliate-network="amazon"
+                        data-affiliate-slot="cooking-lab-primary"
+                        data-affiliate-entry-id={entry.id}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity shrink-0"
+                      >
+                        View on Amazon
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                  )}
+                  {entry.secondary_tool_name && entry.secondary_tool_url && (
+                    <li className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {entry.secondary_tool_name}
+                        </div>
+                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                          Also used · Amazon affiliate
+                        </div>
+                      </div>
+                      <a
+                        href={secondaryHref}
+                        target="_blank"
+                        rel="nofollow noopener sponsored"
+                        data-affiliate-network="amazon"
+                        data-affiliate-slot="cooking-lab-secondary"
+                        data-affiliate-entry-id={entry.id}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors shrink-0"
+                      >
+                        View on Amazon
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </div>
     </article>
