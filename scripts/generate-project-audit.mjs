@@ -214,6 +214,127 @@ ${edgeFns.length ? edgeFns.map((f) => `- ${f}`).join("\n") : "- (none)"}
 | SUPABASE_PUBLISHABLE_KEY | ✅ |
 | SUPABASE_SERVICE_ROLE_KEY | ✅ |
 | LOVABLE_API_KEY | ✅ (managed) |
+
+## 6. AUTH & ROW-LEVEL SECURITY BY ROUTE GROUP
+
+All data access goes through Supabase with Row-Level Security (RLS) enabled on
+every public table. The frontend route gate (auth/employee/admin) is a UX
+convenience — the **real** protection lives in RLS policies and \`SECURITY
+DEFINER\` functions on the database. Even if a UI route were exposed, the
+database would still reject unauthorized reads or writes.
+
+### Identity & roles
+
+- **\`auth.users\`** — managed by Supabase Auth (email/password + Google OAuth).
+- **\`public.profiles\`** — 1:1 with \`auth.users\`, auto-created via
+  \`handle_new_user()\` trigger. Stores display name, email.
+- **\`public.user_roles\`** — separate table (never on profiles, to prevent
+  privilege escalation). Roles: \`user\`, \`employee\`, \`admin\`.
+- **\`public.has_role(uid, role)\`** — \`SECURITY DEFINER\` helper used by every
+  role-checking RLS policy to avoid recursive lookups.
+- **\`public.is_assigned_to_quote(uid, quote_id)\`** — \`SECURITY DEFINER\` helper
+  for employees to access only events they are staffed on.
+
+### Public routes (${grouped.public.length})
+
+Anonymous visitors and signed-in users alike. The browser uses the **anon
+key**; RLS allows only explicitly-public reads.
+
+| Data exposed | Policy summary |
+|---|---|
+| \`recipes\` (where \`show_on_home = true\` or \`is_inspired = true\` and active) | Public SELECT for marketing recipes; everything else hidden |
+| \`menu_modules\` / \`menu_module_items\` (state = published) | Public SELECT only for published modules |
+| \`cooking_guides\` (status = published) | Public SELECT only for published guides |
+| \`brand_config\`, \`brand_assets\` (active) | Public SELECT — branding is intentionally world-readable |
+| \`feature_visibility\` | Public SELECT — needed so the UI can hide nav links |
+| \`newsletter_subscribers\` | INSERT only via signup form; no public SELECT |
+| \`feedback\`, \`competitor_quotes\` (anon submission) | INSERT only; no public SELECT |
+| Everything else (\`quotes\`, \`inventory_items\`, \`ingredient_reference\`, \`price_history\`, costs, suppliers, audit logs, …) | **Denied** to anon — no policy grants SELECT |
+
+### Auth-gated customer routes (${grouped.auth.length})
+
+\`/dashboard\`, \`/my-quotes\`, \`/my-events\` — any signed-in user with role \`user\`.
+RLS narrows every query to rows owned by \`auth.uid()\`.
+
+| Table | What the user can see / do |
+|---|---|
+| \`profiles\` | SELECT/UPDATE own row only (\`user_id = auth.uid()\`) |
+| \`quotes\` | SELECT/UPDATE/DELETE only quotes where \`customer_user_id = auth.uid()\` (or matched by email at lookup time) |
+| \`quote_items\` | SELECT scoped via parent quote ownership |
+| \`event_assignments\` | SELECT only rows linking the user as the customer of the parent quote |
+| \`event_prep_tasks\`, \`event_time_entries\` | **No customer access** — employee/admin only |
+| All admin/internal tables (costs, suppliers, FRED, Kroger, audit, …) | **Denied** |
+
+Quote revisions are additionally locked by \`enforce_quote_revision_lock()\`
+(non-admin updates blocked within N days of \`event_date\`).
+
+### Employee routes (1)
+
+\`/employee\` and the employee Dashboard sections. User must have role
+\`employee\` **and** an active \`employee_profiles\` row.
+
+| Table | Policy |
+|---|---|
+| \`event_assignments\` | SELECT own assignments; admins manage all |
+| \`event_prep_tasks\` | SELECT/UPDATE on quotes where \`is_assigned_to_quote(auth.uid(), quote_id)\` is true |
+| \`event_time_entries\` | INSERT/UPDATE own clock-in/out rows; \`enforce_time_entry_approval_immutable()\` blocks non-admins from changing approval fields |
+| \`quotes\` (assigned) | SELECT limited to assigned events |
+| \`receipts\` (employee scan workflow) | INSERT own; admins SELECT all |
+| Costs, pricing intelligence, suppliers | **Denied** unless also admin |
+
+### Admin routes (${grouped.admin.length})
+
+\`/admin/*\`. User must have role \`admin\` (\`has_role(auth.uid(), 'admin')\`).
+Admins effectively bypass per-row owner checks via the helper, but every table
+still has an explicit \`USING (has_role(auth.uid(), 'admin'))\` policy — there
+is no schema-wide superuser shortcut from the client.
+
+Admin-only tables include:
+- \`ingredient_reference\`, \`ingredient_synonyms\`, \`cost_update_queue\`
+- \`inventory_items\`, \`inventory_adjustments\`, \`purchase_orders\`,
+  \`suppliers\`, \`receipts\`, \`sale_flyers\`
+- \`fred_series_map\`, \`fred_pull_log\`, \`national_price_snapshots\`,
+  \`kroger_sku_map\`, \`kroger_ingest_runs\`, \`price_history\`
+- \`competitor_quotes\`, \`competitors\`, \`affiliate_programs\`,
+  \`affiliate_earnings\`
+- \`access_audit_log\`, \`change_log_entries\`, \`decision_logs\`,
+  \`change_impact_analyses\`, \`governance_prompts\`
+- \`employee_profiles\`, \`employee_invites\`, \`admin_requests\`,
+  \`user_roles\` (write), \`feature_visibility\` (write), \`brand_config\` (write),
+  \`brand_assets\` (write), \`app_settings\`, \`app_kv\`
+- \`route_inventory\` (page inventory + thumbnails)
+
+Sensitive money-moving operations are wrapped in \`SECURITY DEFINER\` RPCs
+(\`approve_cost_update\`, \`reject_cost_update\`, \`override_cost_update\`,
+\`apply_po_to_inventory\`, \`recompute_quote_totals\`) that re-check
+\`has_role(auth.uid(), 'admin')\` inside the function body — so even a leaked
+client cannot call them as a non-admin.
+
+### Edge / server functions (${edgeFns.length})
+
+Server functions and edge functions use the **service-role key** server-side
+only. They re-derive the caller's identity from the JWT (via
+\`auth-middleware.ts\`) and call \`has_role\` before performing privileged work.
+Public webhooks/cron under \`/api/public/*\` validate signatures or shared
+secrets before touching the database.
+
+### Storage buckets
+
+| Bucket | Read | Write |
+|---|---|---|
+| \`site-assets\` (logos, hero photos) | Public | Admin only |
+| \`recipe-photos\` | Public | Admin only |
+| \`route-thumbnails\` (page inventory) | Public | Admin only |
+| \`competitor-quotes\` (uploaded PDFs) | Admin only | Admin / authenticated submission |
+| \`receipts\` | Owner + admin | Owner upload, admin read-all |
+
+### Summary — what is protected
+
+- **Customer PII** (email, quotes, events) → owner-scoped RLS, never visible to other customers.
+- **Employee data** (timesheets, assignments) → employee sees own rows + assigned events; admins see all.
+- **Cost & pricing intelligence** (ingredient costs, supplier prices, Kroger/FRED pulls, competitor quotes) → admin-only end-to-end.
+- **Audit trail** (\`access_audit_log\`, \`change_log_entries\`) → admin-only read; writes happen through \`SECURITY DEFINER\` triggers so they can't be skipped.
+- **Role assignments** (\`user_roles\`) → admin-only write; \`has_role()\` is the single source of truth.
 `;
 
 // ---- Emit TS file ----
