@@ -284,14 +284,55 @@ function ReceiptsPage() {
     switch (status) {
       case "processed": return <CheckCircle className="w-4 h-4 text-success" />;
       case "reviewed": return <FileText className="w-4 h-4 text-gold" />;
+      case "needs_review": return <ShieldAlert className="w-4 h-4 text-warning" />;
       case "failed": return <AlertTriangle className="w-4 h-4 text-destructive" />;
       default: return <Clock className="w-4 h-4 text-warning" />;
     }
   };
 
+  const statusLabel = (status: string) =>
+    status === "needs_review" ? "needs review" : status;
+
   return (
     <div className="space-y-6">
       <PageHelpCard route="/admin/receipts" />
+
+      {/* Confidence threshold settings */}
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-4 flex flex-wrap items-end gap-4">
+          <div className="flex items-center gap-2 mr-2">
+            <Settings className="w-4 h-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold">Auto-review confidence threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Receipt matches scoring below this value are auto-flagged for manual review instead of being applied.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="threshold" className="text-xs">Threshold (0–1)</Label>
+              <Input
+                id="threshold"
+                type="number"
+                step="0.05"
+                min="0"
+                max="1"
+                value={thresholdInput}
+                onChange={(e) => setThresholdInput(e.target.value)}
+                className="h-9 w-28"
+              />
+            </div>
+            <Button onClick={saveThreshold} disabled={savingThreshold} className="gap-1.5">
+              {savingThreshold ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Save
+            </Button>
+            <span className="text-xs text-muted-foreground pb-2">
+              Current: <span className="font-medium">{(threshold * 100).toFixed(0)}%</span>
+            </span>
+          </div>
+        </CardContent>
+      </Card>
       {/* Upload zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
