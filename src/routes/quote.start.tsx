@@ -33,7 +33,6 @@ const intakeSchema = z.object({
   eventDate: z.string().max(20).optional(),
   guestRange: z.string().max(40).optional(),
   venue: z.string().max(160).optional(),
-  budgetRange: z.string().max(40).optional(),
 });
 
 const GUEST_RANGES = [
@@ -44,12 +43,6 @@ const GUEST_RANGES = [
   "100–175",
   "175–250",
   "250+",
-];
-
-const BUDGET_RANGES = [
-  "Not sure yet",
-  "Still exploring",
-  "I have a working figure in mind",
 ];
 
 const EVENT_TYPES = [
