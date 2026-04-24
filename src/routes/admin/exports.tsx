@@ -14,7 +14,7 @@ import {
   Download,
   PlayCircle,
 } from "lucide-react";
-import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
+import { PROJECT_AUDIT_MD, rowsToCsv } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import jsPDF from "jspdf";
