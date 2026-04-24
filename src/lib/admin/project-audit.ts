@@ -22,8 +22,34 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
   return lines.join("\n");
 }
 
-export function downloadFile(content: string | Blob, filename: string, mime: string) {
+export async function downloadFile(content: string | Blob, filename: string, mime: string) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+
+  // Prefer native "Save As" dialog when supported (Chromium-based browsers).
+  const showSaveFilePicker = (globalThis as any).showSaveFilePicker as
+    | ((opts?: any) => Promise<any>)
+    | undefined;
+  if (typeof showSaveFilePicker === "function") {
+    const ext = filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : "";
+    try {
+      const handle = await showSaveFilePicker({
+        suggestedName: filename,
+        types: ext
+          ? [{ description: mime || "File", accept: { [mime || "application/octet-stream"]: [ext] } }]
+          : undefined,
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err: any) {
+      // User cancelled — propagate so callers can suppress success toasts.
+      if (err?.name === "AbortError") throw err;
+      // Other errors (e.g. permission, unsupported context): fall through to anchor download.
+    }
+  }
+
+  // Fallback: trigger a normal download to the browser's default folder.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
