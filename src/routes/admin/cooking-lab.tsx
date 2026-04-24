@@ -43,6 +43,8 @@ import {
   Upload,
   Video as VideoIcon,
   Loader2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 type CookingLabEntry = {
@@ -479,6 +481,44 @@ function CookingLabManager() {
     onError: (e: any) => toast.error(e?.message ?? "Failed to create entry"),
   });
 
+  // Swap display_order between two entries — atomic from the user's POV.
+  // We persist whatever display_order each entry has, then re-sort client-side
+  // on next fetch. Two writes; both must succeed for the visible reorder.
+  const reorderMut = useMutation({
+    mutationFn: async ({ a, b }: { a: CookingLabEntry; b: CookingLabEntry }) => {
+      const { error: e1 } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .update({ display_order: b.display_order })
+        .eq("id", a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .update({ display_order: a.display_order })
+        .eq("id", b.id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Reorder failed"),
+  });
+
+  const sorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
+  const moveEntry = (idx: number, dir: -1 | 1) => {
+    const a = sorted[idx];
+    const b = sorted[idx + dir];
+    if (!a || !b) return;
+    // If both share the same display_order (legacy data), nudge b up by 1 first.
+    if (a.display_order === b.display_order) {
+      reorderMut.mutate({
+        a,
+        b: { ...b, display_order: b.display_order + (dir === 1 ? 1 : -1) },
+      });
+    } else {
+      reorderMut.mutate({ a, b });
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
@@ -530,8 +570,16 @@ function CookingLabManager() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {entries.map((e) => (
-            <EntryCard key={e.id} entry={e} />
+          {sorted.map((e, idx) => (
+            <EntryCard
+              key={e.id}
+              entry={e}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < sorted.length - 1}
+              onMoveUp={() => moveEntry(idx, -1)}
+              onMoveDown={() => moveEntry(idx, 1)}
+              reordering={reorderMut.isPending}
+            />
           ))}
         </div>
       )}
@@ -648,7 +696,21 @@ function AffiliateConfigCard() {
   );
 }
 
-function EntryCard({ entry }: { entry: CookingLabEntry }) {
+function EntryCard({
+  entry,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  reordering,
+}: {
+  entry: CookingLabEntry;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  reordering: boolean;
+}) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CookingLabEntry>(entry);
   const [dirty, setDirty] = useState(false);
@@ -734,6 +796,28 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <div className="flex items-center mr-1 rounded-md border border-border">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-r-none"
+                title="Move up"
+                disabled={!canMoveUp || reordering}
+                onClick={onMoveUp}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-l-none border-l border-border"
+                title="Move down"
+                disabled={!canMoveDown || reordering}
+                onClick={onMoveDown}
+              >
+                <ArrowDown className="w-4 h-4" />
+              </Button>
+            </div>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
