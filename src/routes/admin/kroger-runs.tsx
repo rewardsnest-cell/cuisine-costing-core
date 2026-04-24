@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket } from "lucide-react";
+import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket, Filter } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import { toast } from "sonner";
 import {
   ingestKrogerPrices,
@@ -39,6 +40,9 @@ function KrogerRunsPage() {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [customLimit, setCustomLimit] = useState<string>("");
   const pollRef = useRef<number | null>(null);
+  const [filterErrors, setFilterErrors] = useState(false);
+  const [filterPriceRows, setFilterPriceRows] = useState(false);
+  const [filterZeroSkus, setFilterZeroSkus] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -209,15 +213,48 @@ function KrogerRunsPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Run history</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Run history</CardTitle>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-muted-foreground flex items-center gap-1 mr-1"><Filter className="w-3 h-3" />Filter</span>
+              <Toggle size="sm" pressed={filterErrors} onPressedChange={setFilterErrors} aria-label="Only runs with errors" className="h-7 px-2 text-xs gap-1 data-[state=on]:bg-destructive/10 data-[state=on]:text-destructive">
+                <AlertTriangle className="w-3 h-3" />Has errors
+              </Toggle>
+              <Toggle size="sm" pressed={filterPriceRows} onPressedChange={setFilterPriceRows} aria-label="Only runs that updated price rows" className="h-7 px-2 text-xs gap-1">
+                <LineChartIcon className="w-3 h-3" />Updated prices
+              </Toggle>
+              <Toggle size="sm" pressed={filterZeroSkus} onPressedChange={setFilterZeroSkus} aria-label="Only runs with zero SKUs mapped" className="h-7 px-2 text-xs gap-1">
+                <ListChecks className="w-3 h-3" />0 SKUs mapped
+              </Toggle>
+              {(filterErrors || filterPriceRows || filterZeroSkus) && (
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setFilterErrors(false); setFilterPriceRows(false); setFilterZeroSkus(false); }}>
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {(() => {
+            const filteredRuns = runs.filter((r) => {
+              const errs = (r.errors as any[]) ?? [];
+              if (filterErrors && errs.length === 0) return false;
+              if (filterPriceRows && (r.price_rows_written ?? 0) === 0) return false;
+              if (filterZeroSkus && (r.sku_map_rows_touched ?? 0) !== 0) return false;
+              return true;
+            });
+            const anyFilter = filterErrors || filterPriceRows || filterZeroSkus;
+            return loading ? (
             <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div>
           ) : runs.length === 0 ? (
             <p className="text-sm text-muted-foreground">No runs yet.</p>
+          ) : filteredRuns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No runs match the current filters.</p>
           ) : (
             <div className="overflow-x-auto">
+              {anyFilter && (
+                <p className="text-xs text-muted-foreground mb-2">Showing {filteredRuns.length} of {runs.length} runs</p>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -232,7 +269,7 @@ function KrogerRunsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {runs.map((r) => {
+                  {filteredRuns.map((r) => {
                     const errs = (r.errors as any[]) ?? [];
                     const dur = r.started_at && r.finished_at
                       ? `${Math.max(0, Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000))}s`
@@ -253,7 +290,8 @@ function KrogerRunsPage() {
                 </TableBody>
               </Table>
             </div>
-          )}
+          );
+          })()}
         </CardContent>
       </Card>
     </div>
