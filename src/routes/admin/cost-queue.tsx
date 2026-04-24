@@ -29,6 +29,7 @@ type SimulateResult = Awaited<ReturnType<typeof simulateApplyCostUpdates>>;
 type TimelineResult = Awaited<ReturnType<typeof getCostQueueTimeline>>;
 
 type VerifyResult = Awaited<ReturnType<typeof recomputeAndVerifyInternalCosts>>;
+type VerifyRowType = VerifyResult["rows"][number];
 
 export const Route = createFileRoute("/admin/cost-queue")({
   head: () => ({ meta: [{ title: "Cost Update Queue — Admin" }] }),
@@ -59,6 +60,7 @@ function CostQueuePage() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [timelineBusy, setTimelineBusy] = useState(false);
   const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
+  const [formulaRow, setFormulaRow] = useState<VerifyRowType | null>(null);
 
   const openTimeline = async (queueId: string) => {
     setTimelineOpen(true);
