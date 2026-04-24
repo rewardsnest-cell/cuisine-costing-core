@@ -242,29 +242,42 @@ function QuoteLabPage() {
   };
 
   const toggleTest = async (q: LabQuote, value: boolean) => {
-    const { error } = await (supabase as any)
-      .from("quotes")
-      .update({ is_test: value })
-      .eq("id", q.id);
-    if (error) {
-      toast.error("Couldn't update TEST flag");
+    // Guardrail: Quote Lab will not promote a TEST quote into a REAL one.
+    // Real quotes must be created through the public intake flow.
+    if (q.is_test && !value) {
+      toast.error("Quote Lab can't convert TEST → REAL. Use Saved Quotes for promotions.");
       return;
     }
-    setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, is_test: value } : x)));
-    toast.success(value ? "Marked as TEST" : "Marked as REAL");
+    if (!q.is_test && value) {
+      // Marking an existing real quote as TEST is allowed (it removes it from
+      // production reporting), but we surface a clear confirmation toast.
+      const ok = typeof window === "undefined" ? true : window.confirm(
+        `Mark real quote ${q.reference_number ?? q.id.slice(0, 8)} as TEST? It will be excluded from production analytics.`,
+      );
+      if (!ok) return;
+    }
+    try {
+      const { error } = await (supabase as any)
+        .from("quotes")
+        .update({ is_test: value })
+        .eq("id", q.id);
+      if (error) throw error;
+      setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, is_test: value } : x)));
+      toast.success(value ? "Marked as TEST" : "Marked as REAL");
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't update TEST flag");
+    }
   };
 
   const setState = async (q: LabQuote, state: QuoteState) => {
-    const { error } = await (supabase as any)
-      .from("quotes")
-      .update({ quote_state: state })
-      .eq("id", q.id);
-    if (error) {
-      toast.error("Couldn't change state");
-      return;
+    try {
+      const { error } = await labSafeUpdateQuote(q, { quote_state: state });
+      if (error) throw error;
+      setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, quote_state: state } : x)));
+      toast.success(`State set to ${state}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't change state");
     }
-    setQuotes((qs) => qs.map((x) => (x.id === q.id ? { ...x, quote_state: state } : x)));
-    toast.success(`State set to ${state}`);
   };
 
   const transcript: { role: string; content: string }[] | null = (() => {
