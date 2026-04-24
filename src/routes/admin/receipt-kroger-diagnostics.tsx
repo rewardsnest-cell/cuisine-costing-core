@@ -151,10 +151,10 @@ function ReceiptKrogerDiagnosticsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/admin/kroger-runs">
+          <Link to="/admin/kroger-pricing">
             <Button size="sm" variant="outline" className="gap-1">
               <ExternalLink className="w-3.5 h-3.5" />
-              Kroger runs
+              Kroger pricing
             </Button>
           </Link>
           <Link to="/admin/kroger-sku-review">
