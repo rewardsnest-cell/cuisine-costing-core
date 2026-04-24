@@ -30,8 +30,8 @@ async function ensureAdmin(userId: string) {
 /** Public read — anyone can call this; RLS allows anon SELECT. */
 export const listFeatureVisibility = createServerFn({ method: "GET" }).handler(
   async (): Promise<FeatureVisibilityRow[]> => {
-    const { data, error } = await supabaseAdmin
-      .from("feature_visibility" as any)
+    const { data, error } = await (supabaseAdmin as any)
+      .from("feature_visibility")
       .select("feature_key, phase, nav_enabled, seo_indexing_enabled, notes, updated_by, updated_at")
       .order("feature_key");
     if (error) throw new Error(error.message);
@@ -65,8 +65,8 @@ export const updateFeatureVisibility = createServerFn({ method: "POST" })
       return { ok: true, changed: false };
     }
 
-    const { error } = await supabaseAdmin
-      .from("feature_visibility" as any)
+    const { error } = await (supabaseAdmin as any)
+      .from("feature_visibility")
       .update(patch)
       .eq("feature_key", data.feature_key);
     if (error) throw new Error(error.message);
