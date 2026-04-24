@@ -21,7 +21,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CookingLabSection } from "@/routes/cooking-lab";
+import { CookingLabSection, CookingLabPageBody, type CookingLabEntry as PublicCookingLabEntry } from "@/routes/cooking-lab";
 import { withAmazonAffiliateTag, isTaggableAmazonUrl } from "@/lib/amazon-affiliate";
 import {
   FlaskConical,
@@ -423,8 +423,9 @@ function CookingLabManager() {
         </CardContent>
       </Card>
 
-      {/* New entry */}
-      <div className="flex justify-end">
+      {/* New entry + full-page preview */}
+      <div className="flex justify-end gap-2">
+        <FullPagePreviewButton entries={entries ?? []} />
         <Button onClick={() => createMut.mutate()} disabled={createMut.isPending} className="gap-2">
           <Plus className="w-4 h-4" />
           New Entry
