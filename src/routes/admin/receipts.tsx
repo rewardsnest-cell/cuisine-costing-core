@@ -248,10 +248,26 @@ function ReceiptsPage() {
   const openReview = (receipt: ReceiptRow) => {
     setReviewReceipt(receipt);
     setEditedLineItems(Array.isArray(receipt.extracted_line_items) ? [...receipt.extracted_line_items] : []);
+    setLineItemErrors({});
+  };
+
+  const clearRowError = (idx: number, field: keyof LineItemErrors) => {
+    setLineItemErrors((prev) => {
+      if (!prev[idx]?.[field]) return prev;
+      const nextRow = { ...prev[idx] };
+      delete nextRow[field];
+      const next = { ...prev };
+      if (Object.keys(nextRow).length === 0) delete next[idx];
+      else next[idx] = nextRow;
+      return next;
+    });
   };
 
   const updateLineItem = (idx: number, field: keyof LineItem, value: any) => {
     setEditedLineItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+    if (field === "item_name" || field === "unit" || field === "quantity" || field === "unit_price") {
+      clearRowError(idx, field);
+    }
   };
 
   const matchLineItem = (idx: number, inventoryId: string) => {
@@ -281,6 +297,15 @@ function ReceiptsPage() {
 
   const removeLineItem = (idx: number) => {
     setEditedLineItems((prev) => prev.filter((_, i) => i !== idx));
+    setLineItemErrors((prev) => {
+      const next: Record<number, LineItemErrors> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < idx) next[i] = v;
+        else if (i > idx) next[i - 1] = v;
+      });
+      return next;
+    });
   };
 
   const addAllUnmatchedToInventory = async () => {
