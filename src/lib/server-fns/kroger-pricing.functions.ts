@@ -320,12 +320,11 @@ export const ingestKrogerPrices = createServerFn({ method: "POST" })
       return { ran: false, run_id: row?.id ?? null, reason: "missing_keys", message: "Kroger API keys are not configured." };
     }
 
-    // limit=0 (or omitted with explicit all=true) means "all inventory items".
-    // Hard ceiling of 5000 to protect against runaway runs.
+    // limit=0 means "all inventory items". Hard ceiling 5000 to guard runaway runs.
     const requested = data.limit;
-    const limit = requested === 0 || requested == null
+    const limit = requested === 0
       ? 5000
-      : Math.max(1, Math.min(5000, requested));
+      : Math.max(1, Math.min(5000, requested ?? 25));
     const locationId = await getKrogerLocationId();
 
     const { data: runRow, error: insErr } = await supabaseAdmin
