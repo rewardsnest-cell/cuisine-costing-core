@@ -142,6 +142,24 @@ function AdminLayout() {
   const { user, loading, isAdmin, signIn, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { map: visibilityMap } = useFeatureVisibilityMap();
+
+  // Filter groups + items down to what the current visibility flags allow.
+  // Routes themselves are NOT removed — only nav links are gated.
+  const visibleGroups = useMemo(() => {
+    return NAV_GROUPS
+      .filter((g) => isNavGroupVisible(g, visibilityMap))
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((it) => isNavItemVisible(it, visibilityMap)),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [visibilityMap]);
+
+  const visibleItems = useMemo(
+    () => visibleGroups.flatMap((g) => g.items),
+    [visibleGroups],
+  );
 
   // Auth gate
   if (loading) {
