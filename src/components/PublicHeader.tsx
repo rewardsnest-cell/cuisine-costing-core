@@ -85,6 +85,7 @@ export function PublicHeader() {
                 <DropdownMenuItem asChild><Link to="/familiar-favorites">Familiar Favorites</Link></DropdownMenuItem>
               )}
               {showLink("guides") && <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>}
+              {showLink("cooking_lab") && <DropdownMenuItem asChild><Link to="/cooking-lab">Cooking Lab</Link></DropdownMenuItem>}
               {showLink("blog") && <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>}
               <DropdownMenuItem asChild><Link to="/about">About</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/contact">Contact</Link></DropdownMenuItem>
