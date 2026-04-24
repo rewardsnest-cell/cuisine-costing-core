@@ -282,14 +282,18 @@ function ExportsPage() {
   const handleDownloadMarkdown = async () => {
     setBusy("md");
     setError(null);
+    setPhase("md", "generating", "Building markdown…");
     try {
       const snap = await fetchInventorySnapshot();
       const md = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
+      setPhase("md", "uploading", "Uploading to backend…");
       const saved = await saveExportFile(md, `PROJECT_AUDIT_${today}.md`, "text/markdown;charset=utf-8");
       rememberSavedFile("md", saved);
+      setPhase("md", "ready");
       flashDone("md");
     } catch (e: any) {
       setError(e.message || "Markdown export failed");
+      setPhase("md", "error", e?.message || "Failed");
     } finally {
       setBusy(null);
     }
@@ -297,6 +301,7 @@ function ExportsPage() {
 
   const handleDownloadPdf = async () => {
     setBusy("pdf");
+    setPhase("pdf", "generating", "Rendering PDF…");
     try {
       const snap = await fetchInventorySnapshot();
       const fullMd = PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap);
