@@ -207,7 +207,7 @@ async function getKrogerAccessToken(): Promise<string> {
   const id = process.env.KROGER_CLIENT_ID!;
   const secret = process.env.KROGER_CLIENT_SECRET!;
   const basic = Buffer.from(`${id}:${secret}`).toString("base64");
-  const res = await fetch("https://api.kroger.com/v1/connect/oauth2/token", {
+  const res = await krogerFetchWithBackoff("https://api.kroger.com/v1/connect/oauth2/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
