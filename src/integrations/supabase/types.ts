@@ -1372,6 +1372,81 @@ export type Database = {
           },
         ]
       }
+      menu_module_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          module_id: string
+          position: number
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id: string
+          position?: number
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_id?: string
+          position?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_module_items_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "menu_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_module_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          position: number
+          state: Database["public"]["Enums"]["menu_module_state"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          position?: number
+          state?: Database["public"]["Enums"]["menu_module_state"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          position?: number
+          state?: Database["public"]["Enums"]["menu_module_state"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       national_price_snapshots: {
         Row: {
           created_at: string
@@ -2901,6 +2976,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "employee"
       cooking_guide_status: "draft" | "published"
       fred_priority: "primary" | "fallback"
+      menu_module_state: "active" | "seasonal" | "inactive"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
     }
@@ -3033,6 +3109,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "employee"],
       cooking_guide_status: ["draft", "published"],
       fred_priority: ["primary", "fallback"],
+      menu_module_state: ["active", "seasonal", "inactive"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
     },
