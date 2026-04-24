@@ -482,12 +482,7 @@ export async function downloadFile(
       const escapedUrl = url.replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
       targetWindow.document.open();
       targetWindow.document.write(
-        "<!doctype html><html><head><meta charset=\"utf-8\" /><title>Downloading…</title></head><body style=\"font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;\">" +
-          "<h1 style=\"font-size: 18px; margin: 0 0 8px;\">Your file is ready</h1>" +
-          "<p style=\"margin: 0 0 16px; color: #555;\">If the download does not start automatically, use the button below.</p>" +
-          "<p style=\"margin: 0;\"><a id=\"download-link\" href=\"" + escapedUrl + "\" download=\"" + escapedFilename + "\" style=\"display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;\">Download " + escapedFilename + "</a></p>" +
-          "<script>const a=document.getElementById('download-link');if(a){a.click();setTimeout(function(){location.href='" + url + "';},1200);}</script>" +
-          "</body></html>",
+        `<!doctype html><html><head><meta charset="utf-8" /><title>Downloading…</title></head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1><p style="margin: 0 0 16px; color: #555;">If the download does not start automatically, use the button below.</p><p style="margin: 0;"><a id="download-link" href="${escapedUrl}" download="${escapedFilename}" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;">Download ${escapedFilename}</a></p><script>const a=document.getElementById('download-link');if(a){a.click();setTimeout(function(){location.href='${url}';},1200);}</script></body></html>`,
       );
       targetWindow.document.close();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
