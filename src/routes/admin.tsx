@@ -156,6 +156,22 @@ function AdminLayout() {
   const { user, loading, isAdmin, signIn, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { map: visibilityMap } = useFeatureVisibilityMap();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const g of NAV_GROUPS) if (g.collapsedByDefault) init[g.label] = true;
+    return init;
+  });
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups((s) => ({ ...s, [label]: !s[label] }));
+
+  // Filter groups by feature_visibility, keep only groups with visible items.
+  const visibleGroups = useMemo(() => {
+    return NAV_GROUPS.map((g) => ({
+      ...g,
+      items: g.items.filter((i) => isAdminNavVisible(i, visibilityMap)),
+    })).filter((g) => g.items.length > 0);
+  }, [visibilityMap]);
 
   // Auth gate
   if (loading) {
