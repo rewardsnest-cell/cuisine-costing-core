@@ -372,9 +372,11 @@ export type Database = {
           archived_at: string | null
           author_email: string | null
           author_user_id: string | null
+          auto_generated: boolean
           created_at: string
           id: string
           linked_audit_event_ids: string[]
+          status: string
           summary: string
           title: string
           updated_at: string
@@ -384,9 +386,11 @@ export type Database = {
           archived_at?: string | null
           author_email?: string | null
           author_user_id?: string | null
+          auto_generated?: boolean
           created_at?: string
           id?: string
           linked_audit_event_ids?: string[]
+          status?: string
           summary?: string
           title: string
           updated_at?: string
@@ -396,9 +400,11 @@ export type Database = {
           archived_at?: string | null
           author_email?: string | null
           author_user_id?: string | null
+          auto_generated?: boolean
           created_at?: string
           id?: string
           linked_audit_event_ids?: string[]
+          status?: string
           summary?: string
           title?: string
           updated_at?: string
