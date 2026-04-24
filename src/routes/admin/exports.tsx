@@ -136,6 +136,22 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  const openPendingDownloadWindow = () => {
+    try {
+      if (typeof window === "undefined") return null;
+      const inIframe = window.self !== window.top;
+      if (!inIframe) return null;
+      const popup = window.open("", "_blank", "noopener,noreferrer");
+      if (!popup) return null;
+      popup.document.title = "Preparing download…";
+      popup.document.body.innerHTML =
+        '<div style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Preparing your file…</h1><p style="margin: 0; color: #555;">Your download will open here when it is ready.</p></div>';
+      return popup;
+    } catch {
+      return null;
+    }
+  };
+
   /**
    * Fetch the route_inventory table (HTTP status, last review, thumbnails)
    * and merge it with the static description registry so every audit bundle
@@ -261,6 +277,7 @@ function ExportsPage() {
   };
 
   const handleDownloadMarkdown = async () => {
+    const pendingWindow = openPendingDownloadWindow();
     setBusy("md");
     setError(null);
     try {
@@ -270,9 +287,11 @@ function ExportsPage() {
         md,
         `PROJECT_AUDIT_${today}.md`,
         "text/markdown;charset=utf-8",
+        pendingWindow,
       );
       flashDone("md");
     } catch (e: any) {
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "Markdown export failed");
     } finally {
       setBusy(null);
@@ -280,6 +299,7 @@ function ExportsPage() {
   };
 
   const handleDownloadPdf = async () => {
+    const pendingWindow = openPendingDownloadWindow();
     setBusy("pdf");
     try {
       const snap = await fetchInventorySnapshot();
@@ -347,9 +367,10 @@ function ExportsPage() {
       }
 
       const pdfBlob = doc.output("blob");
-      await downloadFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
+      await downloadFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf", pendingWindow);
       flashDone("pdf");
     } catch (e: any) {
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "PDF generation failed");
     } finally {
       setBusy(null);
@@ -357,6 +378,7 @@ function ExportsPage() {
   };
 
   const handleDownloadJson = async () => {
+    const pendingWindow = openPendingDownloadWindow();
     setBusy("json");
     setError(null);
     try {
@@ -379,9 +401,11 @@ function ExportsPage() {
         json,
         `PROJECT_AUDIT_${today}.json`,
         "application/json;charset=utf-8",
+        pendingWindow,
       );
       flashDone("json");
     } catch (e: any) {
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(e.message || "JSON export failed");
     } finally {
       setBusy(null);
@@ -389,6 +413,7 @@ function ExportsPage() {
   };
 
   const handleExportCsv = async (spec: CsvSpec) => {
+    const pendingWindow = openPendingDownloadWindow();
     setBusy(spec.key);
     setError(null);
     try {
@@ -409,13 +434,14 @@ function ExportsPage() {
       }
 
       if (all.length === 0) {
-        await downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
+        await downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8", pendingWindow);
       } else {
         const csv = rowsToCsv(all);
-        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8", pendingWindow);
       }
       flashDone(spec.key);
     } catch (e: any) {
+      if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
       setError(`${spec.label}: ${e.message || "Export failed"}`);
     } finally {
       setBusy(null);
@@ -427,13 +453,17 @@ function ExportsPage() {
     setError(null);
     try {
       for (const spec of CSV_EXPORTS) {
+        const pendingWindow = openPendingDownloadWindow();
         const { data, error: e } = await (supabase as any)
           .from(spec.table)
           .select(spec.select)
           .range(0, 9999);
-        if (e) throw e;
+        if (e) {
+          if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
+          throw e;
+        }
         const csv = rowsToCsv(data ?? []);
-        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8", pendingWindow);
         // small delay so browsers don't block bulk downloads
         await new Promise((r) => setTimeout(r, 250));
       }

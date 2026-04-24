@@ -433,16 +433,113 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
   return lines.join("\\n");
 }
 
-export function downloadFile(content: string | Blob, filename: string, mime: string) {
+export async function downloadFile(
+  content: string | Blob,
+  filename: string,
+  mime: string,
+  targetWindow?: Window | null,
+) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+
+  const showSaveFilePicker = (globalThis as any).showSaveFilePicker as
+    | ((opts?: any) => Promise<any>)
+    | undefined;
+
+  let inIframe = false;
+  try {
+    inIframe = typeof window !== "undefined" && window.self !== window.top;
+  } catch {
+    inIframe = true;
+  }
+
+  if (typeof showSaveFilePicker === "function" && !inIframe) {
+    const ext = filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : "";
+    try {
+      const handle = await showSaveFilePicker({
+        suggestedName: filename,
+        types: ext
+          ? [{ description: mime || "File", accept: { [mime || "application/octet-stream"]: [ext] } }]
+          : undefined,
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err: any) {
+      if (err?.name === "AbortError") throw err;
+    }
+  }
+
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  if (targetWindow && !targetWindow.closed) {
+    try {
+      const escapedFilename = filename
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;");
+      const escapedUrl = url.replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
+      targetWindow.document.open();
+      targetWindow.document.write(
+        `<!doctype html><html><head><meta charset="utf-8" /><title>Downloading…</title></head><body style="font-family: system-ui, sans-serif; padding: 24px; line-height: 1.5;"><h1 style="font-size: 18px; margin: 0 0 8px;">Your file is ready</h1><p style="margin: 0 0 16px; color: #555;">If the download does not start automatically, use the button below.</p><p style="margin: 0;"><a id="download-link" href="${escapedUrl}" download="${escapedFilename}" style="display: inline-block; padding: 10px 14px; background: #111; color: #fff; text-decoration: none; border-radius: 8px;">Download ${escapedFilename}</a></p><script>const a=document.getElementById('download-link');if(a){a.click();setTimeout(function(){location.href='${url}';},1200);}</script></body></html>`,
+      );
+      targetWindow.document.close();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return;
+    } catch {}
+  }
+
+  const canShareFiles =
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof File === "function";
+
+  if (canShareFiles) {
+    const file = new File([blob], filename, { type: mime || blob.type || "application/octet-stream" });
+    const shareData = { files: [file], title: filename };
+    const canShare = typeof (navigator as any).canShare === "function"
+      ? (navigator as any).canShare(shareData)
+      : true;
+
+    if (canShare) {
+      try {
+        await navigator.share(shareData);
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        return;
+      } catch (err: any) {
+        if (err?.name === "AbortError") throw err;
+      }
+    }
+  }
+
+  const triggerAnchor = (target?: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener noreferrer";
+    if (target) a.target = target;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  if (!inIframe) {
+    triggerAnchor();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return;
+  }
+
+  try {
+    const popup = window.open(url, "_blank", "noopener,noreferrer");
+    if (popup) {
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return;
+    }
+  } catch {}
+
+  triggerAnchor("_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 `;
 
