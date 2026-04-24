@@ -123,7 +123,7 @@ export const generateChangeLogDrafts = createServerFn({ method: "POST" })
       status: "draft",
       auto_generated: true,
       author_user_id: context.userId,
-      author_email: context.userEmail ?? null,
+      author_email: (context.claims as any)?.email ?? null,
     }));
 
     const { error: insErr, count } = await sb
