@@ -68,17 +68,41 @@ function ReceiptsPage() {
     newItems: LineItem[];
     newTotal: number;
   } | null>(null);
+  const [threshold, setThreshold] = useState<number>(DEFAULT_THRESHOLD);
+  const [thresholdInput, setThresholdInput] = useState<string>(String(DEFAULT_THRESHOLD));
+  const [savingThreshold, setSavingThreshold] = useState(false);
 
   const load = async () => {
-    const [{ data: rData }, { data: iData }] = await Promise.all([
+    const [{ data: rData }, { data: iData }, { data: kv }] = await Promise.all([
       supabase.from("receipts").select("*").order("created_at", { ascending: false }),
       supabase.from("inventory_items").select("id, name").order("name"),
+      (supabase as any).from("app_kv").select("value").eq("key", THRESHOLD_KEY).maybeSingle(),
     ]);
     if (rData) setReceipts(rData as unknown as ReceiptRow[]);
     if (iData) setInventoryItems(iData as InventoryItem[]);
+    const parsed = parseFloat((kv as any)?.value ?? "");
+    const next = Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : DEFAULT_THRESHOLD;
+    setThreshold(next);
+    setThresholdInput(String(next));
   };
 
   useEffect(() => { load(); }, []);
+
+  const saveThreshold = async () => {
+    const parsed = parseFloat(thresholdInput);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+      toast.error("Threshold must be a number between 0 and 1 (e.g. 0.6)");
+      return;
+    }
+    setSavingThreshold(true);
+    const { error } = await (supabase as any)
+      .from("app_kv")
+      .upsert({ key: THRESHOLD_KEY, value: String(parsed) }, { onConflict: "key" });
+    setSavingThreshold(false);
+    if (error) { toast.error(error.message); return; }
+    setThreshold(parsed);
+    toast.success(`Confidence threshold set to ${(parsed * 100).toFixed(0)}%`);
+  };
 
   const handleUpload = useCallback(async (file: File) => {
     setUploading(true);
