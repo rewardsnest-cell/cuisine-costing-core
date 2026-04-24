@@ -55,6 +55,10 @@ function KrogerRunsPage() {
   const [filterErrors, setFilterErrors] = useState(false);
   const [filterPriceRows, setFilterPriceRows] = useState(false);
   const [filterZeroSkus, setFilterZeroSkus] = useState(false);
+  const [testLocation, setTestLocation] = useState("");
+  const [testLimit, setTestLimit] = useState("5");
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<Awaited<ReturnType<typeof testIngestKrogerPrices>> | null>(null);
 
   const load = async () => {
     setLoading(true);
