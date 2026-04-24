@@ -87,6 +87,7 @@ import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-module
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
+import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
@@ -114,6 +115,7 @@ import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
+import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/receipts.review-matches'
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminPricingLabPreviewRouteImport } from './routes/admin/pricing-lab.preview'
@@ -526,6 +528,11 @@ const AdminKrogerPricingRoute = AdminKrogerPricingRouteImport.update({
   path: '/kroger-pricing',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminItemsRoute = AdminItemsRouteImport.update({
+  id: '/items',
+  path: '/items',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInventoryRoute = AdminInventoryRouteImport.update({
   id: '/inventory',
   path: '/inventory',
@@ -665,6 +672,12 @@ const AdminRecipeHubIdRoute = AdminRecipeHubIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminRecipeHubRoute,
 } as any)
+const AdminReceiptsReviewMatchesRoute =
+  AdminReceiptsReviewMatchesRouteImport.update({
+    id: '/review-matches',
+    path: '/review-matches',
+    getParentRoute: () => AdminReceiptsRoute,
+  } as any)
 const AdminQuotesIdRoute = AdminQuotesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -791,6 +804,7 @@ export interface FileRoutesByFullPath {
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -803,7 +817,7 @@ export interface FileRoutesByFullPath {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -853,6 +867,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -911,6 +926,7 @@ export interface FileRoutesByTo {
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -923,7 +939,7 @@ export interface FileRoutesByTo {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -973,6 +989,7 @@ export interface FileRoutesByTo {
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -1034,6 +1051,7 @@ export interface FileRoutesById {
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1046,7 +1064,7 @@ export interface FileRoutesById {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipts': typeof AdminReceiptsRoute
+  '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
@@ -1096,6 +1114,7 @@ export interface FileRoutesById {
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
@@ -1158,6 +1177,7 @@ export interface FileRouteTypes {
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1220,6 +1240,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
+    | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -1278,6 +1299,7 @@ export interface FileRouteTypes {
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1340,6 +1362,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
+    | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -1400,6 +1423,7 @@ export interface FileRouteTypes {
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
+    | '/admin/items'
     | '/admin/kroger-pricing'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1462,6 +1486,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quotes/$id'
+    | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
@@ -2078,6 +2103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKrogerPricingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/items': {
+      id: '/admin/items'
+      path: '/items'
+      fullPath: '/admin/items'
+      preLoaderRoute: typeof AdminItemsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/inventory': {
       id: '/admin/inventory'
       path: '/inventory'
@@ -2267,6 +2299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecipeHubIdRouteImport
       parentRoute: typeof AdminRecipeHubRoute
     }
+    '/admin/receipts/review-matches': {
+      id: '/admin/receipts/review-matches'
+      path: '/review-matches'
+      fullPath: '/admin/receipts/review-matches'
+      preLoaderRoute: typeof AdminReceiptsReviewMatchesRouteImport
+      parentRoute: typeof AdminReceiptsRoute
+    }
     '/admin/quotes/$id': {
       id: '/admin/quotes/$id'
       path: '/$id'
@@ -2424,6 +2463,18 @@ const AdminQuotesRouteWithChildren = AdminQuotesRoute._addFileChildren(
   AdminQuotesRouteChildren,
 )
 
+interface AdminReceiptsRouteChildren {
+  AdminReceiptsReviewMatchesRoute: typeof AdminReceiptsReviewMatchesRoute
+}
+
+const AdminReceiptsRouteChildren: AdminReceiptsRouteChildren = {
+  AdminReceiptsReviewMatchesRoute: AdminReceiptsReviewMatchesRoute,
+}
+
+const AdminReceiptsRouteWithChildren = AdminReceiptsRoute._addFileChildren(
+  AdminReceiptsRouteChildren,
+)
+
 interface AdminRecipeHubRouteChildren {
   AdminRecipeHubIdRoute: typeof AdminRecipeHubIdRoute
 }
@@ -2484,6 +2535,7 @@ interface AdminRouteChildren {
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminItemsRoute: typeof AdminItemsRoute
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -2496,7 +2548,7 @@ interface AdminRouteChildren {
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuotesRoute: typeof AdminQuotesRouteWithChildren
-  AdminReceiptsRoute: typeof AdminReceiptsRoute
+  AdminReceiptsRoute: typeof AdminReceiptsRouteWithChildren
   AdminRecipeHubRoute: typeof AdminRecipeHubRouteWithChildren
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
   AdminRegisterRoute: typeof AdminRegisterRoute
@@ -2543,6 +2595,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
+  AdminItemsRoute: AdminItemsRoute,
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
@@ -2555,7 +2608,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuotesRoute: AdminQuotesRouteWithChildren,
-  AdminReceiptsRoute: AdminReceiptsRoute,
+  AdminReceiptsRoute: AdminReceiptsRouteWithChildren,
   AdminRecipeHubRoute: AdminRecipeHubRouteWithChildren,
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
   AdminRegisterRoute: AdminRegisterRoute,

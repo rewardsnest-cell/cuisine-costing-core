@@ -7,15 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   listCostUpdateQueue,
   approveCostUpdate,
   rejectCostUpdate,
   overrideCostUpdate,
+  bulkApproveCostUpdates,
+  bulkRejectCostUpdates,
   listIngredientCosts,
 } from "@/lib/server-fns/cost-intelligence.functions";
+import { CostBreakdownPanel } from "@/components/admin/CostBreakdownPanel";
 
 export const Route = createFileRoute("/admin/cost-queue")({
   head: () => ({ meta: [{ title: "Cost Update Queue — Admin" }] }),
@@ -33,6 +38,9 @@ function CostQueuePage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [breakdownRef, setBreakdownRef] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -88,6 +96,43 @@ function CostQueuePage() {
     finally { setActingId(null); }
   };
 
+  const allSelected = pending.length > 0 && selected.size === pending.length;
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(pending.map((p: any) => p.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const onBulkApprove = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Approve ${selected.size} cost update${selected.size === 1 ? "" : "s"}?`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await bulkApproveCostUpdates({ data: { queue_ids: Array.from(selected) } });
+      toast.success(`${res.ok_count}/${res.count} approved`);
+      setSelected(new Set());
+      await load();
+    } catch (e: any) { toast.error(e?.message || "Bulk approve failed"); }
+    finally { setBulkBusy(false); }
+  };
+  const onBulkReject = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Reject ${selected.size} cost update${selected.size === 1 ? "" : "s"}?`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await bulkRejectCostUpdates({ data: { queue_ids: Array.from(selected) } });
+      toast.success(`${res.ok_count}/${res.count} rejected`);
+      setSelected(new Set());
+      await load();
+    } catch (e: any) { toast.error(e?.message || "Bulk reject failed"); }
+    finally { setBulkBusy(false); }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -116,7 +161,18 @@ function CostQueuePage() {
 
         <TabsContent value="pending">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><ShieldAlert className="w-4 h-4" />Pending approval</CardTitle></CardHeader>
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2"><ShieldAlert className="w-4 h-4" />Pending approval</CardTitle>
+                {selected.size > 0 && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+                    <Button size="sm" variant="outline" disabled={bulkBusy} onClick={onBulkApprove} className="gap-1"><Check className="w-3.5 h-3.5" />Bulk Approve</Button>
+                    <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={onBulkReject} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Bulk Reject</Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div>
@@ -127,6 +183,7 @@ function CostQueuePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-8"><Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" /></TableHead>
                         <TableHead>Item</TableHead>
                         <TableHead>Current</TableHead>
                         <TableHead>Proposed</TableHead>
@@ -142,6 +199,7 @@ function CostQueuePage() {
                         const direction = pct >= 0 ? "+" : "";
                         return (
                           <TableRow key={r.id}>
+                            <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} aria-label="Select row" /></TableCell>
                             <TableCell className="font-medium">{r.ingredient_reference?.canonical_name ?? r.reference_id} <span className="text-xs text-muted-foreground">/ {r.ingredient_reference?.default_unit}</span></TableCell>
                             <TableCell>${Number(r.current_cost ?? 0).toFixed(4)}</TableCell>
                             <TableCell>${Number(r.proposed_cost ?? 0).toFixed(4)}</TableCell>
@@ -150,6 +208,7 @@ function CostQueuePage() {
                             <TableCell className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</TableCell>
                             <TableCell className="text-right">
                               <div className="inline-flex gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onApprove(r.id)} className="gap-1"><Check className="w-3.5 h-3.5" />Approve</Button>
                                 <Button size="sm" variant="outline" disabled={actingId === r.id} onClick={() => onOverride(r.id)} className="gap-1"><Pencil className="w-3.5 h-3.5" />Override</Button>
                                 <Button size="sm" variant="ghost" disabled={actingId === r.id} onClick={() => onReject(r.id)} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Reject</Button>
@@ -217,6 +276,7 @@ function CostQueuePage() {
                         <TableHead className="font-bold">Internal Estimate</TableHead>
                         <TableHead>Weights</TableHead>
                         <TableHead>Updated</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -233,6 +293,9 @@ function CostQueuePage() {
                               {w.kroger ? `K ${Math.round(w.kroger * 100)}%` : ""} {w.manual ? `M ${Math.round(w.manual * 100)}%` : ""} {w.historical ? `H ${Math.round(w.historical * 100)}%` : ""}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{r.internal_estimated_unit_cost_updated_at ? new Date(r.internal_estimated_unit_cost_updated_at).toLocaleDateString() : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -244,6 +307,13 @@ function CostQueuePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Sheet open={!!breakdownRef} onOpenChange={(o) => !o && setBreakdownRef(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader><SheetTitle>Cost Breakdown</SheetTitle></SheetHeader>
+          <div className="mt-4">{breakdownRef && <CostBreakdownPanel referenceId={breakdownRef} />}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
