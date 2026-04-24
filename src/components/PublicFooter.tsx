@@ -115,7 +115,7 @@ export function PublicFooter() {
         <div className="mt-12 pt-6 border-t border-background/10 space-y-4">
           <ServiceAreaBadges tone="light" />
           <p className="text-xs text-background/50 text-center">
-            © {new Date().getFullYear()} {brandDisplay} Catering. Crafted with care for unforgettable events.
+            © {new Date().getFullYear()} {brandDisplay} Catering. Aurora, Ohio.
           </p>
         </div>
       </div>
