@@ -331,6 +331,20 @@ function ExportsPage() {
             actions, AI workflows, KPIs, auth model, and environment. Useful as
             context for Copilot, Cursor, or onboarding documents.
           </p>
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div className="font-medium">Page Inventory</div>
+              <div className="text-xs text-muted-foreground">
+                Visual sweep of every route — HTTP status, last review, and thumbnails.
+              </div>
+            </div>
+            <Link
+              to="/admin/page-inventory"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Open inventory →
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={handleDownloadMarkdown}
