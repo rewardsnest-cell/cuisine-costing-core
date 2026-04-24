@@ -136,7 +136,7 @@ function ExportsPage() {
     }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     setBusy("pdf");
     try {
       const doc = new jsPDF({ unit: "pt", format: "letter" });
@@ -200,7 +200,8 @@ function ExportsPage() {
         }
       }
 
-      doc.save(`PROJECT_AUDIT_${today}.pdf`);
+      const pdfBlob = doc.output("blob");
+      await downloadFile(pdfBlob, `PROJECT_AUDIT_${today}.pdf`, "application/pdf");
       flashDone("pdf");
     } catch (e: any) {
       setError(e.message || "PDF generation failed");
