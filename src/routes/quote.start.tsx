@@ -67,7 +67,6 @@ function QuoteStartPage() {
     eventDate: "",
     guestRange: "",
     venue: "",
-    budgetRange: "",
   });
   const [venueNotBooked, setVenueNotBooked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -100,7 +99,6 @@ function QuoteStartPage() {
         guestRange: data.guestRange || null,
         venue: data.venue || null,
         venueNotBooked,
-        budgetRange: data.budgetRange || null,
         sourcePage: "quote/start",
       };
       const { data: row, error } = await (supabase as any)
