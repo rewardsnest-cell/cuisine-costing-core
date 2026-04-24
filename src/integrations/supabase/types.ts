@@ -1450,6 +1450,54 @@ export type Database = {
           },
         ]
       }
+      kroger_ingest_runs: {
+        Row: {
+          created_at: string
+          errors: Json
+          finished_at: string | null
+          id: string
+          item_limit: number | null
+          items_queried: number
+          location_id: string | null
+          message: string | null
+          price_rows_written: number
+          sku_map_rows_touched: number
+          started_at: string | null
+          status: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          item_limit?: number | null
+          items_queried?: number
+          location_id?: string | null
+          message?: string | null
+          price_rows_written?: number
+          sku_map_rows_touched?: number
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          item_limit?: number | null
+          items_queried?: number
+          location_id?: string | null
+          message?: string | null
+          price_rows_written?: number
+          sku_map_rows_touched?: number
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       kroger_sku_map: {
         Row: {
           confirmed_at: string | null
