@@ -229,6 +229,10 @@ function CostQueuePage() {
                 {selected.size > 0 && (
                   <div className="ml-auto flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+                    <Button size="sm" variant="outline" disabled={simBusy} onClick={onSimulateSelected} className="gap-1" title="Project inventory + recipe + quote impact without writing data">
+                      {simBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                      Simulate apply
+                    </Button>
                     <Button size="sm" variant="outline" disabled={bulkBusy} onClick={onBulkApprove} className="gap-1"><Check className="w-3.5 h-3.5" />Bulk Approve</Button>
                     <Button size="sm" variant="ghost" disabled={bulkBusy} onClick={onBulkReject} className="gap-1 text-destructive"><X className="w-3.5 h-3.5" />Bulk Reject</Button>
                   </div>
