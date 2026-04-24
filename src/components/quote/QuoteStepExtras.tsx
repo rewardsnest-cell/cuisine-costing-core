@@ -10,7 +10,8 @@ interface Props {
 }
 
 export function QuoteStepExtras({ selections, setSelections, setStep }: Props) {
-  const { showPricing } = usePricingVisibility();
+  usePricingVisibility();
+  const showPricing = false;
   const toggle = (id: string) => {
     setSelections((s) => ({
       ...s,
