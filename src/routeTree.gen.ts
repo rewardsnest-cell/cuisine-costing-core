@@ -78,6 +78,7 @@ import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
 import { Route as AdminRecipeHubRouteImport } from './routes/admin/recipe-hub'
 import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
+import { Route as AdminReceiptKrogerDiagnosticsRouteImport } from './routes/admin/receipt-kroger-diagnostics'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
@@ -491,6 +492,12 @@ const AdminReceiptsRoute = AdminReceiptsRouteImport.update({
   path: '/receipts',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReceiptKrogerDiagnosticsRoute =
+  AdminReceiptKrogerDiagnosticsRouteImport.update({
+    id: '/receipt-kroger-diagnostics',
+    path: '/receipt-kroger-diagnostics',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminQuotesRoute = AdminQuotesRouteImport.update({
   id: '/quotes',
   path: '/quotes',
@@ -871,6 +878,7 @@ export interface FileRoutesByFullPath {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
+  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1001,6 +1009,7 @@ export interface FileRoutesByTo {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
+  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1134,6 +1143,7 @@ export interface FileRoutesById {
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
+  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1268,6 +1278,7 @@ export interface FileRouteTypes {
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
+    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -1398,6 +1409,7 @@ export interface FileRouteTypes {
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
+    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -1530,6 +1542,7 @@ export interface FileRouteTypes {
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quotes'
+    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -2138,6 +2151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReceiptsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/receipt-kroger-diagnostics': {
+      id: '/admin/receipt-kroger-diagnostics'
+      path: '/receipt-kroger-diagnostics'
+      fullPath: '/admin/receipt-kroger-diagnostics'
+      preLoaderRoute: typeof AdminReceiptKrogerDiagnosticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/quotes': {
       id: '/admin/quotes'
       path: '/quotes'
@@ -2707,6 +2727,7 @@ interface AdminRouteChildren {
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuotesRoute: typeof AdminQuotesRouteWithChildren
+  AdminReceiptKrogerDiagnosticsRoute: typeof AdminReceiptKrogerDiagnosticsRoute
   AdminReceiptsRoute: typeof AdminReceiptsRouteWithChildren
   AdminRecipeHubRoute: typeof AdminRecipeHubRouteWithChildren
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
@@ -2773,6 +2794,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuotesRoute: AdminQuotesRouteWithChildren,
+  AdminReceiptKrogerDiagnosticsRoute: AdminReceiptKrogerDiagnosticsRoute,
   AdminReceiptsRoute: AdminReceiptsRouteWithChildren,
   AdminRecipeHubRoute: AdminRecipeHubRouteWithChildren,
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
