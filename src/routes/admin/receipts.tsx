@@ -776,7 +776,8 @@ function ReceiptsPage() {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
                 </div>
