@@ -120,11 +120,24 @@ const CSV_EXPORTS: CsvSpec[] = [
   },
 ];
 
+type ExportPhase = "generating" | "uploading" | "ready" | "error";
+type ExportProgress = { phase: ExportPhase; message?: string };
+
 function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [savedFiles, setSavedFiles] = useState<Record<string, SavedExportFile>>({});
+  const [progress, setProgress] = useState<Record<string, ExportProgress | undefined>>({});
+
+  const setPhase = (key: string, phase: ExportPhase, message?: string) =>
+    setProgress((p) => ({ ...p, [key]: { phase, message } }));
+  const clearPhase = (key: string) =>
+    setProgress((p) => {
+      const next = { ...p };
+      delete next[key];
+      return next;
+    });
   const [lastE2e, setLastE2e] = useState<{
     runId: string;
     total: number;
