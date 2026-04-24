@@ -1185,6 +1185,44 @@ function EntryCard({
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  // Publish: routes through the validating server function so QA gates + link
+  // checks still apply. Persists any unsaved edits in the same call.
+  const publishMut = useMutation({
+    mutationFn: async () => {
+      if (!qaAllPassed) throw new Error("Complete all 5 QA checklist items before publishing.");
+      if (!linksAllPassed) throw new Error("Fix all link validation errors before publishing.");
+      const next = { ...draft, status: "published" as const, visible: true };
+      await saveCookingLabEntryFn({ data: next });
+      return next;
+    },
+    onSuccess: (next) => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setDraft(next);
+      setDirty(false);
+      toast.success("Published");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Publish failed"),
+  });
+
+  // Unpublish: reverts to draft + hidden. No validation required to step
+  // back, so we update directly without re-running publish gates.
+  const unpublishMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any)
+        .from("cooking_lab_entries")
+        .update({ status: "draft", visible: false })
+        .eq("id", entry.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+      setDraft((d) => ({ ...d, status: "draft", visible: false }));
+      setDirty(false);
+      toast.success("Unpublished — moved back to draft");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Unpublish failed"),
+  });
+
   // Per-field publish-blocking errors for the Tools section.
   // Mirrors validateAmazonLink so the Field-level error and the LinkChecksPanel agree.
   const toolFieldErrors = computeToolFieldErrors(draft);
