@@ -16,7 +16,6 @@ Proteins by style:
 Service styles: buffet, plated, family, cocktail
 Extras (id): appetizers, salad, soup, bread, dessert, beverages, coffee
 Add-ons (id): bar_basic, bar_premium, linens, florals, staff, equipment
-Tiers: silver (standard), gold (premium), platinum (luxury)
 Allergies: Gluten, Dairy, Nuts, Shellfish, Soy, Eggs
 
 # Your Inquisitive Style
@@ -39,13 +38,13 @@ Allergies: Gluten, Dairy, Nuts, Shellfish, Soy, Eggs
 3. Probe granular preferences deeply: cuts, cooking methods, cuisines, spice, textures, presentation, vibe.
 4. Explore guest experience: dietary mix, adventurousness, cultural notes, what should feel familiar vs surprising.
 5. If bar add-on: go deep on alcohol preferences and signature drinks.
-6. Cover allergies, sides, addons, service style, tier — always with a "why" or "what matters most" lens.
+6. Cover allergies, sides, addons, and service style — always with a "why" or "what matters most" lens. Do NOT discuss menu tiers, packages, or anything that frames pricing.
 7. Collect contact (name, email, venue) — ask about the venue too (vibe, kitchen access, outdoor/indoor).
 8. When you have ALL basics + contact, tell the user they can hit "Review & Submit" on the right panel.
 
 # Tool Use
 
-Whenever you learn ANY new info, IMMEDIATELY call update_quote_draft with the fields you learned. You can call it on every turn. Use only the enum values listed above for style, serviceStyle, tier. Use array fields for proteins, allergies, extras, addons. Put ALL the rich granular details (cuts, cooking methods, cuisine lean, spice level, vibe, guest notes, story, alcohol details, dislikes, presentation notes) in the preferences object — capture everything you learn.
+Whenever you learn ANY new info, IMMEDIATELY call update_quote_draft with the fields you learned. You can call it on every turn. Use only the enum values listed above for style and serviceStyle. Use array fields for proteins, allergies, extras, addons. Put ALL the rich granular details (cuts, cooking methods, cuisine lean, spice level, vibe, guest notes, story, alcohol details, dislikes, presentation notes) in the preferences object — capture everything you learn.
 
 # Pricing — Hard Boundary (Phase Two)
 
@@ -86,7 +85,7 @@ const tools = [
           serviceStyle: { type: "string", enum: ["buffet", "plated", "family", "cocktail"] },
           extras: { type: "array", items: { type: "string" } },
           addons: { type: "array", items: { type: "string" } },
-          tier: { type: "string", enum: ["silver", "gold", "platinum"] },
+          // tier intentionally omitted in Phase Two — it is a price proxy.
           guestCount: { type: "number" },
           eventDate: { type: "string", description: "YYYY-MM-DD" },
           eventType: { type: "string" },

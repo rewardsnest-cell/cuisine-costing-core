@@ -33,7 +33,6 @@ const intakeSchema = z.object({
   eventDate: z.string().max(20).optional(),
   guestRange: z.string().max(40).optional(),
   venue: z.string().max(160).optional(),
-  budgetRange: z.string().max(40).optional(),
 });
 
 const GUEST_RANGES = [
@@ -44,12 +43,6 @@ const GUEST_RANGES = [
   "100–175",
   "175–250",
   "250+",
-];
-
-const BUDGET_RANGES = [
-  "Not sure yet",
-  "Still exploring",
-  "I have a working figure in mind",
 ];
 
 const EVENT_TYPES = [
@@ -74,7 +67,6 @@ function QuoteStartPage() {
     eventDate: "",
     guestRange: "",
     venue: "",
-    budgetRange: "",
   });
   const [venueNotBooked, setVenueNotBooked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -107,7 +99,6 @@ function QuoteStartPage() {
         guestRange: data.guestRange || null,
         venue: data.venue || null,
         venueNotBooked,
-        budgetRange: data.budgetRange || null,
         sourcePage: "quote/start",
       };
       const { data: row, error } = await (supabase as any)
@@ -401,20 +392,6 @@ function QuoteStartPage() {
                   </label>
                 </div>
 
-                <div>
-                  <Label>Projected budget <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                  <Select value={form.budgetRange} onValueChange={(v) => update("budgetRange", v)}>
-                    <SelectTrigger><SelectValue placeholder="Not sure yet" /></SelectTrigger>
-                    <SelectContent>
-                      {BUDGET_RANGES.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    We don't share figures at this stage — this just helps us understand your starting point.
-                  </p>
-                </div>
 
                 <div className="pt-3">
                   <Button type="submit" disabled={submitting} className="w-full">

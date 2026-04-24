@@ -262,7 +262,7 @@ export function QuotePage() {
               </div>
             )}
             <p className="text-muted-foreground mb-2">Thanks! Your request is in.</p>
-            <p className="text-muted-foreground mb-6 text-sm">Our team will review the details, fine-tune your menu, and email you a <strong>formal quote with pricing</strong> — usually within 24 hours.</p>
+            <p className="text-muted-foreground mb-6 text-sm">Our team will review the details, refine the menu, and follow up with a formal proposal — usually within 24 hours. There's no commitment at this stage.</p>
             {!linked && !user && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
                 <p className="text-sm font-medium text-foreground mb-2">Save this quote to an account?</p>
@@ -292,9 +292,13 @@ export function QuotePage() {
               />
             )}
             <div className="flex flex-wrap gap-3 justify-center">
-              <Button onClick={handleDownloadPDF} variant="outline" className="gap-2">
-                <Download className="w-4 h-4" /> Download PDF
-              </Button>
+              {referenceNumber && (
+                <Link to="/q/$reference" params={{ reference: referenceNumber }}>
+                  <Button variant="outline" className="gap-2">
+                    <FileText className="w-4 h-4" /> View progress
+                  </Button>
+                </Link>
+              )}
               <Link to="/my-quotes"><Button variant="outline" className="gap-2"><FileText className="w-4 h-4" /> My Quotes</Button></Link>
               <Button onClick={startOver} variant="outline" className="gap-2">
                 <RotateCcw className="w-4 h-4" /> Start Over
