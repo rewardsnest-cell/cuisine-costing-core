@@ -44,6 +44,7 @@ export function RecipeScaler({
   pricePerPerson,
   totalRecipeCost,
   hidePricing = false,
+  publicLimit = false,
 }: {
   recipeId: string;
   recipeName: string;
@@ -53,8 +54,16 @@ export function RecipeScaler({
   pricePerPerson?: number | null;
   totalRecipeCost?: number | null;
   hidePricing?: boolean;
+  /**
+   * When true, restrict scaling to 1 / 5 / 10 servings only (home-cook public rule)
+   * and show an educational catering CTA instead of a free-form slider.
+   */
+  publicLimit?: boolean;
 }) {
-  const initial = baseServings && baseServings > 0 ? baseServings : 4;
+  // Initial servings: in publicLimit mode, snap to nearest allowed value (default 5).
+  const initial = publicLimit
+    ? 5
+    : (baseServings && baseServings > 0 ? baseServings : 4);
   const [servings, setServings] = useState<number>(initial);
   const [favLoading, setFavLoading] = useState(false);
   const [isFav, setIsFav] = useState<boolean | null>(null);
