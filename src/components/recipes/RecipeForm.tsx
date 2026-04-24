@@ -75,6 +75,8 @@ export type RecipeFormInitial = {
     pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
     status?: "draft" | "published";
     ingredient_integrity?: "ok" | "needs_cleanup";
+    /** Mark this home_public recipe as part of the "Inspired / Familiar Favorites" public section. */
+    inspired?: boolean;
   };
   ingredients: IngredientRow[];
 };
@@ -95,6 +97,7 @@ export const blankInitial: RecipeFormInitial = {
     allergens: "",
     status: "draft",
     ingredient_integrity: "ok",
+    inspired: false,
   },
   ingredients: [emptyIngredient()],
 };
