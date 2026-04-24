@@ -684,6 +684,10 @@ export type Database = {
           qa_video_loads: boolean
           secondary_tool_name: string | null
           secondary_tool_url: string | null
+          seo_canonical_url: string | null
+          seo_description: string | null
+          seo_og_image_url: string | null
+          seo_title: string | null
           status: string
           title: string
           updated_at: string
@@ -706,6 +710,10 @@ export type Database = {
           qa_video_loads?: boolean
           secondary_tool_name?: string | null
           secondary_tool_url?: string | null
+          seo_canonical_url?: string | null
+          seo_description?: string | null
+          seo_og_image_url?: string | null
+          seo_title?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -728,6 +736,10 @@ export type Database = {
           qa_video_loads?: boolean
           secondary_tool_name?: string | null
           secondary_tool_url?: string | null
+          seo_canonical_url?: string | null
+          seo_description?: string | null
+          seo_og_image_url?: string | null
+          seo_title?: string | null
           status?: string
           title?: string
           updated_at?: string

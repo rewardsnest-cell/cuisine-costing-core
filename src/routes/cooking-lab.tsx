@@ -46,6 +46,13 @@ export type CookingLabEntry = {
   secondary_tool_name: string | null;
   secondary_tool_url: string | null;
   display_order: number;
+  // Optional per-entry SEO overrides. Falls back to title/description/image_url
+  // when blank. Surfaced via JSON-LD on /cooking-lab so each entry shows up
+  // with its own metadata in search results, even though entries share one route.
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_canonical_url?: string | null;
+  seo_og_image_url?: string | null;
 };
 
 export const Route = createFileRoute("/cooking-lab")({
@@ -99,7 +106,7 @@ function CookingLabPage() {
       const { data, error } = await (supabase as any)
         .from("cooking_lab_entries")
         .select(
-          "id,title,description,video_url,image_url,primary_tool_name,primary_tool_url,secondary_tool_name,secondary_tool_url,display_order",
+          "id,title,description,video_url,image_url,primary_tool_name,primary_tool_url,secondary_tool_name,secondary_tool_url,display_order,seo_title,seo_description,seo_canonical_url,seo_og_image_url",
         )
         .eq("visible", true)
         .eq("status", "published")
@@ -323,9 +330,40 @@ export function CookingLabPageBody({
             </p>
           </div>
         ) : (
-          entries.map((entry, idx) => (
-            <CookingLabSection key={entry.id} entry={entry} reverse={idx % 2 === 1} />
-          ))
+          <>
+            {/*
+              Per-entry SEO: emit one JSON-LD ItemList of Article items so each
+              entry's seo_title / seo_description / og_image / canonical surface
+              to crawlers, even though all entries share the /cooking-lab route.
+              Falls back to title/description/image_url when an SEO field is blank.
+            */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "ItemList",
+                  itemListElement: entries.map((e, i) => ({
+                    "@type": "ListItem",
+                    position: i + 1,
+                    item: {
+                      "@type": "Article",
+                      headline: (e.seo_title?.trim() || e.title || "").slice(0, 110),
+                      description:
+                        (e.seo_description?.trim() || e.description || "").slice(0, 300),
+                      image: e.seo_og_image_url?.trim() || e.image_url || undefined,
+                      url:
+                        e.seo_canonical_url?.trim() ||
+                        `https://www.vpsfinest.com/cooking-lab#entry-${e.id}`,
+                    },
+                  })),
+                }),
+              }}
+            />
+            {entries.map((entry, idx) => (
+              <CookingLabSection key={entry.id} entry={entry} reverse={idx % 2 === 1} />
+            ))}
+          </>
         )}
       </section>
 
@@ -364,7 +402,7 @@ export function CookingLabSection({
     (entry.secondary_tool_name && entry.secondary_tool_url);
 
   return (
-    <article className="grid lg:grid-cols-2 gap-10 items-center">
+    <article id={`entry-${entry.id}`} className="grid lg:grid-cols-2 gap-10 items-center scroll-mt-24">
       <div className={reverse ? "lg:order-2" : ""}>
         {embedUrl ? (
           <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">

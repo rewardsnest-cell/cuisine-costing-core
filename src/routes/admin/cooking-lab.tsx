@@ -85,6 +85,10 @@ type CookingLabEntry = {
   qa_image_loads: boolean;
   qa_links_tested: boolean;
   qa_ready: boolean;
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_canonical_url: string | null;
+  seo_og_image_url: string | null;
 };
 
 type LinkCheck = {
@@ -334,6 +338,205 @@ function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
           Publishing is blocked until all errors are resolved.
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Per-entry SEO editor + live preview.
+ *
+ * Why this exists: Cooking Lab entries all share the single /cooking-lab
+ * route, so per-entry head() metadata isn't possible. Instead these fields
+ * feed a JSON-LD ItemList on the public page, giving each entry its own
+ * search/social presence with sensible fallbacks.
+ *
+ * Editor shows a Google-style snippet preview (title + URL + description with
+ * length warnings) and a social card preview (OG image + title + description)
+ * so editors see exactly what crawlers will surface before saving.
+ */
+function SeoFieldsPanel({
+  seoTitle,
+  seoDescription,
+  seoCanonicalUrl,
+  seoOgImageUrl,
+  fallbackTitle,
+  fallbackDescription,
+  fallbackImageUrl,
+  entryId,
+  onChange,
+}: {
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoCanonicalUrl: string | null;
+  seoOgImageUrl: string | null;
+  fallbackTitle: string;
+  fallbackDescription: string;
+  fallbackImageUrl: string | null;
+  entryId: string;
+  onChange: (
+    field: "seo_title" | "seo_description" | "seo_canonical_url" | "seo_og_image_url",
+    value: string | null,
+  ) => void;
+}) {
+  const effectiveTitle = (seoTitle?.trim() || fallbackTitle || "").trim();
+  const effectiveDescription = (seoDescription?.trim() || fallbackDescription || "").trim();
+  const effectiveImage = (seoOgImageUrl?.trim() || fallbackImageUrl || "").trim();
+  const effectiveUrl =
+    (seoCanonicalUrl?.trim() ||
+      `https://www.vpsfinest.com/cooking-lab#entry-${entryId}`).trim();
+
+  const titleLen = effectiveTitle.length;
+  const descLen = effectiveDescription.length;
+  // Google typically truncates titles past ~60 chars, descriptions past ~160.
+  const titleTone =
+    titleLen === 0
+      ? "text-destructive"
+      : titleLen > 60
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-muted-foreground";
+  const descTone =
+    descLen === 0
+      ? "text-destructive"
+      : descLen > 160
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-muted-foreground";
+
+  // Surface common URL mistakes inline. Keep messages short — full validation
+  // would require a server probe; for now we only catch structural issues.
+  let canonicalError: string | null = null;
+  if (seoCanonicalUrl?.trim()) {
+    try {
+      const u = new URL(seoCanonicalUrl.trim());
+      if (u.protocol !== "https:") canonicalError = "Canonical URL must use https://.";
+    } catch {
+      canonicalError = "Not a valid URL.";
+    }
+  }
+  let ogImageError: string | null = null;
+  if (seoOgImageUrl?.trim()) {
+    try {
+      const u = new URL(seoOgImageUrl.trim());
+      if (u.protocol !== "https:") ogImageError = "OG image URL must use https://.";
+    } catch {
+      ogImageError = "Not a valid URL.";
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Field
+        label="SEO Title"
+        hint={`Shown as the link in Google results. ${titleLen}/60 chars (auto-falls back to entry Title if blank).`}
+      >
+        <Input
+          value={seoTitle ?? ""}
+          onChange={(e) => onChange("seo_title", e.target.value || null)}
+          placeholder={fallbackTitle || "e.g. How to Reverse-Sear a Steak — VPS Finest"}
+          maxLength={120}
+        />
+        <p className={`text-[11px] mt-1 ${titleTone}`}>
+          {titleLen === 0
+            ? "Using fallback (entry title)"
+            : titleLen > 60
+              ? `${titleLen} chars — Google may truncate past 60.`
+              : `${titleLen}/60 chars`}
+        </p>
+      </Field>
+
+      <Field
+        label="SEO Description"
+        hint={`Shown under the link in Google results. ${descLen}/160 chars (auto-falls back to entry description).`}
+      >
+        <Textarea
+          rows={2}
+          value={seoDescription ?? ""}
+          onChange={(e) => onChange("seo_description", e.target.value || null)}
+          placeholder={fallbackDescription || "One or two sentences readers see in search results."}
+          maxLength={300}
+        />
+        <p className={`text-[11px] mt-1 ${descTone}`}>
+          {descLen === 0
+            ? "Using fallback (entry description)"
+            : descLen > 160
+              ? `${descLen} chars — Google may truncate past 160.`
+              : `${descLen}/160 chars`}
+        </p>
+      </Field>
+
+      <Field
+        label="Canonical URL"
+        hint="Optional. Override only if this entry's content is the canonical version of a page hosted elsewhere."
+        error={canonicalError}
+      >
+        <Input
+          value={seoCanonicalUrl ?? ""}
+          onChange={(e) => onChange("seo_canonical_url", e.target.value || null)}
+          placeholder={`https://www.vpsfinest.com/cooking-lab#entry-${entryId}`}
+        />
+      </Field>
+
+      <Field
+        label="Social Share Image (OG Image)"
+        hint="1200×630 recommended. Falls back to the entry image. Used for Facebook, Twitter, LinkedIn previews."
+        error={ogImageError}
+      >
+        <Input
+          value={seoOgImageUrl ?? ""}
+          onChange={(e) => onChange("seo_og_image_url", e.target.value || null)}
+          placeholder={fallbackImageUrl ?? "https://..."}
+        />
+      </Field>
+
+      {/* Live preview — Google snippet + social card */}
+      <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
+        <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+          <Eye className="w-3.5 h-3.5" />
+          Live preview
+        </p>
+
+        {/* Google snippet */}
+        <div className="rounded-md border border-border bg-background p-3">
+          <p className="text-[11px] text-muted-foreground mb-1">Google search result</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-400 truncate">
+            {effectiveUrl}
+          </p>
+          <p className="text-base text-blue-700 dark:text-blue-400 hover:underline truncate font-medium">
+            {effectiveTitle || "(no title)"}
+          </p>
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {effectiveDescription || "(no description)"}
+          </p>
+        </div>
+
+        {/* Social card */}
+        <div className="rounded-md border border-border bg-background overflow-hidden max-w-md">
+          <p className="text-[11px] text-muted-foreground px-3 pt-2">Social share card</p>
+          {effectiveImage ? (
+            // Browser renders the actual image so editors catch broken URLs immediately.
+            <img
+              src={effectiveImage}
+              alt=""
+              className="w-full aspect-[1200/630] object-cover bg-muted"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="w-full aspect-[1200/630] bg-muted flex items-center justify-center text-xs text-muted-foreground">
+              No image set
+            </div>
+          )}
+          <div className="px-3 py-2 border-t border-border">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">vpsfinest.com</p>
+            <p className="text-sm font-semibold text-foreground line-clamp-1">
+              {effectiveTitle || "(no title)"}
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {effectiveDescription || "(no description)"}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1505,6 +1708,27 @@ function EntryCard({
               onCheckedChange={(v) => update("qa_ready", v)}
             />
           </div>
+        </Section>
+
+        {/* F. SEO — per-entry metadata. All optional; falls back to Title /
+            Description / Image / page URL when blank. Surfaces via JSON-LD on
+            the public /cooking-lab page so each entry has its own headline,
+            description, image, and canonical URL for crawlers and shares. */}
+        <Section
+          label="F. SEO & Social Sharing"
+          hint="All fields optional. Leave blank to fall back to Title, Description, Image, and the page URL."
+        >
+          <SeoFieldsPanel
+            seoTitle={draft.seo_title}
+            seoDescription={draft.seo_description}
+            seoCanonicalUrl={draft.seo_canonical_url}
+            seoOgImageUrl={draft.seo_og_image_url}
+            fallbackTitle={draft.title}
+            fallbackDescription={draft.description}
+            fallbackImageUrl={draft.image_url}
+            entryId={draft.id}
+            onChange={(field, value) => update(field, value)}
+          />
         </Section>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-border flex-wrap">
