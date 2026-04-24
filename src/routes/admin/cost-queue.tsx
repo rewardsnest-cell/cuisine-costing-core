@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye, RefreshCw, AlertTriangle, FlaskConical, TrendingUp, TrendingDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   listCostUpdateQueue,
@@ -20,8 +20,11 @@ import {
   bulkRejectCostUpdates,
   listIngredientCosts,
   recomputeAndVerifyInternalCosts,
+  simulateApplyCostUpdates,
 } from "@/lib/server-fns/cost-intelligence.functions";
 import { CostBreakdownPanel } from "@/components/admin/CostBreakdownPanel";
+
+type SimulateResult = Awaited<ReturnType<typeof simulateApplyCostUpdates>>;
 
 type VerifyResult = Awaited<ReturnType<typeof recomputeAndVerifyInternalCosts>>;
 
