@@ -87,6 +87,7 @@ export const Route = createFileRoute("/cooking-lab")({
 
 function CookingLabPage() {
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["cooking-lab", "public"],
@@ -138,10 +139,27 @@ function CookingLabPage() {
 
   const filteredEntries = useMemo(() => {
     if (!entries) return null;
-    if (!activeCollectionId) return entries;
-    const map = entryCollectionMap;
-    return entries.filter((e) => map?.get(e.id)?.has(activeCollectionId));
-  }, [entries, activeCollectionId, entryCollectionMap]);
+    let result = entries;
+    if (activeCollectionId) {
+      const map = entryCollectionMap;
+      result = result.filter((e) => map?.get(e.id)?.has(activeCollectionId));
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter((e) => {
+        const haystack = [
+          e.title,
+          e.description,
+          e.primary_tool_name ?? "",
+          e.secondary_tool_name ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+    return result;
+  }, [entries, activeCollectionId, entryCollectionMap, searchQuery]);
 
   return (
     <CookingLabPageBody
@@ -150,6 +168,9 @@ function CookingLabPage() {
       collections={collections ?? null}
       activeCollectionId={activeCollectionId}
       onSelectCollection={setActiveCollectionId}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      totalEntryCount={entries?.length ?? 0}
     />
   );
 }
