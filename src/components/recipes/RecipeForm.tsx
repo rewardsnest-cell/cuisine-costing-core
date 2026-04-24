@@ -790,6 +790,11 @@ export function RecipeForm({
                         }
                       }}
                     />
+                    {ing.name.trim() && !ing.reference_id && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
+                        <CircleAlert className="w-3 h-3" /> Unlinked — pick from inventory or add to ingredient reference
+                      </span>
+                    )}
                   </div>
                   <div className="col-span-4 sm:col-span-2">
                     <Input
