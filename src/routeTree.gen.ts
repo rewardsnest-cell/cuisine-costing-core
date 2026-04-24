@@ -123,6 +123,7 @@ import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as CookingLabCSlugRouteImport } from './routes/cooking-lab.c.$slug'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
@@ -726,6 +727,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CookingLabCSlugRoute = CookingLabCSlugRouteImport.update({
+  id: '/c/$slug',
+  path: '/c/$slug',
+  getParentRoute: () => CookingLabRoute,
+} as any)
 const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -844,7 +850,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
-  '/cooking-lab': typeof CookingLabRoute
+  '/cooking-lab': typeof CookingLabRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -964,6 +970,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
@@ -980,7 +987,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
-  '/cooking-lab': typeof CookingLabRoute
+  '/cooking-lab': typeof CookingLabRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -1099,6 +1106,7 @@ export interface FileRoutesByTo {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
@@ -1117,7 +1125,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/catering': typeof CateringRoute
   '/contact': typeof ContactRoute
-  '/cooking-lab': typeof CookingLabRoute
+  '/cooking-lab': typeof CookingLabRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/employee': typeof EmployeeRoute
   '/familiar-favorites': typeof FamiliarFavoritesRoute
@@ -1237,6 +1245,7 @@ export interface FileRoutesById {
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
+  '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
@@ -1376,6 +1385,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
+    | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
@@ -1511,6 +1521,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
+    | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
@@ -1648,6 +1659,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/suppliers/$id'
+    | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
@@ -1666,7 +1678,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CateringRoute: typeof CateringRoute
   ContactRoute: typeof ContactRoute
-  CookingLabRoute: typeof CookingLabRoute
+  CookingLabRoute: typeof CookingLabRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   EmployeeRoute: typeof EmployeeRoute
   FamiliarFavoritesRoute: typeof FamiliarFavoritesRoute
@@ -2517,6 +2529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cooking-lab/c/$slug': {
+      id: '/cooking-lab/c/$slug'
+      path: '/c/$slug'
+      fullPath: '/cooking-lab/c/$slug'
+      preLoaderRoute: typeof CookingLabCSlugRouteImport
+      parentRoute: typeof CookingLabRoute
+    }
     '/admin/suppliers/$id': {
       id: '/admin/suppliers/$id'
       path: '/$id'
@@ -2906,6 +2925,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CookingLabRouteChildren {
+  CookingLabCSlugRoute: typeof CookingLabCSlugRoute
+}
+
+const CookingLabRouteChildren: CookingLabRouteChildren = {
+  CookingLabCSlugRoute: CookingLabCSlugRoute,
+}
+
+const CookingLabRouteWithChildren = CookingLabRoute._addFileChildren(
+  CookingLabRouteChildren,
+)
+
 interface WeddingsRouteChildren {
   WeddingsBookingTimelineRoute: typeof WeddingsBookingTimelineRoute
   WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
@@ -2932,7 +2963,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CateringRoute: CateringRoute,
   ContactRoute: ContactRoute,
-  CookingLabRoute: CookingLabRoute,
+  CookingLabRoute: CookingLabRouteWithChildren,
   DashboardRoute: DashboardRoute,
   EmployeeRoute: EmployeeRoute,
   FamiliarFavoritesRoute: FamiliarFavoritesRoute,
