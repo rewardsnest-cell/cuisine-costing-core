@@ -390,7 +390,7 @@ export function RecipeForm({
             .eq("id", recipeId);
           if (draftErr) throw draftErr;
         }
-        const { error } = await supabase.from("recipes").update(payload).eq("id", recipeId);
+        const { error } = await supabase.from("recipes").update(payload as any).eq("id", recipeId);
         if (error) throw error;
         const { error: delErr } = await supabase
           .from("recipe_ingredients")
