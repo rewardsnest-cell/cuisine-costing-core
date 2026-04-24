@@ -615,14 +615,52 @@ function CostQueuePage() {
                 </div>
 
                 {simResult.warnings.length > 0 && (
-                  <Alert>
-                    <Info className="w-4 h-4" />
+                  <Alert variant={simResult.summary.validation?.errors > 0 ? "destructive" : "default"}>
+                    {simResult.summary.validation?.errors > 0 ? <AlertTriangle className="w-4 h-4" /> : <Info className="w-4 h-4" />}
                     <AlertDescription>
                       <ul className="list-disc list-inside text-xs">
                         {simResult.warnings.map((w, i) => <li key={i}>{w}</li>)}
                       </ul>
                     </AlertDescription>
                   </Alert>
+                )}
+
+                {simResult.validation && simResult.validation.length > 0 && (
+                  <SimSection
+                    title={`Mapping issues (${simResult.summary.validation.errors} error${simResult.summary.validation.errors === 1 ? "" : "s"}, ${simResult.summary.validation.warnings_count} warning${simResult.summary.validation.warnings_count === 1 ? "" : "s"})`}
+                  >
+                    <div className="space-y-2">
+                      {simResult.validation.map((v, i) => {
+                        const tone = v.severity === "error"
+                          ? "border-destructive/40 bg-destructive/5"
+                          : v.severity === "warning"
+                            ? "border-amber-500/40 bg-amber-500/5"
+                            : "border-border bg-muted/20";
+                        const toneText = v.severity === "error"
+                          ? "text-destructive"
+                          : v.severity === "warning"
+                            ? "text-amber-700 dark:text-amber-400"
+                            : "text-muted-foreground";
+                        const Icon = v.severity === "error" ? AlertTriangle : v.severity === "warning" ? AlertTriangle : Info;
+                        return (
+                          <div key={i} className={`rounded-md border p-3 ${tone}`}>
+                            <div className="flex items-start gap-2">
+                              <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${toneText}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                  <Badge variant="outline" className={`text-[10px] uppercase ${toneText}`}>{v.severity}</Badge>
+                                  <Badge variant="outline" className="text-[10px]">{v.code.replace(/_/g, " ")}</Badge>
+                                  {v.item_name && <span className="text-xs font-medium truncate">{v.item_name}</span>}
+                                </div>
+                                <p className="text-sm">{v.message}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{v.hint}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </SimSection>
                 )}
 
                 <SimSection title="Internal estimate changes">
