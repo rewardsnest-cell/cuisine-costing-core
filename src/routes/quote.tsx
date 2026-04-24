@@ -44,7 +44,11 @@ export const Route = createFileRoute("/quote")({
 
 export function QuotePage() {
   const { user } = useAuth();
-  const { showPricing } = usePricingVisibility();
+  // Pricing is intentionally hidden on the public quote flow until the pricing
+  // module is finalized. Customers submit a request and we send a formal quote
+  // back manually. Keep the hook call so the cache primes, but ignore its value.
+  usePricingVisibility();
+  const showPricing = false;
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("style");
   const [submitted, setSubmitted] = useState(false);
