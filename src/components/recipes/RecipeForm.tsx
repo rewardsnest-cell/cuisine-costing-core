@@ -37,6 +37,15 @@ type InvItem = {
   reference_id?: string | null;
 };
 
+type RefItem = {
+  id: string;
+  canonical_name: string;
+  default_unit: string;
+  category: string | null;
+  // present when this reference is already linked to an inventory item
+  inventory_item_id?: string | null;
+};
+
 const emptyIngredient = (): IngredientRow => ({
   name: "",
   quantity: "",
