@@ -1074,11 +1074,18 @@ function EntryCard({
   const toolFieldErrors = computeToolFieldErrors(draft);
 
   return (
-    <Card>
+    <Card className={selected ? "ring-2 ring-primary/40" : undefined}>
       <CardHeader className="border-b border-border bg-muted/20">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(v) => onToggleSelected(v === true)}
+              aria-label={`Select ${draft.title || "entry"} for bulk actions`}
+              className="mt-1"
+            />
+            <div>
+              <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
             <div className="flex items-center gap-2 mt-1.5">
               <Badge variant={draft.status === "published" ? "default" : "secondary"}>
                 {draft.status}
