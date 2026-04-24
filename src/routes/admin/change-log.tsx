@@ -217,7 +217,7 @@ function ChangeLogPage() {
                         {e.archived ? (
                           <Badge variant="secondary">Archived</Badge>
                         ) : e.status === "draft" ? (
-                          <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30 hover:bg-amber-500/20">Draft</Badge>
+                          <Badge variant="secondary">Draft</Badge>
                         ) : (
                           <Badge variant="outline">Published</Badge>
                         )}
