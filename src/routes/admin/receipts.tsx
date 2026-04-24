@@ -515,17 +515,91 @@ function ReceiptsPage() {
 
       {/* Receipt list */}
       <div>
-        <h3 className="font-display text-xl font-semibold mb-4">Receipt History</h3>
-        {receipts.length === 0 ? (
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <h3 className="font-display text-xl font-semibold">Receipt History</h3>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="receipt-search" className="text-xs">Search</Label>
+              <Input
+                id="receipt-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Item, OCR text, or date (YYYY-MM-DD)"
+                className="h-9 w-[260px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="receipt-status" className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="receipt-status" className="h-9 w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All ({receipts.length})</SelectItem>
+                  <SelectItem value="pending">
+                    Pending ({receipts.filter((r) => r.status === "pending").length})
+                  </SelectItem>
+                  <SelectItem value="needs_review">
+                    Needs review ({receipts.filter((r) => r.status === "needs_review").length})
+                  </SelectItem>
+                  <SelectItem value="reviewed">
+                    Reviewed ({receipts.filter((r) => r.status === "reviewed").length})
+                  </SelectItem>
+                  <SelectItem value="processed">
+                    Processed ({receipts.filter((r) => r.status === "processed").length})
+                  </SelectItem>
+                  <SelectItem value="failed">
+                    Failed ({receipts.filter((r) => r.status === "failed").length})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(search || statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setSearch(""); setStatusFilter("all"); }}
+                className="h-9"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+        {(() => {
+          const q = search.trim().toLowerCase();
+          const visibleReceipts = receipts.filter((r) => {
+            if (statusFilter !== "all" && r.status !== statusFilter) return false;
+            if (!q) return true;
+            if (r.receipt_date && r.receipt_date.toLowerCase().includes(q)) return true;
+            if (r.raw_ocr_text && r.raw_ocr_text.toLowerCase().includes(q)) return true;
+            if (Array.isArray(r.extracted_line_items)) {
+              if (r.extracted_line_items.some((it) =>
+                (it?.item_name || "").toLowerCase().includes(q) ||
+                (it?.matched_inventory_name || "").toLowerCase().includes(q)
+              )) return true;
+            }
+            return false;
+          });
+          return (
+        receipts.length === 0 ? (
           <Card className="shadow-warm border-border/50">
             <CardContent className="p-12 text-center">
               <Receipt className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-muted-foreground">No receipts uploaded yet.</p>
             </CardContent>
           </Card>
+        ) : visibleReceipts.length === 0 ? (
+          <Card className="shadow-warm border-border/50">
+            <CardContent className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                No receipts match the current filters.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-3">
-            {receipts.map((r) => (
+            {visibleReceipts.map((r) => (
               <Card key={r.id} className="shadow-warm border-border/50 hover:shadow-gold transition-shadow">
                 <CardContent className="p-4 flex items-center gap-4">
                   {r.image_url ? (
