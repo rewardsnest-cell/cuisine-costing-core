@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
-// Public scaling rule for home-cook recipes: only 1, 5, or 10 servings.
+// Public scaling rule for home-cook recipes: 1 through 10 servings.
 // Anything beyond that funnels to /catering/quote.
-const PUBLIC_SERVING_OPTIONS = [1, 5, 10] as const;
+const PUBLIC_MIN = 1;
+const PUBLIC_MAX = 10;
 
 type Ingredient = {
   id: string;
@@ -314,39 +315,48 @@ export function RecipeScaler({
       {publicLimit ? (
         <>
           <div className="rounded-xl border border-border bg-card p-4 mb-3">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
-              <Users className="w-3 h-3" /> Cooking for
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {PUBLIC_SERVING_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setServings(opt)}
-                  className={`px-4 py-2 rounded-full text-sm border transition-colors ${
-                    servings === opt
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
-                  }`}
-                  aria-pressed={servings === opt}
-                >
-                  {opt} {opt === 1 ? "person" : "people"}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                  <Users className="w-3 h-3" /> Cooking for
+                </p>
+                <p className="text-foreground font-medium">
+                  {servings} {servings === 1 ? "person" : "people"}
+                  {servings !== authored && (
+                    <span className="text-muted-foreground font-normal text-sm ml-2">
+                      (×{factor.toFixed(2).replace(/\.?0+$/, "")})
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(PUBLIC_MIN, s - 1))} aria-label="Decrease servings">
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(PUBLIC_MAX, s + 1))} aria-label="Increase servings">
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
-            {servings !== authored && (
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Quantities scaled from the original {authored}-serving recipe (×{factor.toFixed(2).replace(/\.?0+$/, "")}).
-              </p>
-            )}
+            <Slider
+              value={[Math.min(PUBLIC_MAX, Math.max(PUBLIC_MIN, servings))]}
+              min={PUBLIC_MIN}
+              max={PUBLIC_MAX}
+              step={1}
+              onValueChange={([v]) => setServings(v)}
+            />
+            <div className="flex justify-between text-[10px] uppercase tracking-wide text-muted-foreground mt-1.5">
+              <span>{PUBLIC_MIN}</span>
+              <span>{PUBLIC_MAX}</span>
+            </div>
           </div>
           <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 mb-5">
             <p className="text-sm text-foreground font-medium mb-1">Cooking for more than 10?</p>
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              Cooking at scale is its own craft — timing, holding temperatures, and equipment all change once you go past about a dozen guests. Rather than guessing, let our team handle the planning and the cooking.
+              Once you go past about a dozen guests, cooking becomes its own craft — timing, holding temperatures, and equipment all change. Let our catering team plan the menu and handle the cooking for you.
             </p>
             <Link to="/catering/quote">
-              <Button size="sm">Let the pros handle it — get a catering quote</Button>
+              <Button size="sm">Talk to a caterer — get a quote</Button>
             </Link>
           </div>
         </>
