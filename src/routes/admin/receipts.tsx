@@ -798,9 +798,24 @@ function ReceiptsPage() {
                     </Button>
                   )}
                 </div>
-                <div className="flex justify-end gap-3 pt-2 border-t">
-                  <Button variant="outline" onClick={() => setReviewReceipt(null)}>Cancel</Button>
-                  <Button onClick={saveLineItems} className="bg-gradient-warm text-primary-foreground">Save Changes</Button>
+                <div className="flex flex-col items-end gap-2 pt-2 border-t">
+                  {Object.keys(lineItemErrors).length > 0 && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {Object.keys(lineItemErrors).length} row{Object.keys(lineItemErrors).length === 1 ? "" : "s"} need fixing before save
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems}>Cancel</Button>
+                    <Button
+                      onClick={saveLineItems}
+                      disabled={savingLineItems || Object.keys(lineItemErrors).length > 0}
+                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                    >
+                      {savingLineItems ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      {savingLineItems ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
