@@ -68,6 +68,7 @@ function HubEdit() {
             pricing_errors: Array.isArray(rec.pricing_errors) ? rec.pricing_errors : [],
             status: (rec.status as "draft" | "published") ?? "draft",
             ingredient_integrity: (rec.ingredient_integrity as "ok" | "needs_cleanup") ?? "ok",
+            inspired: !!rec.inspired,
           },
           ingredients: (ings ?? []).map((i: any) => ({
             id: i.id,
