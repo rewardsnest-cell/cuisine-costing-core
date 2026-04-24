@@ -759,7 +759,7 @@ export function RecipeForm({
                   key={idx}
                   className="grid grid-cols-12 gap-2 items-center border border-border/50 sm:border-0 rounded-md p-2 sm:p-0"
                 >
-                  <div className="col-span-12 sm:col-span-4">
+                  <div className="col-span-12 sm:col-span-4 space-y-1">
                     <InventoryPicker
                       inventory={inventory}
                       value={ing.inventory_item_id}
