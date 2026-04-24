@@ -1059,11 +1059,18 @@ function AffiliateConfigCard() {
  * (which contains inputs, buttons, dialogs, etc).
  */
 function SortableEntryCard(
-  props: Omit<React.ComponentProps<typeof EntryCard>, "dragHandleSlot">,
+  props: Omit<ComponentProps<typeof EntryCard>, "dragHandleSlot">,
 ) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: props.entry.id });
-  const style: React.CSSProperties = {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.entry.id });
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -1072,7 +1079,7 @@ function SortableEntryCard(
   const handle = (
     <button
       type="button"
-      ref={setNodeRef as any}
+      ref={setActivatorNodeRef}
       {...attributes}
       {...listeners}
       aria-label="Drag to reorder"
