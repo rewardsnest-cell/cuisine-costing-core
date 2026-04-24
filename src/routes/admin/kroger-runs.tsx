@@ -119,13 +119,29 @@ function KrogerRunsPage() {
             Trigger and monitor background Kroger price ingest runs. Refresh anytime — runs continue server-side.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={onRun} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
+          <Link to="/admin/kroger-sku-review"><Button size="sm" variant="outline" className="gap-1"><ListChecks className="w-3.5 h-3.5" />SKUs ({status?.mapped_skus ?? 0}+{status?.unmapped_skus ?? 0})</Button></Link>
+          <Link to="/admin/kroger-pricing"><Button size="sm" variant="outline" className="gap-1"><LineChartIcon className="w-3.5 h-3.5" />Price history ({status?.price_history_rows ?? 0})</Button></Link>
+          <Button size="sm" variant="outline" onClick={onRunDefault} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
-            Run ingest
+            Run 25
+          </Button>
+          <div className="flex items-center gap-1">
+            <Input
+              value={customLimit}
+              onChange={(e) => setCustomLimit(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder="N"
+              className="h-8 w-16 text-sm"
+              disabled={running || !status?.enabled || !status?.keys_configured}
+            />
+            <Button size="sm" variant="outline" onClick={onRunCustom} disabled={running || !status?.enabled || !status?.keys_configured || !customLimit}>Run N</Button>
+          </div>
+          <Button size="sm" onClick={onRunAll} disabled={running || !status?.enabled || !status?.keys_configured} className="gap-1">
+            {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+            Run all items
           </Button>
         </div>
       </div>
