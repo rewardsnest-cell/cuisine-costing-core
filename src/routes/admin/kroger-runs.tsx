@@ -269,7 +269,7 @@ function KrogerRunsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {runs.map((r) => {
+                  {filteredRuns.map((r) => {
                     const errs = (r.errors as any[]) ?? [];
                     const dur = r.started_at && r.finished_at
                       ? `${Math.max(0, Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000))}s`
@@ -290,7 +290,8 @@ function KrogerRunsPage() {
                 </TableBody>
               </Table>
             </div>
-          )}
+          );
+          })()}
         </CardContent>
       </Card>
     </div>
