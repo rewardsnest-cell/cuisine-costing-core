@@ -97,7 +97,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
       { to: "/admin/brand-assets", label: "Brand Assets", icon: ImageIcon },
       { to: "/admin/affiliates", label: "Affiliates", icon: Handshake },
-      { to: "/admin/feedback", label: "Feedback", icon: MessageSquare },
+      
       { to: "/admin/exports", label: "Exports & Reports", icon: Download },
       { to: "/admin/import-recipes", label: "Import Legacy Recipes", icon: Globe },
       { to: "/admin/scan-assets", label: "Scan Site Assets", icon: ScanLine },
