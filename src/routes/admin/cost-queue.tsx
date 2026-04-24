@@ -7,15 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, Check, X, Pencil, Info } from "lucide-react";
+import { Loader2, ShieldAlert, Check, X, Pencil, Info, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   listCostUpdateQueue,
   approveCostUpdate,
   rejectCostUpdate,
   overrideCostUpdate,
+  bulkApproveCostUpdates,
+  bulkRejectCostUpdates,
   listIngredientCosts,
 } from "@/lib/server-fns/cost-intelligence.functions";
+import { CostBreakdownPanel } from "@/components/admin/CostBreakdownPanel";
 
 export const Route = createFileRoute("/admin/cost-queue")({
   head: () => ({ meta: [{ title: "Cost Update Queue — Admin" }] }),
@@ -33,6 +38,9 @@ function CostQueuePage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [breakdownRef, setBreakdownRef] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
