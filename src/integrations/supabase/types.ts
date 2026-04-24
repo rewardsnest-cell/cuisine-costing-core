@@ -629,6 +629,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cooking_lab_collections: {
+        Row: {
+          created_at: string
+          description: string
+          display_order: number
+          hero_image_url: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+          updated_by: string | null
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          hero_image_url?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          display_order?: number
+          hero_image_url?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Relationships: []
+      }
       cooking_lab_entries: {
         Row: {
           created_at: string
@@ -697,6 +736,42 @@ export type Database = {
           visible?: boolean
         }
         Relationships: []
+      }
+      cooking_lab_entry_collections: {
+        Row: {
+          collection_id: string
+          created_at: string
+          entry_id: string
+          position: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          entry_id: string
+          position?: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          entry_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cooking_lab_entry_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "cooking_lab_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cooking_lab_entry_collections_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "cooking_lab_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cost_update_queue: {
         Row: {
