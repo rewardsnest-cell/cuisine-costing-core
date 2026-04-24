@@ -25,9 +25,16 @@ type IngredientRow = {
   cost_per_unit: string;
   notes: string;
   inventory_item_id: string | null;
+  reference_id: string | null;
 };
 
-type InvItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+type InvItem = {
+  id: string;
+  name: string;
+  unit: string;
+  average_cost_per_unit: number;
+  reference_id?: string | null;
+};
 
 const emptyIngredient = (): IngredientRow => ({
   name: "",
@@ -36,6 +43,7 @@ const emptyIngredient = (): IngredientRow => ({
   cost_per_unit: "",
   notes: "",
   inventory_item_id: null,
+  reference_id: null,
 });
 
 export type RecipeFormInitial = {
@@ -55,6 +63,8 @@ export type RecipeFormInitial = {
     allergens: string;
     pricing_status?: string | null;
     pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
+    status?: "draft" | "published";
+    ingredient_integrity?: "ok" | "needs_cleanup";
   };
   ingredients: IngredientRow[];
 };
@@ -73,6 +83,8 @@ export const blankInitial: RecipeFormInitial = {
     is_vegan: false,
     is_gluten_free: false,
     allergens: "",
+    status: "draft",
+    ingredient_integrity: "ok",
   },
   ingredients: [emptyIngredient()],
 };
