@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap, Clock, CalendarCheck, Mail } from "lucide-react";
+import { Package, ChefHat, FileText, Receipt, TrendingUp, AlertTriangle, ShoppingCart, Truck, CalendarDays, Settings, Zap, Clock, CalendarCheck, Mail, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CostHealthWidget } from "@/components/admin/CostHealthWidget";
@@ -13,12 +13,52 @@ import { PriceAlertsBanner } from "@/components/admin/PriceAlertsBanner";
 import { MarginVolatilityChart } from "@/components/admin/MarginVolatilityChart";
 import { PricingHealthWidget } from "@/components/admin/PricingHealthWidget";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
+import { NAV_GROUPS } from "@/routes/admin";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminDashboard,
 });
+
+// Round-2 governance: surfaces the same 6-group hierarchy as the sidebar so
+// admins can navigate from a categorized landing page.
+function AdminCategoryGrid() {
+  // Skip the "Overview" group on the dashboard — it would link back to itself.
+  const groups = NAV_GROUPS.filter((g) => g.label !== "Overview");
+  return (
+    <Card className="shadow-warm border-border/50">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <LayoutGrid className="w-4 h-4 text-primary" />
+          <h3 className="font-display text-lg font-semibold">All Admin Sections</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {groups.map((group) => (
+            <div key={group.label} className="rounded-lg border border-border/60 bg-card/40 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                {group.label}
+              </p>
+              <ul className="space-y-1">
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-foreground/80 hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      <item.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function SettingsCard() {
   const [days, setDays] = useState<number>(7);
@@ -281,6 +321,8 @@ function AdminDashboard() {
           )}
         </CardContent>
       </Card>
+
+      <AdminCategoryGrid />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-warm border-border/50">

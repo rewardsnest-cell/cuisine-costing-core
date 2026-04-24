@@ -23,7 +23,9 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any; exact?: boolean }[] }[] = [
+// Round-2 governance: 6-group consolidated admin nav.
+// Every previously listed admin route is preserved — only grouping changed.
+export const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any; exact?: boolean }[] }[] = [
   {
     label: "Overview",
     items: [
@@ -32,77 +34,26 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     ],
   },
   {
-    label: "Pricing Intelligence",
+    label: "Core Systems",
     items: [
-      { to: "/admin/national-prices", label: "Pricing Intelligence", icon: Globe2 },
-      { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
-      { to: "/admin/kroger-runs", label: "Kroger Runs", icon: Activity },
-      { to: "/admin/kroger-sku-review", label: "Kroger SKU Review", icon: ClipboardCheck },
       { to: "/admin/items", label: "Items & Cost Intelligence", icon: Package },
-      { to: "/admin/cost-queue", label: "Cost Update Queue", icon: ClipboardCheck },
-      { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
-      { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
-      { to: "/admin/competitor-trends", label: "Competitor Trends", icon: TrendingUp },
-      { to: "/admin/competitor-quotes", label: "Competitor Quotes", icon: FileSearch },
-      { to: "/admin/competitors", label: "Competitors", icon: Building2 },
-      { to: "/admin/quick-quote", label: "Quick Quote", icon: Zap },
-      { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
-      { to: "/admin/pricing-visibility", label: "Pricing Visibility", icon: EyeOff },
-      { to: "/admin/pricing-test", label: "Pricing Test", icon: FlaskConical },
       { to: "/admin/pricing-lab", label: "Pricing Lab", icon: FlaskConical },
-    ],
-  },
-  {
-    label: "Review",
-    items: [
-      { to: "/admin/review-inbox", label: "Review Inbox", icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: "Recipes & Menu",
-    items: [
-      { to: "/admin/recipe-hub", label: "Recipe Hub", icon: ChefHat },
+      { to: "/admin/pricing-test", label: "Pricing Test", icon: FlaskConical },
       { to: "/admin/menu", label: "Public Menu", icon: UtensilsCrossed },
       { to: "/admin/menu-modules", label: "Menu Modules", icon: UtensilsCrossed },
-      { to: "/admin/generate-recipe-photos", label: "Generate Photos", icon: Sparkles },
-      { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
-      { to: "/admin/inspired-preview", label: "Inspired Preview", icon: Sparkles },
+      { to: "/admin/recipe-hub", label: "Recipe Hub", icon: ChefHat },
+      { to: "/admin/quick-quote", label: "Quick Quote", icon: Zap },
+      { to: "/admin/quotes", label: "Saved Quotes", icon: FileText },
+      { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
     ],
   },
   {
     label: "Content",
     items: [
+      { to: "/admin/recipes", label: "Recipes", icon: ChefHat },
+      { to: "/admin/inspired-preview", label: "Inspired Preview", icon: Sparkles },
       { to: "/admin/guides", label: "Cooking Guides", icon: NotebookPen },
-    ],
-  },
-  {
-    label: "Ingredients",
-    items: [
-      { to: "/admin/ingredient-reference", label: "Ingredient Reference", icon: BookOpen },
-    ],
-  },
-  {
-    label: "Inventory & Sourcing",
-    items: [
-      { to: "/admin/inventory", label: "Inventory", icon: Package },
-      { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
-      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
-      { to: "/admin/receipts", label: "Receipts", icon: Receipt },
-      { to: "/admin/receipts/review-matches", label: "Receipt Match Review", icon: ClipboardCheck },
-      { to: "/admin/uploads", label: "Uploads Inbox", icon: Inbox },
-      { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
-      { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },
-    ],
-  },
-  {
-    label: "Events & People",
-    items: [
-      { to: "/admin/events", label: "Events", icon: CalendarDays },
-      { to: "/admin/schedule", label: "Schedule", icon: Calendar },
-      { to: "/admin/timesheet", label: "Timesheet", icon: Clock },
-      { to: "/admin/employees", label: "Employees", icon: UserCog },
-      { to: "/admin/users", label: "Users", icon: Users },
-      { to: "/admin/access", label: "Access Control", icon: ShieldCheck },
+      { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
     ],
   },
   {
@@ -111,22 +62,63 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/visibility", label: "Visibility & Phases", icon: Globe2 },
       { to: "/admin/audit", label: "Audit Log", icon: Shield },
       { to: "/admin/change-log", label: "Change Log", icon: NotebookPen },
+      { to: "/admin/access", label: "Access Control", icon: ShieldCheck },
+      { to: "/admin/pricing-visibility", label: "Pricing Visibility", icon: EyeOff },
     ],
   },
   {
-    label: "System",
+    label: "Intelligence & Diagnostics",
     items: [
+      { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
+      { to: "/admin/kroger-runs", label: "Kroger Runs", icon: Activity },
+      { to: "/admin/kroger-sku-review", label: "Kroger SKU Review", icon: ClipboardCheck },
+      { to: "/admin/national-prices", label: "National Prices", icon: Globe2 },
+      { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
+      { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
+      { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
+      { to: "/admin/competitor-trends", label: "Competitor Trends", icon: TrendingUp },
+      { to: "/admin/competitor-quotes", label: "Competitor Quotes", icon: FileSearch },
+      { to: "/admin/competitors", label: "Competitors", icon: Building2 },
+      { to: "/admin/cost-queue", label: "Cost Update Queue", icon: ClipboardCheck },
+      { to: "/admin/review-inbox", label: "Review Inbox", icon: ClipboardCheck },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { to: "/admin/inventory", label: "Inventory", icon: Package },
+      { to: "/admin/receipts", label: "Receipts", icon: Receipt },
+      { to: "/admin/receipts/review-matches", label: "Receipt Match Review", icon: ClipboardCheck },
+      { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
+      { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
+      { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },
+      { to: "/admin/employees", label: "Employees", icon: UserCog },
+      { to: "/admin/users", label: "Users", icon: Users },
+      { to: "/admin/schedule", label: "Scheduling", icon: Calendar },
+      { to: "/admin/timesheet", label: "Timesheets", icon: Clock },
+      { to: "/admin/events", label: "Events", icon: CalendarDays },
+    ],
+  },
+  {
+    label: "Utilities & Tools",
+    items: [
+      { to: "/admin/import-recipes", label: "Import Legacy Recipes", icon: Globe },
+      { to: "/admin/uploads", label: "Uploads Inbox", icon: Inbox },
+      { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
+      { to: "/admin/scan-assets", label: "Scan Site Assets", icon: ScanLine },
+      { to: "/admin/generate-recipe-photos", label: "Photo Generation", icon: Sparkles },
+      { to: "/admin/exports", label: "Exports & Reports", icon: Download },
       { to: "/admin/integrations", label: "API Integrations", icon: Plug },
       { to: "/admin/brand-config", label: "Brand Config", icon: Palette },
       { to: "/admin/brand-colors", label: "Brand Colors", icon: Palette },
       { to: "/admin/brand-assets", label: "Brand Assets", icon: ImageIcon },
       { to: "/admin/affiliates", label: "Affiliates", icon: Handshake },
-      
-      { to: "/admin/exports", label: "Exports & Reports", icon: Download },
-      { to: "/admin/import-recipes", label: "Import Legacy Recipes", icon: Globe },
-      { to: "/admin/scan-assets", label: "Scan Site Assets", icon: ScanLine },
       { to: "/admin/asset-debug", label: "Asset Debug", icon: FileSearch },
-      { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
+      { to: "/admin/feedback", label: "Feedback", icon: MessageSquare },
+      { to: "/admin/synonyms", label: "Ingredient Synonyms", icon: BookOpen },
+      { to: "/admin/auto-link-ingredients", label: "Auto-link Ingredients", icon: ClipboardCheck },
+      { to: "/admin/ingredients/review-unlinked", label: "Unlinked Ingredients", icon: ClipboardCheck },
+      { to: "/admin/servings-review", label: "Servings Review", icon: ClipboardCheck },
       { to: "/admin/set-password", label: "Set Password", icon: KeyRound },
     ],
   },
