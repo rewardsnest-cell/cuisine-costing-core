@@ -190,7 +190,16 @@ function ReceiptsPage() {
     const inv = inventoryItems.find((i) => i.id === inventoryId);
     setEditedLineItems((prev) =>
       prev.map((item, i) =>
-        i === idx ? { ...item, matched_inventory_id: inventoryId, matched_inventory_name: inv?.name || null } : item
+        i === idx
+          ? {
+              ...item,
+              matched_inventory_id: inventoryId,
+              matched_inventory_name: inv?.name || null,
+              needs_review: false,
+              review_reason: null,
+              match_source: item.match_source ?? "manual",
+            }
+          : item,
       )
     );
   };
