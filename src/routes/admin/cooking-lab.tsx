@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CookingLabSection, CookingLabPageBody, type CookingLabEntry as PublicCookingLabEntry } from "@/routes/cooking-lab";
-import { withAmazonAffiliateTag, isTaggableAmazonUrl, autoFixAmazonUrl } from "@/lib/amazon-affiliate";
+import { withAmazonAffiliateTag, isTaggableAmazonUrl, autoFixAmazonUrl, extractAmazonAsin } from "@/lib/amazon-affiliate";
 import {
   FlaskConical,
   Plus,
@@ -359,33 +359,52 @@ function AmazonUrlInput({
   const trimmed = value.trim();
   const preview = trimmed ? autoFixAmazonUrl(trimmed) : null;
   const canFix = !!preview && preview.changed;
+  const asin = extractAmazonAsin(trimmed);
 
   return (
-    <div className="flex gap-2">
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="https://www.amazon.com/dp/ASIN"
-        className="flex-1"
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={!canFix}
-        title={preview ? preview.reason : "Paste an Amazon URL to enable auto-fix"}
-        onClick={() => {
-          if (!preview) return;
-          if (preview.changed) {
-            onChange(preview.url);
-            toast.success("URL auto-fixed", { description: preview.reason });
-          } else {
-            toast.info("Nothing to fix", { description: preview.reason });
-          }
-        }}
-      >
-        Auto-fix
-      </Button>
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://www.amazon.com/dp/ASIN"
+          className="flex-1"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!canFix}
+          title={preview ? preview.reason : "Paste an Amazon URL to enable auto-fix"}
+          onClick={() => {
+            if (!preview) return;
+            if (preview.changed) {
+              onChange(preview.url);
+              toast.success("URL auto-fixed", { description: preview.reason });
+            } else {
+              toast.info("Nothing to fix", { description: preview.reason });
+            }
+          }}
+        >
+          Auto-fix
+        </Button>
+      </div>
+      {asin && (
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard.writeText(asin).then(
+              () => toast.success(`ASIN ${asin} copied`),
+              () => toast.error("Could not copy ASIN"),
+            );
+          }}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 hover:bg-muted px-2 py-0.5 text-[11px] font-mono text-foreground transition-colors"
+          title="Click to copy ASIN to clipboard"
+        >
+          ASIN: <span className="font-semibold">{asin}</span>
+          <Copy className="w-3 h-3 text-muted-foreground" />
+        </button>
+      )}
     </div>
   );
 }

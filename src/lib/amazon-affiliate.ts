@@ -66,6 +66,37 @@ export function withAmazonAffiliateTag(
 }
 
 /**
+ * Extracts the 10-character Amazon ASIN from any Amazon URL shape we know
+ * about (path-based: /dp/, /gp/product/, /gp/aw/d/, /exec/obidos/ASIN/, /o/;
+ * query-based: ?asin=). Returns null when no ASIN can be located. Pure string
+ * parsing — no network calls, safe to call on every render.
+ */
+export function extractAmazonAsin(rawUrl: string | null | undefined): string | null {
+  const input = (rawUrl ?? "").trim();
+  if (!input) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    try {
+      parsed = new URL("https://" + input);
+    } catch {
+      return null;
+    }
+  }
+  const pathMatch = parsed.pathname.match(
+    /\/(?:dp|gp\/product|gp\/aw\/d|product|exec\/obidos\/(?:asin|ASIN)|o|dp\/product)\/([A-Z0-9]{10})/i,
+  );
+  if (pathMatch) return pathMatch[1].toUpperCase();
+  const qAsin = parsed.searchParams.get("asin") ?? parsed.searchParams.get("ASIN");
+  if (qAsin && /^[A-Z0-9]{10}$/i.test(qAsin)) return qAsin.toUpperCase();
+  const anyMatch = (parsed.pathname + " " + parsed.search).match(
+    /(?:^|[/?&=#-])([A-Z0-9]{10})(?=[/?&#]|$)/i,
+  );
+  return anyMatch ? anyMatch[1].toUpperCase() : null;
+}
+
+/**
  * Result of attempting to normalize a pasted Amazon URL into a clean
  * `https://www.amazon.com/dp/ASIN` form. `changed` is true when we actually
  * rewrote something; `reason` explains what happened (for toast feedback).
