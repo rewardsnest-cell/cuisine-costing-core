@@ -420,6 +420,7 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
               />
             </Field>
           </div>
+          <LinkChecksPanel checks={linkChecks} />
         </Section>
 
         {/* E. Status & Order */}
@@ -485,10 +486,20 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
           </div>
         </Section>
 
-        <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-          {publishBlocked && (
+        <div className="flex items-center justify-end gap-3 pt-2 border-t border-border flex-wrap">
+          {publishBlocked && !qaAllPassed && (
             <span className="text-xs text-destructive">
               Complete all QA items to publish ({qaPassedCount}/5)
+            </span>
+          )}
+          {publishBlocked && qaAllPassed && !linksAllPassed && (
+            <span className="text-xs text-destructive">
+              Fix link errors above to publish
+            </span>
+          )}
+          {!publishBlocked && linksHaveErrors && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              Link warnings present
             </span>
           )}
           {dirty && !publishBlocked && (
