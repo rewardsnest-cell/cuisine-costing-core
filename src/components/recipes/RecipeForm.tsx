@@ -813,6 +813,21 @@ export function RecipeForm({
               Gluten-Free
             </label>
           </div>
+          <div className="flex items-start gap-3 pt-2 border-t border-border/40 mt-2">
+            <Switch
+              id="inspired-toggle"
+              checked={!!form.inspired}
+              onCheckedChange={(v) => setForm({ ...form, inspired: v })}
+            />
+            <div className="text-sm">
+              <label htmlFor="inspired-toggle" className="font-medium block">
+                Show in "Inspired / Familiar Favorites"
+              </label>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md leading-relaxed">
+                Surfaces this recipe on the public Inspired section. Only allowed for home-cooking (home_public scope) recipes — the database will reject this for catering recipes.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
