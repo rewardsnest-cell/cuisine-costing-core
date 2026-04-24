@@ -132,6 +132,30 @@ function KrogerRunsPage() {
     triggerIngest(lim);
   };
 
+  const onRunTest = async () => {
+    const n = parseInt(testLimit, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 25) { toast.error("Test limit must be 1–25"); return; }
+    const loc = testLocation.trim();
+    if (loc && !/^[A-Za-z0-9-]{1,32}$/.test(loc)) { toast.error("Invalid locationId format"); return; }
+    setTestRunning(true);
+    setTestResult(null);
+    try {
+      const res = await testIngestKrogerPrices({ data: { limit: n, location_id: loc.length > 0 ? loc : null } });
+      setTestResult(res);
+      if (res.ran) {
+        const matched = res.summary.items_matched;
+        toast.success(`Test complete: ${matched}/${res.summary.items_queried} matched, ${res.summary.price_rows_written} price rows`);
+        await load();
+      } else {
+        toast.error(res.message || "Test ingest skipped");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Test ingest failed");
+    } finally {
+      setTestRunning(false);
+    }
+  };
+
   const latest = runs[0] ?? null;
   const latestErrors = (latest?.errors as ErrorDetail[] | null) ?? [];
 
