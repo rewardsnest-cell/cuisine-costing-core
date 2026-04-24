@@ -220,25 +220,43 @@ function AdminLayout() {
             </button>
           </div>
           <nav className="flex-1 py-4 px-3 overflow-y-auto">
-            {NAV_GROUPS.map((group) => (
-              <div key={group.label} className="mb-4 last:mb-0">
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-                  {group.label}
-                </p>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const active = isActive(item.to, item.exact);
-                    return (
-                      <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
-                        <item.icon className="w-4.5 h-4.5" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+            {visibleGroups.map((group) => {
+              const collapsed = collapsedGroups[group.label] ?? false;
+              return (
+                <div key={group.label} className="mb-4 last:mb-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.label)}
+                    className="w-full flex items-center justify-between px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground/70 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {group.label}
+                      {group.internal && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/15 text-amber-500 px-1 py-0.5 text-[9px] font-bold">
+                          <Lock className="w-2.5 h-2.5" /> INTERNAL
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-sidebar-foreground/30 text-[10px]">{collapsed ? "+" : "−"}</span>
+                  </button>
+                  {!collapsed && (
+                    <div className="space-y-1">
+                      {group.items.map((item) => {
+                        const active = isActive(item.to, item.exact);
+                        return (
+                          <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
+                            <item.icon className="w-4.5 h-4.5" />
+                            <span className="flex-1 truncate">{item.label}</span>
+                            {item.internal && <Lock className="w-3 h-3 text-amber-500/70" />}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
           <div className="p-3 border-t border-sidebar-border space-y-1">
             <div className="px-3 py-1.5 text-xs text-sidebar-foreground/50 truncate">{user.email}</div>
