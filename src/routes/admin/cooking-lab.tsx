@@ -184,6 +184,50 @@ function validateAmazonLink(args: {
   return { id, label, status: "ok", message: `Valid Amazon link · ASIN ${asinMatch[1].toUpperCase()}` };
 }
 
+/**
+ * Returns inline, publish-blocking errors per individual tool field.
+ * - Primary name + URL: both required.
+ * - Secondary: optional, but if either side is filled the OTHER side becomes required.
+ * - Any malformed URL (per validateAmazonLink) bubbles to the URL field only.
+ */
+function computeToolFieldErrors(entry: CookingLabEntry): {
+  primary_tool_name: string | null;
+  primary_tool_url: string | null;
+  secondary_tool_name: string | null;
+  secondary_tool_url: string | null;
+} {
+  const pName = (entry.primary_tool_name ?? "").trim();
+  const pUrl = (entry.primary_tool_url ?? "").trim();
+  const sName = (entry.secondary_tool_name ?? "").trim();
+  const sUrl = (entry.secondary_tool_url ?? "").trim();
+
+  const errors = {
+    primary_tool_name: null as string | null,
+    primary_tool_url: null as string | null,
+    secondary_tool_name: null as string | null,
+    secondary_tool_url: null as string | null,
+  };
+
+  // Primary — required pair
+  if (!pName) errors.primary_tool_name = "Required — add the tool name shown to readers.";
+  if (!pUrl) {
+    errors.primary_tool_url = "Required — paste the full Amazon product URL.";
+  } else {
+    const check = validateAmazonLink({ id: "primary", label: "Primary", name: pName || "x", url: pUrl, required: true });
+    if (check.status === "error") errors.primary_tool_url = check.message;
+  }
+
+  // Secondary — pair-required only if one side is filled
+  if (sName && !sUrl) errors.secondary_tool_url = "Required — name is set, add the Amazon URL too.";
+  if (!sName && sUrl) errors.secondary_tool_name = "Required — URL is set, add the tool name too.";
+  if (sUrl) {
+    const check = validateAmazonLink({ id: "secondary", label: "Secondary", name: sName || "x", url: sUrl, required: false });
+    if (check.status === "error") errors.secondary_tool_url = check.message;
+  }
+
+  return errors;
+}
+
 function LinkChecksPanel({ checks }: { checks: LinkCheck[] }) {
   const errorCount = checks.filter((c) => c.status === "error").length;
   const warnCount = checks.filter((c) => c.status === "warning").length;
@@ -779,6 +823,10 @@ function EntryCard({
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  // Per-field publish-blocking errors for the Tools section.
+  // Mirrors validateAmazonLink so the Field-level error and the LinkChecksPanel agree.
+  const toolFieldErrors = computeToolFieldErrors(draft);
+
   return (
     <Card>
       <CardHeader className="border-b border-border bg-muted/20">
@@ -910,26 +958,26 @@ function EntryCard({
         {/* D. Tools */}
         <Section label="D. Tools & Affiliate Links" hint="Use full Amazon URLs only (no shorteners).">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Primary Tool Name">
+            <Field label="Primary Tool Name" error={toolFieldErrors.primary_tool_name}>
               <Input
                 value={draft.primary_tool_name ?? ""}
                 onChange={(e) => update("primary_tool_name", e.target.value)}
               />
             </Field>
-            <Field label="Primary Amazon Link">
+            <Field label="Primary Amazon Link" error={toolFieldErrors.primary_tool_url}>
               <Input
                 value={draft.primary_tool_url ?? ""}
                 onChange={(e) => update("primary_tool_url", e.target.value)}
                 placeholder="https://www.amazon.com/..."
               />
             </Field>
-            <Field label="Secondary Tool Name">
+            <Field label="Secondary Tool Name" error={toolFieldErrors.secondary_tool_name}>
               <Input
                 value={draft.secondary_tool_name ?? ""}
                 onChange={(e) => update("secondary_tool_name", e.target.value)}
               />
             </Field>
-            <Field label="Secondary Amazon Link">
+            <Field label="Secondary Amazon Link" error={toolFieldErrors.secondary_tool_url}>
               <Input
                 value={draft.secondary_tool_url ?? ""}
                 onChange={(e) => update("secondary_tool_url", e.target.value)}
@@ -1054,12 +1102,38 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  error,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** Inline error text. When set, the wrapped <Input /> gets a red ring via [data-field-error] CSS targeting. */
+  error?: string | null;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
-      {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    <div className="space-y-1.5" data-field-error={error ? "true" : undefined}>
+      <Label className={`text-sm ${error ? "text-destructive" : ""}`}>{label}</Label>
+      <div
+        className={
+          error
+            ? "[&_input]:border-destructive [&_input]:ring-1 [&_input]:ring-destructive/40 [&_input]:focus-visible:ring-destructive"
+            : ""
+        }
+      >
+        {children}
+      </div>
+      {error ? (
+        <p className="text-xs text-destructive flex items-start gap-1">
+          <XCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </p>
+      ) : (
+        hint && <p className="text-xs text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }
