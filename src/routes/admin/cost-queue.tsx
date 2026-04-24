@@ -289,13 +289,144 @@ function CostQueuePage() {
         <TabsContent value="items">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Item cost intelligence</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base">Item cost intelligence</CardTitle>
+                <div className="ml-auto flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onRecomputeVerify}
+                    disabled={verifyBusy}
+                    className="gap-1"
+                    title="Recalculate internal_estimated_unit_cost from weighted inputs and flag missing sources or abnormal deltas (read-only)."
+                  >
+                    {verifyBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Recompute & verify
+                  </Button>
+                </div>
+              </div>
               <div className="flex gap-2 pt-2">
                 <Input placeholder="Search items…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
                 <Button variant="outline" onClick={load}>Search</Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {verifyResult && (
+                <Card className="border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        Verification report
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-1.5 text-xs">
+                        <Badge variant="outline">{verifyResult.summary.checked} checked</Badge>
+                        <Badge variant={verifyResult.summary.abnormal > 0 ? "destructive" : "outline"}>
+                          {verifyResult.summary.abnormal} abnormal Δ (&gt; {Math.round(verifyResult.summary.delta_threshold_pct * 100)}%)
+                        </Badge>
+                        <Badge variant={verifyResult.summary.no_sources > 0 ? "destructive" : "outline"}>
+                          {verifyResult.summary.no_sources} no sources
+                        </Badge>
+                        <Badge variant="secondary">missing K {verifyResult.summary.missing_kroger}</Badge>
+                        <Badge variant="secondary">missing M {verifyResult.summary.missing_manual}</Badge>
+                        <Badge variant="secondary">missing H {verifyResult.summary.missing_historical}</Badge>
+                      </div>
+                      <div className="ml-auto flex items-center gap-2">
+                        <label className="text-xs flex items-center gap-1.5">
+                          <Checkbox checked={verifyOnlyFlagged} onCheckedChange={(v) => setVerifyOnlyFlagged(v === true)} />
+                          Only show flagged
+                        </label>
+                        <Button size="sm" variant="ghost" onClick={() => setVerifyResult(null)} className="gap-1">
+                          <X className="w-3.5 h-3.5" />
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const flagged = verifyResult.rows.filter(
+                        (r) => r.abnormal || r.no_sources || r.missing_sources.length > 0,
+                      );
+                      const display = verifyOnlyFlagged ? flagged : verifyResult.rows;
+                      if (display.length === 0) {
+                        return (
+                          <p className="text-sm text-muted-foreground">
+                            No items to show. {verifyOnlyFlagged ? "Toggle off the filter to see all checked rows." : ""}
+                          </p>
+                        );
+                      }
+                      return (
+                        <div className="overflow-x-auto max-h-[420px]">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Item</TableHead>
+                                <TableHead>Stored</TableHead>
+                                <TableHead>Computed</TableHead>
+                                <TableHead>Δ</TableHead>
+                                <TableHead>Missing sources</TableHead>
+                                <TableHead className="text-right">View</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {display.slice(0, 200).map((r) => {
+                                const dPct = r.delta_pct == null ? null : r.delta_pct * 100;
+                                return (
+                                  <TableRow key={r.reference_id}>
+                                    <TableCell className="font-medium">
+                                      {r.canonical_name}{" "}
+                                      <span className="text-xs text-muted-foreground">/ {r.default_unit}</span>
+                                    </TableCell>
+                                    <TableCell>{r.stored_estimate == null ? "—" : `$${r.stored_estimate.toFixed(4)}`}</TableCell>
+                                    <TableCell>{r.computed_estimate == null ? "—" : `$${r.computed_estimate.toFixed(4)}`}</TableCell>
+                                    <TableCell>
+                                      {dPct == null ? (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                      ) : (
+                                        <Badge variant={r.abnormal ? "destructive" : "outline"}>
+                                          {dPct >= 0 ? "+" : ""}
+                                          {dPct.toFixed(2)}%
+                                        </Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                      {r.no_sources ? (
+                                        <Badge variant="destructive">no sources</Badge>
+                                      ) : r.missing_sources.length === 0 ? (
+                                        <span className="text-muted-foreground">—</span>
+                                      ) : (
+                                        <span className="space-x-1">
+                                          {r.missing_sources.map((m) => (
+                                            <Badge key={m} variant="secondary" className="text-[10px]">
+                                              {m.replace("missing_", "")}
+                                            </Badge>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.reference_id)} className="gap-1">
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                          {display.length > 200 && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Showing first 200 of {display.length} flagged rows.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
+
               {loading ? <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div> : (
                 <div className="overflow-x-auto">
                   <Table>
