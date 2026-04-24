@@ -68,6 +68,8 @@ const SimulateSchema = z
 
 const BreakdownSchema = z.object({ reference_id: z.string().uuid() }).strict();
 
+const TimelineSchema = z.object({ queue_id: z.string().uuid() }).strict();
+
 const RecomputeSchema = z
   .object({
     reference_ids: z.array(z.string().uuid()).max(2000).optional(),
@@ -989,5 +991,173 @@ export const simulateApplyCostUpdates = createServerFn({ method: "POST" })
       recipes,
       quotes,
       warnings,
+    };
+  });
+
+// ---------- Cost queue timeline ----------
+//
+// Returns a chronological list of status transitions for a single queue row.
+// Combines the queue row's own lifecycle (created / reviewed) with matching
+// access_audit_log events (approve / reject / override / bulk variants), and
+// resolves the approving admin's email by joining auth user records.
+
+export type CostQueueTimelineEvent = {
+  at: string;
+  kind:
+    | "created"
+    | "approved"
+    | "rejected"
+    | "overridden"
+    | "bulk_approved"
+    | "bulk_rejected"
+    | "bulk_approve_failed"
+    | "bulk_reject_failed"
+    | "reviewed"
+    | "other";
+  label: string;
+  actor_email: string | null;
+  actor_user_id: string | null;
+  notes: string | null;
+  details: Record<string, any>;
+};
+
+const AUDIT_KIND_MAP: Record<string, CostQueueTimelineEvent["kind"]> = {
+  cost_update_approved: "approved",
+  cost_update_rejected: "rejected",
+  cost_update_overridden: "overridden",
+  cost_update_bulk_approved: "bulk_approved",
+  cost_update_bulk_rejected: "bulk_rejected",
+  cost_update_bulk_approve_failed: "bulk_approve_failed",
+  cost_update_bulk_reject_failed: "bulk_reject_failed",
+};
+
+const KIND_LABELS: Record<CostQueueTimelineEvent["kind"], string> = {
+  created: "Queued for review",
+  approved: "Approved & applied",
+  rejected: "Rejected",
+  overridden: "Manual override applied",
+  bulk_approved: "Bulk approved",
+  bulk_rejected: "Bulk rejected",
+  bulk_approve_failed: "Bulk approve failed",
+  bulk_reject_failed: "Bulk reject failed",
+  reviewed: "Status finalised",
+  other: "Event",
+};
+
+export const getCostQueueTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => TimelineSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    // 1. Load the queue row (current state + linked item)
+    const { data: row, error: rErr } = await supabaseAdmin
+      .from("cost_update_queue")
+      .select(
+        "id,reference_id,source,current_cost,proposed_cost,percent_change,status,reviewed_by,reviewed_at,review_notes,final_applied_cost,created_at,ingredient_reference(canonical_name,default_unit)",
+      )
+      .eq("id", data.queue_id)
+      .maybeSingle();
+    if (rErr) throw new Error(rErr.message);
+    if (!row) throw new Error("Queue row not found");
+
+    // 2. Load matching audit events for this queue row
+    const { data: auditRows, error: aErr } = await supabaseAdmin
+      .from("access_audit_log")
+      .select("id,action,actor_user_id,actor_email,details,created_at")
+      .in("action", Object.keys(AUDIT_KIND_MAP))
+      .filter("details->>queue_id", "eq", data.queue_id)
+      .order("created_at", { ascending: true });
+    if (aErr) throw new Error(aErr.message);
+
+    // 3. Resolve any actor user ids missing email via auth admin lookup
+    const events: CostQueueTimelineEvent[] = [];
+
+    events.push({
+      at: row.created_at,
+      kind: "created",
+      label: KIND_LABELS.created,
+      actor_email: null,
+      actor_user_id: null,
+      notes: null,
+      details: {
+        source: row.source,
+        current_cost: row.current_cost,
+        proposed_cost: row.proposed_cost,
+        percent_change: row.percent_change,
+      },
+    });
+
+    const seenIds = new Set<string>();
+    for (const a of auditRows ?? []) {
+      seenIds.add(a.id);
+      const kind = AUDIT_KIND_MAP[a.action] ?? "other";
+      const det = (a.details as Record<string, any>) ?? {};
+      events.push({
+        at: a.created_at,
+        kind,
+        label: KIND_LABELS[kind],
+        actor_email: a.actor_email ?? null,
+        actor_user_id: a.actor_user_id ?? null,
+        notes: typeof det.notes === "string" ? det.notes : null,
+        details: det,
+      });
+    }
+
+    // If the queue row was reviewed but no matching audit row exists (legacy data),
+    // synthesise a "reviewed" event so the timeline still shows finalisation.
+    const hasTerminal = events.some((e) =>
+      ["approved", "rejected", "overridden"].includes(e.kind),
+    );
+    if (!hasTerminal && row.reviewed_at) {
+      events.push({
+        at: row.reviewed_at,
+        kind: "reviewed",
+        label: `${KIND_LABELS.reviewed} (${row.status})`,
+        actor_email: null,
+        actor_user_id: row.reviewed_by ?? null,
+        notes: row.review_notes ?? null,
+        details: { status: row.status, final_applied_cost: row.final_applied_cost },
+      });
+    }
+
+    // Resolve missing actor_email values via auth admin (best-effort)
+    const missingActorIds = Array.from(
+      new Set(events.filter((e) => !e.actor_email && e.actor_user_id).map((e) => e.actor_user_id!)),
+    );
+    if (missingActorIds.length > 0) {
+      const emailMap = new Map<string, string>();
+      for (const uid of missingActorIds) {
+        try {
+          const { data: u } = await (supabaseAdmin as any).auth.admin.getUserById(uid);
+          const email = u?.user?.email ?? null;
+          if (email) emailMap.set(uid, email);
+        } catch {
+          // ignore — email lookup is best-effort
+        }
+      }
+      for (const e of events) {
+        if (!e.actor_email && e.actor_user_id && emailMap.has(e.actor_user_id)) {
+          e.actor_email = emailMap.get(e.actor_user_id) ?? null;
+        }
+      }
+    }
+
+    events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    return {
+      queue_id: data.queue_id,
+      item_name: (row as any).ingredient_reference?.canonical_name ?? null,
+      default_unit: (row as any).ingredient_reference?.default_unit ?? null,
+      status: row.status,
+      source: row.source,
+      current_cost: row.current_cost,
+      proposed_cost: row.proposed_cost,
+      final_applied_cost: row.final_applied_cost,
+      percent_change: row.percent_change,
+      reviewed_at: row.reviewed_at,
+      reviewed_by_email:
+        events.find((e) => ["approved", "rejected", "overridden"].includes(e.kind))?.actor_email ?? null,
+      events,
     };
   });
