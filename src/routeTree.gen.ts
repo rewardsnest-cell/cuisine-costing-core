@@ -46,6 +46,7 @@ import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.b
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as QuoteStartRouteImport } from './routes/quote.start'
+import { Route as QReferenceRouteImport } from './routes/q.$reference'
 import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
@@ -334,6 +335,11 @@ const QuoteStartRoute = QuoteStartRouteImport.update({
   id: '/start',
   path: '/start',
   getParentRoute: () => QuoteRoute,
+} as any)
+const QReferenceRoute = QReferenceRouteImport.update({
+  id: '/q/$reference',
+  path: '/q/$reference',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InspiredIdRoute = InspiredIdRouteImport.update({
   id: '/inspired_/$id',
@@ -960,6 +966,7 @@ export interface FileRoutesByFullPath {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
+  '/q/$reference': typeof QReferenceRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -1098,6 +1105,7 @@ export interface FileRoutesByTo {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
+  '/q/$reference': typeof QReferenceRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -1239,6 +1247,7 @@ export interface FileRoutesById {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired_/$id': typeof InspiredIdRoute
+  '/q/$reference': typeof QReferenceRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
@@ -1381,6 +1390,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
+    | '/q/$reference'
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
@@ -1519,6 +1529,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
+    | '/q/$reference'
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
@@ -1659,6 +1670,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired_/$id'
+    | '/q/$reference'
     | '/quote/start'
     | '/quote_/ai'
     | '/recipes_/$id'
@@ -1739,6 +1751,7 @@ export interface RootRouteChildren {
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   HooksRecipeDripRoute: typeof HooksRecipeDripRoute
   InspiredIdRoute: typeof InspiredIdRoute
+  QReferenceRoute: typeof QReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
   RecipesIdRoute: typeof RecipesIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -2013,6 +2026,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/quote/start'
       preLoaderRoute: typeof QuoteStartRouteImport
       parentRoute: typeof QuoteRoute
+    }
+    '/q/$reference': {
+      id: '/q/$reference'
+      path: '/q/$reference'
+      fullPath: '/q/$reference'
+      preLoaderRoute: typeof QReferenceRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/inspired_/$id': {
       id: '/inspired_/$id'
@@ -3050,6 +3070,7 @@ const rootRouteChildren: RootRouteChildren = {
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   HooksRecipeDripRoute: HooksRecipeDripRoute,
   InspiredIdRoute: InspiredIdRoute,
+  QReferenceRoute: QReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
   RecipesIdRoute: RecipesIdRoute,
   BlogIndexRoute: BlogIndexRoute,

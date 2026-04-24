@@ -125,7 +125,7 @@ export const Route = createFileRoute("/q/$reference")({
 });
 
 function SharedQuotePage() {
-  const { quote } = Route.useLoaderData();
+  const { quote } = Route.useLoaderData() as { quote: QuoteRow };
   const [shareUrl, setShareUrl] = useState("");
 
   useEffect(() => {
