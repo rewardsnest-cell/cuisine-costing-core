@@ -70,9 +70,9 @@ export const NAV_GROUPS: { label: string; items: { to: string; label: string; ic
   {
     label: "Intelligence & Diagnostics",
     items: [
-      { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
-      { to: "/admin/kroger-runs", label: "Kroger Runs", icon: Activity },
-      { to: "/admin/kroger-sku-review", label: "Kroger SKU Review", icon: ClipboardCheck },
+      { to: "/admin/kroger-pricing", label: "Kroger · Pricing", icon: Tag },
+      { to: "/admin/kroger-sku-review", label: "Kroger · SKU Mapping", icon: ClipboardCheck },
+      { to: "/admin/kroger-price-signals", label: "Kroger · Price Signals", icon: Activity },
       { to: "/admin/national-prices", label: "National Prices", icon: Globe2 },
       { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
       { to: "/admin/intelligence", label: "Project Intelligence", icon: ShieldCheck },
