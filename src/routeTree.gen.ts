@@ -34,6 +34,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WeddingsIndexRouteImport } from './routes/weddings.index'
+import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddings.winter-cleveland-ohio'
@@ -45,6 +46,7 @@ import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
+import { Route as GuidesSlugRouteImport } from './routes/guides.$slug'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CouponItemIdRouteImport } from './routes/coupon.$itemId'
@@ -248,6 +250,11 @@ const WeddingsIndexRoute = WeddingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => WeddingsRoute,
 } as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -306,6 +313,11 @@ const HooksNationalPricesMonthlyRoute =
     path: '/hooks/national-prices-monthly',
     getParentRoute: () => rootRouteImport,
   } as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventReferenceRoute = EventReferenceRouteImport.update({
   id: '/event/$reference',
   path: '/event/$reference',
@@ -786,6 +798,7 @@ export interface FileRoutesByFullPath {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
@@ -797,6 +810,7 @@ export interface FileRoutesByFullPath {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/guides/$id': typeof AdminGuidesIdRoute
@@ -899,6 +913,7 @@ export interface FileRoutesByTo {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
@@ -910,6 +925,7 @@ export interface FileRoutesByTo {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
+  '/guides': typeof GuidesIndexRoute
   '/weddings': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/guides/$id': typeof AdminGuidesIdRoute
@@ -1015,6 +1031,7 @@ export interface FileRoutesById {
   '/coupon/$itemId': typeof CouponItemIdRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/event/$reference': typeof EventReferenceRoute
+  '/guides/$slug': typeof GuidesSlugRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired_/$id': typeof InspiredIdRoute
@@ -1026,6 +1043,7 @@ export interface FileRoutesById {
   '/weddings/winter-cleveland-ohio': typeof WeddingsWinterClevelandOhioRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
+  '/guides/': typeof GuidesIndexRoute
   '/weddings/': typeof WeddingsIndexRoute
   '/admin/competitor-quotes/$id': typeof AdminCompetitorQuotesIdRoute
   '/admin/guides/$id': typeof AdminGuidesIdRoute
@@ -1132,6 +1150,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
@@ -1143,6 +1162,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin/'
     | '/blog/'
+    | '/guides/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/guides/$id'
@@ -1245,6 +1265,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
@@ -1256,6 +1277,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin'
     | '/blog'
+    | '/guides'
     | '/weddings'
     | '/admin/competitor-quotes/$id'
     | '/admin/guides/$id'
@@ -1360,6 +1382,7 @@ export interface FileRouteTypes {
     | '/coupon/$itemId'
     | '/email/unsubscribe'
     | '/event/$reference'
+    | '/guides/$slug'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired_/$id'
@@ -1371,6 +1394,7 @@ export interface FileRouteTypes {
     | '/weddings/winter-cleveland-ohio'
     | '/admin/'
     | '/blog/'
+    | '/guides/'
     | '/weddings/'
     | '/admin/competitor-quotes/$id'
     | '/admin/guides/$id'
@@ -1429,12 +1453,14 @@ export interface RootRouteChildren {
   CouponItemIdRoute: typeof CouponItemIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventReferenceRoute: typeof EventReferenceRoute
+  GuidesSlugRoute: typeof GuidesSlugRoute
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   HooksRecipeDripRoute: typeof HooksRecipeDripRoute
   InspiredIdRoute: typeof InspiredIdRoute
   QuoteAiRoute: typeof QuoteAiRoute
   RecipesIdRoute: typeof RecipesIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1621,6 +1647,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WeddingsIndexRouteImport
       parentRoute: typeof WeddingsRoute
     }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -1696,6 +1729,13 @@ declare module '@tanstack/react-router' {
       path: '/hooks/national-prices-monthly'
       fullPath: '/hooks/national-prices-monthly'
       preLoaderRoute: typeof HooksNationalPricesMonthlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/event/$reference': {
@@ -2474,12 +2514,14 @@ const rootRouteChildren: RootRouteChildren = {
   CouponItemIdRoute: CouponItemIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventReferenceRoute: EventReferenceRoute,
+  GuidesSlugRoute: GuidesSlugRoute,
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   HooksRecipeDripRoute: HooksRecipeDripRoute,
   InspiredIdRoute: InspiredIdRoute,
   QuoteAiRoute: QuoteAiRoute,
   RecipesIdRoute: RecipesIdRoute,
   BlogIndexRoute: BlogIndexRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
