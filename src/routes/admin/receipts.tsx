@@ -263,12 +263,21 @@ function ReceiptsPage() {
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
     const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+    const stillFlagged = editedLineItems.some((it) => it.needs_review);
+    const update: Record<string, any> = {
+      extracted_line_items: editedLineItems as any,
+      total_amount: Math.round(newTotal * 100) / 100,
+    };
+    // If admin resolved all flagged matches, promote status out of needs_review.
+    if (reviewReceipt.status === "needs_review" && !stillFlagged) {
+      update.status = "reviewed";
+    }
     const { error } = await supabase
       .from("receipts")
-      .update({ extracted_line_items: editedLineItems as any, total_amount: Math.round(newTotal * 100) / 100 })
+      .update(update)
       .eq("id", reviewReceipt.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Line items saved");
+    toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
     load();
     setReviewReceipt(null);
   };
