@@ -667,42 +667,77 @@ function CookingLabManager() {
     onError: (e: any) => toast.error(e?.message ?? "Failed to create entry"),
   });
 
-  // Swap display_order between two entries — atomic from the user's POV.
-  // We persist whatever display_order each entry has, then re-sort client-side
-  // on next fetch. Two writes; both must succeed for the visible reorder.
+  // Reorder entries by writing a new sequential display_order to every row
+  // whose position changed. Optimistic: we update the React Query cache to the
+  // post-drag order immediately so the UI reflects the move with no flicker,
+  // then persist in parallel and roll back on failure.
   const reorderMut = useMutation({
-    mutationFn: async ({ a, b }: { a: CookingLabEntry; b: CookingLabEntry }) => {
-      const { error: e1 } = await (supabase as any)
-        .from("cooking_lab_entries")
-        .update({ display_order: b.display_order })
-        .eq("id", a.id);
-      if (e1) throw e1;
-      const { error: e2 } = await (supabase as any)
-        .from("cooking_lab_entries")
-        .update({ display_order: a.display_order })
-        .eq("id", b.id);
-      if (e2) throw e2;
+    mutationFn: async (orderedIds: string[]) => {
+      const all = entries ?? [];
+      const byId = new Map(all.map((e) => [e.id, e]));
+      const updates = orderedIds
+        .map((id, idx) => {
+          const prev = byId.get(id);
+          const nextOrder = idx + 1;
+          if (!prev || prev.display_order === nextOrder) return null;
+          return { id, display_order: nextOrder };
+        })
+        .filter((u): u is { id: string; display_order: number } => u !== null);
+      if (updates.length === 0) return;
+      const results = await Promise.all(
+        updates.map((u) =>
+          (supabase as any)
+            .from("cooking_lab_entries")
+            .update({ display_order: u.display_order })
+            .eq("id", u.id),
+        ),
+      );
+      const failed = results.find((r: any) => r.error);
+      if (failed) throw failed.error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cooking-lab"] });
+    onMutate: async (orderedIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["cooking-lab", "admin"] });
+      const previous = queryClient.getQueryData<CookingLabEntry[]>(["cooking-lab", "admin"]);
+      if (previous) {
+        const byId = new Map(previous.map((e) => [e.id, e]));
+        const next = orderedIds
+          .map((id, idx) => {
+            const e = byId.get(id);
+            return e ? { ...e, display_order: idx + 1 } : null;
+          })
+          .filter((e): e is CookingLabEntry => e !== null);
+        queryClient.setQueryData<CookingLabEntry[]>(["cooking-lab", "admin"], next);
+      }
+      return { previous };
     },
-    onError: (e: any) => toast.error(e?.message ?? "Reorder failed"),
+    onError: (e: any, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(["cooking-lab", "admin"], ctx.previous);
+      }
+      toast.error(e?.message ?? "Reorder failed");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["cooking-lab", "admin"] });
+    },
   });
 
   const sorted = (entries ?? []).slice().sort((a, b) => a.display_order - b.display_order);
   const moveEntry = (idx: number, dir: -1 | 1) => {
-    const a = sorted[idx];
-    const b = sorted[idx + dir];
-    if (!a || !b) return;
-    // If both share the same display_order (legacy data), nudge b up by 1 first.
-    if (a.display_order === b.display_order) {
-      reorderMut.mutate({
-        a,
-        b: { ...b, display_order: b.display_order + (dir === 1 ? 1 : -1) },
-      });
-    } else {
-      reorderMut.mutate({ a, b });
-    }
+    const target = idx + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const ids = sorted.map((e) => e.id);
+    const [moved] = ids.splice(idx, 1);
+    ids.splice(target, 0, moved);
+    reorderMut.mutate(ids);
+  };
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = sorted.map((e) => e.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    reorderMut.mutate(arrayMove(ids, oldIndex, newIndex));
   };
 
   // Bulk delete selected entries.
