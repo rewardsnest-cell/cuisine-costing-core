@@ -321,16 +321,32 @@ function ReceiptsPage() {
                         <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
                           <FileText className="w-3.5 h-3.5" /> Review
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Re-run OCR
+                        </Button>
                         <Button size="sm" onClick={() => handleApplyCosts(r.id)} disabled={applyingCosts} className="bg-gradient-warm text-primary-foreground gap-1.5">
                           {applyingCosts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                           Apply Costs
                         </Button>
                       </>
                     )}
-                    {r.status === "processed" && (
-                      <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
-                        <Pencil className="w-3.5 h-3.5" /> Edit
+                    {r.status === "failed" && (
+                      <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                        {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        {processing === r.id ? "Processing..." : "Re-run OCR"}
                       </Button>
+                    )}
+                    {r.status === "processed" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                          <Pencil className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
+                          {processing === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Re-run OCR
+                        </Button>
+                      </>
                     )}
                   </div>
                   <p className="font-display text-lg font-bold whitespace-nowrap">${Number(r.total_amount).toFixed(2)}</p>
