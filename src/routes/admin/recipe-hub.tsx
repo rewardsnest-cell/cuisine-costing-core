@@ -612,6 +612,19 @@ function RecipeHub() {
               ["draft", "Drafts"],
             ]}
           />
+          <FilterChips
+            value={inspiredFilter}
+            onChange={setInspiredFilter}
+            options={[
+              ["all", "Any inspired"],
+              ["inspired", "Inspired only"],
+              ["non-inspired", "Non-inspired"],
+              ["phase-off", "Phase: off"],
+              ["phase-admin_preview", "Phase: preview"],
+              ["phase-soft_launch", "Phase: soft"],
+              ["phase-public", "Phase: public"],
+            ]}
+          />
         </CardContent>
       </Card>
 
