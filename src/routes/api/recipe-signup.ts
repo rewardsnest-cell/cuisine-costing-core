@@ -61,6 +61,7 @@ export const Route = createFileRoute('/api/recipe-signup')({
             recipe_id: recipe?.id || null,
             lead_magnet: leadMagnet,
             source: 'recipe_page',
+            entry_source: entrySource,
             user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
           })
           .select('id').single()
