@@ -19,7 +19,39 @@ const ROOT = join(fileURLToPath(import.meta.url), "..", "..");
 const ROUTES_DIR = join(ROOT, "src", "routes");
 const FUNCTIONS_DIR = join(ROOT, "supabase", "functions");
 const MIGRATIONS_DIR = join(ROOT, "supabase", "migrations");
+const DESCRIPTIONS_FILE = join(ROOT, "src", "lib", "admin", "page-descriptions.ts");
 const OUT = join(ROOT, "src", "lib", "admin", "project-audit.ts");
+
+// ---- Parse route descriptions (best-effort regex over the TS source) ----
+const descriptions = {};
+if (existsSync(DESCRIPTIONS_FILE)) {
+  const src = readFileSync(DESCRIPTIONS_FILE, "utf8");
+  // Match: "/path": { title: "...", purpose: "...", audience: "...", whenToUse?: "...", keyActions?: [...] }
+  const blockRe = /"([^"]+)":\s*\{([\s\S]*?)\n  \}/g;
+  let m;
+  while ((m = blockRe.exec(src))) {
+    const path = m[1];
+    const body = m[2];
+    const get = (key) => {
+      const r = new RegExp(`${key}:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+      const mm = body.match(r);
+      return mm ? mm[1].replace(/\\"/g, '"') : null;
+    };
+    const list = (key) => {
+      const r = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\]`);
+      const mm = body.match(r);
+      if (!mm) return [];
+      return Array.from(mm[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)).map((x) => x[1]);
+    };
+    descriptions[path] = {
+      title: get("title"),
+      purpose: get("purpose"),
+      audience: get("audience"),
+      whenToUse: get("whenToUse"),
+      keyActions: list("keyActions"),
+    };
+  }
+}
 
 function walk(dir) {
   if (!existsSync(dir)) return [];
