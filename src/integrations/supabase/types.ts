@@ -366,6 +366,45 @@ export type Database = {
           },
         ]
       }
+      change_log_entries: {
+        Row: {
+          archived: boolean
+          archived_at: string | null
+          author_email: string | null
+          author_user_id: string | null
+          created_at: string
+          id: string
+          linked_audit_event_ids: string[]
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          archived_at?: string | null
+          author_email?: string | null
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          linked_audit_event_ids?: string[]
+          summary?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          archived_at?: string | null
+          author_email?: string | null
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          linked_audit_event_ids?: string[]
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       competitor_quote_pages: {
         Row: {
           competitor_quote_id: string
