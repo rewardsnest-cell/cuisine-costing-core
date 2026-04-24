@@ -3533,6 +3533,23 @@ export type Database = {
         Args: { _supplier_id: string }
         Returns: string
       }
+      get_quote_by_reference: {
+        Args: { _reference: string }
+        Returns: {
+          client_name: string
+          created_at: string
+          dietary_preferences: Json
+          event_date: string
+          event_type: string
+          guest_count: number
+          is_test: boolean
+          location_name: string
+          quote_state: Database["public"]["Enums"]["quote_state"]
+          reference_number: string
+          status: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

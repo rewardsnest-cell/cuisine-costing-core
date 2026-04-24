@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Copy, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, ArrowRight, Sparkles, Share2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/quote/start")({
@@ -188,6 +188,46 @@ function QuoteStartPage() {
                   <p className="text-xs text-muted-foreground mt-3">
                     Save this — you can return to it anytime at <Link to="/lookup" className="underline">/lookup</Link>.
                   </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {referenceNumber && (
+              <Card className="mb-6 border-primary/20 bg-primary/5">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Share2 className="w-5 h-5 text-primary mt-0.5" strokeWidth={1.75} />
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground mb-1">Share your quote</p>
+                      <p className="text-sm text-muted-foreground">
+                        A read-only progress link. No pricing, no commitment — just the current state of your quote.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <code className="flex-1 text-xs font-mono px-3 py-2 bg-background border border-border rounded-md truncate">
+                      {typeof window !== "undefined" ? `${window.location.origin}/q/${referenceNumber}` : `/q/${referenceNumber}`}
+                    </code>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && navigator.clipboard && typeof window !== "undefined") {
+                          navigator.clipboard.writeText(`${window.location.origin}/q/${referenceNumber}`);
+                          toast.success("Share link copied");
+                        }
+                      }}
+                      className="gap-1.5"
+                    >
+                      <Link2 className="w-3.5 h-3.5" /> Copy link
+                    </Button>
+                    <Link to="/q/$reference" params={{ reference: referenceNumber }}>
+                      <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto">
+                        Open
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             )}
