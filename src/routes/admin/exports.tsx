@@ -231,10 +231,10 @@ function ExportsPage() {
       }
 
       if (all.length === 0) {
-        downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
+        await downloadFile("(no rows)\n", spec.filename, "text/csv;charset=utf-8");
       } else {
         const csv = rowsToCsv(all);
-        downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
+        await downloadFile(csv, spec.filename, "text/csv;charset=utf-8");
       }
       flashDone(spec.key);
     } catch (e: any) {
