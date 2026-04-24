@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Link, useLocation } from "@tanstack/react-router";
 
-/** Appears after the user scrolls past the hero. */
+/**
+ * Phase One: replaces the old floating round Quote button with a quiet,
+ * mobile-only bottom bar offering two text actions. Renders only on the
+ * key public surfaces (home, weddings, catering) and only on small screens.
+ */
+const ALLOWED_PREFIXES = ["/weddings", "/catering"];
+
 export function FloatingQuoteCTA() {
   const [show, setShow] = useState(false);
+  const location = useLocation();
+  const path = location.pathname;
+  const onAllowedRoute = path === "/" || ALLOWED_PREFIXES.some((p) => path.startsWith(p));
 
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 600);
@@ -14,18 +21,28 @@ export function FloatingQuoteCTA() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  if (!onAllowedRoute) return null;
+
   return (
     <div
-      className={`fixed bottom-6 right-6 z-40 transition-all duration-300 ${
-        show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-md transition-transform duration-300 ${
+        show ? "translate-y-0" : "translate-y-full"
       }`}
     >
-      <Link to="/catering/quote">
-        <Button size="lg" className="shadow-2xl rounded-full px-6">
-          <Sparkles className="w-4 h-4" />
-          Start your quote
-        </Button>
-      </Link>
+      <div className="grid grid-cols-2 divide-x divide-border text-sm">
+        <Link
+          to="/weddings"
+          className="py-3 text-center font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          Weddings
+        </Link>
+        <Link
+          to="/catering/quote"
+          className="py-3 text-center font-semibold text-primary hover:bg-muted transition-colors"
+        >
+          Get a quote
+        </Link>
+      </div>
     </div>
   );
 }
