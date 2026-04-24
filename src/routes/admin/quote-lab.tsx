@@ -15,8 +15,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink } from "lucide-react";
+import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { PRICING_VISIBILITY_KEY, usePricingVisibility } from "@/lib/use-pricing-visibility";
 
 export const Route = createFileRoute("/admin/quote-lab")({
   head: () => ({
@@ -51,6 +53,9 @@ const EMAIL_TOGGLE_KEY = "quote_lab_emails_enabled";
 
 function QuoteLabPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { showPricing, loading: pricingLoading } = usePricingVisibility();
+  const [pricingSaving, setPricingSaving] = useState(false);
   const [quotes, setQuotes] = useState<LabQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"test" | "real" | "all">("test");
@@ -68,6 +73,32 @@ function QuoteLabPage() {
   const updateEmailsEnabled = (v: boolean) => {
     setEmailsEnabled(v);
     if (typeof window !== "undefined") localStorage.setItem(EMAIL_TOGGLE_KEY, String(v));
+  };
+
+  const togglePricing = async (visible: boolean) => {
+    setPricingSaving(true);
+    // value === "false" means pricing is SHOWN; anything else hides it.
+    const { error } = await (supabase as any)
+      .from("app_kv")
+      .upsert({
+        key: PRICING_VISIBILITY_KEY,
+        value: visible ? "false" : "true",
+        updated_by: user?.id || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+    setPricingSaving(false);
+    if (error) {
+      console.error(error);
+      toast.error("Couldn't update pricing visibility");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["app_kv", PRICING_VISIBILITY_KEY] });
+    toast.success(visible ? "Pricing is now VISIBLE on public pages" : "Pricing is now HIDDEN on public pages");
+  };
+
+  const openPreview = (path: string) => {
+    if (typeof window === "undefined") return;
+    window.open(path, "_blank", "noopener,noreferrer");
   };
 
   const load = async () => {
@@ -191,6 +222,39 @@ function QuoteLabPage() {
             </div>
           </div>
           <Switch checked={emailsEnabled} onCheckedChange={updateEmailsEnabled} />
+        </CardContent>
+      </Card>
+
+      <Card className={showPricing ? "border-amber-500/60 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {showPricing ? <DollarSign className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
+              <div>
+                <p className="text-sm font-medium">
+                  Public pricing {pricingLoading ? "…" : showPricing ? "VISIBLE" : "HIDDEN"}
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Phase Two default is HIDDEN. Toggle on only to validate pricing UI internally — every public visitor
+                  will see prices the moment this is on.
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={showPricing}
+              disabled={pricingLoading || pricingSaving}
+              onCheckedChange={togglePricing}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/60">
+            <span className="text-xs text-muted-foreground mr-1">Preview public flows:</span>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openPreview("/quote/start")}>
+              <ExternalLink className="w-3.5 h-3.5" /> Intake
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openPreview("/catering/quote")}>
+              <ExternalLink className="w-3.5 h-3.5" /> Builder
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
