@@ -93,6 +93,22 @@ function CookingLabPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  return <CookingLabPageBody entries={entries ?? null} isLoading={isLoading} />;
+}
+
+/**
+ * Pure presentational body for the public Cooking Lab page.
+ * Exposed so the admin "Preview full page" can render an exact replica
+ * with arbitrary entry sets (published-only or include-drafts) without
+ * duplicating layout, hero, intro, gear anchor, or affiliate disclosure.
+ */
+export function CookingLabPageBody({
+  entries,
+  isLoading,
+}: {
+  entries: CookingLabEntry[] | null;
+  isLoading: boolean;
+}) {
   return (
     <div className="bg-background">
       {/* Hero */}
