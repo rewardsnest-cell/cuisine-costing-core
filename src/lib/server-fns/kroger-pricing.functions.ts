@@ -149,7 +149,15 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
     .update({ status: "running", started_at: startedAt })
     .eq("id", runId);
 
-  const errors: { item: string; error: string }[] = [];
+  const errors: {
+    item: string;
+    error: string;
+    http_status?: number;
+    response_body?: string;
+    request_url?: string;
+    request_term?: string;
+    location_id?: string | null;
+  }[] = [];
   let priceRowsWritten = 0;
   let skuMapRowsTouched = 0;
   let itemsQueried = 0;
@@ -196,6 +204,11 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           errors.push({
             item: item.name,
             error: `HTTP ${res.status}${opts.locationId ? "" : " (no locationId set)"}: ${body.slice(0, 200)}`,
+            http_status: res.status,
+            response_body: body.slice(0, 4000),
+            request_url: url.toString(),
+            request_term: cleanedTerm,
+            location_id: opts.locationId ?? null,
           });
           continue;
         }

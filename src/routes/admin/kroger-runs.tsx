@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket, Filter } from "lucide-react";
+import { Loader2, PlayCircle, RefreshCw, Activity, AlertTriangle, CheckCircle2, Clock, Info, ListChecks, LineChart as LineChartIcon, Rocket, Filter, RotateCcw, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import {
   ingestKrogerPrices,
@@ -23,6 +24,16 @@ export const Route = createFileRoute("/admin/kroger-runs")({
 
 type Run = Awaited<ReturnType<typeof listKrogerRuns>>[number];
 type Status = Awaited<ReturnType<typeof getKrogerStatus>>;
+
+type ErrorDetail = {
+  item: string;
+  error: string;
+  http_status?: number;
+  response_body?: string;
+  request_url?: string;
+  request_term?: string;
+  location_id?: string | null;
+};
 
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   queued: { label: "Queued", variant: "outline", icon: Clock },
@@ -111,8 +122,13 @@ function KrogerRunsPage() {
     triggerIngest(n);
   };
 
+  const rerunFromRow = (r: Run) => {
+    const lim = r.item_limit == null ? 25 : r.item_limit;
+    triggerIngest(lim);
+  };
+
   const latest = runs[0] ?? null;
-  const latestErrors = (latest?.errors as Array<{ item: string; error: string }> | null) ?? [];
+  const latestErrors = (latest?.errors as ErrorDetail[] | null) ?? [];
 
   return (
     <div className="space-y-6">
@@ -204,15 +220,15 @@ function KrogerRunsPage() {
               )}
               {latestErrors.length > 0 ? (
                 <div className="border rounded-md border-destructive/30">
-                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium flex items-center justify-between">
+                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-destructive"><AlertTriangle className="w-3.5 h-3.5" />All errors ({latestErrors.length})</span>
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs gap-1" onClick={() => rerunFromRow(latest)} disabled={running || !status?.enabled || !status?.keys_configured}>
+                      <RotateCcw className="w-3 h-3" />Re-run same params
+                    </Button>
                   </div>
-                  <div className="max-h-80 overflow-auto divide-y">
+                  <div className="max-h-96 overflow-auto divide-y">
                     {latestErrors.map((e, i) => (
-                      <div key={i} className="px-3 py-1.5 text-xs grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
-                        <span className="font-medium truncate" title={e.item}>{e.item}</span>
-                        <span className="text-destructive break-words" title={e.error}>{e.error}</span>
-                      </div>
+                      <ErrorRow key={i} err={e} />
                     ))}
                   </div>
                 </div>
@@ -278,7 +294,9 @@ function KrogerRunsPage() {
                     <TableHead className="text-right">SKUs</TableHead>
                     <TableHead className="text-right">Errors</TableHead>
                     <TableHead>Location</TableHead>
+                    <TableHead>Limit</TableHead>
                     <TableHead>Duration</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -287,6 +305,7 @@ function KrogerRunsPage() {
                     const dur = r.started_at && r.finished_at
                       ? `${Math.max(0, Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000))}s`
                       : r.status === "running" ? "…" : "—";
+                    const limLabel = r.item_limit == null ? "—" : r.item_limit === 0 ? "all" : String(r.item_limit);
                     return (
                       <TableRow key={r.id}>
                         <TableCell className="text-xs whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</TableCell>
@@ -296,7 +315,20 @@ function KrogerRunsPage() {
                         <TableCell className="text-right tabular-nums">{r.sku_map_rows_touched}</TableCell>
                         <TableCell className="text-right tabular-nums">{errs.length}</TableCell>
                         <TableCell className="text-xs">{r.location_id ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{limLabel}</TableCell>
                         <TableCell className="text-xs">{dur}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs gap-1"
+                            onClick={() => rerunFromRow(r)}
+                            disabled={running || !status?.enabled || !status?.keys_configured || r.status === "queued" || r.status === "running"}
+                            title={`Re-run with limit ${limLabel}${r.location_id ? ` @ loc ${r.location_id}` : ""}`}
+                          >
+                            <RotateCcw className="w-3 h-3" />Re-run
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -358,5 +390,74 @@ function StatCard({
       </div>
       <div className="text-2xl font-semibold tabular-nums">{value.toLocaleString()}</div>
     </div>
+  );
+}
+
+function ErrorRow({ err }: { err: ErrorDetail }) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!(err.response_body || err.request_url || err.request_term || err.http_status != null);
+  const summary = err.http_status != null
+    ? `HTTP ${err.http_status}${err.location_id ? "" : " (no locationId)"}`
+    : err.error;
+  const copyAll = async () => {
+    const text = [
+      `Item: ${err.item}`,
+      err.http_status != null ? `Status: HTTP ${err.http_status}` : null,
+      err.request_term ? `Search term: ${err.request_term}` : null,
+      err.location_id ? `Location: ${err.location_id}` : "Location: (none)",
+      err.request_url ? `Request URL: ${err.request_url}` : null,
+      "",
+      "Response body:",
+      err.response_body || err.error,
+    ].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Error details copied");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="px-3 py-1.5 text-xs">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,2fr)_auto] gap-2 items-start">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="mt-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              disabled={!hasDetails}
+              aria-label={open ? "Collapse details" : "Expand details"}
+            >
+              {hasDetails ? (open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />) : <span className="inline-block w-3.5 h-3.5" />}
+            </button>
+          </CollapsibleTrigger>
+          <span className="font-medium truncate" title={err.item}>{err.item}</span>
+          <span className="text-destructive break-words" title={err.error}>{summary}</span>
+          {hasDetails && (
+            <button type="button" onClick={copyAll} className="text-muted-foreground hover:text-foreground" title="Copy details">
+              <Copy className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+        <CollapsibleContent>
+          <div className="mt-2 ml-5 space-y-1.5 rounded-md border border-border bg-muted/30 p-2">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-[11px]">
+              {err.http_status != null && (<><span className="text-muted-foreground">Status</span><span className="font-mono">HTTP {err.http_status}</span></>)}
+              {err.request_term && (<><span className="text-muted-foreground">Term</span><span className="font-mono break-all">{err.request_term}</span></>)}
+              <span className="text-muted-foreground">Location</span>
+              <span className="font-mono">{err.location_id || "— (none set)"}</span>
+              {err.request_url && (<><span className="text-muted-foreground">URL</span><span className="font-mono break-all">{err.request_url}</span></>)}
+            </div>
+            {err.response_body && (
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-0.5">Response body</div>
+                <pre className="text-[11px] bg-background border border-border rounded p-2 max-h-48 overflow-auto whitespace-pre-wrap break-all">{err.response_body}</pre>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
