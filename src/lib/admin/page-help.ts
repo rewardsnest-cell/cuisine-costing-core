@@ -206,6 +206,15 @@ const REGISTRY: Record<string, PageHelp> = {
   "/admin/exports": {
     title: "Exports & Reports",
     purpose: "Download CSV/PDF reports for accounting, tax season, or external review.",
+    related: [{ label: "Page Inventory", to: "/admin/page-inventory" }],
+  },
+  "/admin/page-inventory": {
+    title: "Page Inventory",
+    purpose:
+      "Every route in the app, with HTTP reachability, manual review status, and thumbnail screenshots.",
+    whenToUse:
+      "Run a re-check before a release, after big refactors, or when you want a visual sweep of the whole site.",
+    related: [{ label: "Exports & Reports", to: "/admin/exports" }],
   },
   "/admin/import-recipes": {
     title: "Import from vpsfinest.com",
