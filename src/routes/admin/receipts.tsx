@@ -474,6 +474,7 @@ function ReceiptsPage() {
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Unit $</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Total</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Inventory Match</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Confidence</th>
                       <th className="py-2 px-1 w-8"></th>
                     </tr>
                   </thead>
