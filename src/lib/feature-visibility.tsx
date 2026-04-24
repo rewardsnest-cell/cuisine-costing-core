@@ -40,7 +40,8 @@ export type FeatureKey =
   | "quote"
   | "follow"
   | "lookup"
-  | "coupon";
+  | "coupon"
+  | "cooking_lab";
 
 export type FeatureVisibility = {
   feature_key: string;
