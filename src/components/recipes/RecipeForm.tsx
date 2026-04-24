@@ -454,17 +454,51 @@ export function RecipeForm({
 
       const validIngredients = rowsForSave.filter((i) => i.name.trim());
       if (validIngredients.length > 0 && savedId) {
+        // Force-canonical: for any row with a resolved reference_id, convert
+        // qty into ingredient_reference.default_unit when convertible. Falls
+        // back to the user-entered unit if conversion isn't possible (e.g.
+        // count↔weight without a density).
+        const refIds = Array.from(
+          new Set(validIngredients.map((i) => i.reference_id).filter(Boolean) as string[]),
+        );
+        const refUnitMap = new Map<string, string>();
+        if (refIds.length > 0) {
+          const { data: refRows } = await supabase
+            .from("ingredient_reference")
+            .select("id,default_unit")
+            .in("id", refIds);
+          for (const row of (refRows ?? []) as Array<{ id: string; default_unit: string }>) {
+            if (row.default_unit?.trim()) refUnitMap.set(row.id, row.default_unit.trim());
+          }
+        }
         const { error: ingErr } = await supabase.from("recipe_ingredients").insert(
-          validIngredients.map((ing) => ({
-            recipe_id: savedId!,
-            name: ing.name.trim(),
-            quantity: parseFloat(ing.quantity) || 0,
-            unit: ing.unit.trim() || "each",
-            cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
-            notes: ing.notes || null,
-            inventory_item_id: ing.inventory_item_id,
-            reference_id: ing.reference_id,
-          })),
+          validIngredients.map((ing) => {
+            const rawQty = parseFloat(ing.quantity) || 0;
+            const rawUnit = ing.unit.trim() || "each";
+            const targetUnit = ing.reference_id ? refUnitMap.get(ing.reference_id) : null;
+            let storeQty = rawQty;
+            let storeUnit = rawUnit;
+            if (targetUnit && targetUnit.toLowerCase() !== rawUnit.toLowerCase() && rawQty > 0) {
+              const converted = convertQty(rawQty, rawUnit, targetUnit);
+              if (converted !== null) {
+                storeQty = converted;
+                storeUnit = targetUnit;
+              }
+              // else: keep raw — incompatible families. Surface via UI hint.
+            } else if (targetUnit && !rawUnit) {
+              storeUnit = targetUnit;
+            }
+            return {
+              recipe_id: savedId!,
+              name: ing.name.trim(),
+              quantity: storeQty,
+              unit: storeUnit,
+              cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
+              notes: ing.notes || null,
+              inventory_item_id: ing.inventory_item_id,
+              reference_id: ing.reference_id,
+            };
+          }),
         );
         if (ingErr) throw ingErr;
       }
