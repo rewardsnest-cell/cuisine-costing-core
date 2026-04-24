@@ -23,6 +23,7 @@ import { Route as MyEventsRouteImport } from './routes/my-events'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InspiredRouteImport } from './routes/inspired'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FollowRouteImport } from './routes/follow'
 import { Route as EmployeeRouteImport } from './routes/employee'
@@ -41,6 +42,7 @@ import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fa
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
+import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
 import { Route as EventReferenceRouteImport } from './routes/event.$reference'
@@ -188,6 +190,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InspiredRoute = InspiredRouteImport.update({
+  id: '/inspired',
+  path: '/inspired',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -278,6 +285,11 @@ const RecipesIdRoute = RecipesIdRouteImport.update({
 const QuoteAiRoute = QuoteAiRouteImport.update({
   id: '/quote_/ai',
   path: '/quote/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InspiredIdRoute = InspiredIdRouteImport.update({
+  id: '/inspired_/$id',
+  path: '/inspired/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HooksRecipeDripRoute = HooksRecipeDripRouteImport.update({
@@ -683,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/employee': typeof EmployeeRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/inspired': typeof InspiredRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
@@ -756,6 +769,7 @@ export interface FileRoutesByFullPath {
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
+  '/inspired/$id': typeof InspiredIdRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -792,6 +806,7 @@ export interface FileRoutesByTo {
   '/employee': typeof EmployeeRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/inspired': typeof InspiredRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
@@ -864,6 +879,7 @@ export interface FileRoutesByTo {
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
+  '/inspired/$id': typeof InspiredIdRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -902,6 +918,7 @@ export interface FileRoutesById {
   '/employee': typeof EmployeeRoute
   '/follow': typeof FollowRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/inspired': typeof InspiredRoute
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
@@ -975,6 +992,7 @@ export interface FileRoutesById {
   '/event/$reference': typeof EventReferenceRoute
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
+  '/inspired_/$id': typeof InspiredIdRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -1014,6 +1032,7 @@ export interface FileRouteTypes {
     | '/employee'
     | '/follow'
     | '/forgot-password'
+    | '/inspired'
     | '/login'
     | '/lookup'
     | '/menu'
@@ -1087,6 +1106,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
+    | '/inspired/$id'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1123,6 +1143,7 @@ export interface FileRouteTypes {
     | '/employee'
     | '/follow'
     | '/forgot-password'
+    | '/inspired'
     | '/login'
     | '/lookup'
     | '/menu'
@@ -1195,6 +1216,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
+    | '/inspired/$id'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1232,6 +1254,7 @@ export interface FileRouteTypes {
     | '/employee'
     | '/follow'
     | '/forgot-password'
+    | '/inspired'
     | '/login'
     | '/lookup'
     | '/menu'
@@ -1305,6 +1328,7 @@ export interface FileRouteTypes {
     | '/event/$reference'
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
+    | '/inspired_/$id'
     | '/quote_/ai'
     | '/recipes_/$id'
     | '/weddings/booking-timeline'
@@ -1343,6 +1367,7 @@ export interface RootRouteChildren {
   EmployeeRoute: typeof EmployeeRoute
   FollowRoute: typeof FollowRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  InspiredRoute: typeof InspiredRoute
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
   MenuRoute: typeof MenuRoute
@@ -1370,6 +1395,7 @@ export interface RootRouteChildren {
   EventReferenceRoute: typeof EventReferenceRoute
   HooksNationalPricesMonthlyRoute: typeof HooksNationalPricesMonthlyRoute
   HooksRecipeDripRoute: typeof HooksRecipeDripRoute
+  InspiredIdRoute: typeof InspiredIdRoute
   QuoteAiRoute: typeof QuoteAiRoute
   RecipesIdRoute: typeof RecipesIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
@@ -1480,6 +1506,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspired': {
+      id: '/inspired'
+      path: '/inspired'
+      fullPath: '/inspired'
+      preLoaderRoute: typeof InspiredRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1606,6 +1639,13 @@ declare module '@tanstack/react-router' {
       path: '/quote/ai'
       fullPath: '/quote/ai'
       preLoaderRoute: typeof QuoteAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspired_/$id': {
+      id: '/inspired_/$id'
+      path: '/inspired/$id'
+      fullPath: '/inspired/$id'
+      preLoaderRoute: typeof InspiredIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hooks/recipe-drip': {
@@ -2335,6 +2375,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmployeeRoute: EmployeeRoute,
   FollowRoute: FollowRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  InspiredRoute: InspiredRoute,
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
   MenuRoute: MenuRoute,
@@ -2362,6 +2403,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventReferenceRoute: EventReferenceRoute,
   HooksNationalPricesMonthlyRoute: HooksNationalPricesMonthlyRoute,
   HooksRecipeDripRoute: HooksRecipeDripRoute,
+  InspiredIdRoute: InspiredIdRoute,
   QuoteAiRoute: QuoteAiRoute,
   RecipesIdRoute: RecipesIdRoute,
   BlogIndexRoute: BlogIndexRoute,

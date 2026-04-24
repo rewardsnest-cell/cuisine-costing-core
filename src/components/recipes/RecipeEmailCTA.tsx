@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { detectEntrySource, type EntrySource, ENTRY_SOURCE_LABELS } from "@/lib/entry-source";
 
 type LeadMagnet = "printable" | "scaling" | "checklist" | "pack";
 
@@ -17,6 +18,12 @@ export function RecipeEmailCTA({ recipeId, recipeName }: { recipeId: string; rec
   const [magnet, setMagnet] = useState<LeadMagnet>("printable");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<{ printableUrl: string | null } | null>(null);
+  const [entrySource, setEntrySource] = useState<EntrySource>("direct");
+  const [sourceTouched, setSourceTouched] = useState(false);
+
+  useEffect(() => {
+    setEntrySource(detectEntrySource());
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +33,7 @@ export function RecipeEmailCTA({ recipeId, recipeName }: { recipeId: string; rec
       const res = await fetch("/api/recipe-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), recipeId, leadMagnet: magnet }),
+        body: JSON.stringify({ email: email.trim(), recipeId, leadMagnet: magnet, entrySource }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Signup failed");
@@ -92,6 +99,21 @@ export function RecipeEmailCTA({ recipeId, recipeName }: { recipeId: string; rec
           className="flex-1"
         />
         <Button type="submit" disabled={loading}>{loading ? "Sending…" : "Send it to me"}</Button>
+      </div>
+      <div className="max-w-xl mx-auto mt-3">
+        <label className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
+          How did you find us?
+          <select
+            value={entrySource}
+            onChange={(e) => { setEntrySource(e.target.value as EntrySource); setSourceTouched(true); }}
+            className="text-xs border border-border rounded px-2 py-1 bg-background"
+          >
+            {Object.entries(ENTRY_SOURCE_LABELS).map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+          {!sourceTouched && <span className="text-muted-foreground/70">(auto-detected)</span>}
+        </label>
       </div>
       <p className="text-[11px] text-muted-foreground text-center mt-3">
         One useful email now, plus 3 over the next week. Unsubscribe anytime.

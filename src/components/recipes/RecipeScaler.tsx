@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown } from "lucide-react";
+import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+
+// Public scaling rule for home-cook recipes: only 1, 5, or 10 servings.
+// Anything beyond that funnels to /catering/quote.
+const PUBLIC_SERVING_OPTIONS = [1, 5, 10] as const;
 
 type Ingredient = {
   id: string;
@@ -39,6 +44,7 @@ export function RecipeScaler({
   pricePerPerson,
   totalRecipeCost,
   hidePricing = false,
+  publicLimit = false,
 }: {
   recipeId: string;
   recipeName: string;
@@ -48,8 +54,16 @@ export function RecipeScaler({
   pricePerPerson?: number | null;
   totalRecipeCost?: number | null;
   hidePricing?: boolean;
+  /**
+   * When true, restrict scaling to 1 / 5 / 10 servings only (home-cook public rule)
+   * and show an educational catering CTA instead of a free-form slider.
+   */
+  publicLimit?: boolean;
 }) {
-  const initial = baseServings && baseServings > 0 ? baseServings : 4;
+  // Initial servings: in publicLimit mode, snap to nearest allowed value (default 5).
+  const initial = publicLimit
+    ? 5
+    : (baseServings && baseServings > 0 ? baseServings : 4);
   const [servings, setServings] = useState<number>(initial);
   const [favLoading, setFavLoading] = useState(false);
   const [isFav, setIsFav] = useState<boolean | null>(null);
@@ -68,7 +82,10 @@ export function RecipeScaler({
       .then(({ data }: any) => setIsFav(!!data));
   }, [user, recipeId]);
 
-  const factor = servings / initial;
+  // Scaling is always relative to the AUTHORED base servings, even in public
+  // mode — `initial` is just the chip we start on.
+  const authored = baseServings && baseServings > 0 ? baseServings : 4;
+  const factor = servings / authored;
 
   const scaled = useMemo(
     () => ingredients.map((i) => ({
@@ -294,35 +311,76 @@ export function RecipeScaler({
       </div>
 
       {/* Scale servings */}
-      <div className="rounded-xl border border-border bg-card p-4 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Scale servings</p>
-            <p className="text-foreground font-medium">
-              {servings} {servings === 1 ? "serving" : "servings"}
-              {servings !== initial && (
-                <span className="text-muted-foreground font-normal text-sm ml-2">
-                  (×{factor.toFixed(2).replace(/\.?0+$/, "")})
-                </span>
-              )}
+      {publicLimit ? (
+        <>
+          <div className="rounded-xl border border-border bg-card p-4 mb-3">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Users className="w-3 h-3" /> Cooking for
             </p>
+            <div className="flex flex-wrap gap-2">
+              {PUBLIC_SERVING_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setServings(opt)}
+                  className={`px-4 py-2 rounded-full text-sm border transition-colors ${
+                    servings === opt
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                  }`}
+                  aria-pressed={servings === opt}
+                >
+                  {opt} {opt === 1 ? "person" : "people"}
+                </button>
+              ))}
+            </div>
+            {servings !== authored && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Quantities scaled from the original {authored}-serving recipe (×{factor.toFixed(2).replace(/\.?0+$/, "")}).
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-1">
-            <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(1, s - 1))} aria-label="Decrease servings">
-              <Minus className="w-3 h-3" />
-            </Button>
-            <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(100, s + 1))} aria-label="Increase servings">
-              <Plus className="w-3 h-3" />
-            </Button>
+          <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 mb-5">
+            <p className="text-sm text-foreground font-medium mb-1">Cooking for more than 10?</p>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              Cooking at scale is its own craft — timing, holding temperatures, and equipment all change once you go past about a dozen guests. Rather than guessing, let our team handle the planning and the cooking.
+            </p>
+            <Link to="/catering/quote">
+              <Button size="sm">Let the pros handle it — get a catering quote</Button>
+            </Link>
           </div>
+        </>
+      ) : (
+        <div className="rounded-xl border border-border bg-card p-4 mb-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Scale servings</p>
+              <p className="text-foreground font-medium">
+                {servings} {servings === 1 ? "serving" : "servings"}
+                {servings !== initial && (
+                  <span className="text-muted-foreground font-normal text-sm ml-2">
+                    (×{factor.toFixed(2).replace(/\.?0+$/, "")})
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(1, s - 1))} aria-label="Decrease servings">
+                <Minus className="w-3 h-3" />
+              </Button>
+              <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(100, s + 1))} aria-label="Increase servings">
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+          <Slider value={[servings]} min={1} max={Math.max(24, initial * 4)} step={1} onValueChange={([v]) => setServings(v)} />
+          {servings !== initial && (
+            <button onClick={() => setServings(initial)} className="text-xs text-primary hover:underline mt-2">
+              Reset to {initial}
+            </button>
+          )}
         </div>
-        <Slider value={[servings]} min={1} max={Math.max(24, initial * 4)} step={1} onValueChange={([v]) => setServings(v)} />
-        {servings !== initial && (
-          <button onClick={() => setServings(initial)} className="text-xs text-primary hover:underline mt-2">
-            Reset to {initial}
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Ingredients list */}
       {scaled.length === 0 ? (

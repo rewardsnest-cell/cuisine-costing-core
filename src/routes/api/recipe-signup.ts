@@ -9,6 +9,7 @@ const SENDER_DOMAIN = 'notify.vpfinest.com'
 const FROM_DOMAIN = 'notify.vpfinest.com'
 
 const VALID_MAGNETS = ['printable', 'scaling', 'checklist', 'pack'] as const
+const VALID_SOURCES = ['facebook','instagram','tiktok','youtube','pinterest','email','direct','other'] as const
 
 function isEmail(s: unknown): s is string {
   return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 254
@@ -33,6 +34,7 @@ export const Route = createFileRoute('/api/recipe-signup')({
         const email = String(body.email || '').trim().toLowerCase()
         const recipeId = body.recipeId ? String(body.recipeId) : null
         const leadMagnet = VALID_MAGNETS.includes(body.leadMagnet) ? body.leadMagnet : 'printable'
+        const entrySource = VALID_SOURCES.includes(body.entrySource) ? body.entrySource : 'direct'
 
         if (!isEmail(email)) return Response.json({ error: 'Invalid email' }, { status: 400 })
         if (recipeId && !/^[0-9a-f-]{36}$/i.test(recipeId)) return Response.json({ error: 'Invalid recipeId' }, { status: 400 })
@@ -59,6 +61,7 @@ export const Route = createFileRoute('/api/recipe-signup')({
             recipe_id: recipe?.id || null,
             lead_magnet: leadMagnet,
             source: 'recipe_page',
+            entry_source: entrySource,
             user_agent: request.headers.get('user-agent')?.slice(0, 500) || null,
           })
           .select('id').single()

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/recipes_/$id")({
     const { data: recipe, error } = await (supabase as any)
       .from("recipes")
       .select(
-        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, serving_size, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type, total_cost, cost_per_serving, selling_price_per_person, menu_price, is_copycat, copycat_source",
+        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, serving_size, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type, total_cost, cost_per_serving, selling_price_per_person, menu_price, is_copycat, copycat_source, scope, inspired",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -184,6 +184,12 @@ function RecipeDetailPage() {
             {r.cuisine && <span>· {r.cuisine}</span>}
             {r.use_case && <span>· {r.use_case}</span>}
           </div>
+          {r.inspired && (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs text-foreground">
+              <span className="font-medium">Inspired by familiar flavors</span>
+              <span className="text-muted-foreground">— not an official or branded replica</span>
+            </div>
+          )}
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-primary mb-4">{r.name}</h1>
           {r.hook && (
             <p className="text-lg text-muted-foreground max-w-2xl">{r.hook}</p>
@@ -288,6 +294,7 @@ function RecipeDetailPage() {
               pricePerPerson={showPricing ? (r.menu_price ?? r.selling_price_per_person ?? null) : null}
               totalRecipeCost={showPricing ? (r.total_cost ?? null) : null}
               hidePricing={!showPricing}
+              publicLimit={!!r.inspired}
             />
           </aside>
 

@@ -75,6 +75,8 @@ export type RecipeFormInitial = {
     pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
     status?: "draft" | "published";
     ingredient_integrity?: "ok" | "needs_cleanup";
+    /** Mark this home_public recipe as part of the "Inspired / Familiar Favorites" public section. */
+    inspired?: boolean;
   };
   ingredients: IngredientRow[];
 };
@@ -95,6 +97,7 @@ export const blankInitial: RecipeFormInitial = {
     allergens: "",
     status: "draft",
     ingredient_integrity: "ok",
+    inspired: false,
   },
   ingredients: [emptyIngredient()],
 };
@@ -416,6 +419,8 @@ export function RecipeForm({
         allergens: allergensArr.length ? allergensArr : null,
         total_cost: totalCost,
         cost_per_serving: costPerServing,
+        // Inspired / Familiar Favorites flag — DB trigger enforces home_public scope.
+        inspired: !!form.inspired,
       };
       if (mode === "create") {
         // Force draft on creation regardless of publish intent — publish is a
@@ -807,6 +812,21 @@ export function RecipeForm({
               />
               Gluten-Free
             </label>
+          </div>
+          <div className="flex items-start gap-3 pt-2 border-t border-border/40 mt-2">
+            <Switch
+              id="inspired-toggle"
+              checked={!!form.inspired}
+              onCheckedChange={(v) => setForm({ ...form, inspired: v })}
+            />
+            <div className="text-sm">
+              <label htmlFor="inspired-toggle" className="font-medium block">
+                Show in "Inspired / Familiar Favorites"
+              </label>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-md leading-relaxed">
+                Surfaces this recipe on the public Inspired section. Only allowed for home-cooking (home_public scope) recipes — the database will reject this for catering recipes.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
