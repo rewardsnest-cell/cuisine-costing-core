@@ -360,13 +360,19 @@ function ExportsPage() {
     setBusy("json");
     setError(null);
     try {
+      const snap = await fetchInventorySnapshot();
       const bundle = {
         generated_at: new Date().toISOString(),
         project: "VP Finest",
-        format_version: 1,
-        markdown: PROJECT_AUDIT_MD,
+        format_version: 2,
+        markdown: PROJECT_AUDIT_MD + "\n" + inventoryToMarkdown(snap),
         routes: ROUTE_DESCRIPTIONS,
         route_count: Object.keys(ROUTE_DESCRIPTIONS).length,
+        audit_inventory: {
+          fetched_at: snap.fetched_at,
+          row_count: snap.rows.length,
+          rows: snap.rows,
+        },
       };
       const json = JSON.stringify(bundle, null, 2);
       await downloadFile(
