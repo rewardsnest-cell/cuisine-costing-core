@@ -37,6 +37,7 @@ function KrogerRunsPage() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [customLimit, setCustomLimit] = useState<string>("");
   const pollRef = useRef<number | null>(null);
 
   const load = async () => {
@@ -67,8 +68,12 @@ function KrogerRunsPage() {
     if (pollRef.current) return;
     pollRef.current = window.setInterval(async () => {
       try {
-        const r = await listKrogerRuns({ data: { limit: 25 } });
+        const [r, s] = await Promise.all([
+          listKrogerRuns({ data: { limit: 25 } }),
+          getKrogerStatus(),
+        ]);
         setRuns(r);
+        setStatus(s);
       } catch {}
     }, 2500);
     return () => {
@@ -76,12 +81,12 @@ function KrogerRunsPage() {
     };
   }, [runs]);
 
-  const onRun = async () => {
+  const triggerIngest = async (limit: number) => {
     setRunning(true);
     try {
-      const res = await ingestKrogerPrices({ data: {} });
+      const res = await ingestKrogerPrices({ data: { limit } });
       if (res.ran) {
-        toast.success(res.message);
+        toast.success(res.message + (limit === 0 ? " (all items)" : ` (limit ${limit})`));
         setActiveRunId(res.run_id ?? null);
       } else {
         toast.message(res.message);
@@ -92,6 +97,14 @@ function KrogerRunsPage() {
     } finally {
       setRunning(false);
     }
+  };
+
+  const onRunDefault = () => triggerIngest(25);
+  const onRunAll = () => triggerIngest(0);
+  const onRunCustom = () => {
+    const n = parseInt(customLimit, 10);
+    if (!Number.isFinite(n) || n < 1) { toast.error("Enter a number ≥ 1"); return; }
+    triggerIngest(n);
   };
 
   const latest = runs[0] ?? null;
