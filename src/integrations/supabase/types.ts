@@ -733,6 +733,48 @@ export type Database = {
         }
         Relationships: []
       }
+      e2e_audit_runs: {
+        Row: {
+          audit_markdown: string | null
+          created_at: string
+          created_by: string | null
+          duration_ms: number
+          failed: number
+          id: string
+          notes: string | null
+          passed: number
+          results: Json
+          skipped: number
+          total_routes: number
+        }
+        Insert: {
+          audit_markdown?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number
+          failed?: number
+          id?: string
+          notes?: string | null
+          passed?: number
+          results?: Json
+          skipped?: number
+          total_routes?: number
+        }
+        Update: {
+          audit_markdown?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number
+          failed?: number
+          id?: string
+          notes?: string | null
+          passed?: number
+          results?: Json
+          skipped?: number
+          total_routes?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
