@@ -1883,6 +1883,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          entry_source: string | null
           id: string
           ip_hash: string | null
           lead_magnet: string
@@ -1893,6 +1894,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          entry_source?: string | null
           id?: string
           ip_hash?: string | null
           lead_magnet?: string
@@ -1903,6 +1905,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          entry_source?: string | null
           id?: string
           ip_hash?: string | null
           lead_magnet?: string
@@ -2085,6 +2088,7 @@ export type Database = {
           id: string
           image_url: string | null
           ingredient_integrity: string
+          inspired: boolean
           instructions: string | null
           is_copycat: boolean
           is_gluten_free: boolean | null
@@ -2141,6 +2145,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredient_integrity?: string
+          inspired?: boolean
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
@@ -2197,6 +2202,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredient_integrity?: string
+          inspired?: boolean
           instructions?: string | null
           is_copycat?: boolean
           is_gluten_free?: boolean | null
