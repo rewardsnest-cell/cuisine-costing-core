@@ -66,6 +66,8 @@ function HubEdit() {
             allergens: (rec.allergens ?? []).join(", "),
             pricing_status: rec.pricing_status ?? "valid",
             pricing_errors: Array.isArray(rec.pricing_errors) ? rec.pricing_errors : [],
+            status: (rec.status as "draft" | "published") ?? "draft",
+            ingredient_integrity: (rec.ingredient_integrity as "ok" | "needs_cleanup") ?? "ok",
           },
           ingredients: (ings ?? []).map((i: any) => ({
             id: i.id,
@@ -75,6 +77,7 @@ function HubEdit() {
             cost_per_unit: i.cost_per_unit != null ? String(i.cost_per_unit) : "",
             notes: i.notes ?? "",
             inventory_item_id: i.inventory_item_id ?? null,
+            reference_id: i.reference_id ?? null,
           })),
         });
       }

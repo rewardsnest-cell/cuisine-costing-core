@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ChefHat, Check, Sparkles, Loader2, Share2, AlertTriangle, CircleAlert, CheckCircle2, FileEdit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -25,9 +26,16 @@ type IngredientRow = {
   cost_per_unit: string;
   notes: string;
   inventory_item_id: string | null;
+  reference_id: string | null;
 };
 
-type InvItem = { id: string; name: string; unit: string; average_cost_per_unit: number };
+type InvItem = {
+  id: string;
+  name: string;
+  unit: string;
+  average_cost_per_unit: number;
+  reference_id?: string | null;
+};
 
 const emptyIngredient = (): IngredientRow => ({
   name: "",
@@ -36,6 +44,7 @@ const emptyIngredient = (): IngredientRow => ({
   cost_per_unit: "",
   notes: "",
   inventory_item_id: null,
+  reference_id: null,
 });
 
 export type RecipeFormInitial = {
@@ -55,6 +64,8 @@ export type RecipeFormInitial = {
     allergens: string;
     pricing_status?: string | null;
     pricing_errors?: Array<{ ingredient?: string; issue?: string; message?: string }> | null;
+    status?: "draft" | "published";
+    ingredient_integrity?: "ok" | "needs_cleanup";
   };
   ingredients: IngredientRow[];
 };
@@ -73,6 +84,8 @@ export const blankInitial: RecipeFormInitial = {
     is_vegan: false,
     is_gluten_free: false,
     allergens: "",
+    status: "draft",
+    ingredient_integrity: "ok",
   },
   ingredients: [emptyIngredient()],
 };
@@ -169,11 +182,22 @@ export function RecipeForm({
 
   useEffect(() => {
     (async () => {
+      // Pull reference_id alongside so picking an inventory item auto-resolves
+      // the canonical ingredient_reference link required to publish.
       const { data } = await supabase
         .from("inventory_items")
-        .select("id,name,unit,average_cost_per_unit")
+        .select("id,name,unit,average_cost_per_unit,ingredient_reference(id)")
         .order("name");
-      setInventory((data ?? []) as InvItem[]);
+      const mapped = (data ?? []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        unit: row.unit,
+        average_cost_per_unit: row.average_cost_per_unit,
+        reference_id: Array.isArray(row.ingredient_reference)
+          ? row.ingredient_reference[0]?.id ?? null
+          : row.ingredient_reference?.id ?? null,
+      })) as InvItem[];
+      setInventory(mapped);
     })();
   }, []);
 
@@ -246,7 +270,56 @@ export function RecipeForm({
   const servingsNum = parseInt(form.servings) || 0;
   const costPerServing = servingsNum > 0 ? totalCost / servingsNum : 0;
 
-  const handleSave = async () => {
+  // Auto-resolve a free-text ingredient to its canonical ingredient_reference
+  // using the existing fuzzy/synonym matcher RPC. Returns reference_id when a
+  // confident match is found.
+  const autoResolveReference = async (name: string): Promise<string | null> => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    try {
+      const { data } = await supabase.rpc("find_ingredient_matches", { _name: trimmed, _limit: 1 });
+      const top = (data as any[] | null)?.[0];
+      if (!top) return null;
+      // Synonym hits are exact; reference hits >=0.8 are safe to auto-link.
+      if (top.source === "synonym") return top.reference_id ?? null;
+      if ((top.similarity ?? 0) >= 0.8) return top.reference_id ?? null;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Resolve all rows that don't yet have a reference_id (or inventory link).
+  // Mutates state so the user immediately sees what got linked.
+  const runAutoMatch = async (): Promise<IngredientRow[]> => {
+    const next = await Promise.all(
+      ingredients.map(async (ing) => {
+        if (!ing.name.trim()) return ing;
+        if (ing.reference_id) return ing;
+        // If linked to inventory but no reference_id yet, prefer the inventory's reference
+        if (ing.inventory_item_id) {
+          const inv = inventory.find((i) => i.id === ing.inventory_item_id);
+          if (inv?.reference_id) return { ...ing, reference_id: inv.reference_id };
+        }
+        const refId = await autoResolveReference(ing.name);
+        return refId ? { ...ing, reference_id: refId } : ing;
+      }),
+    );
+    setIngredients(next);
+    return next;
+  };
+
+  const unresolvedRows = (rows: IngredientRow[]) =>
+    rows
+      .filter((i) => i.name.trim())
+      .filter(
+        (i) =>
+          !i.reference_id ||
+          !i.unit.trim() ||
+          !(parseFloat(i.quantity) > 0),
+      );
+
+  const persist = async (opts: { publish: boolean }): Promise<void> => {
     if (!form.name.trim()) {
       toast.error("Recipe name is required");
       return;
@@ -258,7 +331,24 @@ export function RecipeForm({
         .map((a) => a.trim())
         .filter(Boolean);
 
-      const payload = {
+      // Try to resolve any unlinked ingredients before publishing
+      const rowsForSave = opts.publish ? await runAutoMatch() : ingredients;
+
+      if (opts.publish) {
+        const blockers = unresolvedRows(rowsForSave);
+        if (rowsForSave.filter((i) => i.name.trim()).length === 0) {
+          toast.error("Add at least one ingredient before publishing");
+          return;
+        }
+        if (blockers.length > 0) {
+          toast.error(
+            `Cannot publish — ${blockers.length} ingredient${blockers.length === 1 ? "" : "s"} still need linking, a unit, or a positive quantity`,
+          );
+          return;
+        }
+      }
+
+      const payload: Record<string, unknown> = {
         name: form.name.trim(),
         description: form.description || null,
         category: form.category || null,
@@ -274,20 +364,34 @@ export function RecipeForm({
         total_cost: totalCost,
         cost_per_serving: costPerServing,
       };
+      if (mode === "create") {
+        // Force draft on creation regardless of publish intent — publish is a
+        // second step so the publish trigger sees ingredients already inserted.
+        payload.status = "draft";
+        payload.created_source = "manual";
+      }
 
       let savedId = recipeId;
       if (mode === "create") {
         const { data, error } = await supabase
           .from("recipes")
-          .insert(payload)
+          .insert(payload as any)
           .select()
           .single();
         if (error) throw error;
         savedId = data.id;
       } else if (mode === "edit" && recipeId) {
-        const { error } = await supabase.from("recipes").update(payload).eq("id", recipeId);
+        // Move to draft first if currently published — otherwise the
+        // recipe_ingredient_resolved_gate trigger blocks any free-text edits.
+        if (initial.recipe.status === "published") {
+          const { error: draftErr } = await supabase
+            .from("recipes")
+            .update({ status: "draft" } as any)
+            .eq("id", recipeId);
+          if (draftErr) throw draftErr;
+        }
+        const { error } = await supabase.from("recipes").update(payload as any).eq("id", recipeId);
         if (error) throw error;
-        // Clear existing ingredients then re-insert (simpler than diffing)
         const { error: delErr } = await supabase
           .from("recipe_ingredients")
           .delete()
@@ -295,7 +399,7 @@ export function RecipeForm({
         if (delErr) throw delErr;
       }
 
-      const validIngredients = ingredients.filter((i) => i.name.trim());
+      const validIngredients = rowsForSave.filter((i) => i.name.trim());
       if (validIngredients.length > 0 && savedId) {
         const { error: ingErr } = await supabase.from("recipe_ingredients").insert(
           validIngredients.map((ing) => ({
@@ -306,12 +410,29 @@ export function RecipeForm({
             cost_per_unit: ing.cost_per_unit ? parseFloat(ing.cost_per_unit) : 0,
             notes: ing.notes || null,
             inventory_item_id: ing.inventory_item_id,
+            reference_id: ing.reference_id,
           })),
         );
         if (ingErr) throw ingErr;
       }
 
-      toast.success(mode === "create" ? "Recipe created" : "Recipe updated");
+      // Flip to published only when the user explicitly asked. The DB trigger
+      // is the source of truth and will reject if anything is unresolved.
+      if (opts.publish && savedId) {
+        const { error: pubErr } = await supabase
+          .from("recipes")
+          .update({ status: "published" } as any)
+          .eq("id", savedId);
+        if (pubErr) throw pubErr;
+      }
+
+      toast.success(
+        opts.publish
+          ? "Recipe published"
+          : mode === "create"
+            ? "Draft saved"
+            : "Recipe updated",
+      );
       navigate({ to: "/admin/recipes" });
     } catch (e: any) {
       toast.error(e.message || "Failed to save recipe");
@@ -319,6 +440,41 @@ export function RecipeForm({
       setSaving(false);
     }
   };
+
+  const handleSaveDraft = () => persist({ publish: false });
+  const handlePublish = () => persist({ publish: true });
+
+  const handleUnpublish = async () => {
+    if (!recipeId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("recipes")
+        .update({ status: "draft" } as any)
+        .eq("id", recipeId);
+      if (error) throw error;
+      toast.success("Moved back to draft");
+      navigate({ to: "/admin/recipes" });
+    } catch (e: any) {
+      toast.error(e.message || "Failed to unpublish");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAutoMatchClick = async () => {
+    const before = ingredients.filter((i) => i.name.trim() && !i.reference_id).length;
+    const after = await runAutoMatch();
+    const remaining = after.filter((i) => i.name.trim() && !i.reference_id).length;
+    const linked = before - remaining;
+    if (linked > 0) toast.success(`Auto-linked ${linked} ingredient${linked === 1 ? "" : "s"}`);
+    else toast.info("No additional ingredients could be auto-linked");
+  };
+
+  const currentStatus: "draft" | "published" = initial.recipe.status ?? "draft";
+  const currentIntegrity = initial.recipe.ingredient_integrity ?? "ok";
+  const liveUnresolved = unresolvedRows(ingredients);
+  const canPublish = liveUnresolved.length === 0 && ingredients.some((i) => i.name.trim());
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -380,6 +536,30 @@ export function RecipeForm({
         )}
       </div>
 
+      {/* Lifecycle status + ingredient integrity summary */}
+      <Card className="border-border/60">
+        <CardContent className="p-5 flex flex-wrap items-center gap-3">
+          <Badge
+            variant={currentStatus === "published" ? "default" : "secondary"}
+            className="uppercase tracking-wide"
+          >
+            {currentStatus}
+          </Badge>
+          {currentIntegrity === "needs_cleanup" && (
+            <Badge variant="destructive" className="gap-1">
+              <CircleAlert className="w-3 h-3" /> Needs ingredient cleanup
+            </Badge>
+          )}
+          <span className="text-sm text-muted-foreground flex-1 min-w-[200px]">
+            {liveUnresolved.length === 0
+              ? "All ingredient lines are resolved — ready to publish."
+              : `${liveUnresolved.length} ingredient line${liveUnresolved.length === 1 ? "" : "s"} need linking, a unit, or a positive quantity before publishing.`}
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={handleAutoMatchClick} className="gap-1">
+            <Sparkles className="w-3.5 h-3.5" /> Auto-match ingredients
+          </Button>
+        </CardContent>
+      </Card>
       {initial.recipe.pricing_status && initial.recipe.pricing_status !== "valid" && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-5">
@@ -579,7 +759,7 @@ export function RecipeForm({
                   key={idx}
                   className="grid grid-cols-12 gap-2 items-center border border-border/50 sm:border-0 rounded-md p-2 sm:p-0"
                 >
-                  <div className="col-span-12 sm:col-span-4">
+                  <div className="col-span-12 sm:col-span-4 space-y-1">
                     <InventoryPicker
                       inventory={inventory}
                       value={ing.inventory_item_id}
@@ -593,6 +773,7 @@ export function RecipeForm({
                           );
                           updateIngredient(idx, {
                             inventory_item_id: inv.id,
+                            reference_id: inv.reference_id ?? null,
                             name: inv.name,
                             unit: ing.unit || inv.unit,
                             cost_per_unit:
@@ -603,11 +784,17 @@ export function RecipeForm({
                         } else if (typeof freeText === "string") {
                           updateIngredient(idx, {
                             inventory_item_id: null,
+                            reference_id: null,
                             name: freeText,
                           });
                         }
                       }}
                     />
+                    {ing.name.trim() && !ing.reference_id && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
+                        <CircleAlert className="w-3 h-3" /> Unlinked — pick from inventory or add to ingredient reference
+                      </span>
+                    )}
                   </div>
                   <div className="col-span-4 sm:col-span-2">
                     <Input
@@ -686,16 +873,30 @@ export function RecipeForm({
         </CardContent>
       </Card>
 
-      <div className="flex gap-3 justify-end">
+      <div className="flex gap-3 justify-end flex-wrap">
         <Button variant="outline" onClick={() => navigate({ to: "/admin/recipes" })}>
           Cancel
         </Button>
+        {mode === "edit" && currentStatus === "published" && (
+          <Button variant="outline" onClick={handleUnpublish} disabled={saving} className="gap-2">
+            <FileEdit className="w-4 h-4" /> Move to draft
+          </Button>
+        )}
         <Button
-          onClick={handleSave}
+          variant="outline"
+          onClick={handleSaveDraft}
           disabled={saving || !form.name.trim()}
-          className="bg-gradient-warm text-primary-foreground"
         >
-          {saving ? "Saving..." : mode === "create" ? "Create Recipe" : "Save changes"}
+          {saving ? "Saving..." : mode === "create" ? "Save as draft" : "Save changes"}
+        </Button>
+        <Button
+          onClick={handlePublish}
+          disabled={saving || !form.name.trim() || !canPublish}
+          className="bg-gradient-warm text-primary-foreground gap-2"
+          title={!canPublish ? "Resolve all ingredient lines to publish" : undefined}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          {mode === "edit" && currentStatus === "published" ? "Save & re-publish" : "Publish"}
         </Button>
       </div>
     </div>
