@@ -122,10 +122,10 @@ function ExportsPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const handleDownloadMarkdown = () => {
+  const handleDownloadMarkdown = async () => {
     setBusy("md");
     try {
-      downloadFile(
+      await downloadFile(
         PROJECT_AUDIT_MD,
         `PROJECT_AUDIT_${today}.md`,
         "text/markdown;charset=utf-8",
