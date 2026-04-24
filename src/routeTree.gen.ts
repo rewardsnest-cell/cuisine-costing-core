@@ -45,6 +45,7 @@ import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fa
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
+import { Route as QuoteStartRouteImport } from './routes/quote.start'
 import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
 import { Route as HooksNationalPricesMonthlyRouteImport } from './routes/hooks/national-prices-monthly'
@@ -327,6 +328,11 @@ const QuoteAiRoute = QuoteAiRouteImport.update({
   id: '/quote_/ai',
   path: '/quote/ai',
   getParentRoute: () => rootRouteImport,
+} as any)
+const QuoteStartRoute = QuoteStartRouteImport.update({
+  id: '/start',
+  path: '/start',
+  getParentRoute: () => QuoteRoute,
 } as any)
 const InspiredIdRoute = InspiredIdRouteImport.update({
   id: '/inspired_/$id',
@@ -863,7 +869,7 @@ export interface FileRoutesByFullPath {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -947,6 +953,7 @@ export interface FileRoutesByFullPath {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
+  '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -1000,7 +1007,7 @@ export interface FileRoutesByTo {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -1083,6 +1090,7 @@ export interface FileRoutesByTo {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
+  '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -1138,7 +1146,7 @@ export interface FileRoutesById {
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
-  '/quote': typeof QuoteRoute
+  '/quote': typeof QuoteRouteWithChildren
   '/recipes': typeof RecipesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -1222,6 +1230,7 @@ export interface FileRoutesById {
   '/hooks/national-prices-monthly': typeof HooksNationalPricesMonthlyRoute
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired_/$id': typeof InspiredIdRoute
+  '/quote/start': typeof QuoteStartRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
@@ -1362,6 +1371,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
+    | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1498,6 +1508,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired/$id'
+    | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
     | '/weddings/booking-timeline'
@@ -1636,6 +1647,7 @@ export interface FileRouteTypes {
     | '/hooks/national-prices-monthly'
     | '/hooks/recipe-drip'
     | '/inspired_/$id'
+    | '/quote/start'
     | '/quote_/ai'
     | '/recipes_/$id'
     | '/weddings/booking-timeline'
@@ -1691,7 +1703,7 @@ export interface RootRouteChildren {
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   PrivacyRoute: typeof PrivacyRoute
-  QuoteRoute: typeof QuoteRoute
+  QuoteRoute: typeof QuoteRouteWithChildren
   RecipesRoute: typeof RecipesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -1982,6 +1994,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/quote/ai'
       preLoaderRoute: typeof QuoteAiRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/quote/start': {
+      id: '/quote/start'
+      path: '/start'
+      fullPath: '/quote/start'
+      preLoaderRoute: typeof QuoteStartRouteImport
+      parentRoute: typeof QuoteRoute
     }
     '/inspired_/$id': {
       id: '/inspired_/$id'
@@ -2937,6 +2956,16 @@ const CookingLabRouteWithChildren = CookingLabRoute._addFileChildren(
   CookingLabRouteChildren,
 )
 
+interface QuoteRouteChildren {
+  QuoteStartRoute: typeof QuoteStartRoute
+}
+
+const QuoteRouteChildren: QuoteRouteChildren = {
+  QuoteStartRoute: QuoteStartRoute,
+}
+
+const QuoteRouteWithChildren = QuoteRoute._addFileChildren(QuoteRouteChildren)
+
 interface WeddingsRouteChildren {
   WeddingsBookingTimelineRoute: typeof WeddingsBookingTimelineRoute
   WeddingsFallHudsonOhioRoute: typeof WeddingsFallHudsonOhioRoute
@@ -2976,7 +3005,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   PrivacyRoute: PrivacyRoute,
-  QuoteRoute: QuoteRoute,
+  QuoteRoute: QuoteRouteWithChildren,
   RecipesRoute: RecipesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
