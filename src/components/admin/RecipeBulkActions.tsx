@@ -42,7 +42,7 @@ export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPh
   const missingPhotos = selectedRecipes.filter((r) => !r.image_url);
 
   const applyPhase = async (phase: InspiredPhase) => {
-    if (!confirm(`Set Inspired phase to "${PHASE_LABEL[phase]}" for ${selectedIdArr.length} recipe(s)?\n\nThis is audit-logged and creates a Change Log draft.`)) return;
+    if (!confirm(`Set Familiar Favorites phase to "${PHASE_LABEL[phase]}" for ${selectedIdArr.length} recipe(s)?\n\nThis is audit-logged and creates a Change Log draft.`)) return;
     setPhaseRunning(true);
     try {
       const out: any = await setBulkPhase({ data: { recipeIds: selectedIdArr, phase } });
@@ -132,7 +132,7 @@ export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPh
             }}
             className="text-xs rounded-md border border-border bg-background px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">{phaseRunning ? "Updating…" : "Set Inspired phase…"}</option>
+            <option value="">{phaseRunning ? "Updating…" : "Set Familiar Favorites phase…"}</option>
             {INSPIRED_PHASES.map((p) => (
               <option key={p} value={p}>{PHASE_LABEL[p]}</option>
             ))}

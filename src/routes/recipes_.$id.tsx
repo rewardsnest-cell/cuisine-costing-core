@@ -186,8 +186,8 @@ function RecipeDetailPage() {
           </div>
           {r.inspired && (
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs text-foreground">
-              <span className="font-medium">Inspired by familiar flavors</span>
-              <span className="text-muted-foreground">— not an official or branded replica</span>
+              <span className="font-medium">Familiar Favorite</span>
+              <span className="text-muted-foreground">— original recipe inspired by well-known flavors</span>
             </div>
           )}
           <h1 className="font-display text-4xl sm:text-5xl font-bold text-primary mb-4">{r.name}</h1>

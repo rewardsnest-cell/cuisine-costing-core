@@ -7,8 +7,8 @@ import { ShieldAlert, ExternalLink } from "lucide-react";
 import { PHASE_BADGE_CLASS, PHASE_LABEL, type InspiredPhase } from "@/lib/inspired";
 
 export const Route = createFileRoute("/admin/inspired-preview")({
-  head: () => ({ meta: [{ title: "Inspired preview — Admin" }] }),
-  component: InspiredPreview,
+  head: () => ({ meta: [{ title: "Familiar Favorites Preview — Admin" }] }),
+  component: FamiliarFavoritesPreview,
 });
 
 type Recipe = {
@@ -27,7 +27,7 @@ type Recipe = {
   active: boolean;
 };
 
-function InspiredPreview() {
+function FamiliarFavoritesPreview() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [phaseFilter, setPhaseFilter] = useState<"all" | InspiredPhase>("all");
@@ -56,23 +56,23 @@ function InspiredPreview() {
             ADMIN PREVIEW — NOT PUBLIC
           </p>
           <p className="text-muted-foreground mt-0.5">
-            This page shows every recipe flagged as Inspired regardless of phase. Public visitors only see recipes whose phase is <strong>public</strong>. Use this to test layout, copy, and UX safely before activation.
+            This page shows every recipe flagged as a Familiar Favorite regardless of phase. Public visitors only see recipes whose phase is <strong>public</strong>. Use this to test layout, copy, and UX safely before activation.
           </p>
         </div>
       </div>
 
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-display text-3xl text-primary">Inspired preview</h1>
+          <h1 className="font-display text-3xl text-primary">Familiar Favorites Preview</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Internal staging view for the public Inspired / Familiar Favorites section.
+            Internal staging view for the public Familiar Favorites section.
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/inspired" target="_blank">
+          <Link to="/familiar-favorites" target="_blank">
             <Button variant="outline" size="sm" className="gap-1.5">
               <ExternalLink className="w-3.5 h-3.5" />
-              Public /inspired
+              Public /familiar-favorites
             </Button>
           </Link>
           <Link to="/admin/recipe-hub">
@@ -98,16 +98,16 @@ function InspiredPreview() {
 
       {/* Disclaimer block (matches public page) */}
       <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-        <p className="font-medium text-foreground mb-1">Standard Inspired disclaimer (shown publicly):</p>
+        <p className="font-medium text-foreground mb-1">Standard Familiar Favorites disclaimer (shown publicly):</p>
         <p>
-          “These dishes are inspired by familiar flavors. They are original recipes and not official replicas.”
+          “These dishes are part of our Familiar Favorites collection. They are original recipes inspired by well‑known flavors, created and tested independently.”
         </p>
       </div>
 
       {loading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-muted-foreground">No Inspired recipes match this filter.</p>
+        <p className="text-muted-foreground">No Familiar Favorites match this filter.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
           {filtered.map((r) => {
@@ -132,7 +132,7 @@ function InspiredPreview() {
                   </div>
                 </div>
                 <p className="text-[10px] uppercase tracking-widest text-primary mb-1">
-                  {r.category || r.cuisine || "Inspired"}
+                  {r.category || r.cuisine || "Familiar Favorite"}
                 </p>
                 <h2 className="font-display text-xl text-foreground">{r.name}</h2>
                 {r.hook && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{r.hook}</p>}

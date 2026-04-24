@@ -825,10 +825,10 @@ export function RecipeForm({
             />
             <div className="text-sm flex-1">
               <label htmlFor="inspired-toggle" className="font-medium block">
-                Show in "Inspired / Familiar Favorites"
+                Familiar Favorite
               </label>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-md leading-relaxed">
-                Surfaces this recipe on the public Inspired section. Only allowed for home-cooking (home_public scope) recipes — the database will reject this for catering recipes.
+                Marks this recipe as part of Familiar Favorites (home‑only). Only allowed for home-cooking (home_public scope) recipes — the database will reject this for catering recipes.
               </p>
             </div>
           </div>
@@ -846,7 +846,7 @@ export function RecipeForm({
                 <option value="off">Off (hidden everywhere)</option>
                 <option value="admin_preview">Admin preview (admins only)</option>
                 <option value="soft_launch">Soft launch (URL only, no nav)</option>
-                <option value="public">Public (visible on /inspired)</option>
+                <option value="public">Public (visible on /familiar-favorites)</option>
               </select>
               <p className="text-[11px] text-muted-foreground max-w-md">
                 Phase changes are audit-logged and create a Change Log draft automatically.
