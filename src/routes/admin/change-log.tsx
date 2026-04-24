@@ -15,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Archive, Eye, FileText, NotebookPen, Pencil, Plus } from "lucide-react";
+import { Archive, Eye, FileText, NotebookPen, Pencil, Plus, Sparkles, CheckCircle2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateChangeLogDrafts } from "@/lib/server-fns/change-log-auto.functions";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 
@@ -39,6 +41,8 @@ type ChangeLogEntry = {
   archived_at: string | null;
   author_user_id: string | null;
   author_email: string | null;
+  status: "draft" | "published" | "archived";
+  auto_generated: boolean;
   created_at: string;
   updated_at: string;
 };
