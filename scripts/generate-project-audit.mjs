@@ -19,7 +19,39 @@ const ROOT = join(fileURLToPath(import.meta.url), "..", "..");
 const ROUTES_DIR = join(ROOT, "src", "routes");
 const FUNCTIONS_DIR = join(ROOT, "supabase", "functions");
 const MIGRATIONS_DIR = join(ROOT, "supabase", "migrations");
+const DESCRIPTIONS_FILE = join(ROOT, "src", "lib", "admin", "page-descriptions.ts");
 const OUT = join(ROOT, "src", "lib", "admin", "project-audit.ts");
+
+// ---- Parse route descriptions (best-effort regex over the TS source) ----
+const descriptions = {};
+if (existsSync(DESCRIPTIONS_FILE)) {
+  const src = readFileSync(DESCRIPTIONS_FILE, "utf8");
+  // Match: "/path": { title: "...", purpose: "...", audience: "...", whenToUse?: "...", keyActions?: [...] }
+  const blockRe = /"([^"]+)":\s*\{([\s\S]*?)\n  \}/g;
+  let m;
+  while ((m = blockRe.exec(src))) {
+    const path = m[1];
+    const body = m[2];
+    const get = (key) => {
+      const r = new RegExp(`${key}:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+      const mm = body.match(r);
+      return mm ? mm[1].replace(/\\"/g, '"') : null;
+    };
+    const list = (key) => {
+      const r = new RegExp(`${key}:\\s*\\[([\\s\\S]*?)\\]`);
+      const mm = body.match(r);
+      if (!mm) return [];
+      return Array.from(mm[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)).map((x) => x[1]);
+    };
+    descriptions[path] = {
+      title: get("title"),
+      purpose: get("purpose"),
+      audience: get("audience"),
+      whenToUse: get("whenToUse"),
+      keyActions: list("keyActions"),
+    };
+  }
+}
 
 function walk(dir) {
   if (!existsSync(dir)) return [];
@@ -100,8 +132,25 @@ function v(name) {
 const today = new Date().toISOString().split("T")[0];
 
 function routeRow(r) {
-  return `| ${r.path} | \\\`src/routes/${r.file}\\\` |`;
+  const d = descriptions[r.path];
+  if (!d) {
+    return `| \`${r.path}\` | _(no description — add to page-descriptions.ts)_ | \`src/routes/${r.file}\` |`;
+  }
+  let purpose = d.purpose || "";
+  if (d.whenToUse) purpose += ` _When:_ ${d.whenToUse}`;
+  if (d.keyActions && d.keyActions.length) {
+    purpose += ` _Actions:_ ${d.keyActions.join("; ")}`;
+  }
+  // Escape pipe chars so they don't break the markdown table
+  purpose = purpose.replace(/\|/g, "\\|");
+  const title = (d.title || "").replace(/\|/g, "\\|");
+  return `| \`${r.path}\` | **${title}** — ${purpose} | \`src/routes/${r.file}\` |`;
 }
+
+const describedCount = routes.filter((r) => descriptions[r.path]).length;
+const undescribedRoutes = routes
+  .filter((r) => !descriptions[r.path])
+  .map((r) => `- \`${r.path}\` (\`src/routes/${r.file}\`)`);
 
 const md = `# Project Audit — ${pkg.name}
 
@@ -127,25 +176,28 @@ ${tables.map((t) => `- ${t}`).join("\n") || "- (no migrations found)"}
 
 ## 3. SCREENS / PAGES
 
+_${describedCount} of ${routes.length} routes have human-readable descriptions._
+${undescribedRoutes.length ? `\n_Missing descriptions (add to \`src/lib/admin/page-descriptions.ts\`):_\n${undescribedRoutes.join("\n")}\n` : ""}
+
 ### Public (${grouped.public.length})
-| Path | File |
-|---|---|
-${grouped.public.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.public.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Auth-gated (${grouped.auth.length})
-| Path | File |
-|---|---|
-${grouped.auth.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.auth.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Employee-gated (${grouped.employee.length})
-| Path | File |
-|---|---|
-${grouped.employee.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.employee.map(routeRow).join("\n") || "| — | — | — |"}
 
 ### Admin-gated (${grouped.admin.length})
-| Path | File |
-|---|---|
-${grouped.admin.map(routeRow).join("\n") || "| — | — |"}
+| Path | What it does | File |
+|---|---|---|
+${grouped.admin.map(routeRow).join("\n") || "| — | — | — |"}
 
 ## 4. EDGE FUNCTIONS
 
