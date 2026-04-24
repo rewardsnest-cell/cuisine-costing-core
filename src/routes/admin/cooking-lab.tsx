@@ -295,18 +295,40 @@ function EntryCard({ entry }: { entry: CookingLabEntry }) {
               <span className="text-xs text-muted-foreground">Order #{draft.display_order}</span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm(`Delete "${entry.title}"? This cannot be undone.`)) {
-                deleteMut.mutate();
-              }
-            }}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  Preview public card
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Public preview — {draft.title || "(untitled)"}</DialogTitle>
+                  <DialogDescription>
+                    This is exactly how the card renders on /cooking-lab when published & visible.
+                    Reflects your unsaved edits.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="rounded-lg border border-border bg-background p-6 mt-2">
+                  <CookingLabSection entry={draft} reverse={false} />
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Delete "${entry.title}"? This cannot be undone.`)) {
+                  deleteMut.mutate();
+                }
+              }}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
