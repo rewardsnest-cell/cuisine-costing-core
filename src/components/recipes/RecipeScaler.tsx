@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown } from "lucide-react";
+import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+
+// Public scaling rule for home-cook recipes: only 1, 5, or 10 servings.
+// Anything beyond that funnels to /catering/quote.
+const PUBLIC_SERVING_OPTIONS = [1, 5, 10] as const;
 
 type Ingredient = {
   id: string;
