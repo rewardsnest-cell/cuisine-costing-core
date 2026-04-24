@@ -3,6 +3,7 @@ import { useEffect, useState, type ComponentProps, type CSSProperties, type Reac
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveCookingLabEntry } from "@/lib/server-fns/save-cooking-lab-entry.functions";
+import { generateCookingLabOgImage } from "@/lib/server-fns/generate-cooking-lab-og.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
