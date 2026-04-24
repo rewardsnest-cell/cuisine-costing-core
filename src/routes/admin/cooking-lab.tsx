@@ -361,6 +361,93 @@ function CookingLabAdminPage() {
   return <CookingLabManager />;
 }
 
+function FullPagePreviewButton({ entries }: { entries: CookingLabEntry[] }) {
+  const [open, setOpen] = useState(false);
+  const [includeDrafts, setIncludeDrafts] = useState(false);
+
+  // Mirror the public page's filter (visible + published), then optionally
+  // layer drafts on top so admins can see exactly what publishing will reveal.
+  const publishedVisible = entries
+    .filter((e) => e.visible && e.status === "published")
+    .sort((a, b) => a.display_order - b.display_order);
+  const draftsVisible = entries
+    .filter((e) => e.visible && e.status === "draft")
+    .sort((a, b) => a.display_order - b.display_order);
+
+  const previewEntries: PublicCookingLabEntry[] = (
+    includeDrafts ? [...publishedVisible, ...draftsVisible] : publishedVisible
+  ).map((e) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    video_url: e.video_url,
+    image_url: e.image_url,
+    primary_tool_name: e.primary_tool_name,
+    primary_tool_url: e.primary_tool_url,
+    secondary_tool_name: e.secondary_tool_name,
+    secondary_tool_url: e.secondary_tool_url,
+    display_order: e.display_order,
+  }));
+
+  const draftCount = draftsVisible.length;
+  const hiddenCount = entries.filter((e) => !e.visible).length;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <Eye className="w-4 h-4" />
+          Preview full page
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-7xl max-h-[92vh] overflow-y-auto p-0">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30 sticky top-0 z-10">
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="w-5 h-5" />
+            Public preview — /cooking-lab
+          </DialogTitle>
+          <DialogDescription>
+            Read-only replica of the live page. Reflects <strong>saved</strong> data only —
+            unsaved edits in any entry card below are not shown here.
+          </DialogDescription>
+          <div className="flex flex-wrap items-center gap-3 pt-3">
+            <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5">
+              <Switch
+                id="include-drafts"
+                checked={includeDrafts}
+                onCheckedChange={setIncludeDrafts}
+              />
+              <Label htmlFor="include-drafts" className="text-sm cursor-pointer">
+                Include drafts ({draftCount})
+              </Label>
+            </div>
+            <Badge variant="secondary" className="gap-1">
+              {previewEntries.length} entries shown
+            </Badge>
+            {hiddenCount > 0 && (
+              <Badge variant="outline" className="gap-1 text-muted-foreground">
+                {hiddenCount} hidden (excluded)
+              </Badge>
+            )}
+            {includeDrafts && draftCount > 0 && (
+              <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400">
+                Showing what visitors will see <em className="not-italic">after</em> publishing
+              </Badge>
+            )}
+          </div>
+        </DialogHeader>
+        <div className="bg-background">
+          {/* Disable interactivity so admin can't accidentally click outbound affiliate
+              links from the preview (would skew analytics). */}
+          <div className="pointer-events-none select-none">
+            <CookingLabPageBody entries={previewEntries} isLoading={false} />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CookingLabManager() {
   const queryClient = useQueryClient();
   const { data: entries, isLoading } = useQuery({
