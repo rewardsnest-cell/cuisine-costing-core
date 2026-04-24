@@ -211,7 +211,31 @@ function ExportsPage() {
     }
   };
 
-  const handleExportCsv = async (spec: CsvSpec) => {
+  const handleDownloadJson = async () => {
+    setBusy("json");
+    setError(null);
+    try {
+      const bundle = {
+        generated_at: new Date().toISOString(),
+        project: "VP Finest",
+        format_version: 1,
+        markdown: PROJECT_AUDIT_MD,
+        routes: ROUTE_DESCRIPTIONS,
+        route_count: Object.keys(ROUTE_DESCRIPTIONS).length,
+      };
+      const json = JSON.stringify(bundle, null, 2);
+      await downloadFile(
+        json,
+        `PROJECT_AUDIT_${today}.json`,
+        "application/json;charset=utf-8",
+      );
+      flashDone("json");
+    } catch (e: any) {
+      setError(e.message || "JSON export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
     setBusy(spec.key);
     setError(null);
     try {
