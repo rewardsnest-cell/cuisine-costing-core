@@ -36,6 +36,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
     items: [
       { to: "/admin/national-prices", label: "Pricing Intelligence", icon: Globe2 },
       { to: "/admin/kroger-pricing", label: "Kroger Pricing", icon: Tag },
+      { to: "/admin/items", label: "Items & Cost Intelligence", icon: Package },
       { to: "/admin/cost-queue", label: "Cost Update Queue", icon: ClipboardCheck },
       { to: "/admin/margin-volatility", label: "Margin & Volatility", icon: TrendingUp },
       { to: "/admin/trends", label: "Price Trends", icon: TrendingUp },
@@ -84,6 +85,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/suppliers", label: "Suppliers", icon: Truck },
       { to: "/admin/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
       { to: "/admin/receipts", label: "Receipts", icon: Receipt },
+      { to: "/admin/receipts/review-matches", label: "Receipt Match Review", icon: ClipboardCheck },
       { to: "/admin/uploads", label: "Uploads Inbox", icon: Inbox },
       { to: "/admin/scan-flyer", label: "Scan Flyer", icon: ScanLine },
       { to: "/admin/sales", label: "Sales Dashboard", icon: Tag },

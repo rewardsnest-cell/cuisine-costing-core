@@ -276,6 +276,7 @@ function CostQueuePage() {
                         <TableHead className="font-bold">Internal Estimate</TableHead>
                         <TableHead>Weights</TableHead>
                         <TableHead>Updated</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -292,6 +293,9 @@ function CostQueuePage() {
                               {w.kroger ? `K ${Math.round(w.kroger * 100)}%` : ""} {w.manual ? `M ${Math.round(w.manual * 100)}%` : ""} {w.historical ? `H ${Math.round(w.historical * 100)}%` : ""}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{r.internal_estimated_unit_cost_updated_at ? new Date(r.internal_estimated_unit_cost_updated_at).toLocaleDateString() : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="ghost" onClick={() => setBreakdownRef(r.id)} className="gap-1"><Eye className="w-3.5 h-3.5" />View</Button>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -303,6 +307,13 @@ function CostQueuePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Sheet open={!!breakdownRef} onOpenChange={(o) => !o && setBreakdownRef(null)}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader><SheetTitle>Cost Breakdown</SheetTitle></SheetHeader>
+          <div className="mt-4">{breakdownRef && <CostBreakdownPanel referenceId={breakdownRef} />}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
