@@ -138,6 +138,8 @@ function KrogerSkuReviewPage() {
                   <TableRow>
                     <TableHead>SKU</TableHead>
                     <TableHead>Product</TableHead>
+                    <TableHead>Identifiers</TableHead>
+                    <TableHead className="text-right">Prices</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Linked ingredient</TableHead>
                     <TableHead>Last seen</TableHead>
@@ -164,12 +166,61 @@ function KrogerSkuReviewPage() {
 }
 
 function SkuRow({ row, busy, onAction }: { row: Row; busy: boolean; onAction: (id: string, status: "confirmed" | "rejected" | "unmapped", refId: string | null) => void }) {
+  const r = row as any;
+  const upc: string | null = r.upc ?? null;
+  const productId: string | null = r.product_id ?? null;
+  const regular: number | null = r.regular_price ?? null;
+  const promo: number | null = r.promo_price ?? null;
+  const unitSize: string | null = r.price_unit_size ?? null;
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">{row.sku}</TableCell>
       <TableCell className="max-w-md">
         <div className="text-sm font-medium truncate">{row.product_name ?? "—"}</div>
         {row.notes && <div className="text-xs text-muted-foreground truncate">{row.notes}</div>}
+      </TableCell>
+      <TableCell className="font-mono text-[11px] leading-tight">
+        {upc || productId ? (
+          <div className="space-y-0.5">
+            {upc && (
+              <div className="whitespace-nowrap" title="Kroger UPC">
+                <span className="text-muted-foreground">UPC </span>
+                {upc}
+              </div>
+            )}
+            {productId && productId !== upc && (
+              <div className="whitespace-nowrap" title="Kroger productId">
+                <span className="text-muted-foreground">PID </span>
+                {productId}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right tabular-nums text-xs leading-tight">
+        {regular == null && promo == null ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          <div className="space-y-0.5">
+            {regular != null && (
+              <div className="whitespace-nowrap">
+                <span className="text-muted-foreground">reg </span>
+                ${regular.toFixed(2)}
+              </div>
+            )}
+            {promo != null && (
+              <div className="whitespace-nowrap text-emerald-600 dark:text-emerald-400">
+                <span className="text-muted-foreground">promo </span>
+                ${promo.toFixed(2)}
+              </div>
+            )}
+            {unitSize && (
+              <div className="text-[10px] text-muted-foreground whitespace-nowrap">{unitSize}</div>
+            )}
+          </div>
+        )}
       </TableCell>
       <TableCell>
         <StatusBadge status={row.status} />
@@ -478,22 +529,31 @@ function RunSkuExportCard() {
         .toISOString()
         .slice(0, 19)
         .replace(/[:T]/g, "-");
-      const flatRows = result.skus.map((s) => ({
-        sku: s.sku,
-        product_name: s.product_name ?? "",
-        status: s.status,
-        match_confidence: s.match_confidence ?? "",
-        reference_id: s.reference_id ?? "",
-        reference_name: s.reference_name ?? "",
-        last_seen_at: s.last_seen_at,
-        confirmed_at: s.confirmed_at ?? "",
-        notes: s.notes ?? "",
-        run_id: result.run.id,
-        run_started_at: result.run.started_at ?? "",
-        run_finished_at: result.run.finished_at ?? "",
-        run_status: result.run.status ?? "",
-        run_location_id: result.run.location_id ?? "",
-      }));
+      const flatRows = result.skus.map((s) => {
+        const sx = s as any;
+        return {
+          sku: s.sku,
+          upc: sx.upc ?? "",
+          product_id: sx.product_id ?? "",
+          product_name: s.product_name ?? "",
+          regular_price: sx.regular_price ?? "",
+          promo_price: sx.promo_price ?? "",
+          price_unit_size: sx.price_unit_size ?? "",
+          price_observed_at: sx.price_observed_at ?? "",
+          status: s.status,
+          match_confidence: s.match_confidence ?? "",
+          reference_id: s.reference_id ?? "",
+          reference_name: s.reference_name ?? "",
+          last_seen_at: s.last_seen_at,
+          confirmed_at: s.confirmed_at ?? "",
+          notes: s.notes ?? "",
+          run_id: result.run.id,
+          run_started_at: result.run.started_at ?? "",
+          run_finished_at: result.run.finished_at ?? "",
+          run_status: result.run.status ?? "",
+          run_location_id: result.run.location_id ?? "",
+        };
+      });
       downloadCsv(`kroger-run-skus-${stamp}.csv`, flatRows);
       if (flatRows.length > 0) {
         toast.success(`Exported ${flatRows.length} SKU${flatRows.length === 1 ? "" : "s"} from run.`);
