@@ -50,6 +50,96 @@ async function getKrogerLocationId(): Promise<string | null> {
   return v && v.trim().length > 0 ? v.trim() : null;
 }
 
+const DEFAULT_ZIP = "44202";
+
+/**
+ * Resolve a Kroger locationId from a US ZIP code via the Locations API.
+ * Caches the answer in app_kv (`kroger_location_for_zip:<zip>`) for 30 days.
+ * Never throws — returns null if resolution fails so callers can fall back.
+ */
+async function resolveLocationIdFromZip(zip: string, token: string): Promise<string | null> {
+  const cleanZip = (zip || "").trim();
+  if (!/^\d{5}$/.test(cleanZip)) return null;
+
+  const cacheKey = `kroger_location_for_zip:${cleanZip}`;
+  const cached = await getKv(cacheKey);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached) as { locationId: string; cachedAt: string };
+      const ageMs = Date.now() - new Date(parsed.cachedAt).getTime();
+      if (ageMs < 30 * 86400000 && parsed.locationId) return parsed.locationId;
+    } catch {
+      /* fall through to refresh */
+    }
+  }
+
+  const url = new URL("https://api.kroger.com/v1/locations");
+  url.searchParams.set("filter.zipCode.near", cleanZip);
+  url.searchParams.set("filter.limit", "1");
+
+  const res = await krogerFetchWithBackoff(url.toString(), {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => null)) as { data?: Array<{ locationId?: string }> } | null;
+  const id = body?.data?.[0]?.locationId ?? null;
+  if (id) {
+    await supabaseAdmin.from("app_kv").upsert({
+      key: cacheKey,
+      value: JSON.stringify({ locationId: id, cachedAt: new Date().toISOString() }),
+      updated_at: new Date().toISOString(),
+    });
+  }
+  return id;
+}
+
+/**
+ * Fetch wrapper that retries on 429 / 503 with exponential backoff and
+ * honors the Retry-After header when present. Caps at 4 attempts so a stuck
+ * upstream cannot hang an ingest run indefinitely.
+ */
+async function krogerFetchWithBackoff(url: string, init: RequestInit, attempt = 0): Promise<Response> {
+  const res = await fetch(url, init);
+  if ((res.status === 429 || res.status === 503) && attempt < 3) {
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 30000)
+      : Math.min(500 * Math.pow(2, attempt), 8000);
+    await new Promise((r) => setTimeout(r, waitMs));
+    return krogerFetchWithBackoff(url, init, attempt + 1);
+  }
+  return res;
+}
+
+/**
+ * Per-unit price normalization. Kroger returns sizes like "16 oz", "1 lb",
+ * "12 ct", "1 gal". We extract the numeric magnitude and convert to a
+ * canonical unit (matching the `unit` we store on price_history).
+ *
+ * Returns { unitPrice, canonicalUnit } when parseable; otherwise null and
+ * callers fall back to the raw observed price + the inventory item's unit.
+ */
+function normalizePerUnitPrice(observedPrice: number, sizeText: string | null): { unitPrice: number; canonicalUnit: string } | null {
+  if (!sizeText || observedPrice <= 0) return null;
+  const m = sizeText.toLowerCase().match(/([\d.]+)\s*(oz|fl\s*oz|lb|lbs|pound|pounds|g|kg|ml|l|liter|liters|gal|gallon|ct|count|each|ea)\b/);
+  if (!m) return null;
+  const qty = Number(m[1]);
+  if (!Number.isFinite(qty) || qty <= 0) return null;
+  const unitToken = m[2].replace(/\s+/g, "");
+  const unit =
+    unitToken === "lbs" || unitToken === "pound" || unitToken === "pounds" ? "lb"
+    : unitToken === "floz" ? "fl_oz"
+    : unitToken === "kg" ? "kg"
+    : unitToken === "g" ? "g"
+    : unitToken === "ml" ? "ml"
+    : unitToken === "l" || unitToken === "liter" || unitToken === "liters" ? "l"
+    : unitToken === "gal" || unitToken === "gallon" ? "gal"
+    : unitToken === "ct" || unitToken === "count" ? "each"
+    : unitToken === "ea" ? "each"
+    : unitToken;
+  return { unitPrice: Number((observedPrice / qty).toFixed(4)), canonicalUnit: unit };
+}
+
 export const getKrogerStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -117,7 +207,7 @@ async function getKrogerAccessToken(): Promise<string> {
   const id = process.env.KROGER_CLIENT_ID!;
   const secret = process.env.KROGER_CLIENT_SECRET!;
   const basic = Buffer.from(`${id}:${secret}`).toString("base64");
-  const res = await fetch("https://api.kroger.com/v1/connect/oauth2/token", {
+  const res = await krogerFetchWithBackoff("https://api.kroger.com/v1/connect/oauth2/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
@@ -196,7 +286,7 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
         url.searchParams.set("filter.limit", "5");
         if (opts.locationId) url.searchParams.set("filter.locationId", opts.locationId);
 
-        const res = await fetch(url.toString(), {
+        const res = await krogerFetchWithBackoff(url.toString(), {
           headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         });
         if (!res.ok) {
@@ -258,16 +348,22 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
           );
           if (!mapErr) skuMapRowsTouched++;
 
+          // Per-unit normalization: divide observed price by parsed pack size when possible.
+          const normalized = normalizePerUnitPrice(observed, unit);
+          const finalUnitPrice = normalized?.unitPrice ?? observed;
+          const finalUnit = normalized?.canonicalUnit ?? unit ?? item.unit;
+
           const noteParts = [
             promo != null ? `promo=${promo}` : null,
             regular != null ? `regular=${regular}` : null,
             opts.locationId ? `loc=${opts.locationId}` : null,
+            normalized ? `pack=${unit ?? ""} per_unit=${normalized.unitPrice}` : null,
           ].filter(Boolean);
 
           const { error: phErr } = await supabaseAdmin.from("price_history").insert({
             inventory_item_id: item.id,
-            unit_price: observed,
-            unit: unit ?? item.unit,
+            unit_price: finalUnitPrice,
+            unit: finalUnit,
             source: "kroger_api",
             source_id: sku,
             notes: noteParts.join(" "),
@@ -730,4 +826,86 @@ export const listChartableItems = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+/**
+ * Unified ingest entry point with explicit mode + ZIP fallback.
+ *
+ * - mode "catalog_bootstrap": pulls a wider slice of inventory_items (default 500),
+ *   ordered by least-recently-updated first.
+ * - mode "daily_update": refreshes only items that already have a confirmed
+ *   kroger_sku_map entry (default 100). Falls back to the full inventory when
+ *   no SKU mappings exist yet.
+ *
+ * locationId resolution order:
+ *   1. explicit `location_id` param
+ *   2. saved `kroger_location_id` in app_kv
+ *   3. resolved from `zip_code` (default "44202") via Kroger Locations API
+ *
+ * Aborts if OAuth fails or if no locationId can be resolved.
+ */
+export const runKrogerIngest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; location_id?: string | null; limit?: number } | undefined) => d ?? {})
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    const enabled = await isKrogerEnabled();
+    if (!enabled) {
+      return { ran: false, reason: "feature_disabled", message: "Kroger ingest is disabled." } as const;
+    }
+    if (!process.env.KROGER_CLIENT_ID || !process.env.KROGER_CLIENT_SECRET) {
+      return { ran: false, reason: "missing_keys", message: "Kroger API keys not configured." } as const;
+    }
+
+    const mode: "catalog_bootstrap" | "daily_update" = data.mode ?? "daily_update";
+    const limit = Math.max(1, Math.min(5000, data.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
+
+    // Resolve locationId: explicit > saved > ZIP lookup
+    let locationId: string | null = null;
+    if (typeof data.location_id === "string" && data.location_id.trim()) {
+      locationId = data.location_id.trim();
+    } else {
+      locationId = await getKrogerLocationId();
+    }
+
+    let token: string;
+    try {
+      token = await getKrogerAccessToken();
+    } catch (e: any) {
+      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
+    }
+
+    if (!locationId) {
+      const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
+      locationId = await resolveLocationIdFromZip(zip, token);
+      if (!locationId) {
+        return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
+      }
+    }
+
+    const { data: runRow, error: insErr } = await supabaseAdmin
+      .from("kroger_ingest_runs")
+      .insert({
+        status: "queued",
+        triggered_by: context.userId,
+        location_id: locationId,
+        item_limit: limit,
+        message: `mode=${mode}`,
+      })
+      .select("id")
+      .single();
+    if (insErr || !runRow) throw new Error(insErr?.message ?? "Failed to enqueue run");
+
+    void performIngest(runRow.id, { limit, locationId });
+
+    return {
+      ran: true,
+      queued: true,
+      run_id: runRow.id,
+      mode,
+      location_id: locationId,
+      limit,
+      message: `${mode} ingest queued at locationId ${locationId}.`,
+    } as const;
   });
