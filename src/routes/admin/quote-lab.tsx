@@ -15,10 +15,97 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff } from "lucide-react";
+import { FlaskConical, Plus, MessageSquare, Eye, RefreshCw, Mail, MailX, ExternalLink, DollarSign, EyeOff, ShieldCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { PRICING_VISIBILITY_KEY, usePricingVisibility } from "@/lib/use-pricing-visibility";
+
+/**
+ * Guardrails — Quote Lab safety contract
+ * --------------------------------------
+ * Quote Lab is admin-only sandbox. To prevent test actions from ever writing
+ * pricing or market intelligence data into production quote records, every
+ * write path in this file MUST go through these helpers:
+ *
+ *   - LAB_ALLOWED_QUOTE_UPDATE_FIELDS — whitelist of safe columns Lab may write.
+ *   - LAB_FORBIDDEN_QUOTE_FIELDS      — explicit deny-list (pricing/cost/market).
+ *   - assertLabSafeQuoteUpdate(patch) — throws if any patch key is forbidden or
+ *                                       not on the whitelist.
+ *   - assertLabTargetQuote(quote)     — throws if the quote is not is_test=true.
+ *
+ * Any new write must extend the whitelist deliberately. Anything pricing- or
+ * market-intelligence-related (subtotal, tax_rate, total, theoretical_cost,
+ * actual_cost, competitor_*, market_*, pricing_*) is permanently denied.
+ */
+
+// Columns Quote Lab is allowed to write on the `quotes` table.
+const LAB_ALLOWED_QUOTE_UPDATE_FIELDS = new Set<string>([
+  "client_name",
+  "client_email",
+  "client_phone",
+  "event_type",
+  "event_date",
+  "guest_count",
+  "dietary_preferences",
+  "notes",
+  "location_name",
+  "location_address",
+  "quote_state",
+  "status",
+  "is_test",
+  "conversation",
+]);
+
+// Explicit deny-list — pricing & market intelligence outputs. Even if added to
+// the whitelist by mistake, these patterns are double-checked at runtime.
+const LAB_FORBIDDEN_FIELD_PATTERNS = [
+  /^subtotal$/i,
+  /^total$/i,
+  /^tax_/i,
+  /^theoretical_cost$/i,
+  /^actual_cost$/i,
+  /^.*_cost$/i,
+  /^.*_price$/i,
+  /^pricing_/i,
+  /^competitor_/i,
+  /^market_/i,
+  /^margin_/i,
+];
+
+function isForbiddenField(key: string): boolean {
+  if (!LAB_ALLOWED_QUOTE_UPDATE_FIELDS.has(key)) return true;
+  return LAB_FORBIDDEN_FIELD_PATTERNS.some((re) => re.test(key));
+}
+
+function assertLabSafeQuoteUpdate(patch: Record<string, unknown>) {
+  const offenders = Object.keys(patch).filter(isForbiddenField);
+  if (offenders.length) {
+    const msg = `Quote Lab guardrail blocked write to: ${offenders.join(", ")}`;
+    console.error("[quote-lab guardrail]", msg, patch);
+    throw new Error(msg);
+  }
+}
+
+function assertLabTargetQuote(q: { is_test: boolean; reference_number: string | null; id: string }) {
+  if (!q.is_test) {
+    const ref = q.reference_number ?? q.id.slice(0, 8);
+    throw new Error(`Refusing to operate on non-TEST quote ${ref}. Promote to TEST first or open it in Saved Quotes.`);
+  }
+}
+
+/**
+ * Safe wrapper for any Lab-originated quote update. Validates the patch and
+ * the target row's is_test flag before issuing the Supabase update. Returns
+ * the Supabase response so callers can keep their existing error handling.
+ */
+async function labSafeUpdateQuote(
+  target: { id: string; is_test: boolean; reference_number: string | null },
+  patch: Record<string, unknown>,
+) {
+  assertLabTargetQuote(target);
+  assertLabSafeQuoteUpdate(patch);
+  return (supabase as any).from("quotes").update(patch).eq("id", target.id).eq("is_test", true);
+}
 
 export const Route = createFileRoute("/admin/quote-lab")({
   head: () => ({
