@@ -361,6 +361,21 @@ function ExportsPage() {
               )}
               Download PDF
             </Button>
+            <Button
+              onClick={handleDownloadJson}
+              disabled={!!busy}
+              variant="outline"
+              className="gap-2"
+            >
+              {busy === "json" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : done.json ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <FileDown className="w-4 h-4" />
+              )}
+              Download JSON bundle
+            </Button>
           </div>
         </CardContent>
       </Card>
