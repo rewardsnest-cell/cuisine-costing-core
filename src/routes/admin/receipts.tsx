@@ -698,21 +698,51 @@ function ReceiptsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {editedLineItems.map((item, idx) => (
-                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""}`}>
-                        <td className="py-2 px-2">
-                          <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
+                    {editedLineItems.map((item, idx) => {
+                      const rowErr = lineItemErrors[idx] || {};
+                      const errClass = "border-destructive focus-visible:ring-destructive";
+                      return (
+                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""} ${rowErr && Object.keys(rowErr).length > 0 ? "bg-destructive/5" : ""}`}>
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            value={item.item_name}
+                            onChange={(e) => updateLineItem(idx, "item_name", e.target.value)}
+                            className={`h-8 text-xs min-w-[140px] ${rowErr.item_name ? errClass : ""}`}
+                            aria-invalid={!!rowErr.item_name}
+                          />
+                          {rowErr.item_name && <p className="text-[10px] text-destructive mt-0.5">{rowErr.item_name}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input type="number" value={item.quantity} onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-16" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(idx, "quantity", parseFloat(e.target.value) || 0)}
+                            className={`h-8 text-xs w-16 ${rowErr.quantity ? errClass : ""}`}
+                            aria-invalid={!!rowErr.quantity}
+                          />
+                          {rowErr.quantity && <p className="text-[10px] text-destructive mt-0.5">{rowErr.quantity}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input value={item.unit} onChange={(e) => updateLineItem(idx, "unit", e.target.value)} className="h-8 text-xs w-16" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            value={item.unit}
+                            onChange={(e) => updateLineItem(idx, "unit", e.target.value)}
+                            className={`h-8 text-xs w-16 ${rowErr.unit ? errClass : ""}`}
+                            aria-invalid={!!rowErr.unit}
+                          />
+                          {rowErr.unit && <p className="text-[10px] text-destructive mt-0.5">{rowErr.unit}</p>}
                         </td>
-                        <td className="py-2 px-2">
-                          <Input type="number" step="0.01" value={item.unit_price} onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-xs w-20" />
+                        <td className="py-2 px-2 align-top">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={item.unit_price}
+                            onChange={(e) => updateLineItem(idx, "unit_price", parseFloat(e.target.value) || 0)}
+                            className={`h-8 text-xs w-20 ${rowErr.unit_price ? errClass : ""}`}
+                            aria-invalid={!!rowErr.unit_price}
+                          />
+                          {rowErr.unit_price && <p className="text-[10px] text-destructive mt-0.5">{rowErr.unit_price}</p>}
                         </td>
-                        <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                        <td className="py-2 px-2 font-medium whitespace-nowrap align-top">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
                             <SelectTrigger className={`h-8 text-xs min-w-[140px] ${item.needs_review ? "border-warning" : ""}`}><SelectValue placeholder={item.needs_review && item.matched_inventory_name ? `Suggested: ${item.matched_inventory_name}` : "Match..."} /></SelectTrigger>
