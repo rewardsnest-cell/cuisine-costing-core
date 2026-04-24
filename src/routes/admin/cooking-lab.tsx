@@ -1193,12 +1193,13 @@ function EntryCard({
     <Card className={selected ? "ring-2 ring-primary/40" : undefined}>
       <CardHeader className="border-b border-border bg-muted/20">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2">
+            {dragHandleSlot}
             <Checkbox
               checked={selected}
               onCheckedChange={(v) => onToggleSelected(v === true)}
               aria-label={`Select ${draft.title || "entry"} for bulk actions`}
-              className="mt-1"
+              className="mt-2.5"
             />
             <div>
               <CardTitle className="text-lg">{draft.title || "(untitled)"}</CardTitle>
