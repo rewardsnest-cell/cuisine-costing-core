@@ -486,6 +486,12 @@ function SeoFieldsPanel({
           onChange={(e) => onChange("seo_og_image_url", e.target.value || null)}
           placeholder={fallbackImageUrl ?? "https://..."}
         />
+        <OgImageGenerator
+          entryId={entryId}
+          hasTitle={!!fallbackTitle?.trim()}
+          currentValue={seoOgImageUrl}
+          onGenerated={(url) => onChange("seo_og_image_url", url)}
+        />
       </Field>
 
       {/* Live preview — Google snippet + social card */}
