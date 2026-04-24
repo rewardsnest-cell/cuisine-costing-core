@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CookingLabSection, CookingLabPageBody, type CookingLabEntry as PublicCookingLabEntry } from "@/routes/cooking-lab";
-import { withAmazonAffiliateTag, isTaggableAmazonUrl } from "@/lib/amazon-affiliate";
+import { withAmazonAffiliateTag, isTaggableAmazonUrl, autoFixAmazonUrl } from "@/lib/amazon-affiliate";
 import {
   FlaskConical,
   Plus,
@@ -339,6 +339,53 @@ function TaggedLinkPreview({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Amazon URL input with a one-click "Auto-fix" button. Converts common
+ * non-canonical Amazon URL shapes (gp/product, exec/obidos, m. subdomain,
+ * smile., asin=… query, http://) into the clean `https://www.amazon.com/dp/ASIN`
+ * form. Disabled when the URL is empty or already canonical/un-fixable.
+ */
+function AmazonUrlInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const trimmed = value.trim();
+  const preview = trimmed ? autoFixAmazonUrl(trimmed) : null;
+  const canFix = !!preview && preview.changed;
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://www.amazon.com/dp/ASIN"
+        className="flex-1"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={!canFix}
+        title={preview ? preview.reason : "Paste an Amazon URL to enable auto-fix"}
+        onClick={() => {
+          if (!preview) return;
+          if (preview.changed) {
+            onChange(preview.url);
+            toast.success("URL auto-fixed", { description: preview.reason });
+          } else {
+            toast.info("Nothing to fix", { description: preview.reason });
+          }
+        }}
+      >
+        Auto-fix
+      </Button>
     </div>
   );
 }
@@ -965,10 +1012,9 @@ function EntryCard({
               />
             </Field>
             <Field label="Primary Amazon Link" error={toolFieldErrors.primary_tool_url}>
-              <Input
+              <AmazonUrlInput
                 value={draft.primary_tool_url ?? ""}
-                onChange={(e) => update("primary_tool_url", e.target.value)}
-                placeholder="https://www.amazon.com/..."
+                onChange={(v) => update("primary_tool_url", v)}
               />
             </Field>
             <Field label="Secondary Tool Name" error={toolFieldErrors.secondary_tool_name}>
@@ -978,10 +1024,9 @@ function EntryCard({
               />
             </Field>
             <Field label="Secondary Amazon Link" error={toolFieldErrors.secondary_tool_url}>
-              <Input
+              <AmazonUrlInput
                 value={draft.secondary_tool_url ?? ""}
-                onChange={(e) => update("secondary_tool_url", e.target.value)}
-                placeholder="https://www.amazon.com/..."
+                onChange={(v) => update("secondary_tool_url", v)}
               />
             </Field>
           </div>
