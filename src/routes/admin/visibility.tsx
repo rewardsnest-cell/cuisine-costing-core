@@ -210,10 +210,21 @@ function VisibilityPage() {
                         </Badge>
                       )}
                     </div>
-                    <Button size="sm" onClick={() => onSave(r.feature_key)} disabled={!dirty || savingKey === r.feature_key} className="gap-1.5">
-                      {savingKey === r.feature_key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Save
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 rounded-md border border-border px-2 py-1">
+                        <Power className={`w-3.5 h-3.5 ${isOn ? "text-emerald-500" : "text-muted-foreground"}`} />
+                        <span className="text-xs text-muted-foreground">{isOn ? "On" : "Off"}</span>
+                        <Switch
+                          checked={isOn}
+                          disabled={quickToggling === r.feature_key}
+                          onCheckedChange={(v) => onQuickToggle(r.feature_key, v)}
+                        />
+                      </div>
+                      <Button size="sm" onClick={() => onSave(r.feature_key)} disabled={!dirty || savingKey === r.feature_key} className="gap-1.5">
+                        {savingKey === r.feature_key ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
