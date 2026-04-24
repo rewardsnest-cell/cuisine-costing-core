@@ -150,7 +150,13 @@ function ReceiptsPage() {
         data: { imageUrl: receipt.image_url, receiptId: receipt.id, rerun: opts.rerun },
       });
       if (!data.success) throw new Error(data.error || "OCR failed");
-      toast.success(`Extracted ${data.line_items?.length || 0} line items`);
+      const total = data.line_items?.length || 0;
+      const flagged = (data as any).flagged_count ?? data.line_items?.filter((it: any) => it.needs_review).length ?? 0;
+      if (flagged > 0) {
+        toast.warning(`Extracted ${total} line items · ${flagged} flagged for manual review (low confidence)`);
+      } else {
+        toast.success(`Extracted ${total} line items`);
+      }
       // On a re-run, surface a side-by-side comparison of OCR text + line items
       if (opts.rerun) {
         setCompare({
