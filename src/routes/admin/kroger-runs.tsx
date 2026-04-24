@@ -392,3 +392,72 @@ function StatCard({
     </div>
   );
 }
+
+function ErrorRow({ err }: { err: ErrorDetail }) {
+  const [open, setOpen] = useState(false);
+  const hasDetails = !!(err.response_body || err.request_url || err.request_term || err.http_status != null);
+  const summary = err.http_status != null
+    ? `HTTP ${err.http_status}${err.location_id ? "" : " (no locationId)"}`
+    : err.error;
+  const copyAll = async () => {
+    const text = [
+      `Item: ${err.item}`,
+      err.http_status != null ? `Status: HTTP ${err.http_status}` : null,
+      err.request_term ? `Search term: ${err.request_term}` : null,
+      err.location_id ? `Location: ${err.location_id}` : "Location: (none)",
+      err.request_url ? `Request URL: ${err.request_url}` : null,
+      "",
+      "Response body:",
+      err.response_body || err.error,
+    ].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Error details copied");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="px-3 py-1.5 text-xs">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,2fr)_auto] gap-2 items-start">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="mt-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+              disabled={!hasDetails}
+              aria-label={open ? "Collapse details" : "Expand details"}
+            >
+              {hasDetails ? (open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />) : <span className="inline-block w-3.5 h-3.5" />}
+            </button>
+          </CollapsibleTrigger>
+          <span className="font-medium truncate" title={err.item}>{err.item}</span>
+          <span className="text-destructive break-words" title={err.error}>{summary}</span>
+          {hasDetails && (
+            <button type="button" onClick={copyAll} className="text-muted-foreground hover:text-foreground" title="Copy details">
+              <Copy className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+        <CollapsibleContent>
+          <div className="mt-2 ml-5 space-y-1.5 rounded-md border border-border bg-muted/30 p-2">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-[11px]">
+              {err.http_status != null && (<><span className="text-muted-foreground">Status</span><span className="font-mono">HTTP {err.http_status}</span></>)}
+              {err.request_term && (<><span className="text-muted-foreground">Term</span><span className="font-mono break-all">{err.request_term}</span></>)}
+              <span className="text-muted-foreground">Location</span>
+              <span className="font-mono">{err.location_id || "— (none set)"}</span>
+              {err.request_url && (<><span className="text-muted-foreground">URL</span><span className="font-mono break-all">{err.request_url}</span></>)}
+            </div>
+            {err.response_body && (
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-0.5">Response body</div>
+                <pre className="text-[11px] bg-background border border-border rounded p-2 max-h-48 overflow-auto whitespace-pre-wrap break-all">{err.response_body}</pre>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
