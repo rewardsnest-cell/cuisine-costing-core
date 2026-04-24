@@ -821,9 +821,9 @@ export function RecipeForm({
             <Switch
               id="inspired-toggle"
               checked={!!form.inspired}
-              onCheckedChange={(v) => setForm({ ...form, inspired: v })}
+              onCheckedChange={(v) => setForm({ ...form, inspired: v, inspired_phase: v ? (form.inspired_phase ?? "off") : "off" })}
             />
-            <div className="text-sm">
+            <div className="text-sm flex-1">
               <label htmlFor="inspired-toggle" className="font-medium block">
                 Show in "Inspired / Familiar Favorites"
               </label>
@@ -832,6 +832,27 @@ export function RecipeForm({
               </p>
             </div>
           </div>
+          {form.inspired && (
+            <div className="ml-12 -mt-2 space-y-1.5">
+              <label htmlFor="inspired-phase" className="text-xs font-medium text-foreground">
+                Rollout phase
+              </label>
+              <select
+                id="inspired-phase"
+                value={form.inspired_phase ?? "off"}
+                onChange={(e) => setForm({ ...form, inspired_phase: e.target.value as any })}
+                className="block w-full max-w-xs rounded-md border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="off">Off (hidden everywhere)</option>
+                <option value="admin_preview">Admin preview (admins only)</option>
+                <option value="soft_launch">Soft launch (URL only, no nav)</option>
+                <option value="public">Public (visible on /inspired)</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground max-w-md">
+                Phase changes are audit-logged and create a Change Log draft automatically.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

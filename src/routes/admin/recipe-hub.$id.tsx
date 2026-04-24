@@ -69,6 +69,7 @@ function HubEdit() {
             status: (rec.status as "draft" | "published") ?? "draft",
             ingredient_integrity: (rec.ingredient_integrity as "ok" | "needs_cleanup") ?? "ok",
             inspired: !!rec.inspired,
+            inspired_phase: (rec.inspired_phase ?? "off") as "off" | "admin_preview" | "soft_launch" | "public",
           },
           ingredients: (ings ?? []).map((i: any) => ({
             id: i.id,
