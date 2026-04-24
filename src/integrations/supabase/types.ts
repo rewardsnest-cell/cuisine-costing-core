@@ -1052,6 +1052,36 @@ export type Database = {
           },
         ]
       }
+      feature_visibility: {
+        Row: {
+          feature_key: string
+          nav_enabled: boolean
+          notes: string | null
+          phase: Database["public"]["Enums"]["visibility_phase"]
+          seo_indexing_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          feature_key: string
+          nav_enabled?: boolean
+          notes?: string | null
+          phase?: Database["public"]["Enums"]["visibility_phase"]
+          seo_indexing_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          feature_key?: string
+          nav_enabled?: boolean
+          notes?: string | null
+          phase?: Database["public"]["Enums"]["visibility_phase"]
+          seo_indexing_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           admin_notes: string | null
@@ -3282,6 +3312,7 @@ export type Database = {
       pricing_model_status: "draft" | "active" | "archived"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
+      visibility_phase: "off" | "admin_preview" | "soft_launch" | "public"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3417,6 +3448,7 @@ export const Constants = {
       pricing_model_status: ["draft", "active", "archived"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
+      visibility_phase: ["off", "admin_preview", "soft_launch", "public"],
     },
   },
 } as const

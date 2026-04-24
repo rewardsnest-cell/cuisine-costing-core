@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
+import { FeatureGate } from "@/components/FeatureGate";
 
 const SITE = "https://www.vpsfinest.com";
 
@@ -49,6 +50,14 @@ export const Route = createFileRoute("/inspired")({
 });
 
 function InspiredLanding() {
+  return (
+    <FeatureGate featureKey="inspired" label="Inspired">
+      <InspiredLandingInner />
+    </FeatureGate>
+  );
+}
+
+function InspiredLandingInner() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

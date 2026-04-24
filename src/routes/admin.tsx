@@ -108,6 +108,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
   {
     label: "Governance",
     items: [
+      { to: "/admin/visibility", label: "Visibility & Phases", icon: Globe2 },
       { to: "/admin/audit", label: "Audit Log", icon: Shield },
       { to: "/admin/change-log", label: "Change Log", icon: NotebookPen },
     ],

@@ -13,7 +13,7 @@ import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
-import { useInspiredNavVisible } from "@/lib/inspired";
+import { useFeatureVisibilityMap, isNavLinkVisible } from "@/lib/feature-visibility";
 
 // CDN-hosted fallback so the logo still renders if the bundled asset 404s
 // in production (e.g. cache mismatch right after a deploy).
@@ -24,7 +24,8 @@ export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
   const { data: brandLogoUrl } = useBrandAsset("primary_logo");
   const { display: brandDisplay } = useBrandName();
-  const { visible: inspiredNavVisible } = useInspiredNavVisible();
+  const { map: visibilityMap } = useFeatureVisibilityMap();
+  const showLink = (key: string) => isNavLinkVisible(visibilityMap, key);
   const [logoSrc, setLogoSrc] = useState<string>(logo);
   const effectiveSrc = brandLogoUrl || logoSrc;
 
@@ -45,23 +46,25 @@ export function PublicHeader() {
         </Link>
 
         <div className="hidden md:flex items-center gap-6 text-sm">
-          <Link to="/catering" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Catering</Link>
-          <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>
-          <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>
-          <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>
-          {(inspiredNavVisible || isAdmin) && (
+          {showLink("catering") && <Link to="/catering" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Catering</Link>}
+          {showLink("menu") && <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>}
+          {showLink("weddings") && <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>}
+          {showLink("recipes") && <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>}
+          {(showLink("inspired") || isAdmin) && (
             <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
           )}
-          <Link to="/guides" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
-          <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Blog</Link>
+          {showLink("guides") && <Link to="/guides" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>}
+          {showLink("blog") && <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Blog</Link>}
           <Link to="/about" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>About</Link>
           <Link to="/contact" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Contact</Link>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link to="/catering/quote" className="hidden sm:inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
-            Get a Quote
-          </Link>
+          {showLink("quote") && (
+            <Link to="/catering/quote" className="hidden sm:inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
+              Get a Quote
+            </Link>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Open navigation menu"
@@ -73,19 +76,19 @@ export function PublicHeader() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Navigate</DropdownMenuLabel>
               <DropdownMenuItem asChild><Link to="/">Home</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/catering">Catering</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>
-              {(inspiredNavVisible || isAdmin) && (
+              {showLink("catering") && <DropdownMenuItem asChild><Link to="/catering">Catering</Link></DropdownMenuItem>}
+              {showLink("menu") && <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>}
+              {showLink("weddings") && <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>}
+              {showLink("recipes") && <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>}
+              {(showLink("inspired") || isAdmin) && (
                 <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
               )}
-              <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>
+              {showLink("guides") && <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>}
+              {showLink("blog") && <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>}
               <DropdownMenuItem asChild><Link to="/about">About</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/contact">Contact</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/catering/quote">Get a Quote</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/lookup">Look Up Quote</Link></DropdownMenuItem>
+              {showLink("quote") && <DropdownMenuItem asChild><Link to="/catering/quote">Get a Quote</Link></DropdownMenuItem>}
+              {showLink("lookup") && <DropdownMenuItem asChild><Link to="/lookup">Look Up Quote</Link></DropdownMenuItem>}
 
               {!loading && user && (
                 <>
