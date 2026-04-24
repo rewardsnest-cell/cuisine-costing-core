@@ -220,15 +220,15 @@ function KrogerRunsPage() {
               )}
               {latestErrors.length > 0 ? (
                 <div className="border rounded-md border-destructive/30">
-                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium flex items-center justify-between">
+                  <div className="px-3 py-2 border-b border-destructive/30 bg-destructive/5 text-xs font-medium flex items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-destructive"><AlertTriangle className="w-3.5 h-3.5" />All errors ({latestErrors.length})</span>
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs gap-1" onClick={() => rerunFromRow(latest)} disabled={running || !status?.enabled || !status?.keys_configured}>
+                      <RotateCcw className="w-3 h-3" />Re-run same params
+                    </Button>
                   </div>
-                  <div className="max-h-80 overflow-auto divide-y">
+                  <div className="max-h-96 overflow-auto divide-y">
                     {latestErrors.map((e, i) => (
-                      <div key={i} className="px-3 py-1.5 text-xs grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
-                        <span className="font-medium truncate" title={e.item}>{e.item}</span>
-                        <span className="text-destructive break-words" title={e.error}>{e.error}</span>
-                      </div>
+                      <ErrorRow key={i} err={e} />
                     ))}
                   </div>
                 </div>
@@ -294,7 +294,9 @@ function KrogerRunsPage() {
                     <TableHead className="text-right">SKUs</TableHead>
                     <TableHead className="text-right">Errors</TableHead>
                     <TableHead>Location</TableHead>
+                    <TableHead>Limit</TableHead>
                     <TableHead>Duration</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -303,6 +305,7 @@ function KrogerRunsPage() {
                     const dur = r.started_at && r.finished_at
                       ? `${Math.max(0, Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000))}s`
                       : r.status === "running" ? "…" : "—";
+                    const limLabel = r.item_limit == null ? "—" : r.item_limit === 0 ? "all" : String(r.item_limit);
                     return (
                       <TableRow key={r.id}>
                         <TableCell className="text-xs whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</TableCell>
@@ -312,7 +315,20 @@ function KrogerRunsPage() {
                         <TableCell className="text-right tabular-nums">{r.sku_map_rows_touched}</TableCell>
                         <TableCell className="text-right tabular-nums">{errs.length}</TableCell>
                         <TableCell className="text-xs">{r.location_id ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{limLabel}</TableCell>
                         <TableCell className="text-xs">{dur}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-xs gap-1"
+                            onClick={() => rerunFromRow(r)}
+                            disabled={running || !status?.enabled || !status?.keys_configured || r.status === "queued" || r.status === "running"}
+                            title={`Re-run with limit ${limLabel}${r.location_id ? ` @ loc ${r.location_id}` : ""}`}
+                          >
+                            <RotateCcw className="w-3 h-3" />Re-run
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
