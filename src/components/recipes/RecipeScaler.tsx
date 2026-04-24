@@ -351,35 +351,46 @@ export function RecipeScaler({
           </div>
         </>
       ) : (
-        <div className="rounded-xl border border-border bg-card p-4 mb-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Scale servings</p>
-              <p className="text-foreground font-medium">
-                {servings} {servings === 1 ? "serving" : "servings"}
-                {servings !== initial && (
-                  <span className="text-muted-foreground font-normal text-sm ml-2">
-                    (×{factor.toFixed(2).replace(/\.?0+$/, "")})
-                  </span>
-                )}
-              </p>
+        <>
+          <div className="rounded-xl border border-border bg-card p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">Scale servings</p>
+                <p className="text-foreground font-medium">
+                  {servings} {servings === 1 ? "serving" : "servings"}
+                  {servings !== initial && (
+                    <span className="text-muted-foreground font-normal text-sm ml-2">
+                      (×{factor.toFixed(2).replace(/\.?0+$/, "")})
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(1, s - 1))} aria-label="Decrease servings">
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(10, s + 1))} aria-label="Increase servings">
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.max(1, s - 1))} aria-label="Decrease servings">
-                <Minus className="w-3 h-3" />
-              </Button>
-              <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => setServings((s) => Math.min(100, s + 1))} aria-label="Increase servings">
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
+            <Slider value={[servings]} min={1} max={10} step={1} onValueChange={([v]) => setServings(v)} />
+            {servings !== initial && (
+              <button onClick={() => setServings(initial)} className="text-xs text-primary hover:underline mt-2">
+                Reset to {initial}
+              </button>
+            )}
           </div>
-          <Slider value={[servings]} min={1} max={Math.max(24, initial * 4)} step={1} onValueChange={([v]) => setServings(v)} />
-          {servings !== initial && (
-            <button onClick={() => setServings(initial)} className="text-xs text-primary hover:underline mt-2">
-              Reset to {initial}
-            </button>
-          )}
-        </div>
+          <div className="rounded-xl border border-border/60 bg-secondary/30 p-4 mb-5">
+            <p className="text-sm text-foreground font-medium mb-1">Cooking for more than 10?</p>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              Once you go past about a dozen guests, cooking becomes its own craft — timing, holding temperatures, and equipment all change. Let our catering team plan the menu and handle the cooking for you.
+            </p>
+            <Link to="/catering/quote">
+              <Button size="sm">Talk to a caterer — get a quote</Button>
+            </Link>
+          </div>
+        </>
       )}
 
       {/* Ingredients list */}
