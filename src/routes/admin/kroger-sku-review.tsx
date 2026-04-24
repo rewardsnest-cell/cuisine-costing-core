@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2, Search, Check, X, RotateCcw, Link2, ListChecks } from "lucide-react";
+import { Loader2, Search, Check, X, RotateCcw, Link2, ListChecks, Download } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   listKrogerSkuMap,
   searchIngredientReferences,
   confirmKrogerSkuMapping,
+  listKrogerRuns,
+  listKrogerRunSkus,
 } from "@/lib/server-fns/kroger-pricing.functions";
 
 export const Route = createFileRoute("/admin/kroger-sku-review")({
@@ -111,6 +114,8 @@ function KrogerSkuReviewPage() {
           <Button size="sm" type="submit" variant="outline">Search</Button>
         </form>
       </div>
+
+      <RunSkuExportCard />
 
       <MatchingBreakdown rows={rows} loading={loading} />
 
@@ -402,6 +407,160 @@ function MatchingBreakdown({ rows, loading }: { rows: Row[]; loading: boolean })
               )}
             </div>
           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+type KrogerRun = Awaited<ReturnType<typeof listKrogerRuns>>[number];
+
+function csvEscape(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) {
+    toast.message("No SKUs were found in this run's window.");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => csvEscape(r[h])).join(",")),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function RunSkuExportCard() {
+  const [runs, setRuns] = useState<KrogerRun[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(true);
+  const [selectedRunId, setSelectedRunId] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingRuns(true);
+      try {
+        const r = await listKrogerRuns({ data: { limit: 25 } });
+        setRuns(r);
+        if (r.length > 0) setSelectedRunId(r[0].id);
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to load Kroger runs");
+      } finally {
+        setLoadingRuns(false);
+      }
+    })();
+  }, []);
+
+  const selected = useMemo(
+    () => runs.find((r) => r.id === selectedRunId) ?? null,
+    [runs, selectedRunId],
+  );
+
+  const onExport = async () => {
+    if (!selectedRunId) return;
+    setExporting(true);
+    try {
+      const result = await listKrogerRunSkus({ data: { run_id: selectedRunId } });
+      const stamp = new Date(result.run.started_at ?? result.window.from)
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-");
+      const flatRows = result.skus.map((s) => ({
+        sku: s.sku,
+        product_name: s.product_name ?? "",
+        status: s.status,
+        match_confidence: s.match_confidence ?? "",
+        reference_id: s.reference_id ?? "",
+        reference_name: s.reference_name ?? "",
+        last_seen_at: s.last_seen_at,
+        confirmed_at: s.confirmed_at ?? "",
+        notes: s.notes ?? "",
+        run_id: result.run.id,
+        run_started_at: result.run.started_at ?? "",
+        run_finished_at: result.run.finished_at ?? "",
+        run_status: result.run.status ?? "",
+        run_location_id: result.run.location_id ?? "",
+      }));
+      downloadCsv(`kroger-run-skus-${stamp}.csv`, flatRows);
+      if (flatRows.length > 0) {
+        toast.success(`Exported ${flatRows.length} SKU${flatRows.length === 1 ? "" : "s"} from run.`);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Export downloaded SKUs
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Pick a Kroger ingest run and download a CSV of every SKU that was observed during that run's window.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Run</label>
+            <Select
+              value={selectedRunId}
+              onValueChange={setSelectedRunId}
+              disabled={loadingRuns || runs.length === 0}
+            >
+              <SelectTrigger className="h-9 w-[22rem]">
+                <SelectValue placeholder={loadingRuns ? "Loading runs…" : "Select a run"} />
+              </SelectTrigger>
+              <SelectContent>
+                {runs.map((r) => {
+                  const when = new Date(r.started_at ?? r.created_at).toLocaleString();
+                  const label = `${when} · ${r.status} · ${r.items_queried ?? 0} queried · ${r.sku_map_rows_touched ?? 0} SKUs touched`;
+                  return (
+                    <SelectItem key={r.id} value={r.id}>
+                      {label}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={onExport}
+            disabled={!selectedRunId || exporting}
+            className="gap-1.5 h-9"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Export CSV
+          </Button>
+          {selected && (
+            <div className="text-xs text-muted-foreground ml-auto">
+              Window:{" "}
+              {new Date(selected.started_at ?? selected.created_at).toLocaleString()} →{" "}
+              {selected.finished_at ? new Date(selected.finished_at).toLocaleString() : "now"}
+            </div>
+          )}
+        </div>
+        {!loadingRuns && runs.length === 0 && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            No Kroger ingest runs yet. Trigger one from <span className="font-medium">Admin → Kroger Runs</span>.
+          </p>
         )}
       </CardContent>
     </Card>

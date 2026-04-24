@@ -474,6 +474,66 @@ export const confirmKrogerSkuMapping = createServerFn({ method: "POST" })
   });
 
 /**
+ * Returns every kroger_sku_map row whose last_seen_at falls within the given
+ * run's window (started_at..finished_at, inclusive). This represents the SKUs
+ * that were observed (created or refreshed) during that ingest run.
+ *
+ * If the run is still in-flight (no finished_at), the window extends to "now".
+ */
+export const listKrogerRunSkus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { run_id: string }) => d)
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    const { data: run, error: runErr } = await supabaseAdmin
+      .from("kroger_ingest_runs")
+      .select("id,started_at,finished_at,created_at,status,location_id,items_queried")
+      .eq("id", data.run_id)
+      .maybeSingle();
+    if (runErr) throw new Error(runErr.message);
+    if (!run) throw new Error("Run not found");
+
+    const fromIso = (run as any).started_at ?? (run as any).created_at;
+    const toIso = (run as any).finished_at ?? new Date().toISOString();
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("kroger_sku_map")
+      .select("id,sku,product_name,product_name_normalized,status,reference_id,match_confidence,last_seen_at,confirmed_at,notes")
+      .gte("last_seen_at", fromIso)
+      .lte("last_seen_at", toIso)
+      .order("last_seen_at", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+
+    const refIds = Array.from(new Set((rows ?? []).map((r) => r.reference_id).filter(Boolean))) as string[];
+    let refMap: Record<string, string> = {};
+    if (refIds.length > 0) {
+      const { data: refs } = await supabaseAdmin
+        .from("ingredient_reference")
+        .select("id,canonical_name")
+        .in("id", refIds);
+      refMap = Object.fromEntries((refs ?? []).map((r: any) => [r.id, r.canonical_name]));
+    }
+
+    return {
+      run: {
+        id: (run as any).id,
+        started_at: (run as any).started_at,
+        finished_at: (run as any).finished_at,
+        status: (run as any).status,
+        location_id: (run as any).location_id,
+        items_queried: (run as any).items_queried,
+      },
+      window: { from: fromIso, to: toIso },
+      skus: (rows ?? []).map((r) => ({
+        ...r,
+        reference_name: r.reference_id ? refMap[r.reference_id] ?? null : null,
+      })),
+    };
+  });
+
+/**
  * Returns price_history series for a given inventory item, separating Kroger
  * regular vs promo (parsed from notes) vs other sources.
  */
