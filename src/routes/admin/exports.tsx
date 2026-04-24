@@ -688,53 +688,105 @@ function ExportsPage() {
           </div>
 
           <div className="space-y-2">
-            {CSV_EXPORTS.map((spec) => (
-              <div
-                key={spec.key}
-                className="flex items-center justify-between gap-3 border border-border/60 rounded-lg p-3"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{spec.label}</p>
-                    <Badge variant="secondary" className="text-[10px] font-mono">
-                      {spec.table}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {spec.description}
-                  </p>
-                </div>
-                <Button
-                  onClick={() => handleExportCsv(spec)}
-                  disabled={!!busy}
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1.5 shrink-0"
+            {CSV_EXPORTS.map((spec) => {
+              const prog = progress[spec.key];
+              const file = savedFiles[spec.key];
+              return (
+                <div
+                  key={spec.key}
+                  className="border border-border/60 rounded-lg p-3 space-y-2"
                 >
-                  {busy === spec.key ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : done[spec.key] ? (
-                    <Check className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Download className="w-4 h-4" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm truncate">{spec.label}</p>
+                        <Badge variant="secondary" className="text-[10px] font-mono">
+                          {spec.table}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {spec.description}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleExportCsv(spec)}
+                      disabled={!!busy}
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5 shrink-0"
+                    >
+                      {busy === spec.key ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : done[spec.key] ? (
+                        <Check className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      CSV
+                    </Button>
+                  </div>
+                  {(prog || file) && (
+                    <ExportProgressLine label={spec.label} progress={prog} file={file} compact />
                   )}
-                  CSV
-                </Button>
-                {savedFiles[spec.key] && (
-                  <a
-                    href={savedFiles[spec.key].url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-medium text-primary hover:underline shrink-0"
-                  >
-                    Open
-                  </a>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ExportProgressLine({
+  label,
+  progress,
+  file,
+  compact = false,
+}: {
+  label: string;
+  progress?: ExportProgress;
+  file?: SavedExportFile;
+  compact?: boolean;
+}) {
+  const phase = progress?.phase ?? (file ? "ready" : "generating");
+  const isError = phase === "error";
+  const isReady = phase === "ready" && !!file;
+  const inFlight = phase === "generating" || phase === "uploading";
+
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
+        isError
+          ? "border-destructive/40 bg-destructive/5"
+          : isReady
+            ? "border-primary/30 bg-primary/5"
+            : "border-border/60 bg-muted/30"
+      }`}
+    >
+      <div className="min-w-0 flex items-center gap-2">
+        {inFlight && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />}
+        {isReady && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+        <div className="min-w-0">
+          {!compact && <div className="font-medium truncate">{file?.filename ?? label}</div>}
+          <div className={`text-xs ${isError ? "text-destructive" : "text-muted-foreground"} truncate`}>
+            {phase === "generating" && (progress?.message || "Generating…")}
+            {phase === "uploading" && (progress?.message || "Uploading…")}
+            {phase === "ready" && (file ? "Saved to backend files" : "Ready")}
+            {phase === "error" && (progress?.message || "Failed")}
+          </div>
+        </div>
+      </div>
+      {isReady && file && (
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-medium text-primary hover:underline shrink-0"
+        >
+          Open file
+        </a>
+      )}
     </div>
   );
 }
