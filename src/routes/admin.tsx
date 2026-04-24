@@ -253,7 +253,7 @@ function AdminLayout() {
             <Menu className="w-5 h-5" />
           </button>
           <h1 className="font-display text-lg font-semibold text-foreground truncate flex-1">
-            {NAV_ITEMS.find((i) => isActive(i.to, i.exact))?.label || "Admin"}
+            {visibleItems.find((i) => isActive(i.to, i.exact))?.label || "Admin"}
           </h1>
           <Link to="/admin/scan-flyer">
             <Button size="sm" className="bg-gradient-warm text-primary-foreground gap-1.5">
