@@ -343,6 +343,53 @@ function TaggedLinkPreview({
   );
 }
 
+/**
+ * Amazon URL input with a one-click "Auto-fix" button. Converts common
+ * non-canonical Amazon URL shapes (gp/product, exec/obidos, m. subdomain,
+ * smile., asin=… query, http://) into the clean `https://www.amazon.com/dp/ASIN`
+ * form. Disabled when the URL is empty or already canonical/un-fixable.
+ */
+function AmazonUrlInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const trimmed = value.trim();
+  const preview = trimmed ? autoFixAmazonUrl(trimmed) : null;
+  const canFix = !!preview && preview.changed;
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="https://www.amazon.com/dp/ASIN"
+        className="flex-1"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={!canFix}
+        title={preview ? preview.reason : "Paste an Amazon URL to enable auto-fix"}
+        onClick={() => {
+          if (!preview) return;
+          if (preview.changed) {
+            onChange(preview.url);
+            toast.success("URL auto-fixed", { description: preview.reason });
+          } else {
+            toast.info("Nothing to fix", { description: preview.reason });
+          }
+        }}
+      >
+        Auto-fix
+      </Button>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/cooking-lab")({
   head: () => ({
     meta: [
