@@ -66,6 +66,7 @@ import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
 import { Route as AdminScanAssetsRouteImport } from './routes/admin/scan-assets'
 import { Route as AdminSalesRouteImport } from './routes/admin/sales'
+import { Route as AdminReviewInboxRouteImport } from './routes/admin/review-inbox'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
 import { Route as AdminRecipeHubRouteImport } from './routes/admin/recipe-hub'
@@ -407,6 +408,11 @@ const AdminSalesRoute = AdminSalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReviewInboxRoute = AdminReviewInboxRouteImport.update({
+  id: '/review-inbox',
+  path: '/review-inbox',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRegisterRoute = AdminRegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -717,6 +723,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -823,6 +830,7 @@ export interface FileRoutesByTo {
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -932,6 +940,7 @@ export interface FileRoutesById {
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
   '/admin/register': typeof AdminRegisterRoute
+  '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
@@ -1042,6 +1051,7 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/review-inbox'
     | '/admin/sales'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
@@ -1148,6 +1158,7 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/review-inbox'
     | '/admin/sales'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
@@ -1256,6 +1267,7 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub'
     | '/admin/recipes'
     | '/admin/register'
+    | '/admin/review-inbox'
     | '/admin/sales'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
@@ -1759,6 +1771,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSalesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/review-inbox': {
+      id: '/admin/review-inbox'
+      path: '/review-inbox'
+      fullPath: '/admin/review-inbox'
+      preLoaderRoute: typeof AdminReviewInboxRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/register': {
       id: '/admin/register'
       path: '/register'
@@ -2188,6 +2207,7 @@ interface AdminRouteChildren {
   AdminRecipeHubRoute: typeof AdminRecipeHubRouteWithChildren
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
   AdminRegisterRoute: typeof AdminRegisterRoute
+  AdminReviewInboxRoute: typeof AdminReviewInboxRoute
   AdminSalesRoute: typeof AdminSalesRoute
   AdminScanAssetsRoute: typeof AdminScanAssetsRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
@@ -2241,6 +2261,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRecipeHubRoute: AdminRecipeHubRouteWithChildren,
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
   AdminRegisterRoute: AdminRegisterRoute,
+  AdminReviewInboxRoute: AdminReviewInboxRoute,
   AdminSalesRoute: AdminSalesRoute,
   AdminScanAssetsRoute: AdminScanAssetsRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
