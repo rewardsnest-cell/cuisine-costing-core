@@ -796,6 +796,28 @@ function EntryCard({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <div className="flex items-center mr-1 rounded-md border border-border">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-r-none"
+                title="Move up"
+                disabled={!canMoveUp || reordering}
+                onClick={onMoveUp}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-l-none border-l border-border"
+                title="Move down"
+                disabled={!canMoveDown || reordering}
+                onClick={onMoveDown}
+              >
+                <ArrowDown className="w-4 h-4" />
+              </Button>
+            </div>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
