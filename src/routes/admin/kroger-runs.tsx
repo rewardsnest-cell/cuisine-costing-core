@@ -25,6 +25,16 @@ export const Route = createFileRoute("/admin/kroger-runs")({
 type Run = Awaited<ReturnType<typeof listKrogerRuns>>[number];
 type Status = Awaited<ReturnType<typeof getKrogerStatus>>;
 
+type ErrorDetail = {
+  item: string;
+  error: string;
+  http_status?: number;
+  response_body?: string;
+  request_url?: string;
+  request_term?: string;
+  location_id?: string | null;
+};
+
 const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   queued: { label: "Queued", variant: "outline", icon: Clock },
   running: { label: "Running", variant: "default", icon: Loader2 },
