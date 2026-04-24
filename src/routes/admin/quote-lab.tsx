@@ -225,6 +225,39 @@ function QuoteLabPage() {
         </CardContent>
       </Card>
 
+      <Card className={showPricing ? "border-amber-500/60 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {showPricing ? <DollarSign className="w-4 h-4 text-amber-600" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
+              <div>
+                <p className="text-sm font-medium">
+                  Public pricing {pricingLoading ? "…" : showPricing ? "VISIBLE" : "HIDDEN"}
+                </p>
+                <p className="text-xs text-muted-foreground max-w-xl">
+                  Phase Two default is HIDDEN. Toggle on only to validate pricing UI internally — every public visitor
+                  will see prices the moment this is on.
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={showPricing}
+              disabled={pricingLoading || pricingSaving}
+              onCheckedChange={togglePricing}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/60">
+            <span className="text-xs text-muted-foreground mr-1">Preview public flows:</span>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openPreview("/quote/start")}>
+              <ExternalLink className="w-3.5 h-3.5" /> Intake
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openPreview("/catering/quote")}>
+              <ExternalLink className="w-3.5 h-3.5" /> Builder
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
         <TabsList>
           <TabsTrigger value="test">Test ({quotes.filter((q) => q.is_test).length})</TabsTrigger>
