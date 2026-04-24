@@ -132,12 +132,7 @@ function ExportsPage() {
 
   const setPhase = (key: string, phase: ExportPhase, message?: string) =>
     setProgress((p) => ({ ...p, [key]: { phase, message } }));
-  const clearPhase = (key: string) =>
-    setProgress((p) => {
-      const next = { ...p };
-      delete next[key];
-      return next;
-    });
+
   const [lastE2e, setLastE2e] = useState<{
     runId: string;
     total: number;
