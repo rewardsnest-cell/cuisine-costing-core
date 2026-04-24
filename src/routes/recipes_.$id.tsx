@@ -14,7 +14,7 @@ export const Route = createFileRoute("/recipes_/$id")({
     const { data: recipe, error } = await (supabase as any)
       .from("recipes")
       .select(
-        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, serving_size, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type, total_cost, cost_per_serving, selling_price_per_person, menu_price, is_copycat, copycat_source",
+        "id, name, description, hook, image_url, coupon_image_url, coupon_text, coupon_valid_until, category, cuisine, servings, serving_size, prep_time, cook_time, instructions, allergens, is_vegetarian, is_vegan, is_gluten_free, active, video_url, video_embed_html, skill_level, use_case, pro_tips, serving_suggestions, storage_instructions, reheating_instructions, cta_type, total_cost, cost_per_serving, selling_price_per_person, menu_price, is_copycat, copycat_source, scope, inspired",
       )
       .eq("id", params.id)
       .maybeSingle();
