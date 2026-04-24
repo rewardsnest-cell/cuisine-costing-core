@@ -799,6 +799,7 @@ export function RecipeForm({
 
             {ingredients.map((ing, idx) => {
               const inv = ing.inventory_item_id ? inventory.find((item) => item.id === ing.inventory_item_id) : null;
+              const ref = ing.reference_id ? references.find((r) => r.id === ing.reference_id) : null;
               const lineTotal = getIngredientCostMetrics({
                 quantity: parseFloat(ing.quantity) || 0,
                 unit: ing.unit,
@@ -807,45 +808,77 @@ export function RecipeForm({
                   ? { average_cost_per_unit: inv.average_cost_per_unit, unit: inv.unit }
                   : null,
               }).lineTotal;
+              // Preview canonical-unit normalization that will run on save.
+              const targetUnit = ref?.default_unit?.trim() || null;
+              const qtyNum = parseFloat(ing.quantity);
+              const willNormalize =
+                !!targetUnit &&
+                ing.unit.trim() !== "" &&
+                ing.unit.trim().toLowerCase() !== targetUnit.toLowerCase() &&
+                Number.isFinite(qtyNum) &&
+                qtyNum > 0;
+              const convertedPreview = willNormalize
+                ? convertQty(qtyNum, ing.unit, targetUnit!)
+                : null;
+              const cannotConvert = willNormalize && convertedPreview === null;
               return (
                 <div
                   key={idx}
                   className="grid grid-cols-12 gap-2 items-center border border-border/50 sm:border-0 rounded-md p-2 sm:p-0"
                 >
                   <div className="col-span-12 sm:col-span-4 space-y-1">
-                    <InventoryPicker
+                    <IngredientLinker
                       inventory={inventory}
-                      value={ing.inventory_item_id}
+                      references={references}
+                      inventoryId={ing.inventory_item_id}
+                      referenceId={ing.reference_id}
                       displayName={ing.name}
-                      onPick={(inv, freeText) => {
-                        if (inv) {
-                          const convertedUnitCost = getConvertedUnitCost(
-                            ing.unit || inv.unit,
-                            inv.unit,
-                            inv.average_cost_per_unit,
-                          );
-                          updateIngredient(idx, {
-                            inventory_item_id: inv.id,
-                            reference_id: inv.reference_id ?? null,
-                            name: inv.name,
-                            unit: ing.unit || inv.unit,
-                            cost_per_unit:
-                              inv.average_cost_per_unit > 0
-                                ? String(convertedUnitCost ?? inv.average_cost_per_unit)
-                                : ing.cost_per_unit,
-                          });
-                        } else if (typeof freeText === "string") {
-                          updateIngredient(idx, {
-                            inventory_item_id: null,
-                            reference_id: null,
-                            name: freeText,
-                          });
-                        }
+                      onPickInventory={(inv) => {
+                        const convertedUnitCost = getConvertedUnitCost(
+                          ing.unit || inv.unit,
+                          inv.unit,
+                          inv.average_cost_per_unit,
+                        );
+                        updateIngredient(idx, {
+                          inventory_item_id: inv.id,
+                          reference_id: inv.reference_id ?? null,
+                          name: inv.name,
+                          unit: ing.unit || inv.unit,
+                          cost_per_unit:
+                            inv.average_cost_per_unit > 0
+                              ? String(convertedUnitCost ?? inv.average_cost_per_unit)
+                              : ing.cost_per_unit,
+                        });
+                      }}
+                      onPickReference={(ref) => {
+                        updateIngredient(idx, {
+                          inventory_item_id: null,
+                          reference_id: ref.id,
+                          name: ref.canonical_name,
+                          unit: ing.unit || ref.default_unit,
+                        });
+                      }}
+                      onTypeFreeText={(freeText) => {
+                        updateIngredient(idx, {
+                          inventory_item_id: null,
+                          reference_id: null,
+                          name: freeText,
+                        });
                       }}
                     />
                     {ing.name.trim() && !ing.reference_id && (
                       <span className="inline-flex items-center gap-1 text-[10px] text-destructive">
-                        <CircleAlert className="w-3 h-3" /> Unlinked — pick from inventory or add to ingredient reference
+                        <CircleAlert className="w-3 h-3" /> Unlinked — pick a canonical ingredient or add to ingredient reference
+                      </span>
+                    )}
+                    {ing.reference_id && willNormalize && convertedPreview !== null && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                        → stored as {convertedPreview.toFixed(4).replace(/\.?0+$/, "")} {targetUnit}
+                      </span>
+                    )}
+                    {cannotConvert && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-amber-600">
+                        <AlertTriangle className="w-3 h-3" /> Cannot convert {ing.unit} → {targetUnit}; original unit will be kept.
                       </span>
                     )}
                   </div>
