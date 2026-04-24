@@ -219,16 +219,16 @@ function ReceiptKrogerDiagnosticsPage() {
       </Card>
 
       {!locationId && (
-        <Alert variant="destructive">
-          <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>No Kroger location_id is configured</AlertTitle>
+        <Alert>
+          <Info className="w-4 h-4" />
+          <AlertTitle>No Kroger location resolved yet</AlertTitle>
           <AlertDescription>
-            Kroger requires a valid 8-digit locationId to return prices. Without it, every "no
-            Kroger SKUs" row below will keep coming back empty even after a re-run. Set it at{" "}
+            Kroger location is resolved server-side from the configured ZIP during the next
+            ingest run. Trigger a daily update from{" "}
             <Link to="/admin/kroger-pricing" className="underline">
-              /admin/kroger-pricing
+              Admin → Pricing Intelligence → Kroger
             </Link>
-            .
+            {" "}to populate it. Manual locationId entry has been removed.
           </AlertDescription>
         </Alert>
       )}
