@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw } from "lucide-react";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -24,6 +24,10 @@ type LineItem = {
   total_price: number;
   matched_inventory_id: string | null;
   matched_inventory_name: string | null;
+  match_source?: string | null;
+  match_score?: number | null;
+  needs_review?: boolean;
+  review_reason?: string | null;
 };
 
 type ReceiptRow = {
@@ -43,6 +47,9 @@ type InventoryItem = {
   name: string;
 };
 
+const THRESHOLD_KEY = "receipt_match_confidence_threshold";
+const DEFAULT_THRESHOLD = 0.6;
+
 function ReceiptsPage() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -61,17 +68,41 @@ function ReceiptsPage() {
     newItems: LineItem[];
     newTotal: number;
   } | null>(null);
+  const [threshold, setThreshold] = useState<number>(DEFAULT_THRESHOLD);
+  const [thresholdInput, setThresholdInput] = useState<string>(String(DEFAULT_THRESHOLD));
+  const [savingThreshold, setSavingThreshold] = useState(false);
 
   const load = async () => {
-    const [{ data: rData }, { data: iData }] = await Promise.all([
+    const [{ data: rData }, { data: iData }, { data: kv }] = await Promise.all([
       supabase.from("receipts").select("*").order("created_at", { ascending: false }),
       supabase.from("inventory_items").select("id, name").order("name"),
+      (supabase as any).from("app_kv").select("value").eq("key", THRESHOLD_KEY).maybeSingle(),
     ]);
     if (rData) setReceipts(rData as unknown as ReceiptRow[]);
     if (iData) setInventoryItems(iData as InventoryItem[]);
+    const parsed = parseFloat((kv as any)?.value ?? "");
+    const next = Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : DEFAULT_THRESHOLD;
+    setThreshold(next);
+    setThresholdInput(String(next));
   };
 
   useEffect(() => { load(); }, []);
+
+  const saveThreshold = async () => {
+    const parsed = parseFloat(thresholdInput);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+      toast.error("Threshold must be a number between 0 and 1 (e.g. 0.6)");
+      return;
+    }
+    setSavingThreshold(true);
+    const { error } = await (supabase as any)
+      .from("app_kv")
+      .upsert({ key: THRESHOLD_KEY, value: String(parsed) }, { onConflict: "key" });
+    setSavingThreshold(false);
+    if (error) { toast.error(error.message); return; }
+    setThreshold(parsed);
+    toast.success(`Confidence threshold set to ${(parsed * 100).toFixed(0)}%`);
+  };
 
   const handleUpload = useCallback(async (file: File) => {
     setUploading(true);
@@ -119,7 +150,13 @@ function ReceiptsPage() {
         data: { imageUrl: receipt.image_url, receiptId: receipt.id, rerun: opts.rerun },
       });
       if (!data.success) throw new Error(data.error || "OCR failed");
-      toast.success(`Extracted ${data.line_items?.length || 0} line items`);
+      const total = data.line_items?.length || 0;
+      const flagged = (data as any).flagged_count ?? data.line_items?.filter((it: any) => it.needs_review).length ?? 0;
+      if (flagged > 0) {
+        toast.warning(`Extracted ${total} line items · ${flagged} flagged for manual review (low confidence)`);
+      } else {
+        toast.success(`Extracted ${total} line items`);
+      }
       // On a re-run, surface a side-by-side comparison of OCR text + line items
       if (opts.rerun) {
         setCompare({
@@ -153,7 +190,16 @@ function ReceiptsPage() {
     const inv = inventoryItems.find((i) => i.id === inventoryId);
     setEditedLineItems((prev) =>
       prev.map((item, i) =>
-        i === idx ? { ...item, matched_inventory_id: inventoryId, matched_inventory_name: inv?.name || null } : item
+        i === idx
+          ? {
+              ...item,
+              matched_inventory_id: inventoryId,
+              matched_inventory_name: inv?.name || null,
+              needs_review: false,
+              review_reason: null,
+              match_source: item.match_source ?? "manual",
+            }
+          : item,
       )
     );
   };
@@ -217,12 +263,21 @@ function ReceiptsPage() {
   const saveLineItems = async () => {
     if (!reviewReceipt) return;
     const newTotal = editedLineItems.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+    const stillFlagged = editedLineItems.some((it) => it.needs_review);
+    const update: Record<string, any> = {
+      extracted_line_items: editedLineItems as any,
+      total_amount: Math.round(newTotal * 100) / 100,
+    };
+    // If admin resolved all flagged matches, promote status out of needs_review.
+    if (reviewReceipt.status === "needs_review" && !stillFlagged) {
+      update.status = "reviewed";
+    }
     const { error } = await supabase
       .from("receipts")
-      .update({ extracted_line_items: editedLineItems as any, total_amount: Math.round(newTotal * 100) / 100 })
+      .update(update as any)
       .eq("id", reviewReceipt.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Line items saved");
+    toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
     load();
     setReviewReceipt(null);
   };
@@ -247,14 +302,55 @@ function ReceiptsPage() {
     switch (status) {
       case "processed": return <CheckCircle className="w-4 h-4 text-success" />;
       case "reviewed": return <FileText className="w-4 h-4 text-gold" />;
+      case "needs_review": return <ShieldAlert className="w-4 h-4 text-warning" />;
       case "failed": return <AlertTriangle className="w-4 h-4 text-destructive" />;
       default: return <Clock className="w-4 h-4 text-warning" />;
     }
   };
 
+  const statusLabel = (status: string) =>
+    status === "needs_review" ? "needs review" : status;
+
   return (
     <div className="space-y-6">
       <PageHelpCard route="/admin/receipts" />
+
+      {/* Confidence threshold settings */}
+      <Card className="shadow-warm border-border/50">
+        <CardContent className="p-4 flex flex-wrap items-end gap-4">
+          <div className="flex items-center gap-2 mr-2">
+            <Settings className="w-4 h-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold">Auto-review confidence threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Receipt matches scoring below this value are auto-flagged for manual review instead of being applied.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="threshold" className="text-xs">Threshold (0–1)</Label>
+              <Input
+                id="threshold"
+                type="number"
+                step="0.05"
+                min="0"
+                max="1"
+                value={thresholdInput}
+                onChange={(e) => setThresholdInput(e.target.value)}
+                className="h-9 w-28"
+              />
+            </div>
+            <Button onClick={saveThreshold} disabled={savingThreshold} className="gap-1.5">
+              {savingThreshold ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              Save
+            </Button>
+            <span className="text-xs text-muted-foreground pb-2">
+              Current: <span className="font-medium">{(threshold * 100).toFixed(0)}%</span>
+            </span>
+          </div>
+        </CardContent>
+      </Card>
       {/* Upload zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -301,9 +397,15 @@ function ReceiptsPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {statusIcon(r.status)}
-                      <span className="text-sm font-medium capitalize">{r.status}</span>
+                      <span className="text-sm font-medium capitalize">{statusLabel(r.status)}</span>
+                      {Array.isArray(r.extracted_line_items) && r.extracted_line_items.some((it) => it?.needs_review) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 text-warning px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                          <ShieldAlert className="w-3 h-3" />
+                          {r.extracted_line_items.filter((it) => it?.needs_review).length} flagged
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       {new Date(r.receipt_date).toLocaleDateString()} · {Array.isArray(r.extracted_line_items) ? r.extracted_line_items.length : 0} items
@@ -316,9 +418,9 @@ function ReceiptsPage() {
                         {processing === r.id ? "Processing..." : "Run OCR"}
                       </Button>
                     )}
-                    {r.status === "reviewed" && (
+                    {(r.status === "reviewed" || r.status === "needs_review") && (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => openReview(r)} className="gap-1.5">
+                        <Button size="sm" variant={r.status === "needs_review" ? "default" : "outline"} onClick={() => openReview(r)} className="gap-1.5">
                           <FileText className="w-3.5 h-3.5" /> Review
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleOCR(r, { rerun: true })} disabled={processing === r.id} className="gap-1.5">
@@ -390,12 +492,13 @@ function ReceiptsPage() {
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Unit $</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Total</th>
                       <th className="py-2 px-2 font-semibold text-muted-foreground">Inventory Match</th>
+                      <th className="py-2 px-2 font-semibold text-muted-foreground">Confidence</th>
                       <th className="py-2 px-1 w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {editedLineItems.map((item, idx) => (
-                      <tr key={idx} className="border-b border-border/50">
+                      <tr key={idx} className={`border-b border-border/50 ${item.needs_review ? "bg-warning/5" : ""}`}>
                         <td className="py-2 px-2">
                           <Input value={item.item_name} onChange={(e) => updateLineItem(idx, "item_name", e.target.value)} className="h-8 text-xs min-w-[140px]" />
                         </td>
@@ -411,13 +514,30 @@ function ReceiptsPage() {
                         <td className="py-2 px-2 font-medium whitespace-nowrap">${(item.quantity * item.unit_price).toFixed(2)}</td>
                         <td className="py-2 px-2">
                           <Select value={item.matched_inventory_id || ""} onValueChange={(v) => matchLineItem(idx, v)}>
-                            <SelectTrigger className="h-8 text-xs min-w-[140px]"><SelectValue placeholder="Match..." /></SelectTrigger>
+                            <SelectTrigger className={`h-8 text-xs min-w-[140px] ${item.needs_review ? "border-warning" : ""}`}><SelectValue placeholder={item.needs_review && item.matched_inventory_name ? `Suggested: ${item.matched_inventory_name}` : "Match..."} /></SelectTrigger>
                             <SelectContent>
                               {inventoryItems.map((inv) => (
                                 <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                        </td>
+                        <td className="py-2 px-2 whitespace-nowrap">
+                          {typeof item.match_score === "number" ? (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                item.needs_review
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-success/15 text-success"
+                              }`}
+                              title={item.review_reason || `Source: ${item.match_source ?? "—"}`}
+                            >
+                              {item.needs_review && <ShieldAlert className="w-3 h-3" />}
+                              {(item.match_score * 100).toFixed(0)}%
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground italic">—</span>
+                          )}
                         </td>
                         <td className="py-2 px-1">
                           <Button size="icon" variant="ghost" onClick={() => removeLineItem(idx)} className="h-7 w-7 text-destructive hover:text-destructive">
