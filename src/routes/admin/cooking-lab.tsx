@@ -49,6 +49,7 @@ import {
   ArrowUp,
   ArrowDown,
   GripVertical,
+  Sparkles,
 } from "lucide-react";
 import {
   DndContext,
