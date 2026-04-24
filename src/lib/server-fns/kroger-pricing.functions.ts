@@ -149,7 +149,15 @@ async function performIngest(runId: string, opts: { limit: number; locationId: s
     .update({ status: "running", started_at: startedAt })
     .eq("id", runId);
 
-  const errors: { item: string; error: string }[] = [];
+  const errors: {
+    item: string;
+    error: string;
+    http_status?: number;
+    response_body?: string;
+    request_url?: string;
+    request_term?: string;
+    location_id?: string | null;
+  }[] = [];
   let priceRowsWritten = 0;
   let skuMapRowsTouched = 0;
   let itemsQueried = 0;
