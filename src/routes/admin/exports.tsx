@@ -479,8 +479,10 @@ function ExportsPage() {
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
             A structured inventory of the project — schema, routes, server
-            actions, AI workflows, KPIs, auth model, and environment. Useful as
-            context for Copilot, Cursor, or onboarding documents.
+            actions, AI workflows, KPIs, auth model, and environment, plus a
+            live snapshot of the page-inventory table (HTTP status, last
+            review, thumbnails). Useful as context for Copilot, Cursor, or
+            onboarding documents.
           </p>
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm flex items-center justify-between gap-3 flex-wrap">
             <div>
