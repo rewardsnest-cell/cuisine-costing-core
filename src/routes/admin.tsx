@@ -66,6 +66,7 @@ const NAV_GROUPS: { label: string; items: { to: string; label: string; icon: any
       { to: "/admin/menu-modules", label: "Menu Modules", icon: UtensilsCrossed },
       { to: "/admin/generate-recipe-photos", label: "Generate Photos", icon: Sparkles },
       { to: "/admin/newsletter-guide", label: "Newsletter Guide", icon: Mail },
+      { to: "/admin/inspired-preview", label: "Inspired Preview", icon: Sparkles },
     ],
   },
   {

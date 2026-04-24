@@ -726,6 +726,10 @@ function RecipeHub() {
         selectedIds={selectedIds}
         onClearSelection={() => setSelectedIds(new Set())}
         onPhotoUpdated={(id, url) => setRows((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: url } : x)))}
+        onInspiredPhaseUpdated={(ids, phase) => {
+          const set = new Set(ids);
+          setRows((rs) => rs.map((x) => set.has(x.id) ? { ...x, inspired: phase !== "off" ? true : x.inspired, inspired_phase: phase } : x));
+        }}
       />
     </div>
   );
