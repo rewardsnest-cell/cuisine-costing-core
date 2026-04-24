@@ -373,6 +373,39 @@ secrets before touching the database.
 - **Cost & pricing intelligence** (ingredient costs, supplier prices, Kroger/FRED pulls, competitor quotes) → admin-only end-to-end.
 - **Audit trail** (\`access_audit_log\`, \`change_log_entries\`) → admin-only read; writes happen through \`SECURITY DEFINER\` triggers so they can't be skipped.
 - **Role assignments** (\`user_roles\`) → admin-only write; \`has_role()\` is the single source of truth.
+
+## 7. END-TO-END (E2E) CHECKLIST
+
+Each route is checked on three dimensions:
+
+- **Renders** — the route file mounts a component shell without throwing.
+- **Loads data** — the route either uses a TanStack \`loader\` or calls
+  \`useQuery\` / \`useServerFn\` to fetch backend data. \`➖ n/a\` means the page
+  is static (no data dependency).
+- **Primary action** — the main user-facing action documented in
+  \`page-descriptions.ts → keyActions[0]\`, or the first detected form /
+  mutation. \`➖ n/a\` means the page is read-only.
+
+> Live runtime status (HTTP reachability + manual review) is tracked in
+> **Admin → Page Inventory** (\`/admin/page-inventory\`), backed by the
+> \`route_inventory\` table. The checklist below is the static, source-derived
+> view that ships with every audit export.
+
+### Public (${grouped.public.length})
+${e2eHeader}
+${grouped.public.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Auth-gated (${grouped.auth.length})
+${e2eHeader}
+${grouped.auth.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Employee-gated (${grouped.employee.length})
+${e2eHeader}
+${grouped.employee.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Admin-gated (${grouped.admin.length})
+${e2eHeader}
+${grouped.admin.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
 `;
 
 // ---- Emit TS file ----
