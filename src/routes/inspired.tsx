@@ -49,6 +49,14 @@ export const Route = createFileRoute("/inspired")({
 });
 
 function InspiredLanding() {
+  return (
+    <FeatureGate featureKey="inspired" label="Inspired">
+      <InspiredLandingInner />
+    </FeatureGate>
+  );
+}
+
+function InspiredLandingInner() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
