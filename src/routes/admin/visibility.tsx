@@ -16,7 +16,7 @@ import {
   type FeatureVisibilityRow,
   type VisibilityPhase,
 } from "@/lib/server-fns/feature-visibility.functions";
-import { PHASE_LABEL, PHASE_DESCRIPTION, PHASE_BADGE_CLASS } from "@/lib/feature-visibility";
+import { PHASE_LABEL, PHASE_DESCRIPTION, PHASE_BADGE_CLASS, syncFeatureVisibilityRows } from "@/lib/feature-visibility";
 
 export const Route = createFileRoute("/admin/visibility")({
   head: () => ({ meta: [{ title: "Global Visibility & Phase Control — Admin" }] }),
@@ -61,6 +61,7 @@ function VisibilityPage() {
     try {
       const data = await listFeatureVisibility();
       setRows(data);
+      syncFeatureVisibilityRows(data);
       const next: Record<string, Draft> = {};
       for (const r of data) next[r.feature_key] = rowToDraft(r);
       setDrafts(next);
@@ -109,6 +110,16 @@ function VisibilityPage() {
   // Writes immediately so the sidebar (which reads the same registry) updates without a redeploy.
   const onQuickToggle = async (key: string, turnOn: boolean) => {
     setQuickToggling(key);
+    const nextPhase: VisibilityPhase = turnOn ? "public" : "off";
+    setRows((current) => {
+      const nextRows = current.map((row) =>
+        row.feature_key === key
+          ? { ...row, phase: nextPhase, nav_enabled: turnOn }
+          : row,
+      );
+      syncFeatureVisibilityRows(nextRows);
+      return nextRows;
+    });
     try {
       await updateFeatureVisibility({
         data: {
