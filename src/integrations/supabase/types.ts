@@ -542,6 +542,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cooking_guides: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          published_at: string | null
+          related_ingredients: Json
+          related_tools: Json
+          slug: string
+          status: Database["public"]["Enums"]["cooking_guide_status"]
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          related_ingredients?: Json
+          related_tools?: Json
+          slug: string
+          status?: Database["public"]["Enums"]["cooking_guide_status"]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          related_ingredients?: Json
+          related_tools?: Json
+          slug?: string
+          status?: Database["public"]["Enums"]["cooking_guide_status"]
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       decision_logs: {
         Row: {
           created_at: string
@@ -2857,6 +2899,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employee"
+      cooking_guide_status: "draft" | "published"
       fred_priority: "primary" | "fallback"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
@@ -2988,6 +3031,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "employee"],
+      cooking_guide_status: ["draft", "published"],
       fred_priority: ["primary", "fallback"],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
