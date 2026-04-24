@@ -96,7 +96,42 @@ function CostQueuePage() {
     finally { setActingId(null); }
   };
 
-  return (
+  const allSelected = pending.length > 0 && selected.size === pending.length;
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(pending.map((p: any) => p.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const onBulkApprove = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Approve ${selected.size} cost update${selected.size === 1 ? "" : "s"}?`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await bulkApproveCostUpdates({ data: { queue_ids: Array.from(selected) } });
+      toast.success(`${res.ok_count}/${res.count} approved`);
+      setSelected(new Set());
+      await load();
+    } catch (e: any) { toast.error(e?.message || "Bulk approve failed"); }
+    finally { setBulkBusy(false); }
+  };
+  const onBulkReject = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Reject ${selected.size} cost update${selected.size === 1 ? "" : "s"}?`)) return;
+    setBulkBusy(true);
+    try {
+      const res = await bulkRejectCostUpdates({ data: { queue_ids: Array.from(selected) } });
+      toast.success(`${res.ok_count}/${res.count} rejected`);
+      setSelected(new Set());
+      await load();
+    } catch (e: any) { toast.error(e?.message || "Bulk reject failed"); }
+    finally { setBulkBusy(false); }
+  };
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold">Cost Update Queue</h1>
