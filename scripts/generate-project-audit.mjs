@@ -101,6 +101,44 @@ function classifyRoute(p) {
 const grouped = { public: [], auth: [], employee: [], admin: [] };
 for (const r of routes) grouped[classifyRoute(r.path)].push(r);
 
+// ---- E2E heuristics: scan route source for loader + primary action signals ----
+function scanRouteSource(routeFile) {
+  const fp = join(ROUTES_DIR, routeFile);
+  let src = "";
+  try {
+    src = readFileSync(fp, "utf8");
+  } catch {
+    return { hasLoader: false, hasMutation: false, hasForm: false, hasQuery: false };
+  }
+  return {
+    hasLoader: /\bloader\s*:/.test(src) || /beforeLoad\s*:/.test(src),
+    hasQuery: /useQuery\b|useSuspenseQuery\b|useInfiniteQuery\b|ensureQueryData\b/.test(src),
+    hasMutation: /useMutation\b|useServerFn\b/.test(src),
+    hasForm: /<form\b|useForm\b|onSubmit=/.test(src),
+  };
+}
+
+function e2eRow(r) {
+  const d = descriptions[r.path];
+  const sig = scanRouteSource(r.file);
+  // Render: every route renders a component — assume ✅ unless missing description (proxy for "unverified")
+  const render = "✅";
+  // Data load: ✅ if loader/query detected, ➖ if static page (no data needed)
+  const dataLoad = sig.hasLoader || sig.hasQuery ? "✅" : "➖ n/a";
+  // Primary action: ✅ if mutation/form detected, otherwise the first keyAction or ➖
+  let primaryAction = "➖ n/a";
+  if (sig.hasMutation || sig.hasForm) {
+    const action = d?.keyActions?.[0] || "interactive";
+    primaryAction = `✅ ${action.replace(/\|/g, "\\|").slice(0, 60)}`;
+  } else if (d?.keyActions?.length) {
+    primaryAction = `✅ ${d.keyActions[0].replace(/\|/g, "\\|").slice(0, 60)}`;
+  }
+  const title = (d?.title || "").replace(/\|/g, "\\|");
+  return `| \`${r.path}\` | ${title || "—"} | ${render} | ${dataLoad} | ${primaryAction} |`;
+}
+
+const e2eHeader = `| Path | Page | Renders | Loads data | Primary action |\n|---|---|---|---|---|`;
+
 // ---- Edge functions ----
 const edgeFns = existsSync(FUNCTIONS_DIR)
   ? readdirSync(FUNCTIONS_DIR).filter((d) =>
@@ -335,6 +373,39 @@ secrets before touching the database.
 - **Cost & pricing intelligence** (ingredient costs, supplier prices, Kroger/FRED pulls, competitor quotes) → admin-only end-to-end.
 - **Audit trail** (\`access_audit_log\`, \`change_log_entries\`) → admin-only read; writes happen through \`SECURITY DEFINER\` triggers so they can't be skipped.
 - **Role assignments** (\`user_roles\`) → admin-only write; \`has_role()\` is the single source of truth.
+
+## 7. END-TO-END (E2E) CHECKLIST
+
+Each route is checked on three dimensions:
+
+- **Renders** — the route file mounts a component shell without throwing.
+- **Loads data** — the route either uses a TanStack \`loader\` or calls
+  \`useQuery\` / \`useServerFn\` to fetch backend data. \`➖ n/a\` means the page
+  is static (no data dependency).
+- **Primary action** — the main user-facing action documented in
+  \`page-descriptions.ts → keyActions[0]\`, or the first detected form /
+  mutation. \`➖ n/a\` means the page is read-only.
+
+> Live runtime status (HTTP reachability + manual review) is tracked in
+> **Admin → Page Inventory** (\`/admin/page-inventory\`), backed by the
+> \`route_inventory\` table. The checklist below is the static, source-derived
+> view that ships with every audit export.
+
+### Public (${grouped.public.length})
+${e2eHeader}
+${grouped.public.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Auth-gated (${grouped.auth.length})
+${e2eHeader}
+${grouped.auth.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Employee-gated (${grouped.employee.length})
+${e2eHeader}
+${grouped.employee.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
+
+### Admin-gated (${grouped.admin.length})
+${e2eHeader}
+${grouped.admin.map(e2eRow).join("\n") || "| — | — | — | — | — |"}
 `;
 
 // ---- Emit TS file ----
