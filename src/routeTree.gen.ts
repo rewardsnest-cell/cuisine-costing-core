@@ -46,6 +46,7 @@ import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.b
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as QuoteStartRouteImport } from './routes/quote.start'
+import { Route as QuoteFindRouteImport } from './routes/quote.find'
 import { Route as QReferenceRouteImport } from './routes/q.$reference'
 import { Route as InspiredIdRouteImport } from './routes/inspired_.$id'
 import { Route as HooksRecipeDripRouteImport } from './routes/hooks/recipe-drip'
@@ -334,6 +335,11 @@ const QuoteAiRoute = QuoteAiRouteImport.update({
 const QuoteStartRoute = QuoteStartRouteImport.update({
   id: '/start',
   path: '/start',
+  getParentRoute: () => QuoteRoute,
+} as any)
+const QuoteFindRoute = QuoteFindRouteImport.update({
+  id: '/find',
+  path: '/find',
   getParentRoute: () => QuoteRoute,
 } as any)
 const QReferenceRoute = QReferenceRouteImport.update({
@@ -967,6 +973,7 @@ export interface FileRoutesByFullPath {
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
   '/q/$reference': typeof QReferenceRoute
+  '/quote/find': typeof QuoteFindRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -1106,6 +1113,7 @@ export interface FileRoutesByTo {
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired/$id': typeof InspiredIdRoute
   '/q/$reference': typeof QReferenceRoute
+  '/quote/find': typeof QuoteFindRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
@@ -1248,6 +1256,7 @@ export interface FileRoutesById {
   '/hooks/recipe-drip': typeof HooksRecipeDripRoute
   '/inspired_/$id': typeof InspiredIdRoute
   '/q/$reference': typeof QReferenceRoute
+  '/quote/find': typeof QuoteFindRoute
   '/quote/start': typeof QuoteStartRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
@@ -1391,6 +1400,7 @@ export interface FileRouteTypes {
     | '/hooks/recipe-drip'
     | '/inspired/$id'
     | '/q/$reference'
+    | '/quote/find'
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
@@ -1530,6 +1540,7 @@ export interface FileRouteTypes {
     | '/hooks/recipe-drip'
     | '/inspired/$id'
     | '/q/$reference'
+    | '/quote/find'
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
@@ -1671,6 +1682,7 @@ export interface FileRouteTypes {
     | '/hooks/recipe-drip'
     | '/inspired_/$id'
     | '/q/$reference'
+    | '/quote/find'
     | '/quote/start'
     | '/quote_/ai'
     | '/recipes_/$id'
@@ -2025,6 +2037,13 @@ declare module '@tanstack/react-router' {
       path: '/start'
       fullPath: '/quote/start'
       preLoaderRoute: typeof QuoteStartRouteImport
+      parentRoute: typeof QuoteRoute
+    }
+    '/quote/find': {
+      id: '/quote/find'
+      path: '/find'
+      fullPath: '/quote/find'
+      preLoaderRoute: typeof QuoteFindRouteImport
       parentRoute: typeof QuoteRoute
     }
     '/q/$reference': {
@@ -2998,10 +3017,12 @@ const CookingLabRouteWithChildren = CookingLabRoute._addFileChildren(
 )
 
 interface QuoteRouteChildren {
+  QuoteFindRoute: typeof QuoteFindRoute
   QuoteStartRoute: typeof QuoteStartRoute
 }
 
 const QuoteRouteChildren: QuoteRouteChildren = {
+  QuoteFindRoute: QuoteFindRoute,
   QuoteStartRoute: QuoteStartRoute,
 }
 
