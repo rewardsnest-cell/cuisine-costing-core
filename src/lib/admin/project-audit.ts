@@ -25,11 +25,23 @@ export function rowsToCsv(rows: Record<string, any>[]): string {
 export async function downloadFile(content: string | Blob, filename: string, mime: string) {
   const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
 
-  // Prefer native "Save As" dialog when supported (Chromium-based browsers).
+  // Prefer native "Save As" dialog when supported AND we're in a top-level
+  // (non-sandboxed) document. The File System Access API is blocked inside
+  // cross-origin iframes (e.g. the Lovable preview), so we detect that and
+  // skip straight to the anchor-download fallback.
   const showSaveFilePicker = (globalThis as any).showSaveFilePicker as
     | ((opts?: any) => Promise<any>)
     | undefined;
-  if (typeof showSaveFilePicker === "function") {
+
+  let inIframe = false;
+  try {
+    inIframe = typeof window !== "undefined" && window.self !== window.top;
+  } catch {
+    // Cross-origin access throws — that itself means we're in an iframe.
+    inIframe = true;
+  }
+
+  if (typeof showSaveFilePicker === "function" && !inIframe) {
     const ext = filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : "";
     try {
       const handle = await showSaveFilePicker({
@@ -45,17 +57,21 @@ export async function downloadFile(content: string | Blob, filename: string, mim
     } catch (err: any) {
       // User cancelled — propagate so callers can suppress success toasts.
       if (err?.name === "AbortError") throw err;
-      // Other errors (e.g. permission, unsupported context): fall through to anchor download.
+      // Other errors (permission, SecurityError, unsupported context):
+      // fall through to anchor download.
     }
   }
 
-  // Fallback: trigger a normal download to the browser's default folder.
+  // Fallback: trigger a normal download via an anchor tag. This works in
+  // every browser including Safari, iOS, and sandboxed iframes.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.rel = "noopener";
+  // Safari requires the anchor to be in the DOM before .click() will fire.
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
