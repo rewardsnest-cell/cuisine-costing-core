@@ -6,12 +6,26 @@ import { Sparkles, ListChecks, ArrowRight } from "lucide-react";
 import { QuotePage } from "./quote";
 
 export const Route = createFileRoute("/catering_/quote")({
+  beforeLoad: () => {
+    // Phase 2: send fresh visitors to the calm intake first. Returning users
+    // with an in-progress handoff (from /menu or the AI concierge) bypass the
+    // redirect and go straight to the structured builder.
+    if (typeof window !== "undefined") {
+      try {
+        if (!sessionStorage.getItem("quote_handoff")) {
+          throw redirect({ to: "/quote/start" });
+        }
+      } catch (err) {
+        if (err && typeof err === "object" && "isRedirect" in err) throw err;
+      }
+    }
+  },
   head: () => ({
     meta: [
-      { title: "Build Your Catering Quote — VPS Finest" },
-      { name: "description", content: "Create a customized catering proposal in minutes. Aurora, Ohio." },
-      { property: "og:title", content: "Build Your Catering Quote — VPS Finest" },
-      { property: "og:description", content: "Create a customized catering proposal in minutes. Aurora, Ohio." },
+      { title: "Refine Your Catering Quote — VPS Finest" },
+      { name: "description", content: "Continue structuring your catering event with VPS Finest." },
+      { property: "og:title", content: "Refine Your Catering Quote — VPS Finest" },
+      { property: "og:description", content: "Continue structuring your catering event with VPS Finest." },
     ],
   }),
   component: CateringQuoteChooser,
