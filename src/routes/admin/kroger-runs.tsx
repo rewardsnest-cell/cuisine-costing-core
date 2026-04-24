@@ -112,8 +112,13 @@ function KrogerRunsPage() {
     triggerIngest(n);
   };
 
+  const rerunFromRow = (r: Run) => {
+    const lim = r.item_limit == null ? 25 : r.item_limit;
+    triggerIngest(lim);
+  };
+
   const latest = runs[0] ?? null;
-  const latestErrors = (latest?.errors as Array<{ item: string; error: string }> | null) ?? [];
+  const latestErrors = (latest?.errors as ErrorDetail[] | null) ?? [];
 
   return (
     <div className="space-y-6">
