@@ -132,6 +132,8 @@ function CostQueuePage() {
     } catch (e: any) { toast.error(e?.message || "Bulk reject failed"); }
     finally { setBulkBusy(false); }
   };
+
+  return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold">Cost Update Queue</h1>
