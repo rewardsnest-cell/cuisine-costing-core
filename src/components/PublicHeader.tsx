@@ -13,6 +13,7 @@ import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
+import { useInspiredNavVisible } from "@/lib/inspired";
 
 // CDN-hosted fallback so the logo still renders if the bundled asset 404s
 // in production (e.g. cache mismatch right after a deploy).
@@ -23,6 +24,7 @@ export function PublicHeader() {
   const { user, signOut, loading, isAdmin, isEmployee } = useAuth();
   const { data: brandLogoUrl } = useBrandAsset("primary_logo");
   const { display: brandDisplay } = useBrandName();
+  const { visible: inspiredNavVisible } = useInspiredNavVisible();
   const [logoSrc, setLogoSrc] = useState<string>(logo);
   const effectiveSrc = brandLogoUrl || logoSrc;
 
@@ -47,7 +49,9 @@ export function PublicHeader() {
           <Link to="/menu" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Menu</Link>
           <Link to="/weddings" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Weddings</Link>
           <Link to="/recipes" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Recipes</Link>
-          <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
+          {(inspiredNavVisible || isAdmin) && (
+            <Link to="/inspired" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Inspired</Link>
+          )}
           <Link to="/guides" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Guides</Link>
           <Link to="/blog" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>Blog</Link>
           <Link to="/about" className="text-foreground hover:text-primary transition-colors" activeProps={{ className: "font-semibold text-primary" }}>About</Link>
@@ -73,7 +77,9 @@ export function PublicHeader() {
               <DropdownMenuItem asChild><Link to="/menu">Menu</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/weddings">Weddings</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/recipes">Recipes</Link></DropdownMenuItem>
-              <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
+              {(inspiredNavVisible || isAdmin) && (
+                <DropdownMenuItem asChild><Link to="/inspired">Inspired</Link></DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild><Link to="/guides">Guides</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/blog">Blog</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/about">About</Link></DropdownMenuItem>

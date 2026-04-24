@@ -52,6 +52,8 @@ type Row = {
   score_seasonal: number;
   pricing_status: string | null;
   pricing_errors: any;
+  inspired: boolean;
+  inspired_phase: "off" | "admin_preview" | "soft_launch" | "public";
   shop_count?: number;
   health_status?: HealthStatus;
   stale_count?: number;
@@ -61,6 +63,7 @@ type ContentFilter = "all" | "no-video" | "no-shop" | "no-photo" | "draft";
 type StatusFilter = "all" | "active" | "off";
 type Kind = "all" | "food" | "cocktail";
 type HealthFilter = "all" | "blocked" | "warning" | "healthy";
+type InspiredFilter = "all" | "inspired" | "non-inspired" | "phase-off" | "phase-admin_preview" | "phase-soft_launch" | "phase-public";
 
 function RecipeHub() {
   const search = Route.useSearch();
@@ -73,6 +76,7 @@ function RecipeHub() {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [kind, setKind] = useState<Kind>("all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
+  const [inspiredFilter, setInspiredFilter] = useState<InspiredFilter>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [recomputingAll, setRecomputingAll] = useState(false);
   const [healthRecompute, setHealthRecompute] = useState<{
@@ -115,7 +119,7 @@ function RecipeHub() {
     const [{ data: recipes }, { data: shop }, { data: healthRows }] = await Promise.all([
       (supabase as any)
         .from("recipes")
-        .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal, pricing_status, pricing_errors")
+        .select("id, name, active, category, use_case, image_url, video_url, pro_tips, cost_per_serving, score_affiliate, score_video, score_event, score_seasonal, pricing_status, pricing_errors, inspired, inspired_phase")
         .order("updated_at", { ascending: false }),
       (supabase as any).from("recipe_shop_items").select("recipe_id"),
       (supabase as any).rpc("recipe_pricing_health_summary"),
@@ -126,6 +130,8 @@ function RecipeHub() {
     for (const h of (healthRows || []) as RecipeHealthSummaryRow[]) healthMap.set(h.recipe_id, h);
     const merged: Row[] = (recipes || []).map((r: any) => ({
       ...r,
+      inspired: !!r.inspired,
+      inspired_phase: (r.inspired_phase ?? "off") as Row["inspired_phase"],
       shop_count: counts.get(r.id) || 0,
       health_status: healthMap.get(r.id)?.health_status ?? (r.pricing_status && r.pricing_status !== "valid" ? "blocked" : "healthy"),
       stale_count: healthMap.get(r.id)?.stale_ingredient_count ?? 0,
@@ -158,6 +164,12 @@ function RecipeHub() {
       if (kind === "food" && isCocktail(r.category)) return false;
       if (kind === "cocktail" && !isCocktail(r.category)) return false;
       if (healthFilter !== "all" && (r.health_status ?? "healthy") !== healthFilter) return false;
+      if (inspiredFilter === "inspired" && !r.inspired) return false;
+      if (inspiredFilter === "non-inspired" && r.inspired) return false;
+      if (inspiredFilter.startsWith("phase-")) {
+        const wanted = inspiredFilter.slice("phase-".length);
+        if (!r.inspired || r.inspired_phase !== wanted) return false;
+      }
       return true;
     });
     // Sort by health: blocked → warning → healthy (preserves original order within group)
@@ -169,7 +181,7 @@ function RecipeHub() {
         return ra !== rb ? ra - rb : a.i - b.i;
       })
       .map((x) => x.r);
-  }, [rows, q, filter, status, kind, healthFilter]);
+  }, [rows, q, filter, status, kind, healthFilter, inspiredFilter]);
 
   // All recipes lacking a photo (entire dataset, not just visible)
   const allMissingPhoto = useMemo(() => rows.filter((r) => !r.image_url), [rows]);
@@ -600,6 +612,19 @@ function RecipeHub() {
               ["draft", "Drafts"],
             ]}
           />
+          <FilterChips
+            value={inspiredFilter}
+            onChange={setInspiredFilter}
+            options={[
+              ["all", "Any inspired"],
+              ["inspired", "Inspired only"],
+              ["non-inspired", "Non-inspired"],
+              ["phase-off", "Phase: off"],
+              ["phase-admin_preview", "Phase: preview"],
+              ["phase-soft_launch", "Phase: soft"],
+              ["phase-public", "Phase: public"],
+            ]}
+          />
         </CardContent>
       </Card>
 
@@ -701,6 +726,10 @@ function RecipeHub() {
         selectedIds={selectedIds}
         onClearSelection={() => setSelectedIds(new Set())}
         onPhotoUpdated={(id, url) => setRows((rs) => rs.map((x) => (x.id === id ? { ...x, image_url: url } : x)))}
+        onInspiredPhaseUpdated={(ids, phase) => {
+          const set = new Set(ids);
+          setRows((rs) => rs.map((x) => set.has(x.id) ? { ...x, inspired: phase !== "off" ? true : x.inspired, inspired_phase: phase } : x));
+        }}
       />
     </div>
   );

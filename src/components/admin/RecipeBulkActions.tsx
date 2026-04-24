@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecipePhoto } from "@/lib/server/generate-recipe-photos";
+import { bulkSetInspiredPhase } from "@/lib/server-fns/inspired.functions";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Link2, Loader2, ImageOff, X } from "lucide-react";
+import { Sparkles, Link2, Loader2, ImageOff, X, Sparkle } from "lucide-react";
 import { toast } from "sonner";
+import { PHASE_LABEL, INSPIRED_PHASES, type InspiredPhase } from "@/lib/inspired";
 
 interface BulkRecipe {
   id: string;
@@ -17,6 +19,7 @@ interface Props {
   selectedIds: Set<string>;
   onClearSelection: () => void;
   onPhotoUpdated?: (recipeId: string, url: string) => void;
+  onInspiredPhaseUpdated?: (recipeIds: string[], phase: InspiredPhase) => void;
 }
 
 /**
@@ -25,15 +28,32 @@ interface Props {
  *   • Generate missing photos — runs existing generateRecipePhoto server fn for selected recipes that have no image_url.
  *   • Auto-link ingredients — opens the dedicated page (works across all unlinked, not per-recipe).
  */
-export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPhotoUpdated }: Props) {
+export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPhotoUpdated, onInspiredPhaseUpdated }: Props) {
   const gen = useServerFn(generateRecipePhoto);
+  const setBulkPhase = useServerFn(bulkSetInspiredPhase);
   const [running, setRunning] = useState(false);
+  const [phaseRunning, setPhaseRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 });
 
   if (selectedIds.size === 0) return null;
 
   const selectedRecipes = recipes.filter((r) => selectedIds.has(r.id));
+  const selectedIdArr = selectedRecipes.map((r) => r.id);
   const missingPhotos = selectedRecipes.filter((r) => !r.image_url);
+
+  const applyPhase = async (phase: InspiredPhase) => {
+    if (!confirm(`Set Inspired phase to "${PHASE_LABEL[phase]}" for ${selectedIdArr.length} recipe(s)?\n\nThis is audit-logged and creates a Change Log draft.`)) return;
+    setPhaseRunning(true);
+    try {
+      const out: any = await setBulkPhase({ data: { recipeIds: selectedIdArr, phase } });
+      toast.success(`Updated ${out?.updated ?? selectedIdArr.length} recipe(s) to ${PHASE_LABEL[phase]}.`);
+      onInspiredPhaseUpdated?.(selectedIdArr, phase);
+    } catch (e: any) {
+      toast.error(e?.message || "Bulk phase update failed");
+    } finally {
+      setPhaseRunning(false);
+    }
+  };
 
   const generatePhotos = async () => {
     if (missingPhotos.length === 0) {
@@ -100,7 +120,25 @@ export function RecipeBulkActions({ recipes, selectedIds, onClearSelection, onPh
             Auto-link ingredients
           </Button>
         </Link>
-        <Button size="sm" variant="ghost" onClick={onClearSelection} className="gap-1" disabled={running}>
+        <div className="inline-flex items-center gap-1.5">
+          <Sparkle className="w-3.5 h-3.5 text-muted-foreground" />
+          <select
+            disabled={phaseRunning || running}
+            defaultValue=""
+            onChange={(e) => {
+              const v = e.target.value as InspiredPhase | "";
+              e.currentTarget.value = "";
+              if (v) void applyPhase(v);
+            }}
+            className="text-xs rounded-md border border-border bg-background px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">{phaseRunning ? "Updating…" : "Set Inspired phase…"}</option>
+            {INSPIRED_PHASES.map((p) => (
+              <option key={p} value={p}>{PHASE_LABEL[p]}</option>
+            ))}
+          </select>
+        </div>
+        <Button size="sm" variant="ghost" onClick={onClearSelection} className="gap-1" disabled={running || phaseRunning}>
           <X className="w-3.5 h-3.5" /> Clear
         </Button>
       </div>

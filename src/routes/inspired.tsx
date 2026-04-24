@@ -61,6 +61,7 @@ function InspiredLanding() {
           .from("recipes")
           .select("id, name, description, hook, image_url, category, cuisine, prep_time, cook_time, servings, video_url")
           .eq("inspired", true)
+          .eq("inspired_phase", "public")
           .eq("status", "published")
           .eq("active", true)
           .order("name");
@@ -87,7 +88,7 @@ function InspiredLanding() {
             A small collection of home-cook recipes built around flavors you already love. Calm methods, simple equipment, and the occasional video to walk you through it.
           </p>
           <p className="mt-3 text-xs text-muted-foreground/80 max-w-xl mx-auto">
-            These are inspired by familiar flavors — they are not official or branded replicas.
+            These dishes are inspired by familiar flavors. They are original recipes and not official replicas.
           </p>
         </div>
       </section>
