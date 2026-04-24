@@ -17,7 +17,8 @@ interface Props {
 }
 
 export function QuoteStepRecipes({ selections, setSelections, setStep }: Props) {
-  const { showPricing } = usePricingVisibility();
+  usePricingVisibility();
+  const showPricing = false;
   const [allRecipes, setAllRecipes] = useState<RecipeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
