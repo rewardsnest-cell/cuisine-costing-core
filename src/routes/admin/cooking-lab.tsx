@@ -911,21 +911,32 @@ function CookingLabManager() {
             </Button>
           </div>
 
-          <div className="space-y-6">
-            {allSorted.map((e, idx) => (
-              <EntryCard
-                key={e.id}
-                entry={e}
-                canMoveUp={idx > 0}
-                canMoveDown={idx < allSorted.length - 1}
-                onMoveUp={() => moveEntry(idx, -1)}
-                onMoveDown={() => moveEntry(idx, 1)}
-                reordering={reorderMut.isPending}
-                selected={selectedIds.has(e.id)}
-                onToggleSelected={(checked) => toggleSelected(e.id, checked)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={dndSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={allSorted.map((e) => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-6">
+                {allSorted.map((e, idx) => (
+                  <SortableEntryCard
+                    key={e.id}
+                    entry={e}
+                    canMoveUp={idx > 0}
+                    canMoveDown={idx < allSorted.length - 1}
+                    onMoveUp={() => moveEntry(idx, -1)}
+                    onMoveDown={() => moveEntry(idx, 1)}
+                    reordering={reorderMut.isPending}
+                    selected={selectedIds.has(e.id)}
+                    onToggleSelected={(checked) => toggleSelected(e.id, checked)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
