@@ -330,3 +330,33 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: any;
+  tone: "neutral" | "primary" | "success" | "destructive";
+}) {
+  const toneClasses =
+    tone === "destructive"
+      ? "border-destructive/30 bg-destructive/5 text-destructive"
+      : tone === "success"
+        ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+        : tone === "primary"
+          ? "border-primary/30 bg-primary/5 text-primary"
+          : "border-border bg-muted/20 text-foreground";
+  return (
+    <div className={`rounded-md border p-3 ${toneClasses}`}>
+      <div className="flex items-center gap-1.5 text-xs font-medium opacity-80 mb-1">
+        <Icon className="w-3.5 h-3.5" />
+        {label}
+      </div>
+      <div className="text-2xl font-semibold tabular-nums">{value.toLocaleString()}</div>
+    </div>
+  );
+}
