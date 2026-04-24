@@ -191,6 +191,8 @@ export const processReceipt = createServerFn({ method: "POST" })
         total_amount: extracted.total_amount,
         raw_ocr_text: extracted.raw_text || "",
         previous,
+        confidence_threshold: confidenceThreshold,
+        flagged_count: enriched.filter((it: any) => it.needs_review).length,
       };
     } catch (e) {
       // Mark receipt as failed so the UI can surface a Re-run OCR action
