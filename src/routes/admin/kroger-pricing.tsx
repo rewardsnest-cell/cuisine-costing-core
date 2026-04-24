@@ -138,9 +138,10 @@ function KrogerPricingPage() {
             it only surfaces sanity checks for admins.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link to="/admin/kroger-runs"><Button size="sm" variant="outline" className="gap-1"><Activity className="w-3.5 h-3.5" />Runs</Button></Link>
           <Link to="/admin/kroger-sku-review"><Button size="sm" variant="outline" className="gap-1"><ListChecks className="w-3.5 h-3.5" />SKU Review</Button></Link>
+          <Link to="/admin/receipt-kroger-diagnostics"><Button size="sm" variant="outline" className="gap-1"><ListChecks className="w-3.5 h-3.5" />Receipt match diag</Button></Link>
         </div>
       </div>
 
