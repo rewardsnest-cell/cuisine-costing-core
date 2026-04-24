@@ -143,6 +143,25 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Cooking Lab teaser */}
+      <section className="py-20 bg-secondary border-b border-border">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-3">New</p>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-4">
+            Step into the Cooking Lab.
+          </h2>
+          <p className="text-muted-foreground leading-relaxed font-light max-w-xl mx-auto mb-8">
+            Fun cooking techniques, simple food science, and the tools we actually use. Built for curious cooks.
+          </p>
+          <Link
+            to="/cooking-lab"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-7 py-3 text-sm font-semibold tracking-wide text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            Explore the Cooking Lab →
+          </Link>
+        </div>
+      </section>
+
       <PhotoGrid />
 
       {/* Final CTA */}
