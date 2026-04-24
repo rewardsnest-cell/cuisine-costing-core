@@ -570,8 +570,16 @@ function CookingLabManager() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {entries.map((e) => (
-            <EntryCard key={e.id} entry={e} />
+          {sorted.map((e, idx) => (
+            <EntryCard
+              key={e.id}
+              entry={e}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < sorted.length - 1}
+              onMoveUp={() => moveEntry(idx, -1)}
+              onMoveDown={() => moveEntry(idx, 1)}
+              reordering={reorderMut.isPending}
+            />
           ))}
         </div>
       )}
