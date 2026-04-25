@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCw, Trash2, AlertTriangle, Plus, X } from "lucide-react";
+import { Loader2, Save, RotateCw, Trash2, AlertTriangle, Plus, X, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,19 @@ export function BulkContactReviewDialog({
   const generate = useServerFn(generateProspectContact);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [regenAll, setRegenAll] = useState(false);
+  const [regenProgress, setRegenProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
 
   const update = (id: string, patch: Partial<BulkReviewItem>) => {
     setItems(items.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -59,6 +73,28 @@ export function BulkContactReviewDialog({
 
   const remove = (id: string) => {
     setItems(items.filter((it) => it.id !== id));
+    setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  };
+
+  const applyGenerated = (item: BulkReviewItem, res: Awaited<ReturnType<typeof generate>>): BulkReviewItem => {
+    if (!res.ok) return { ...item, error: res.error };
+    const c = res.contact;
+    return {
+      ...item,
+      contact_name: c.contact_name ?? item.contact_name,
+      email: c.email ?? item.email,
+      phone: c.phone ?? item.phone,
+      website: c.website ?? item.website,
+      address: c.address ?? item.address,
+      contacts: (c.contacts && c.contacts.length > 0)
+        ? c.contacts.map((x) => ({
+            name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+          }))
+        : item.contacts,
+      ai_notes: c.notes ?? "",
+      confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
+      error: null,
+    };
   };
 
   const retry = async (item: BulkReviewItem) => {
@@ -67,27 +103,8 @@ export function BulkContactReviewDialog({
       const res = await generate({
         data: { businessName: item.business_name, city: item.city, type: item.type },
       });
-      if (!res.ok) {
-        update(item.id, { error: res.error });
-        toast.error(res.error);
-        return;
-      }
-      const c = res.contact;
-      update(item.id, {
-        contact_name: c.contact_name ?? item.contact_name,
-        email: c.email ?? item.email,
-        phone: c.phone ?? item.phone,
-        website: c.website ?? item.website,
-        address: c.address ?? item.address,
-        contacts: (c.contacts && c.contacts.length > 0)
-          ? c.contacts.map((x) => ({
-              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
-            }))
-          : item.contacts,
-        ai_notes: c.notes ?? "",
-        confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
-        error: null,
-      });
+      if (!res.ok) toast.error(res.error);
+      setItems(items.map((it) => (it.id === item.id ? applyGenerated(it, res) : it)));
     } catch (e: any) {
       update(item.id, { error: e?.message ?? "Failed" });
       toast.error(e?.message ?? "Failed to regenerate");
@@ -95,6 +112,41 @@ export function BulkContactReviewDialog({
       setBusyId(null);
     }
   };
+
+  const regenerateSelected = async () => {
+    const targets = items.filter((it) => selectedIds.has(it.id));
+    if (targets.length === 0) {
+      toast.error("Select at least one prospect to regenerate.");
+      return;
+    }
+    setRegenAll(true);
+    setRegenProgress({ done: 0, total: targets.length });
+    let working: BulkReviewItem[] = [...items];
+    let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      try {
+        const res = await generate({
+          data: { businessName: t.business_name, city: t.city, type: t.type },
+        });
+        if (!res.ok) failed++;
+        working = working.map((it) => (it.id === t.id ? applyGenerated(it, res) : it));
+        setItems(working);
+      } catch (e: any) {
+        failed++;
+        working = working.map((it) => (it.id === t.id ? { ...it, error: e?.message ?? "Failed" } : it));
+        setItems(working);
+      }
+      setRegenProgress({ done: i + 1, total: targets.length });
+      // small delay to be nice to AI gateway / firecrawl rate limits
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    setRegenAll(false);
+    setRegenProgress(null);
+    if (failed === 0) toast.success(`Regenerated ${targets.length} prospect${targets.length === 1 ? "" : "s"}`);
+    else toast.warning(`Regenerated ${targets.length - failed} of ${targets.length}; ${failed} failed`);
+  };
+
 
   const saveOne = async (item: BulkReviewItem): Promise<boolean> => {
     const cleanContacts = item.contacts.filter((c) => c.name || c.email || c.phone || c.role);
@@ -178,21 +230,63 @@ export function BulkContactReviewDialog({
               Review each AI suggestion. Edit fields, regenerate, skip, or save individually.
               Existing values on a prospect are preserved if you leave a field blank.
             </p>
+
+            <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => {
+                    if (v) setSelectedIds(new Set(items.map((it) => it.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                  disabled={regenAll || savingAll}
+                  aria-label="Select all for regenerate"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : `Select all (${items.length})`}
+                </span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {regenProgress && (
+                  <span className="text-xs text-muted-foreground">
+                    {regenProgress.done} / {regenProgress.total}
+                  </span>
+                )}
+                <Button
+                  size="sm" variant="secondary" className="gap-1.5"
+                  disabled={regenAll || savingAll || selectedIds.size === 0}
+                  onClick={regenerateSelected}
+                >
+                  {regenAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {regenAll ? "Regenerating…" : `Regenerate selected (${selectedIds.size})`}
+                </Button>
+              </div>
+            </div>
+
             {items.map((item) => {
-              const busy = busyId === item.id || savingAll;
+              const busy = busyId === item.id || savingAll || regenAll;
               return (
                 <div key={item.id} className="rounded-md border p-3 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-medium text-sm">{item.business_name}</div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {item.type && <Badge variant="outline" className="text-[10px]">{item.type}</Badge>}
-                        {item.city && <Badge variant="outline" className="text-[10px]">{item.city}</Badge>}
-                        {item.confidence && (
-                          <Badge variant={confColor(item.confidence) as any} className="text-[10px]">
-                            {item.confidence} confidence
-                          </Badge>
-                        )}
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        className="mt-1"
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={(v) => toggleSelect(item.id, !!v)}
+                        disabled={regenAll || savingAll}
+                        aria-label={`Select ${item.business_name}`}
+                      />
+                      <div>
+                        <div className="font-medium text-sm">{item.business_name}</div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.type && <Badge variant="outline" className="text-[10px]">{item.type}</Badge>}
+                          {item.city && <Badge variant="outline" className="text-[10px]">{item.city}</Badge>}
+                          {item.confidence && (
+                            <Badge variant={confColor(item.confidence) as any} className="text-[10px]">
+                              {item.confidence} confidence
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1">
