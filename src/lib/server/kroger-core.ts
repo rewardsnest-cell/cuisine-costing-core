@@ -90,10 +90,9 @@ async function getKv(key: string): Promise<string | null> {
   return (data as any)?.value ?? null;
 }
 
-export async function getSavedKrogerLocationId(): Promise<string | null> {
-  const v = await getKv("kroger_location_id");
-  return v && v.trim().length > 0 ? v.trim() : null;
-}
+// `getSavedKrogerLocationId` was removed: per pricing intent, there is no
+// admin-pinned location. Locations are derived from ZIP only.
+
 
 /**
  * Resolve a Kroger locationId from a US ZIP code.
