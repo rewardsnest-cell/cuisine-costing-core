@@ -142,7 +142,7 @@ export const getKrogerStatus = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await ensureAdmin(context.supabase, context.userId);
     const enabled = await isKrogerEnabled();
-    const locationId = await getKrogerLocationId();
+    const locationId: string | null = null; // never expose pinned location; UI is read-only on this
     const hasClientId = !!process.env.KROGER_CLIENT_ID;
     const hasClientSecret = !!process.env.KROGER_CLIENT_SECRET;
 
