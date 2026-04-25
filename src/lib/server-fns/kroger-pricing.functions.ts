@@ -852,7 +852,7 @@ export const listChartableItems = createServerFn({ method: "POST" })
  */
 export const runKrogerIngest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; location_id?: string | null; limit?: number } | undefined) => d ?? {})
+  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; limit?: number } | undefined) => d ?? {})
   .handler(async ({ context, data }) => {
     await ensureAdmin(context.supabase, context.userId);
 
@@ -867,14 +867,6 @@ export const runKrogerIngest = createServerFn({ method: "POST" })
     const mode: "catalog_bootstrap" | "daily_update" = data.mode ?? "daily_update";
     const limit = Math.max(1, Math.min(5000, data.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
 
-    // Resolve locationId: explicit > saved > ZIP lookup
-    let locationId: string | null = null;
-    if (typeof data.location_id === "string" && data.location_id.trim()) {
-      locationId = data.location_id.trim();
-    } else {
-      locationId = await getKrogerLocationId();
-    }
-
     let token: string;
     try {
       token = await getKrogerAccessToken();
@@ -882,12 +874,11 @@ export const runKrogerIngest = createServerFn({ method: "POST" })
       return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
     }
 
+    // Always derive from ZIP — admins cannot pin a locationId.
+    const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
+    const locationId = await resolveLocationIdFromZip(zip, token);
     if (!locationId) {
-      const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
-      locationId = await resolveLocationIdFromZip(zip, token);
-      if (!locationId) {
-        return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
-      }
+      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
     }
 
     const { data: runRow, error: insErr } = await supabaseAdmin
