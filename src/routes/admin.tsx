@@ -201,6 +201,24 @@ function AdminLayout() {
     [visibleGroups],
   );
 
+  const STORAGE_KEY = "admin:navGroupState:v1";
+  // Default: every group starts collapsed. Persist user toggles after that.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    const allLabels = NAV_GROUPS.map((g) => g.label);
+    if (typeof window === "undefined") return new Set(allLabels);
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return new Set(allLabels);
+      const saved = JSON.parse(raw) as { collapsed: string[]; known: string[] };
+      const knownSet = new Set(saved.known ?? []);
+      const collapsedSet = new Set(saved.collapsed ?? []);
+      for (const label of allLabels) {
+        if (!knownSet.has(label)) collapsedSet.add(label);
+      }
+      return collapsedSet;
+    } catch { return new Set(allLabels); }
+  });
+
   // Auth gate
   if (loading) {
     return <LoadingState fullScreen label="Checking your session…" />;
