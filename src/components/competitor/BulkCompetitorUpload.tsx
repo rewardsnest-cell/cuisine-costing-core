@@ -339,11 +339,11 @@ export function BulkCompetitorUpload({
             className="border-2 border-dashed rounded-lg p-6 text-center bg-muted/20"
           >
             <Upload className="w-6 h-6 mx-auto text-muted-foreground" />
-            <p className="text-sm mt-2">Drop PDFs or images here, or</p>
+            <p className="text-sm mt-2">Drop PDFs, images, Word, Excel, or text files here, or</p>
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf,image/*"
+              accept="application/pdf,image/*,.docx,.doc,.xlsx,.xls,.csv,.tsv,.txt,.md,.rtf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.ms-excel,text/plain,text/csv"
               multiple
               className="hidden"
               onChange={(e) => {
