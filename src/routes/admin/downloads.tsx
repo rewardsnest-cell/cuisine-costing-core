@@ -116,6 +116,12 @@ function AdminDownloadsPage() {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (kind !== "all" && r.kind !== kind) return false;
+      if (moduleKey !== "all" && moduleOf(r) !== moduleKey) return false;
+      if (dateFrom || dateTo) {
+        const day = localDay(r.created_at);
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
+      }
       if (!needle) return true;
       return (
         r.filename.toLowerCase().includes(needle) ||
@@ -123,7 +129,11 @@ function AdminDownloadsPage() {
         (emails[r.user_id || ""] || "").toLowerCase().includes(needle)
       );
     });
-  }, [rows, kind, q, emails]);
+  }, [rows, kind, moduleKey, dateFrom, dateTo, q, emails]);
+
+  const resetFilters = () => {
+    setKind("all"); setModuleKey("all"); setDateFrom(""); setDateTo(""); setQ("");
+  };
 
   const onDelete = async (id: string) => {
     if (!confirm("Permanently remove this download record?")) return;
