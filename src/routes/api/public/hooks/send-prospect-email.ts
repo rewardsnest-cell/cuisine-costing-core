@@ -80,11 +80,33 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
           return Response.json({ error: "Prospect has no email" }, { status: 400 });
         }
 
+        const attemptedAt = new Date();
+        const t0 = Date.now();
         const sendResult = await sendOutlookEmail({
           to: prospect.email,
           subject: body.subject,
           html: body.html,
           text: body.text,
+        });
+        const completedAt = new Date();
+        const durationMs = Date.now() - t0;
+
+        // Granular audit row for every Outlook attempt (lead_id null for prospects).
+        await (supabase as any).from("lead_email_audit").insert({
+          lead_id: null,
+          recipient: prospect.email,
+          subject: body.subject,
+          body_preview: body.text.slice(0, 240),
+          source: "prospect",
+          template_name: body.templateKey,
+          status: sendResult.ok ? "sent" : "failed",
+          http_status: sendResult.status,
+          error_message: sendResult.ok ? null : sendResult.error ?? `HTTP ${sendResult.status}`,
+          attempted_at: attemptedAt.toISOString(),
+          completed_at: completedAt.toISOString(),
+          duration_ms: durationMs,
+          actor_user_id: userId,
+          metadata: { prospect_id: prospect.id, channel: "outlook" },
         });
 
         if (!sendResult.ok) {
@@ -108,7 +130,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
           );
         }
 
-        const now = new Date().toISOString();
+        const now = completedAt.toISOString();
         await (supabase as any).from("sales_contact_log").insert({
           prospect_id: prospect.id,
           channel: "email",
