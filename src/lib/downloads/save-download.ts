@@ -19,6 +19,15 @@ export type SaveAndLogInput = {
   sourceLabel?: string | null;
   /** Trigger the local browser download too. Default true. */
   triggerLocalDownload?: boolean;
+  // ---- Export job metadata (so each download is explainable later) ----
+  /** Logical app module that produced this export, e.g. "pricing", "audit". */
+  module?: string | null;
+  /** Number of records/rows/items included in the export. */
+  recordCount?: number | null;
+  /** Snapshot of filters/options used to generate the export. */
+  parameters?: Record<string, unknown> | null;
+  /** Optional override for the generator email; defaults to current user. */
+  generatedByEmail?: string | null;
 };
 
 export type SaveAndLogResult = {
@@ -68,6 +77,10 @@ export async function saveAndLogDownload(
     sourceId = null,
     sourceLabel = null,
     triggerLocalDownload = true,
+    module = null,
+    recordCount = null,
+    parameters = null,
+    generatedByEmail = null,
   } = input;
 
   const result: SaveAndLogResult = {
@@ -85,6 +98,7 @@ export async function saveAndLogDownload(
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user?.id ?? null;
+    const userEmail = sessionData.session?.user?.email ?? null;
     if (!userId) return result; // anonymous: local-only
 
     const safe = safeName(filename);
@@ -112,6 +126,10 @@ export async function saveAndLogDownload(
         size_bytes: blob.size,
         source_id: sourceId,
         source_label: sourceLabel,
+        module,
+        record_count: recordCount,
+        generated_by_email: generatedByEmail ?? userEmail,
+        parameters: parameters ?? {},
       })
       .select("id")
       .single();

@@ -3433,10 +3433,14 @@ export type Database = {
         Row: {
           created_at: string
           filename: string
+          generated_by_email: string | null
           id: string
           kind: string
           mime_type: string | null
+          module: string | null
+          parameters: Json
           public_url: string | null
+          record_count: number | null
           size_bytes: number | null
           source_id: string | null
           source_label: string | null
@@ -3446,10 +3450,14 @@ export type Database = {
         Insert: {
           created_at?: string
           filename: string
+          generated_by_email?: string | null
           id?: string
           kind: string
           mime_type?: string | null
+          module?: string | null
+          parameters?: Json
           public_url?: string | null
+          record_count?: number | null
           size_bytes?: number | null
           source_id?: string | null
           source_label?: string | null
@@ -3459,10 +3467,14 @@ export type Database = {
         Update: {
           created_at?: string
           filename?: string
+          generated_by_email?: string | null
           id?: string
           kind?: string
           mime_type?: string | null
+          module?: string | null
+          parameters?: Json
           public_url?: string | null
+          record_count?: number | null
           size_bytes?: number | null
           source_id?: string | null
           source_label?: string | null
