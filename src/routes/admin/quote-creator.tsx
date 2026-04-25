@@ -1268,7 +1268,7 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
     setDimension(conv.dimension);
     if (conv.converted && conv.unit !== unit) {
       const newUnit = conv.unit ?? "";
-      const newQty = String(conv.quantity);
+      const newQty = formatQty(conv.quantity, conv.unit, conv.dimension);
       setUnit(newUnit);
       setQty(newQty);
       save(newQty, newUnit);
