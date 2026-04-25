@@ -298,6 +298,8 @@ function QuoteCreatorHub() {
       toast.error("Bulk delete failed", { description: e.message });
     }
   };
+
+  const duplicateGroups = useMemo(() => {
     if (!data) return [] as CqhDish[][];
     const map = new Map<string, CqhDish[]>();
     for (const d of data.dishes) {
