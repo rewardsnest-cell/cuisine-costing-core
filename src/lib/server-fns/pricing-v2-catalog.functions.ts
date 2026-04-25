@@ -764,7 +764,44 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
         .eq("status", "IN_PROGRESS");
     }
 
-    return { ok: true, recovered: runIds.length, run_ids: runIds, cutoff: cutoffIso };
+    // Fire alerts (banner + optional email + optional webhook) for any run
+    // whose stuck_for_minutes meets the configured threshold.
+    const breaches: RecoveredRunBreach[] = stuckRuns.map((r: any) => {
+      const startedAt = r.started_at as string | null;
+      const stuckMs = startedAt ? Date.now() - new Date(startedAt).getTime() : 0;
+      const stuckMin = Math.round(stuckMs / 60_000);
+      return {
+        run_id: r.run_id,
+        stage: r.stage,
+        stuck_for_minutes: stuckMin,
+        started_at: startedAt,
+        counts_in: r.counts_in ?? 0,
+        counts_out: r.counts_out ?? 0,
+        warnings_count: r.warnings_count ?? 0,
+        errors_count: r.errors_count ?? 0,
+        message:
+          `Auto-recovered ${r.stage} run ${r.run_id} stuck for ~${stuckMin}m ` +
+          `(threshold breach). Marked failed at ${nowIso}.`,
+      };
+    });
+    let alertResult = { fired: 0, events: [] as any[] };
+    try {
+      const req = getRequest();
+      const baseUrl = new URL(req.url).origin;
+      alertResult = await dispatchStuckRecoveryAlerts(supabase, breaches, baseUrl);
+    } catch (e) {
+      // Never let alert dispatch break recovery itself.
+      console.error("[stuck-recovery-alerts] dispatch failed:", e);
+    }
+
+    return {
+      ok: true,
+      recovered: runIds.length,
+      run_ids: runIds,
+      cutoff: cutoffIso,
+      alerts_fired: alertResult.fired,
+      alert_events: alertResult.events,
+    };
   });
 
 /**
