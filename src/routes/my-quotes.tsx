@@ -136,7 +136,15 @@ function MyQuotesPage() {
         allergies: [],
         pricePerDish: pricePerDish || 0,
       });
-      doc.save(`quote-${q.reference_number || q.id.slice(0, 8)}.pdf`);
+      const fname = `quote-${q.reference_number || q.id.slice(0, 8)}.pdf`;
+      const { saveAndLogDownload } = await import("@/lib/downloads/save-download");
+      await saveAndLogDownload({
+        blob: doc.output("blob"),
+        filename: fname,
+        kind: "quote_pdf",
+        sourceId: q.id,
+        sourceLabel: q.reference_number || q.client_name || "Quote",
+      });
     } catch (e: any) {
       toast.error("Couldn't generate PDF", { description: e.message });
     }

@@ -20,6 +20,7 @@ import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as MyEventsRouteImport } from './routes/my-events'
+import { Route as MyDownloadsRouteImport } from './routes/my-downloads'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
@@ -111,6 +112,7 @@ import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
+import { Route as AdminDownloadsRouteImport } from './routes/admin/downloads'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
@@ -202,6 +204,11 @@ const MyQuotesRoute = MyQuotesRouteImport.update({
 const MyEventsRoute = MyEventsRouteImport.update({
   id: '/my-events',
   path: '/my-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyDownloadsRoute = MyDownloadsRouteImport.update({
+  id: '/my-downloads',
+  path: '/my-downloads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MenuRoute = MenuRouteImport.update({
@@ -668,6 +675,11 @@ const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDownloadsRoute = AdminDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
   id: '/cost-queue',
   path: '/cost-queue',
@@ -878,6 +890,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -902,6 +915,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1018,6 +1032,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -1041,6 +1056,7 @@ export interface FileRoutesByTo {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1159,6 +1175,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -1183,6 +1200,7 @@ export interface FileRoutesById {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1302,6 +1320,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1326,6 +1345,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1442,6 +1462,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1465,6 +1486,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1582,6 +1604,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1606,6 +1629,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1724,6 +1748,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
   MenuRoute: typeof MenuRoute
+  MyDownloadsRoute: typeof MyDownloadsRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -1843,6 +1868,13 @@ declare module '@tanstack/react-router' {
       path: '/my-events'
       fullPath: '/my-events'
       preLoaderRoute: typeof MyEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-downloads': {
+      id: '/my-downloads'
+      path: '/my-downloads'
+      fullPath: '/my-downloads'
+      preLoaderRoute: typeof MyDownloadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/menu': {
@@ -2482,6 +2514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmployeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/downloads': {
+      id: '/admin/downloads'
+      path: '/downloads'
+      fullPath: '/admin/downloads'
+      preLoaderRoute: typeof AdminDownloadsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cost-queue': {
       id: '/admin/cost-queue'
       path: '/cost-queue'
@@ -2857,6 +2896,7 @@ interface AdminRouteChildren {
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminCookingLabRoute: typeof AdminCookingLabRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
+  AdminDownloadsRoute: typeof AdminDownloadsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
@@ -2927,6 +2967,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminCookingLabRoute: AdminCookingLabRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
+  AdminDownloadsRoute: AdminDownloadsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
@@ -3043,6 +3084,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
   MenuRoute: MenuRoute,
+  MyDownloadsRoute: MyDownloadsRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   PrivacyRoute: PrivacyRoute,

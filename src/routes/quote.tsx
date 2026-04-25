@@ -138,7 +138,7 @@ export function QuotePage() {
   const subtotal = (dishTotal + extrasTotal + addonsTotal) * selectedTier.multiplier + recipesTotal;
   const totalAmount = Math.round(subtotal);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     const doc = generateQuotePDF({
       clientName: selections.clientName,
       clientEmail: selections.clientEmail,
@@ -151,7 +151,14 @@ export function QuotePage() {
       pricePerDish: PRICE_PER_DISH,
       preferences: selections.preferences,
     });
-    doc.save(`VPS Finest-${selections.clientName || "Proposal"}.pdf`);
+    const filename = `VPS Finest-${selections.clientName || "Proposal"}.pdf`;
+    const { saveAndLogDownload } = await import("@/lib/downloads/save-download");
+    await saveAndLogDownload({
+      blob: doc.output("blob"),
+      filename,
+      kind: "quote_pdf",
+      sourceLabel: selections.clientName || "Catering Proposal",
+    });
   };
 
   const [submittedQuoteId, setSubmittedQuoteId] = useState<string | null>(null);
