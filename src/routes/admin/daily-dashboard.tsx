@@ -151,7 +151,39 @@ function DailyDashboardPage() {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { loadCore(); loadReminders(); }, []);
+  const loadTrend = async () => {
+    // Pull last 8 weeks of weekly goals and aggregate target vs completed per week.
+    const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 86400000).toISOString().slice(0, 10);
+    const { data } = await (supabase as any)
+      .from("admin_weekly_goals")
+      .select("week_start, target_value, progress_value, done")
+      .gte("week_start", eightWeeksAgo)
+      .order("week_start", { ascending: true });
+    const byWeek = new Map<string, { target: number; completed: number }>();
+    for (const g of (data || []) as any[]) {
+      const wk = g.week_start as string;
+      const tgt = Number(g.target_value) || 0;
+      // "Completed" = capped progress (so over-shooting doesn't inflate the line)
+      const rawProg = Number(g.progress_value) || 0;
+      const prog = tgt > 0 ? Math.min(rawProg, tgt) : (g.done ? 1 : 0);
+      const effTarget = tgt > 0 ? tgt : 1; // count goals without explicit target as 1-unit
+      const cur = byWeek.get(wk) || { target: 0, completed: 0 };
+      cur.target += effTarget;
+      cur.completed += prog;
+      byWeek.set(wk, cur);
+    }
+    const points = Array.from(byWeek.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([week, v]) => ({
+        week: week.slice(5), // MM-DD
+        target: Math.round(v.target * 10) / 10,
+        completed: Math.round(v.completed * 10) / 10,
+        pct: v.target > 0 ? Math.round((v.completed / v.target) * 100) : 0,
+      }));
+    setTrend(points);
+  };
+
+  useEffect(() => { loadCore(); loadReminders(); loadTrend(); }, []);
 
   // Priorities
   const addPriority = async () => {
