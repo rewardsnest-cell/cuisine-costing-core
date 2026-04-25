@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -56,6 +56,21 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/inspired-preview",  label: "Familiar Favorites Preview", icon: Sparkles,        featureKey: "admin_inspired_preview" },
       { to: "/admin/guides",            label: "Cooking Guides",             icon: NotebookPen,     featureKey: "admin_cooking_guides" },
       { to: "/admin/newsletter-guide",  label: "Newsletter Guide",           icon: Mail,            featureKey: "admin_newsletter_guide" },
+    ],
+  },
+  {
+    label: "Sales Hub",
+    featureKey: "admin_sales_hub",
+    items: [
+      { to: "/admin/sales-hub",                 label: "Sales Dashboard",   icon: ListChecks,         featureKey: "admin_sales_hub" },
+      { to: "/admin/sales-hub/prospects",       label: "Prospects",         icon: Users,              featureKey: "admin_sales_prospects" },
+      { to: "/admin/sales-hub/scripts",         label: "Sales Scripts",     icon: MessageSquareQuote, featureKey: "admin_sales_scripts" },
+      { to: "/admin/sales-hub/daily",           label: "Daily Checklist",   icon: ClipboardList,      featureKey: "admin_sales_daily" },
+      { to: "/admin/sales-hub/events",          label: "Event Checklist",   icon: CalendarCheck,      featureKey: "admin_sales_events_checklist" },
+      { to: "/admin/sales-hub/reviews",         label: "Reviews",           icon: Star,               featureKey: "admin_sales_reviews" },
+      { to: "/admin/sales-hub/follow-ups",      label: "Follow-Ups",        icon: Mail,               featureKey: "admin_sales_followups" },
+      { to: "/admin/sales-hub/referrals",       label: "Referrals",         icon: Repeat,             featureKey: "admin_sales_referrals" },
+      { to: "/admin/sales-hub/weekly-review",   label: "Weekly Review",     icon: BookOpenCheck,      featureKey: "admin_sales_weekly_review" },
     ],
   },
   {
