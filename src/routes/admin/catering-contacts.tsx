@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin } from "lucide-react";
+import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -190,6 +190,12 @@ function LeadsPage() {
             <Link to="/admin/outreach">
               <Phone className="h-4 w-4 mr-2" />
               Outreach Queue
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/cron-runs">
+              <Activity className="h-4 w-4 mr-2" />
+              Cron Runs
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
