@@ -11,6 +11,7 @@ import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTra
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 import { usePricingVisibility } from "@/lib/use-pricing-visibility";
+import { useFeatureGate } from "@/lib/feature-visibility";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -79,6 +80,7 @@ function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving" | "
 }
 
 function PublicMenuPage() {
+  const gate = useFeatureGate("menu", { label: "The menu" });
   const { showPricing } = usePricingVisibility();
   const { add, setQty, qtyOf, has } = useMenuSelections();
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
@@ -238,8 +240,20 @@ function PublicMenuPage() {
     setPriceRange([0, priceMax]);
   }
 
+  if (!gate.ready) {
+    return <div className="pt-24 pb-20 min-h-screen text-center text-muted-foreground">Loading…</div>;
+  }
+  if (!gate.allowed) return null;
+
   return (
     <div className="pt-24 pb-20 min-h-screen">
+      {gate.isAdminPreview && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm">
+            Admin preview — Menu is currently hidden from the public.
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground">Our Menu</h1>
