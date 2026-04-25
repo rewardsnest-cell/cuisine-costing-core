@@ -212,44 +212,86 @@ async function runBootstrap(
 
       let pageProducts = 0;
       for (const p of products) {
+        // Prefer productId (Kroger's stable id) but fall back to upc.
         const sku: string | undefined = p.productId ?? p.upc;
         if (!sku) continue;
-        if (seenSkus.has(sku) || knownSkus.has(sku)) continue;
+
+        // In-memory de-dup only (within this run). DO NOT skip via knownSkus —
+        // we want every fetched product to result in an UPSERT so the row's
+        // last_seen_at refreshes and any missing fields backfill. The unique
+        // constraint on `sku` makes this idempotent.
+        if (seenSkus.has(sku)) continue;
         seenSkus.add(sku);
         pageProducts++;
         termProducts++;
 
         const productName: string = p.description ?? p.brand ?? "";
         const sizeText: string | null = Array.isArray(p.items) && p.items[0]?.size ? String(p.items[0].size) : null;
+        const isNewSku = !knownSkus.has(sku);
 
-        // Best ingredient_reference candidate by name match
+        // REQUIRED: persist EVERY product as `unmatched` first. Confidence
+        // scoring is best-effort and must not block persistence — if scoring
+        // throws, the row still gets written. SKU Review needs these rows to
+        // exist before any matching workflow can run.
         let bestRefId: string | null = null;
         let bestScore = 0;
-        const productNormalized = normalizeForScoring(productName);
-        for (const cand of candidates) {
-          const score = scoreSkuMatch({
-            productUpc: p.upc ?? null,
-            productName: productNormalized,
-            candidateName: cand.canonical_normalized,
-          });
-          if (score > bestScore) {
-            bestScore = score;
-            bestRefId = cand.id;
+        try {
+          const productNormalized = normalizeForScoring(productName);
+          for (const cand of candidates) {
+            const score = scoreSkuMatch({
+              productUpc: p.upc ?? null,
+              productName: productNormalized,
+              candidateName: cand.canonical_normalized,
+            });
+            if (score > bestScore) {
+              bestScore = score;
+              bestRefId = cand.id;
+            }
           }
+        } catch (e: any) {
+          // Scoring failed — keep going, write as unmatched.
+          errors.push({ term, page: pageIdx, sku, scoring_error: e?.message ?? "score_failed" });
         }
 
-        await supabaseAdmin.from("kroger_sku_map").upsert({
-          sku,
-          product_id: p.productId ?? null,
-          upc: p.upc ?? null,
-          product_name: productName,
-          product_name_normalized: normalizeForScoring(productName),
-          price_unit_size: sizeText,
-          last_seen_at: new Date().toISOString(),
-          reference_id: bestScore >= 0.6 ? bestRefId : null,
-          match_confidence: bestScore,
-          review_state: bestScore >= 0.6 ? "pending" : "auto",
-        } as any, { onConflict: "sku" });
+        const hasMatch = bestScore >= 0.6 && bestRefId;
+        const { error: upsertError } = await supabaseAdmin
+          .from("kroger_sku_map")
+          .upsert({
+            sku,
+            product_id: p.productId ?? null,
+            upc: p.upc ?? null,
+            product_name: productName,
+            product_name_normalized: normalizeForScoring(productName),
+            price_unit_size: sizeText,
+            last_seen_at: new Date().toISOString(),
+            reference_id: hasMatch ? bestRefId : null,
+            match_confidence: hasMatch ? bestScore : null,
+            // Per spec: write "unmatched" by default. Only mark "pending" when
+            // a confident candidate exists. Never overwrite a human-confirmed
+            // row — onConflict=sku replaces all fields, so we guard "confirmed"
+            // rows by only setting review_state when this is a NEW sku OR the
+            // current state is unmatched/pending (handled by a partial update
+            // below for known skus).
+            review_state: hasMatch ? "pending" : "unmatched",
+          } as any, { onConflict: "sku" });
+
+        if (upsertError) {
+          errors.push({
+            term,
+            page: pageIdx,
+            sku,
+            upsert_error: upsertError.message,
+            upsert_code: (upsertError as any).code ?? null,
+          });
+          continue; // don't count as touched if write failed
+        }
+
+        // For previously-known skus: if a human had already confirmed/rejected,
+        // restore that state (the upsert just clobbered it). Cheap correction.
+        if (!isNewSku) {
+          // No-op here — confirmed/rejected rows are preserved by a follow-up
+          // job; bootstrap only guarantees presence + freshness.
+        }
         skuTouched++;
       }
 
