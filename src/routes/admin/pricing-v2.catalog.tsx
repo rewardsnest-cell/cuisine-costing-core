@@ -158,6 +158,17 @@ function CatalogBootstrapPage() {
     onError: (e: any) => toast.error(e?.message ?? "Reset failed"),
   });
 
+  const recoverMut = useMutation({
+    mutationFn: () => recoverStuckCatalogRuns({ data: { older_than_minutes: 15 } }),
+    onSuccess: (res: any) => {
+      if (res.recovered === 0) toast.info("No stuck runs found (>15m old)");
+      else toast.success(`Recovered ${res.recovered} stuck run${res.recovered === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "live-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Recovery failed"),
+  });
+
   const testMut = useMutation({
     mutationFn: () => runCatalogTestHarness(),
     onSuccess: (res) => {
