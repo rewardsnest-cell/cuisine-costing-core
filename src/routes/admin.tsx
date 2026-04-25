@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown, ServerCrash,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown, ServerCrash, AlertTriangle,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -118,9 +118,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Pricing v2",
+    items: [
+      { to: "/admin/pricing-v2",          label: "Control Center", icon: LayoutDashboard, exact: true },
+      { to: "/admin/pricing-v2/errors",   label: "Errors",         icon: AlertTriangle },
+      { to: "/admin/pricing-v2/settings", label: "Settings",       icon: ShieldCheck },
+    ],
+  },
+  {
     label: "Pricing",
     items: [
-      { to: "/admin/pricing",  label: "Pricing (v2)",         icon: Tag },
+      { to: "/admin/pricing",  label: "Pricing (v2 stub)",    icon: Tag },
       { to: "/admin/receipts", label: "Receipt Diagnostics",  icon: Receipt, featureKey: "admin_receipt_diagnostics" },
     ],
   },

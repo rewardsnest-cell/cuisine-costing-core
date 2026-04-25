@@ -132,6 +132,7 @@ import { Route as AdminAssetDebugRouteImport } from './routes/admin/asset-debug'
 import { Route as AdminArchiveAuditRouteImport } from './routes/admin/archive-audit'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
+import { Route as AdminPricingV2IndexRouteImport } from './routes/admin/pricing-v2.index'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CookingLabCSlugRouteImport } from './routes/cooking-lab.c.$slug'
@@ -151,6 +152,8 @@ import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/r
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminQuoteCreatorIdRouteImport } from './routes/admin/quote-creator.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminPricingV2SettingsRouteImport } from './routes/admin/pricing-v2.settings'
+import { Route as AdminPricingV2ErrorsRouteImport } from './routes/admin/pricing-v2.errors'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminLeadsImportRouteImport } from './routes/admin/leads.import'
 import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
@@ -798,6 +801,11 @@ const AdminAccessRoute = AdminAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingV2IndexRoute = AdminPricingV2IndexRouteImport.update({
+  id: '/pricing-v2/',
+  path: '/pricing-v2/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorQuotesIndexRoute =
   AdminCompetitorQuotesIndexRouteImport.update({
     id: '/competitor-quotes/',
@@ -895,6 +903,16 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   id: '/national',
   path: '/national',
   getParentRoute: () => AdminPricingRoute,
+} as any)
+const AdminPricingV2SettingsRoute = AdminPricingV2SettingsRouteImport.update({
+  id: '/pricing-v2/settings',
+  path: '/pricing-v2/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPricingV2ErrorsRoute = AdminPricingV2ErrorsRouteImport.update({
+  id: '/pricing-v2/errors',
+  path: '/pricing-v2/errors',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   id: '/preview',
@@ -1138,6 +1156,8 @@ export interface FileRoutesByFullPath {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
+  '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1157,6 +1177,7 @@ export interface FileRoutesByFullPath {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1300,6 +1321,8 @@ export interface FileRoutesByTo {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
+  '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1319,6 +1342,7 @@ export interface FileRoutesByTo {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1465,6 +1489,8 @@ export interface FileRoutesById {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
+  '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1484,6 +1510,7 @@ export interface FileRoutesById {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1631,6 +1658,8 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
+    | '/admin/pricing-v2/settings'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1650,6 +1679,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
+    | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -1793,6 +1823,8 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
+    | '/admin/pricing-v2/settings'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1812,6 +1844,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
+    | '/admin/pricing-v2'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -1957,6 +1990,8 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
+    | '/admin/pricing-v2/settings'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1976,6 +2011,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
+    | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -2918,6 +2954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccessRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-v2/': {
+      id: '/admin/pricing-v2/'
+      path: '/pricing-v2'
+      fullPath: '/admin/pricing-v2/'
+      preLoaderRoute: typeof AdminPricingV2IndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitor-quotes/': {
       id: '/admin/competitor-quotes/'
       path: '/competitor-quotes'
@@ -3050,6 +3093,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/pricing/national'
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminPricingRoute
+    }
+    '/admin/pricing-v2/settings': {
+      id: '/admin/pricing-v2/settings'
+      path: '/pricing-v2/settings'
+      fullPath: '/admin/pricing-v2/settings'
+      preLoaderRoute: typeof AdminPricingV2SettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pricing-v2/errors': {
+      id: '/admin/pricing-v2/errors'
+      path: '/pricing-v2/errors'
+      fullPath: '/admin/pricing-v2/errors'
+      preLoaderRoute: typeof AdminPricingV2ErrorsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/menu-modules/preview': {
       id: '/admin/menu-modules/preview'
@@ -3404,8 +3461,11 @@ interface AdminRouteChildren {
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
+  AdminPricingV2ErrorsRoute: typeof AdminPricingV2ErrorsRoute
+  AdminPricingV2SettingsRoute: typeof AdminPricingV2SettingsRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
+  AdminPricingV2IndexRoute: typeof AdminPricingV2IndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -3482,8 +3542,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminLeadsImportRoute: AdminLeadsImportRoute,
+  AdminPricingV2ErrorsRoute: AdminPricingV2ErrorsRoute,
+  AdminPricingV2SettingsRoute: AdminPricingV2SettingsRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
+  AdminPricingV2IndexRoute: AdminPricingV2IndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

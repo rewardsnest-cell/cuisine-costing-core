@@ -2657,6 +2657,137 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_errors: {
+        Row: {
+          created_at: string
+          debug_json: Json
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          message: string
+          run_id: string | null
+          severity: Database["public"]["Enums"]["pricing_v2_severity"]
+          stage: Database["public"]["Enums"]["pricing_v2_stage"]
+          suggested_fix: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          debug_json?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message: string
+          run_id?: string | null
+          severity?: Database["public"]["Enums"]["pricing_v2_severity"]
+          stage: Database["public"]["Enums"]["pricing_v2_stage"]
+          suggested_fix?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          debug_json?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message?: string
+          run_id?: string | null
+          severity?: Database["public"]["Enums"]["pricing_v2_severity"]
+          stage?: Database["public"]["Enums"]["pricing_v2_stage"]
+          suggested_fix?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_errors_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
+      pricing_v2_runs: {
+        Row: {
+          counts_in: number
+          counts_out: number
+          created_at: string
+          ended_at: string | null
+          errors_count: number
+          initiated_by: string | null
+          notes: string | null
+          run_id: string
+          stage: Database["public"]["Enums"]["pricing_v2_stage"]
+          started_at: string
+          status: Database["public"]["Enums"]["pricing_v2_run_status"]
+          warnings_count: number
+        }
+        Insert: {
+          counts_in?: number
+          counts_out?: number
+          created_at?: string
+          ended_at?: string | null
+          errors_count?: number
+          initiated_by?: string | null
+          notes?: string | null
+          run_id?: string
+          stage: Database["public"]["Enums"]["pricing_v2_stage"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["pricing_v2_run_status"]
+          warnings_count?: number
+        }
+        Update: {
+          counts_in?: number
+          counts_out?: number
+          created_at?: string
+          ended_at?: string | null
+          errors_count?: number
+          initiated_by?: string | null
+          notes?: string | null
+          run_id?: string
+          stage?: Database["public"]["Enums"]["pricing_v2_stage"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["pricing_v2_run_status"]
+          warnings_count?: number
+        }
+        Relationships: []
+      }
+      pricing_v2_settings: {
+        Row: {
+          default_menu_multiplier: number
+          id: number
+          kroger_store_id: string
+          kroger_zip: string
+          monthly_schedule_day: number
+          monthly_schedule_hour: number
+          updated_at: string
+          warning_threshold_pct: number
+          zero_cost_blocking: boolean
+        }
+        Insert: {
+          default_menu_multiplier?: number
+          id?: number
+          kroger_store_id?: string
+          kroger_zip?: string
+          monthly_schedule_day?: number
+          monthly_schedule_hour?: number
+          updated_at?: string
+          warning_threshold_pct?: number
+          zero_cost_blocking?: boolean
+        }
+        Update: {
+          default_menu_multiplier?: number
+          id?: number
+          kroger_store_id?: string
+          kroger_zip?: string
+          monthly_schedule_day?: number
+          monthly_schedule_hour?: number
+          updated_at?: string
+          warning_threshold_pct?: number
+          zero_cost_blocking?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -4731,6 +4862,21 @@ export type Database = {
       inspired_phase: "off" | "admin_preview" | "soft_launch" | "public"
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
+      pricing_v2_run_status:
+        | "queued"
+        | "running"
+        | "success"
+        | "partial"
+        | "failed"
+        | "skipped"
+      pricing_v2_severity: "info" | "warning" | "error" | "critical"
+      pricing_v2_stage:
+        | "catalog"
+        | "monthly_snapshot"
+        | "receipts"
+        | "normalize"
+        | "compute_costs"
+        | "rollups"
       quote_state:
         | "initiated"
         | "info_collected"
@@ -4872,6 +5018,23 @@ export const Constants = {
       inspired_phase: ["off", "admin_preview", "soft_launch", "public"],
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
+      pricing_v2_run_status: [
+        "queued",
+        "running",
+        "success",
+        "partial",
+        "failed",
+        "skipped",
+      ],
+      pricing_v2_severity: ["info", "warning", "error", "critical"],
+      pricing_v2_stage: [
+        "catalog",
+        "monthly_snapshot",
+        "receipts",
+        "normalize",
+        "compute_costs",
+        "rollups",
+      ],
       quote_state: [
         "initiated",
         "info_collected",
