@@ -108,6 +108,7 @@ import { Route as AdminKrogerValidationRouteImport } from './routes/admin/kroger
 import { Route as AdminKrogerSkuReviewRouteImport } from './routes/admin/kroger-sku-review'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
 import { Route as AdminKrogerPriceSignalsRouteImport } from './routes/admin/kroger-price-signals'
+import { Route as AdminKrogerMappingDiagnosticsRouteImport } from './routes/admin/kroger-mapping-diagnostics'
 import { Route as AdminKrogerIngestRunsRouteImport } from './routes/admin/kroger-ingest-runs'
 import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
@@ -685,6 +686,12 @@ const AdminKrogerPriceSignalsRoute = AdminKrogerPriceSignalsRouteImport.update({
   path: '/kroger-price-signals',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminKrogerMappingDiagnosticsRoute =
+  AdminKrogerMappingDiagnosticsRouteImport.update({
+    id: '/kroger-mapping-diagnostics',
+    path: '/kroger-mapping-diagnostics',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminKrogerIngestRunsRoute = AdminKrogerIngestRunsRouteImport.update({
   id: '/kroger-ingest-runs',
   path: '/kroger-ingest-runs',
@@ -1122,6 +1129,7 @@ export interface FileRoutesByFullPath {
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
+  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
@@ -1293,6 +1301,7 @@ export interface FileRoutesByTo {
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
+  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
@@ -1467,6 +1476,7 @@ export interface FileRoutesById {
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
+  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
@@ -1642,6 +1652,7 @@ export interface FileRouteTypes {
     | '/admin/inventory'
     | '/admin/items'
     | '/admin/kroger-ingest-runs'
+    | '/admin/kroger-mapping-diagnostics'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
@@ -1813,6 +1824,7 @@ export interface FileRouteTypes {
     | '/admin/inventory'
     | '/admin/items'
     | '/admin/kroger-ingest-runs'
+    | '/admin/kroger-mapping-diagnostics'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
@@ -1986,6 +1998,7 @@ export interface FileRouteTypes {
     | '/admin/inventory'
     | '/admin/items'
     | '/admin/kroger-ingest-runs'
+    | '/admin/kroger-mapping-diagnostics'
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
@@ -2859,6 +2872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKrogerPriceSignalsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/kroger-mapping-diagnostics': {
+      id: '/admin/kroger-mapping-diagnostics'
+      path: '/kroger-mapping-diagnostics'
+      fullPath: '/admin/kroger-mapping-diagnostics'
+      preLoaderRoute: typeof AdminKrogerMappingDiagnosticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/kroger-ingest-runs': {
       id: '/admin/kroger-ingest-runs'
       path: '/kroger-ingest-runs'
@@ -3535,6 +3555,7 @@ interface AdminRouteChildren {
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminItemsRoute: typeof AdminItemsRoute
   AdminKrogerIngestRunsRoute: typeof AdminKrogerIngestRunsRoute
+  AdminKrogerMappingDiagnosticsRoute: typeof AdminKrogerMappingDiagnosticsRoute
   AdminKrogerPriceSignalsRoute: typeof AdminKrogerPriceSignalsRoute
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
   AdminKrogerSkuReviewRoute: typeof AdminKrogerSkuReviewRoute
@@ -3622,6 +3643,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminInventoryRoute: AdminInventoryRoute,
   AdminItemsRoute: AdminItemsRoute,
   AdminKrogerIngestRunsRoute: AdminKrogerIngestRunsRoute,
+  AdminKrogerMappingDiagnosticsRoute: AdminKrogerMappingDiagnosticsRoute,
   AdminKrogerPriceSignalsRoute: AdminKrogerPriceSignalsRoute,
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
   AdminKrogerSkuReviewRoute: AdminKrogerSkuReviewRoute,
