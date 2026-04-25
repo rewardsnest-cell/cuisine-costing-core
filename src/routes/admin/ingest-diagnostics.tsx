@@ -209,7 +209,7 @@ function IngestDiagnosticsPage() {
         <CardContent className="p-0">
           {query.isLoading ? (
             <div className="p-6">
-              <LoadingState message="Loading diagnostics…" />
+              <LoadingState label="Loading diagnostics…" />
             </div>
           ) : query.isError ? (
             <div className="p-6 text-sm text-destructive">
