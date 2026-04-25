@@ -630,6 +630,9 @@ export const generateShoppingList = createServerFn({ method: "POST" })
       quantity: number;
       per_dish_allocation: Record<string, number>;
       notes: string | null;
+      // Track raw source quantities (in their ORIGINAL unit) so we can render
+      // a "1 lb + 8 oz → 24 oz" hint for merged lines after canonicalization.
+      sources: Array<{ qty: number; unit: string | null }>;
     }>();
 
     // Levenshtein distance + similarity ratio for fuzzy ingredient matching.
