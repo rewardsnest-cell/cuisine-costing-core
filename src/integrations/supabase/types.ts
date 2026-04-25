@@ -4877,6 +4877,7 @@ export type Database = {
         | "normalize"
         | "compute_costs"
         | "rollups"
+        | "self_test"
       quote_state:
         | "initiated"
         | "info_collected"
@@ -5034,6 +5035,7 @@ export const Constants = {
         "normalize",
         "compute_costs",
         "rollups",
+        "self_test",
       ],
       quote_state: [
         "initiated",
