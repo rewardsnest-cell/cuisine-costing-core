@@ -19,7 +19,7 @@ import {
   type InventoryEntry,
   type InventoryRecommendation,
 } from "@/lib/admin/pricing-code-inventory";
-import { saveAndLogDownload } from "@/lib/downloads/save-download";
+import { saveAndLogDownload, openPublicUrl } from "@/lib/downloads/save-download";
 
 export const Route = createFileRoute("/admin/pricing-code-inventory")({
   head: () => ({
