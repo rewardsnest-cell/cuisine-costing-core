@@ -301,7 +301,7 @@ function ThreadView({ thread, defaultOpen, attachmentsByEmail }: { thread: any[]
       </div>
       <div className="divide-y">
         {thread.map((m, i) => (
-          <MessageItem key={m.id} message={m} defaultOpen={defaultOpen && i === thread.length - 1} />
+          <MessageItem key={m.id} message={m} defaultOpen={defaultOpen && i === thread.length - 1} attachments={attachmentsByEmail.get(m.id) ?? []} />
         ))}
       </div>
     </div>
