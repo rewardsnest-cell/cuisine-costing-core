@@ -385,6 +385,18 @@ function LocalCateringContactsPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Verification</Label>
+            <Select value={verification} onValueChange={setVerification}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="verified">Verified</SelectItem>
+                <SelectItem value="needs_review">Needs review</SelectItem>
+                <SelectItem value="unverified">Unverified</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <DateRangePicker label="Created" from={createdFrom} to={createdTo} setFrom={setCreatedFrom} setTo={setCreatedTo} />
           <DateRangePicker label="Next follow-up" from={followUpFrom} to={followUpTo} setFrom={setFollowUpFrom} setTo={setFollowUpTo} />
         </CardContent>
