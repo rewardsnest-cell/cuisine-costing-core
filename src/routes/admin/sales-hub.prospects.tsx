@@ -67,6 +67,19 @@ function ProspectsPage() {
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const generateContact = useServerFn(generateProspectContact);
+
+  const isMissingContact = (p: Prospect) => !p.email && !p.phone;
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   const openEmailDialog = (p: Prospect, isReply: boolean) => {
     setEmailDialogProspect(p);
