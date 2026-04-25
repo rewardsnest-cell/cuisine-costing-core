@@ -72,6 +72,31 @@ function CatalogBootstrapPage() {
     queryFn: () => getBootstrapPreflight(),
     refetchInterval: 15_000,
   });
+  const activeAlerts = useQuery({
+    queryKey: ["pricing-v2", "catalog", "stuck-alerts"],
+    queryFn: () => listActiveStuckAlerts(),
+    refetchInterval: 15_000,
+  });
+  const alertConfig = useQuery({
+    queryKey: ["pricing-v2", "catalog", "alert-config"],
+    queryFn: () => getAlertConfig(),
+  });
+  const ackAlertMut = useMutation({
+    mutationFn: (id: string) => acknowledgeStuckAlert({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Alert acknowledged");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "stuck-alerts"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Acknowledge failed"),
+  });
+  const saveAlertCfgMut = useMutation({
+    mutationFn: (cfg: any) => saveAlertConfig({ data: cfg }),
+    onSuccess: () => {
+      toast.success("Alert config saved");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "alert-config"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
 
   const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
