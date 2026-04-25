@@ -163,6 +163,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
+import { Route as ApiPublicHooksCateringFollowupsRouteImport } from './routes/api/public/hooks/catering-followups'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const WeddingsRoute = WeddingsRouteImport.update({
@@ -955,6 +956,12 @@ const ApiPublicHooksKrogerDailyIngestRoute =
     path: '/api/public/hooks/kroger-daily-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCateringFollowupsRoute =
+  ApiPublicHooksCateringFollowupsRouteImport.update({
+    id: '/api/public/hooks/catering-followups',
+    path: '/api/public/hooks/catering-followups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -1109,6 +1116,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1264,6 +1272,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1422,6 +1431,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1581,6 +1591,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
@@ -1736,6 +1747,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
@@ -1893,6 +1905,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
@@ -1953,6 +1966,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksCateringFollowupsRoute: typeof ApiPublicHooksCateringFollowupsRoute
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
@@ -3043,6 +3057,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksKrogerDailyIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/catering-followups': {
+      id: '/api/public/hooks/catering-followups'
+      path: '/api/public/hooks/catering-followups'
+      fullPath: '/api/public/hooks/catering-followups'
+      preLoaderRoute: typeof ApiPublicHooksCateringFollowupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recipes/$id/edit': {
       id: '/admin/recipes/$id/edit'
       path: '/$id/edit'
@@ -3424,6 +3445,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksCateringFollowupsRoute: ApiPublicHooksCateringFollowupsRoute,
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
