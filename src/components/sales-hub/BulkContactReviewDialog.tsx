@@ -76,33 +76,35 @@ export function BulkContactReviewDialog({
     setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
   };
 
+  const applyGenerated = (item: BulkReviewItem, res: Awaited<ReturnType<typeof generate>>): BulkReviewItem => {
+    if (!res.ok) return { ...item, error: res.error };
+    const c = res.contact;
+    return {
+      ...item,
+      contact_name: c.contact_name ?? item.contact_name,
+      email: c.email ?? item.email,
+      phone: c.phone ?? item.phone,
+      website: c.website ?? item.website,
+      address: c.address ?? item.address,
+      contacts: (c.contacts && c.contacts.length > 0)
+        ? c.contacts.map((x) => ({
+            name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+          }))
+        : item.contacts,
+      ai_notes: c.notes ?? "",
+      confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
+      error: null,
+    };
+  };
+
   const retry = async (item: BulkReviewItem) => {
     setBusyId(item.id);
     try {
       const res = await generate({
         data: { businessName: item.business_name, city: item.city, type: item.type },
       });
-      if (!res.ok) {
-        update(item.id, { error: res.error });
-        toast.error(res.error);
-        return;
-      }
-      const c = res.contact;
-      update(item.id, {
-        contact_name: c.contact_name ?? item.contact_name,
-        email: c.email ?? item.email,
-        phone: c.phone ?? item.phone,
-        website: c.website ?? item.website,
-        address: c.address ?? item.address,
-        contacts: (c.contacts && c.contacts.length > 0)
-          ? c.contacts.map((x) => ({
-              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
-            }))
-          : item.contacts,
-        ai_notes: c.notes ?? "",
-        confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
-        error: null,
-      });
+      if (!res.ok) toast.error(res.error);
+      setItems(items.map((it) => (it.id === item.id ? applyGenerated(it, res) : it)));
     } catch (e: any) {
       update(item.id, { error: e?.message ?? "Failed" });
       toast.error(e?.message ?? "Failed to regenerate");
@@ -110,6 +112,41 @@ export function BulkContactReviewDialog({
       setBusyId(null);
     }
   };
+
+  const regenerateSelected = async () => {
+    const targets = items.filter((it) => selectedIds.has(it.id));
+    if (targets.length === 0) {
+      toast.error("Select at least one prospect to regenerate.");
+      return;
+    }
+    setRegenAll(true);
+    setRegenProgress({ done: 0, total: targets.length });
+    let working: BulkReviewItem[] = [...items];
+    let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      try {
+        const res = await generate({
+          data: { businessName: t.business_name, city: t.city, type: t.type },
+        });
+        if (!res.ok) failed++;
+        working = working.map((it) => (it.id === t.id ? applyGenerated(it, res) : it));
+        setItems(working);
+      } catch (e: any) {
+        failed++;
+        working = working.map((it) => (it.id === t.id ? { ...it, error: e?.message ?? "Failed" } : it));
+        setItems(working);
+      }
+      setRegenProgress({ done: i + 1, total: targets.length });
+      // small delay to be nice to AI gateway / firecrawl rate limits
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    setRegenAll(false);
+    setRegenProgress(null);
+    if (failed === 0) toast.success(`Regenerated ${targets.length} prospect${targets.length === 1 ? "" : "s"}`);
+    else toast.warning(`Regenerated ${targets.length - failed} of ${targets.length}; ${failed} failed`);
+  };
+
 
   const saveOne = async (item: BulkReviewItem): Promise<boolean> => {
     const cleanContacts = item.contacts.filter((c) => c.name || c.email || c.phone || c.role);
