@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { documentFileToImageBlobs, isSupportedDocumentType } from "@/lib/document-to-images";
 
 type Mode = "per-file" | "packet";
 type FileStatus = "queued" | "processing" | "done" | "error";
@@ -30,7 +31,10 @@ async function fileToImageBlobs(file: File, opts: { maxPages?: number } = {}): P
     const c = await compressImageBlob(file, { maxEdge: 1800, quality: 0.85 });
     return [c.blob];
   }
-  throw new Error("Unsupported file type — upload PDFs or images");
+  if (isSupportedDocumentType(file)) {
+    return await documentFileToImageBlobs(file, { maxPages: opts.maxPages ?? 6 });
+  }
+  throw new Error("Unsupported file type — upload PDFs, images, Word, Excel, CSV, or text files");
 }
 
 async function uploadToReceipts(blob: Blob): Promise<{ url: string; path: string }> {
@@ -300,7 +304,7 @@ export function BulkCompetitorUpload({
         <DialogHeader>
           <DialogTitle>Bulk upload competitor quotes</DialogTitle>
           <DialogDescription>
-            Add multiple PDFs or images, then choose whether each file is its own competitor quote or all files belong to one packet.
+            Add multiple PDFs, images, Word docs, Excel sheets, CSVs, or text files. Choose whether each file is its own competitor quote or all files belong to one packet.
           </DialogDescription>
         </DialogHeader>
 
@@ -335,11 +339,11 @@ export function BulkCompetitorUpload({
             className="border-2 border-dashed rounded-lg p-6 text-center bg-muted/20"
           >
             <Upload className="w-6 h-6 mx-auto text-muted-foreground" />
-            <p className="text-sm mt-2">Drop PDFs or images here, or</p>
+            <p className="text-sm mt-2">Drop PDFs, images, Word, Excel, or text files here, or</p>
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf,image/*"
+              accept="application/pdf,image/*,.docx,.doc,.xlsx,.xls,.csv,.tsv,.txt,.md,.rtf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.ms-excel,text/plain,text/csv"
               multiple
               className="hidden"
               onChange={(e) => {
