@@ -1964,6 +1964,91 @@ export type Database = {
           },
         ]
       }
+      local_catering_contact_activity: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          contact_id: string
+          created_at: string
+          field_name: string | null
+          id: string
+          metadata: Json
+          new_value: string | null
+          old_value: string | null
+          summary: string | null
+        }
+        Insert: {
+          action?: string
+          actor_user_id?: string | null
+          contact_id: string
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: string | null
+          old_value?: string | null
+          summary?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          contact_id?: string
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          metadata?: Json
+          new_value?: string | null
+          old_value?: string | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_catering_contact_activity_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "local_catering_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      local_catering_contact_notes: {
+        Row: {
+          body: string
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          pinned: boolean
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pinned?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_catering_contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "local_catering_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       local_catering_contacts: {
         Row: {
           address_city: string | null
