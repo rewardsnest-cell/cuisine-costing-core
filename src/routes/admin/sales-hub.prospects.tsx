@@ -85,6 +85,8 @@ function ProspectsPage() {
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historyDialogProspect, setHistoryDialogProspect] = useState<Prospect | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
