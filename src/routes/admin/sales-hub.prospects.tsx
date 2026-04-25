@@ -112,7 +112,14 @@ function ProspectsPage() {
     if (filterCity !== "all" && r.city !== filterCity) return false;
     if (filterType !== "all" && r.type !== filterType) return false;
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
-    if (search && !r.business_name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const haystack = [
+        r.business_name, r.contact_name, r.email, r.phone,
+        r.address, r.website, r.notes, r.city, r.type, r.status,
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   }), [rows, filterCity, filterType, filterStatus, search]);
 
@@ -287,7 +294,7 @@ function ProspectsPage() {
         <CardContent className="p-4 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[180px]">
             <Label className="text-xs">Search</Label>
-            <Input placeholder="Business name…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Search name, email, phone, address…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">City</Label>
