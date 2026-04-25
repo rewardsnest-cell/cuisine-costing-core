@@ -355,9 +355,13 @@ function PricingCodeInventoryPage() {
             <FileCode2 className="w-4 h-4 mr-2" />
             {downloading === "sql" ? "Exporting…" : "Export SQL"}
           </Button>
-          <Button onClick={handlePdfExport} disabled={downloading !== null}>
+          <Button variant="outline" onClick={handlePdfExport} disabled={downloading !== null}>
             <Download className="w-4 h-4 mr-2" />
             {downloading === "pdf" ? "Exporting…" : "Export PDF"}
+          </Button>
+          <Button onClick={handleZipExport} disabled={downloading !== null}>
+            <Download className="w-4 h-4 mr-2" />
+            {downloading === "zip" ? "Bundling…" : "Download all (ZIP)"}
           </Button>
         </div>
       </header>
