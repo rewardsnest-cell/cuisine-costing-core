@@ -280,7 +280,13 @@ function CatalogBootstrapPage() {
               </div>
               <Button
                 onClick={runGuarded}
-                disabled={runMut.isPending || guardedPhase === "dry-running" || guardedPhase === "full-running"}
+                disabled={
+                  runMut.isPending ||
+                  guardedPhase === "dry-running" ||
+                  guardedPhase === "full-running" ||
+                  (preflight.data && !preflight.data.ok)
+                }
+                title={preflight.data && !preflight.data.ok ? (preflight.data.reason ?? "Preflight blocked") : undefined}
                 className="gap-1.5"
               >
                 {guardedPhase === "dry-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -293,9 +299,13 @@ function CatalogBootstrapPage() {
               <Button
                 variant="secondary"
                 onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
-                disabled={runMut.isPending || guardedPhase !== "idle"}
+                disabled={
+                  runMut.isPending ||
+                  guardedPhase !== "idle" ||
+                  (preflight.data && !preflight.data.ok)
+                }
                 className="gap-1.5"
-                title="Skip the dry-run preflight and run immediately"
+                title={preflight.data && !preflight.data.ok ? (preflight.data.reason ?? "Preflight blocked") : "Skip the dry-run preflight and run immediately"}
               >
                 <Play className="w-4 h-4" />
                 Run Now (skip dry-run)
