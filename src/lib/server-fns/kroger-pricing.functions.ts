@@ -45,11 +45,8 @@ async function isKrogerEnabled(): Promise<boolean> {
   return String(v ?? "false").toLowerCase() === "true";
 }
 
-async function getKrogerLocationId(): Promise<string | null> {
-  const v = await getKv("kroger_location_id");
-  return v && v.trim().length > 0 ? v.trim() : null;
-}
-
+// NOTE: Per pricing intent, there is no admin-pinned locationId. Location is
+// always derived from ZIP server-side and cached for 30 days.
 const DEFAULT_ZIP = "44202";
 
 /**
@@ -145,7 +142,7 @@ export const getKrogerStatus = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await ensureAdmin(context.supabase, context.userId);
     const enabled = await isKrogerEnabled();
-    const locationId = await getKrogerLocationId();
+    const locationId: string | null = null; // never expose pinned location; UI is read-only on this
     const hasClientId = !!process.env.KROGER_CLIENT_ID;
     const hasClientSecret = !!process.env.KROGER_CLIENT_SECRET;
 
@@ -187,18 +184,20 @@ export const setKrogerEnabled = createServerFn({ method: "POST" })
     return { ok: true, enabled: data.enabled };
   });
 
-export const setKrogerLocationId = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { location_id: string | null }) => d)
-  .handler(async ({ context, data }) => {
-    await ensureAdmin(context.supabase, context.userId);
-    const v = (data.location_id ?? "").trim();
-    if (v && !/^[A-Za-z0-9-]{1,32}$/.test(v)) {
-      throw new Error("Invalid locationId format");
-    }
-    await setKv("kroger_location_id", v, context.userId);
-    return { ok: true, location_id: v || null };
-  });
+// `setKrogerLocationId` and `getKrogerLocationId` were intentionally removed.
+// Pricing intent: humans supervise the pipeline; they do NOT control which store
+// Kroger pricing is pulled from. Location is always derived from a fixed ZIP
+// (DEFAULT_ZIP) on the server and cached for 30 days in app_kv.
+
+/**
+ * Always-ZIP-based location resolver used by every ingest path.
+ * Derives + caches a Kroger locationId. Returns null only when the upstream
+ * Locations API itself cannot resolve the ZIP — never reads a saved override.
+ */
+async function resolveLocationForRun(token: string, zipOverride?: string | null): Promise<string | null> {
+  const zip = (zipOverride ?? DEFAULT_ZIP).trim();
+  return resolveLocationIdFromZip(zip, token);
+}
 
 /**
  * Kroger OAuth2 client_credentials token exchange.
@@ -462,7 +461,16 @@ export const ingestKrogerPrices = createServerFn({ method: "POST" })
     const limit = requested === 0
       ? 5000
       : Math.max(1, Math.min(5000, requested ?? 25));
-    const locationId = await getKrogerLocationId();
+    // Always derive location server-side from DEFAULT_ZIP — no admin override.
+    let token: string;
+    try { token = await getKrogerAccessToken(); }
+    catch (e: any) {
+      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
+    }
+    const locationId = await resolveLocationForRun(token);
+    if (!locationId) {
+      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${DEFAULT_ZIP}.` } as const;
+    }
 
     const { data: runRow, error: insErr } = await supabaseAdmin
       .from("kroger_ingest_runs")
@@ -497,7 +505,7 @@ export const ingestKrogerPrices = createServerFn({ method: "POST" })
  */
 export const testIngestKrogerPrices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { limit?: number; location_id?: string | null } | undefined) => d ?? {})
+  .inputValidator((d: { limit?: number } | undefined) => d ?? {})
   .handler(async ({ context, data }) => {
     await ensureAdmin(context.supabase, context.userId);
 
@@ -510,17 +518,15 @@ export const testIngestKrogerPrices = createServerFn({ method: "POST" })
     }
 
     const limit = Math.max(1, Math.min(25, data.limit ?? 5));
-    let locationId: string | null = null;
-    if (typeof data.location_id === "string") {
-      const v = data.location_id.trim();
-      if (v.length > 0) {
-        if (!/^[A-Za-z0-9-]{1,32}$/.test(v)) {
-          return { ran: false, reason: "bad_location", message: "Invalid locationId format (alphanumerics/dashes, ≤32 chars)." } as const;
-        }
-        locationId = v;
-      }
-    } else {
-      locationId = await getKrogerLocationId();
+    // Always derive from DEFAULT_ZIP — admins cannot pin a store.
+    let token: string;
+    try { token = await getKrogerAccessToken(); }
+    catch (e: any) {
+      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
+    }
+    const locationId = await resolveLocationForRun(token);
+    if (!locationId) {
+      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${DEFAULT_ZIP}.` } as const;
     }
 
     const { data: runRow, error: insErr } = await supabaseAdmin
@@ -846,7 +852,7 @@ export const listChartableItems = createServerFn({ method: "POST" })
  */
 export const runKrogerIngest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; location_id?: string | null; limit?: number } | undefined) => d ?? {})
+  .inputValidator((d: { mode?: "catalog_bootstrap" | "daily_update"; zip_code?: string; limit?: number } | undefined) => d ?? {})
   .handler(async ({ context, data }) => {
     await ensureAdmin(context.supabase, context.userId);
 
@@ -861,14 +867,6 @@ export const runKrogerIngest = createServerFn({ method: "POST" })
     const mode: "catalog_bootstrap" | "daily_update" = data.mode ?? "daily_update";
     const limit = Math.max(1, Math.min(5000, data.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
 
-    // Resolve locationId: explicit > saved > ZIP lookup
-    let locationId: string | null = null;
-    if (typeof data.location_id === "string" && data.location_id.trim()) {
-      locationId = data.location_id.trim();
-    } else {
-      locationId = await getKrogerLocationId();
-    }
-
     let token: string;
     try {
       token = await getKrogerAccessToken();
@@ -876,12 +874,11 @@ export const runKrogerIngest = createServerFn({ method: "POST" })
       return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
     }
 
+    // Always derive from ZIP — admins cannot pin a locationId.
+    const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
+    const locationId = await resolveLocationIdFromZip(zip, token);
     if (!locationId) {
-      const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
-      locationId = await resolveLocationIdFromZip(zip, token);
-      if (!locationId) {
-        return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
-      }
+      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
     }
 
     const { data: runRow, error: insErr } = await supabaseAdmin

@@ -326,6 +326,38 @@ async function runDailyUpdate(
     }
   }
 
+  // ── Smoothed market signal pass ─────────────────────────────────────────
+  // For each confirmed reference, recompute the 30-day Kroger median from
+  // price_history and propose it as the new Kroger signal. This is what
+  // feeds the weighted estimate — NOT today's spot price. A single sale or
+  // outlier observation cannot move the model.
+  let signalsRefreshed = 0;
+  let proposalsApplied = 0;
+  let proposalsQueued = 0;
+  let proposalsDamped = 0;
+  for (const refId of refIds) {
+    try {
+      const { data: sig } = await supabaseAdmin.rpc("refresh_kroger_signal_from_history", {
+        _reference_id: refId,
+      });
+      signalsRefreshed++;
+      const median = (sig as any)?.median;
+      if (typeof median === "number" && median > 0) {
+        const { data: result } = await supabaseAdmin.rpc("propose_internal_cost_update", {
+          _reference_id: refId,
+          _source: "kroger",
+          _new_kroger: median,
+        });
+        const status = (result as any)?.status;
+        if (status === "applied") proposalsApplied++;
+        else if (status === "pending_approval") proposalsQueued++;
+        if ((result as any)?.damped) proposalsDamped++;
+      }
+    } catch (e: any) {
+      errors.push({ ref_id: refId, signal_error: e?.message ?? "unknown" });
+    }
+  }
+
   await supabaseAdmin.from("kroger_ingest_runs").update({
     status: "completed",
     finished_at: new Date().toISOString(),
@@ -333,7 +365,7 @@ async function runDailyUpdate(
     price_rows_written: priceRows,
     sku_map_rows_touched: queried,
     errors: errors.slice(0, 100),
-    message: `daily_update: queried ${queried}, wrote ${priceRows}, quarantined ${quarantined}, discarded ${discarded}`,
+    message: `daily_update: queried ${queried}, wrote ${priceRows}, quarantined ${quarantined}, discarded ${discarded}; signals=${signalsRefreshed}, applied=${proposalsApplied}, queued=${proposalsQueued}, damped=${proposalsDamped}`,
   }).eq("id", runId);
 
   await supabaseAdmin.from("access_audit_log").insert({
