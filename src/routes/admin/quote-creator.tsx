@@ -85,6 +85,30 @@ function QuoteCreatorHub() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // ---- Diagnostics & URL sync ----
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
+  const [diag, setDiag] = useState<DiagEntry[]>([]);
+  const [showDiag, setShowDiag] = useState(false);
+  const log = useCallback((msg: string, level: DiagEntry["level"] = "info") => {
+    const entry = { ts: new Date().toISOString().slice(11, 19), level, msg };
+    setDiag((d) => [...d.slice(-199), entry]);
+    // eslint-disable-next-line no-console
+    (level === "error" ? console.error : level === "warn" ? console.warn : console.log)(`[QuoteHub] ${msg}`);
+  }, []);
+  const hardReload = useCallback(() => {
+    log("Hard reload requested — clearing module cache & reloading…", "warn");
+    try {
+      // Bump a query param to defeat any intermediate caches
+      const url = new URL(window.location.href);
+      url.searchParams.set("_cb", String(Date.now()));
+      window.location.replace(url.toString());
+    } catch {
+      window.location.reload();
+    }
+  }, [log]);
+
   // New event form
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
