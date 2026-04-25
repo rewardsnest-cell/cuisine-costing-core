@@ -139,6 +139,56 @@ function PricingCodeInventoryPage() {
         headStyles: { fillColor: [30, 30, 30] },
       });
 
+      // Dependency graph — node table, edge table, and Mermaid source.
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text("Pricing Dependency Graph", 40, 48);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        "Static map of which pricing modules import / call / mutate each other.",
+        40, 64,
+      );
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 80,
+        head: [["Module", "Layer", "Path"]],
+        body: PRICING_GRAPH_NODES.map((n) => [n.label, n.layer, n.path ?? "—"]),
+        styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+        headStyles: { fillColor: [30, 30, 30] },
+        columnStyles: {
+          0: { cellWidth: 160 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 290 },
+        },
+      });
+
+      const afterNodes = (doc as any).lastAutoTable?.finalY ?? 200;
+      doc.setFontSize(11);
+      doc.text("Edges", 40, afterNodes + 24);
+      autoTable(doc, {
+        startY: afterNodes + 32,
+        head: [["From", "Relationship", "To"]],
+        body: PRICING_GRAPH_EDGES.map((e) => {
+          const from = PRICING_GRAPH_NODES.find((n) => n.id === e.from)?.label ?? e.from;
+          const to = PRICING_GRAPH_NODES.find((n) => n.id === e.to)?.label ?? e.to;
+          return [from, e.kind, to];
+        }),
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [30, 30, 30] },
+      });
+
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.text("Mermaid source (paste into mermaid.live to render)", 40, 48);
+      doc.setFont("courier", "normal");
+      doc.setFontSize(8);
+      const mermaid = buildPricingGraphMermaid();
+      const mermaidLines = doc.splitTextToSize(mermaid, 530);
+      doc.text(mermaidLines, 40, 70);
+      doc.setFont("helvetica", "normal");
+
       // SQL Appendix — full definitions, one section per entry.
       doc.addPage();
       doc.setFontSize(14);
