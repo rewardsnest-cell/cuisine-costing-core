@@ -17,14 +17,29 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles, History, Send } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
+import { ProspectEmailHistoryDialog } from "@/components/sales-hub/ProspectEmailHistoryDialog";
 import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
 import { BulkContactReviewDialog, type BulkReviewItem } from "@/components/sales-hub/BulkContactReviewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
+
+function timeAgoShort(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${Math.max(m, 1)}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(mo / 12)}y ago`;
+}
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
