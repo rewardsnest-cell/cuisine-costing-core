@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/quote-creator")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    event: typeof search.event === "string" ? search.event : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Quote Creator — Menu to Quote (Internal)" },
@@ -39,6 +42,8 @@ export const Route = createFileRoute("/admin/quote-creator")({
   }),
   component: QuoteCreatorHub,
 });
+
+type DiagEntry = { ts: string; level: "info" | "warn" | "error"; msg: string };
 
 const ACCEPT = ".pdf,.docx,.doc,.xls,.xlsx,.csv,.tsv,.txt,.md,.rtf";
 const PROGRESS_STEPS = [
