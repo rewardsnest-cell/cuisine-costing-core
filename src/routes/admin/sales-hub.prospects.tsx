@@ -112,7 +112,14 @@ function ProspectsPage() {
     if (filterCity !== "all" && r.city !== filterCity) return false;
     if (filterType !== "all" && r.type !== filterType) return false;
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
-    if (search && !r.business_name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const haystack = [
+        r.business_name, r.contact_name, r.email, r.phone,
+        r.address, r.website, r.notes, r.city, r.type, r.status,
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   }), [rows, filterCity, filterType, filterStatus, search]);
 
