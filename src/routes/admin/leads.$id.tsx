@@ -213,3 +213,143 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
     </Card>
   )
 }
+
+// ---------- Email thread ----------
+function EmailThreadCard({ emails }: { emails: any[] }) {
+  // Sort chronologically (ascending) for thread reading order
+  const sorted = [...emails].sort((a, b) => {
+    const ta = new Date(a.received_at || a.sent_at || a.created_at || 0).getTime()
+    const tb = new Date(b.received_at || b.sent_at || b.created_at || 0).getTime()
+    return ta - tb
+  })
+
+  // Group by Outlook conversation_id; ungrouped emails get their own bucket.
+  const groups = new Map<string, any[]>()
+  for (const e of sorted) {
+    const key = e.outlook_conversation_id || `single:${e.id}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(e)
+  }
+  const threads = Array.from(groups.values()).sort((a, b) => {
+    const la = new Date(a[a.length - 1].received_at || a[a.length - 1].sent_at || 0).getTime()
+    const lb = new Date(b[b.length - 1].received_at || b[b.length - 1].sent_at || 0).getTime()
+    return lb - la // newest thread first
+  })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mail className="h-5 w-5" /> Email thread ({emails.length} message{emails.length === 1 ? '' : 's'} · {threads.length} conversation{threads.length === 1 ? '' : 's'})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {threads.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No emails yet. Send the first one above, or wait for the inbox poller to import a reply.</p>
+        ) : (
+          <div className="space-y-6">
+            {threads.map((thread, idx) => (
+              <ThreadView key={thread[0].outlook_conversation_id || thread[0].id} thread={thread} defaultOpen={idx === 0} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ThreadView({ thread, defaultOpen }: { thread: any[]; defaultOpen: boolean }) {
+  const subject = thread[0].subject || '(no subject)'
+  const inboundCount = thread.filter((m) => m.direction === 'inbound').length
+  const outboundCount = thread.filter((m) => m.direction === 'outbound').length
+  const lastMsg = thread[thread.length - 1]
+  const lastWasReply = lastMsg.direction === 'inbound'
+
+  return (
+    <div className="rounded-lg border">
+      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-3">
+        <Mail className="h-4 w-4 text-muted-foreground" />
+        <div className="font-medium truncate">{subject}</div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {lastWasReply ? (
+            <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">
+              <Reply className="mr-1 h-3 w-3" /> Reply received
+            </Badge>
+          ) : (
+            <Badge variant="outline">
+              <ArrowUpRight className="mr-1 h-3 w-3" /> Awaiting reply
+            </Badge>
+          )}
+          <Badge variant="secondary" className="text-xs">{outboundCount} sent</Badge>
+          <Badge variant="secondary" className="text-xs">{inboundCount} received</Badge>
+        </div>
+      </div>
+      <div className="divide-y">
+        {thread.map((m, i) => (
+          <MessageItem key={m.id} message={m} defaultOpen={defaultOpen && i === thread.length - 1} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const isInbound = m.direction === 'inbound'
+  const ts = m.received_at || m.sent_at
+  const peopleLabel = isInbound
+    ? `${m.from_name ? m.from_name + ' ' : ''}<${m.from_email}>`
+    : (m.to_emails ?? []).join(', ')
+
+  return (
+    <div className={isInbound ? 'bg-primary/5' : 'bg-background'}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/40"
+      >
+        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {isInbound ? (
+          <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">
+            <Inbox className="mr-1 h-3 w-3" /> Reply
+          </Badge>
+        ) : (
+          <Badge variant="secondary">
+            <ArrowUpRight className="mr-1 h-3 w-3" /> Sent
+          </Badge>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm">
+            <span className="font-medium">{isInbound ? 'From' : 'To'}:</span>{' '}
+            <span className="text-muted-foreground">{peopleLabel}</span>
+          </div>
+          {!open && (
+            <div className="truncate text-xs text-muted-foreground">
+              {m.body_preview || (m.body_text ?? '').slice(0, 160)}
+            </div>
+          )}
+        </div>
+        <div className="ml-auto shrink-0 text-xs text-muted-foreground">
+          {ts ? new Date(ts).toLocaleString() : ''}
+        </div>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          {m.template_name && (
+            <Badge variant="outline" className="mb-2 text-xs">template: {m.template_name}</Badge>
+          )}
+          {m.body_html ? (
+            <div
+              className="prose prose-sm max-w-none rounded border bg-background p-3 dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: m.body_html }}
+            />
+          ) : (
+            <pre className="whitespace-pre-wrap rounded border bg-background p-3 text-sm text-foreground/90 font-sans">
+              {m.body_text || m.body_preview || '(no content)'}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
