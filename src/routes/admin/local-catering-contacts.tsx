@@ -117,11 +117,20 @@ function LocalCateringContactsPage() {
   const [followUpFrom, setFollowUpFrom] = useState<Date | undefined>();
   const [followUpTo, setFollowUpTo] = useState<Date | undefined>();
 
+  const [verification, setVerification] = useState<string>("all");
+
   const [scheduleLead, setScheduleLead] = useState<Lead | null>(null);
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>(addDays(new Date(), 3));
   const [scheduleNote, setScheduleNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [draftLead, setDraftLead] = useState<DraftLead | null>(null);
+  const [reviewLead, setReviewLead] = useState<Lead | null>(null);
+  const [reviewEmail, setReviewEmail] = useState("");
+  const [reviewPhone, setReviewPhone] = useState("");
+  const [reviewName, setReviewName] = useState("");
+  const [reviewCompany, setReviewCompany] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["local-catering-contacts"],
@@ -129,7 +138,7 @@ function LocalCateringContactsPage() {
       const { data, error } = await supabase
         .from("leads")
         .select(
-          "id,name,email,phone,company,organization_type,website,address_city,address_state,distance_miles,priority,status,first_outreach_date,last_outreach_date,next_follow_up_date,last_contact_date,catering_use_cases,notes,created_at"
+          "id,name,email,phone,company,organization_type,website,address_city,address_state,distance_miles,priority,status,first_outreach_date,last_outreach_date,next_follow_up_date,last_contact_date,catering_use_cases,notes,created_at,verification_status,verification_issues,verification_notes"
         )
         .eq("lead_type", "catering")
         .order("priority", { ascending: true })
