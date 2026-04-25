@@ -23,9 +23,15 @@ export interface SendOutlookEmailParams {
 
 export interface SendOutlookEmailResult {
   ok: boolean
-  /** Best-effort: Outlook does not return the message ID from sendMail. */
+  /** HTTP status from the final send call. */
   status: number
   error?: string
+  /** Outlook message ID (Graph entity ID), available when sent via draft flow. */
+  outlookMessageId?: string
+  /** Outlook conversation ID (threading key). */
+  outlookConversationId?: string
+  /** Standard RFC 822 Message-ID header value. */
+  internetMessageId?: string
 }
 
 function getAuth(): { lovableKey: string; outlookKey: string } {
