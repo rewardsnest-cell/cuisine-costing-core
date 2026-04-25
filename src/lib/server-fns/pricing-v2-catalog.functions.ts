@@ -22,7 +22,9 @@ const STAGE = "catalog" as const;
 
 const bootstrapSchema = z.object({
   dry_run: z.boolean().default(false),
-  limit: z.number().int().min(1).max(2000).optional(),
+  // Per-call batch size (a single page of inventory IDs to fetch this invocation).
+  // Bootstrap loops across multiple invocations until all inventory IDs are processed.
+  batch_size: z.number().int().min(1).max(2000).optional(),
   keyword: z.string().trim().max(120).optional(),
 });
 
@@ -52,17 +54,42 @@ async function getStoreId(supabase: any): Promise<string> {
   return id;
 }
 
-async function collectInventoryProductIds(supabase: any, max: number): Promise<string[]> {
+/**
+ * Returns ALL distinct kroger_product_ids on inventory, sorted, for stable
+ * cursoring. Resume position is the last successfully-fetched ID
+ * (last_page_token); the next batch starts strictly after it.
+ */
+async function listAllInventoryProductIds(supabase: any): Promise<string[]> {
   const { data, error } = await supabase
     .from("inventory_items")
     .select("kroger_product_id")
     .not("kroger_product_id", "is", null)
-    .limit(max);
+    .order("kroger_product_id", { ascending: true });
   if (error) throw new Error(error.message);
   const ids = (data ?? [])
     .map((r: any) => String(r.kroger_product_id ?? "").trim())
     .filter(Boolean);
-  return Array.from(new Set(ids));
+  // dedupe but keep sort order
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) if (!seen.has(id)) { seen.add(id); out.push(id); }
+  return out;
+}
+
+async function getOrCreateBootstrapState(supabase: any, storeId: string) {
+  const { data } = await supabase
+    .from("pricing_v2_catalog_bootstrap_state")
+    .select("*")
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (data) return data;
+  const { data: created, error } = await supabase
+    .from("pricing_v2_catalog_bootstrap_state")
+    .insert({ store_id: storeId, status: "NOT_STARTED", total_items_fetched: 0 })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return created;
 }
 
 type ErrorRow = {
@@ -87,6 +114,27 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const storeId = await getStoreId(supabase);
 
+    // ---- Pre-check: bootstrap_state guard --------------------------------
+    // Bootstrap stops permanently once COMPLETED. Re-running is a no-op
+    // until the admin explicitly Resets the catalog.
+    const state = await getOrCreateBootstrapState(supabase, storeId);
+    if (state.status === "COMPLETED") {
+      return {
+        run_id: null as string | null,
+        skipped: true,
+        message: "Catalog bootstrap already completed",
+        store_id: storeId,
+        bootstrap_state: state,
+        counts_in: 0,
+        counts_out: 0,
+        warnings_count: 0,
+        errors_count: 0,
+        page_done: true,
+        bootstrap_completed: true,
+        errors_preview: [] as ErrorRow[],
+      };
+    }
+
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
@@ -94,7 +142,13 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         status: "running",
         initiated_by: userId ?? null,
         triggered_by: "ui",
-        params: { dry_run: data.dry_run, limit: data.limit ?? null, keyword: data.keyword ?? null, store_id: storeId },
+        params: {
+          dry_run: data.dry_run,
+          batch_size: data.batch_size ?? null,
+          keyword: data.keyword ?? null,
+          store_id: storeId,
+          resumed_from: state.last_page_token ?? null,
+        },
         notes: data.dry_run ? "dry_run=true (catalog_bootstrap)" : "catalog_bootstrap",
       })
       .select("run_id")
@@ -102,41 +156,55 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
     if (runErr) throw new Error(runErr.message);
     const runId: string = runRow.run_id;
 
+    // Mark IN_PROGRESS (idempotent) — only on a real (non-dry) run.
+    if (!data.dry_run) {
+      const patch: Record<string, any> = { status: "IN_PROGRESS", last_run_id: runId };
+      if (state.status === "NOT_STARTED" || !state.started_at) {
+        patch.started_at = new Date().toISOString();
+      }
+      await supabase
+        .from("pricing_v2_catalog_bootstrap_state")
+        .update(patch)
+        .eq("store_id", storeId);
+    }
+
     const errors: ErrorRow[] = [];
     let countsIn = 0;
     let countsOut = 0;
     let warnings = 0;
     let errCount = 0;
+    let pageDone = false;
+    let nextCursor: string | null = state.last_page_token ?? null;
 
     try {
-      // 1) Build target product list.
-      const cap = data.limit ?? (data.dry_run ? 50 : 1000);
-      const fromInventory = await collectInventoryProductIds(supabase, cap);
-      let products: KrogerProduct[] = [];
+      // 1) Resumable inventory cursor: fetch ALL inventory ids, slice strictly
+      //    after the resume cursor, take batch_size for this invocation.
+      const batchSize = data.batch_size ?? (data.dry_run ? 50 : 200);
+      const allIds = await listAllInventoryProductIds(supabase);
+      const startIdx = nextCursor ? allIds.findIndex((id) => id > nextCursor!) : 0;
+      const sliceStart = startIdx === -1 ? allIds.length : Math.max(0, startIdx);
+      const slice = allIds.slice(sliceStart, sliceStart + batchSize);
+      const remainingAfter = Math.max(0, allIds.length - (sliceStart + slice.length));
 
-      if (fromInventory.length) {
-        const slice = fromInventory.slice(0, cap);
+      let products: KrogerProduct[] = [];
+      if (slice.length) {
         products = await fetchProductsByIds({ storeId, productIds: slice });
       }
-      if (data.keyword && products.length < cap) {
-        const more = await searchProducts({
-          storeId,
-          term: data.keyword,
-          limit: cap - products.length,
-        });
-        // de-dupe by productKey
-        const seen = new Set(products.map((p) => productKey(storeId, p)));
+
+      // Keyword sweep is supplemental and only runs on the FIRST invocation.
+      if (data.keyword && !nextCursor) {
+        const more = await searchProducts({ storeId, term: data.keyword, limit: 250 });
+        const seenK = new Set(products.map((p) => productKey(storeId, p)));
         for (const p of more) {
           const k = productKey(storeId, p);
-          if (!seen.has(k)) {
-            products.push(p);
-            seen.add(k);
-          }
+          if (!seenK.has(k)) { products.push(p); seenK.add(k); }
         }
       }
-      countsIn = products.length;
 
-      if (!products.length) {
+      countsIn = products.length;
+      pageDone = remainingAfter === 0;
+
+      if (!slice.length && !products.length) {
         warnings += 1;
         errors.push({
           run_id: runId,
@@ -146,9 +214,9 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
           entity_type: "run",
           entity_id: null,
           entity_name: null,
-          message: "No products fetched from Kroger (no inventory mappings and no keyword).",
-          suggested_fix: "Set kroger_product_id on inventory items, or pass a keyword via Run Subset.",
-          debug_json: { store_id: storeId, inventory_ids: fromInventory.length },
+          message: "No inventory items have a kroger_product_id mapped — nothing to bootstrap.",
+          suggested_fix: "Map inventory items to Kroger products, then re-run bootstrap.",
+          debug_json: { store_id: storeId, inventory_ids_total: allIds.length },
         });
       }
 
@@ -285,7 +353,39 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         }
       }
 
-      // 4) Finalize run row.
+      // 4) Advance bootstrap_state cursor + counters; finalize when done.
+      let bootstrapCompleted = false;
+      if (!data.dry_run) {
+        // Cursor advances even if some products weren't returned by Kroger,
+        // so unmapped/invalid IDs don't permanently block progress.
+        const advancedCursor = slice.length ? slice[slice.length - 1] : nextCursor;
+
+        const statePatch: Record<string, any> = {
+          last_run_id: runId,
+          last_page_token: advancedCursor,
+          total_items_fetched: (state.total_items_fetched ?? 0) + countsOut,
+        };
+
+        if (pageDone) {
+          bootstrapCompleted = true;
+          statePatch.status = "COMPLETED";
+          statePatch.completed_at = new Date().toISOString();
+          statePatch.last_page_token = null;
+        } else {
+          statePatch.status = "IN_PROGRESS";
+        }
+
+        await supabase
+          .from("pricing_v2_catalog_bootstrap_state")
+          .update(statePatch)
+          .eq("store_id", storeId);
+      }
+
+      // 5) Finalize run row.
+      const runNotes = bootstrapCompleted
+        ? `catalog_bootstrap completed — total_items_fetched=${(state.total_items_fetched ?? 0) + countsOut}`
+        : `catalog_bootstrap batch — fetched=${countsOut} of batch_size=${batchSize}`;
+
       await supabase
         .from("pricing_v2_runs")
         .update({
@@ -296,6 +396,7 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
           warnings_count: warnings,
           errors_count: errCount,
           last_error: errors.find((e) => e.severity === "error")?.message ?? null,
+          notes: runNotes,
         })
         .eq("run_id", runId);
 
@@ -307,6 +408,8 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         counts_out: countsOut,
         warnings_count: warnings,
         errors_count: errCount,
+        page_done: pageDone,
+        bootstrap_completed: bootstrapCompleted,
         errors_preview: errors.slice(0, 50),
       };
     } catch (e: any) {
@@ -324,6 +427,58 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         .eq("run_id", runId);
       throw e;
     }
+  });
+
+// ---- Bootstrap state (status panel + reset) -------------------------------
+
+export const getCatalogBootstrapState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const storeId = await getStoreId(supabase);
+    const state = await getOrCreateBootstrapState(supabase, storeId);
+    const allIds = await listAllInventoryProductIds(supabase);
+    let processed = 0;
+    if (state.last_page_token) {
+      const idx = allIds.findIndex((id) => id > state.last_page_token);
+      processed = idx === -1 ? allIds.length : idx;
+    } else if (state.status === "COMPLETED") {
+      processed = allIds.length;
+    }
+    return {
+      state,
+      inventory_ids_total: allIds.length,
+      inventory_ids_processed: processed,
+      inventory_ids_remaining: Math.max(0, allIds.length - processed),
+    };
+  });
+
+/**
+ * Hard-reset Stage 0 bootstrap state. Does NOT delete catalog or raw rows —
+ * only flips status back to NOT_STARTED so the loop will restart from the
+ * first inventory id.
+ */
+export const resetCatalogBootstrap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ confirmation: z.literal("RESET CATALOG") }).parse(input)
+  )
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const storeId = await getStoreId(supabase);
+    const { error } = await supabase
+      .from("pricing_v2_catalog_bootstrap_state")
+      .update({
+        status: "NOT_STARTED",
+        last_page_token: null,
+        total_items_fetched: 0,
+        started_at: null,
+        completed_at: null,
+        last_run_id: null,
+      })
+      .eq("store_id", storeId);
+    if (error) throw new Error(error.message);
+    return { ok: true, store_id: storeId };
   });
 
 // ---- Listing helpers ------------------------------------------------------
