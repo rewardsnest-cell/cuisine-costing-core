@@ -221,8 +221,9 @@ function KrogerPricingPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                <strong>Daily Update</strong> refreshes confirmed SKUs (~100 items). <strong>Catalog Bootstrap</strong> walks the
-                full inventory (~500+ items) and is long-running — only use when seeding or after large catalog changes.
+                <strong>Daily Update</strong> refreshes prices for confirmed mappings plus high-confidence pending matches (≥0.7).{" "}
+                <strong>Catalog Bootstrap</strong> walks Kroger's catalog by search term (a–z + 0–9) to discover new SKUs and
+                populate <code>kroger_sku_map</code> — it does not write prices. Run bootstrap once when seeding, then daily updates take over.
               </p>
             </>
           )}
