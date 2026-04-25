@@ -143,35 +143,57 @@ export const resetPricingPipeline = createServerFn({ method: "POST" })
     const counts: Record<string, number> = {};
 
     // Order matters: clear children before parents where there are FKs.
-    const wipes: Array<[string, () => Promise<{ count: number | null }>]> = [
-      ["kroger_bootstrap_progress", () =>
-        supabaseAdmin.from("kroger_bootstrap_progress").delete().not("run_id", "is", null).then((r) => ({ count: r.count })),
-      ],
-      ["kroger_validation_anomalies", () =>
-        supabaseAdmin.from("kroger_validation_anomalies").delete().not("id", "is", null).then((r) => ({ count: r.count })),
-      ],
-      ["kroger_validation_runs", () =>
-        supabaseAdmin.from("kroger_validation_runs").delete().not("id", "is", null).then((r) => ({ count: r.count })),
-      ],
-      ["price_history_kroger", () =>
-        supabaseAdmin.from("price_history").delete().in("source", ["kroger", "kroger_api"]).then((r) => ({ count: r.count })),
-      ],
-      ["kroger_sku_map", () =>
-        supabaseAdmin.from("kroger_sku_map").delete().not("id", "is", null).then((r) => ({ count: r.count })),
-      ],
-      ["kroger_ingest_runs", () =>
-        supabaseAdmin.from("kroger_ingest_runs").delete().not("id", "is", null).then((r) => ({ count: r.count })),
-      ],
-    ];
-
-    for (const [name, fn] of wipes) {
+    async function wipe(name: string, run: () => Promise<{ count: number | null; error: any }>) {
       try {
-        const { count } = await fn();
-        counts[name] = count ?? 0;
-      } catch (e: any) {
+        const { count, error } = await run();
+        counts[name] = error ? -1 : (count ?? 0);
+      } catch {
         counts[name] = -1;
       }
     }
+
+    await wipe("kroger_bootstrap_progress", async () => {
+      const r = await supabaseAdmin
+        .from("kroger_bootstrap_progress")
+        .delete({ count: "exact" })
+        .not("run_id", "is", null);
+      return { count: r.count, error: r.error };
+    });
+    await wipe("kroger_validation_anomalies", async () => {
+      const r = await supabaseAdmin
+        .from("kroger_validation_anomalies")
+        .delete({ count: "exact" })
+        .not("id", "is", null);
+      return { count: r.count, error: r.error };
+    });
+    await wipe("kroger_validation_runs", async () => {
+      const r = await supabaseAdmin
+        .from("kroger_validation_runs")
+        .delete({ count: "exact" })
+        .not("id", "is", null);
+      return { count: r.count, error: r.error };
+    });
+    await wipe("price_history_kroger", async () => {
+      const r = await supabaseAdmin
+        .from("price_history")
+        .delete({ count: "exact" })
+        .in("source", ["kroger", "kroger_api"]);
+      return { count: r.count, error: r.error };
+    });
+    await wipe("kroger_sku_map", async () => {
+      const r = await supabaseAdmin
+        .from("kroger_sku_map")
+        .delete({ count: "exact" })
+        .not("id", "is", null);
+      return { count: r.count, error: r.error };
+    });
+    await wipe("kroger_ingest_runs", async () => {
+      const r = await supabaseAdmin
+        .from("kroger_ingest_runs")
+        .delete({ count: "exact" })
+        .not("id", "is", null);
+      return { count: r.count, error: r.error };
+    });
 
     // Zero inventory cost so prices come only from fresh Kroger pulls.
     const { count: invCount, error: invErr } = await supabaseAdmin
