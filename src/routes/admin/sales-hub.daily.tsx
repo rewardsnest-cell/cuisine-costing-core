@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/sales-hub/daily")({
@@ -29,7 +32,7 @@ function DailyChecklistPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [state, setState] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const [prospects, setProspects] = useState<Array<{ id: string; business_name: string; city: string }>>([]);
+  const [prospects, setProspects] = useState<Array<{ id: string; business_name: string; city: string; status: string }>>([]);
   const [logProspect, setLogProspect] = useState("");
   const [logChannel, setLogChannel] = useState("call");
   const [logOutcome, setLogOutcome] = useState("");
@@ -40,8 +43,8 @@ function DailyChecklistPage() {
     if (!user) return;
     const [row, list, recentLogs] = await Promise.all([
       (supabase as any).from("sales_daily_checklist").select("*").eq("user_id", user.id).eq("day", today).maybeSingle(),
-      (supabase as any).from("sales_prospects").select("id, business_name, city").order("business_name"),
-      (supabase as any).from("sales_contact_log").select("*, sales_prospects(business_name)").gte("contacted_at", `${today}T00:00:00`).order("contacted_at", { ascending: false }),
+      (supabase as any).from("sales_prospects").select("id, business_name, city, status").order("business_name"),
+      (supabase as any).from("sales_contact_log").select("*, sales_prospects(id, business_name, status)").gte("contacted_at", `${today}T00:00:00`).order("contacted_at", { ascending: false }),
     ]);
     setState(row?.data || {});
     setProspects(list?.data || []);
@@ -71,6 +74,22 @@ function DailyChecklistPage() {
     setLogOutcome(""); setLogNotes("");
     toast.success("Contact logged");
     load();
+  };
+
+  const setStage = async (prospectId: string, newStage: string) => {
+    const { error } = await (supabase as any)
+      .from("sales_prospects")
+      .update({ status: newStage })
+      .eq("id", prospectId);
+    if (error) return toast.error(error.message);
+    toast.success(`Moved to ${newStage}`);
+    load();
+  };
+
+  const nextStage = (current: string) => {
+    const idx = (PROSPECT_STATUSES as readonly string[]).indexOf(current);
+    if (idx < 0 || idx >= PROSPECT_STATUSES.length - 1) return null;
+    return PROSPECT_STATUSES[idx + 1];
   };
 
   const completed = ITEMS.filter((i) => state[i.key]).length;
@@ -139,15 +158,39 @@ function DailyChecklistPage() {
             <p className="text-sm text-muted-foreground">Nothing logged yet today.</p>
           ) : (
             <ul className="divide-y">
-              {recent.map((r) => (
-                <li key={r.id} className="py-2 text-sm flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{r.sales_prospects?.business_name || "Unknown"}</p>
-                    <p className="text-xs text-muted-foreground">{r.channel} · {r.outcome || "—"}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{new Date(r.contacted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                </li>
-              ))}
+              {recent.map((r) => {
+                const pid = r.sales_prospects?.id || r.prospect_id;
+                const stage = r.sales_prospects?.status || prospects.find((p) => p.id === pid)?.status || "New";
+                const next = nextStage(stage);
+                return (
+                  <li key={r.id} className="py-2.5 text-sm flex items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{r.sales_prospects?.business_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {r.channel} · {r.outcome || "—"} · <Badge variant="outline" className="text-[10px]">{stage}</Badge>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {next && pid && (
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => setStage(pid, next)}>
+                          <ArrowRight className="h-3 w-3" /> {next}
+                        </Button>
+                      )}
+                      {pid && (
+                        <Select value={stage} onValueChange={(v) => v !== stage && setStage(pid, v)}>
+                          <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PROSPECT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(r.contacted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
