@@ -232,7 +232,7 @@ function CatalogBootstrapPage() {
               <Button size="sm" variant="outline" onClick={() => downloadJson(`pv2-catalog-${lastResult.run_id}.json`, lastResult)}>
                 Download Run Summary JSON
               </Button>
-              <Button size="sm" variant="outline" onClick={() => exportErrorsCsv(lastResult.run_id)}>
+              <Button size="sm" variant="outline" disabled={!lastResult.run_id} onClick={() => lastResult.run_id && exportErrorsCsv(lastResult.run_id)}>
                 Download Error Report (CSV)
               </Button>
             </div>
