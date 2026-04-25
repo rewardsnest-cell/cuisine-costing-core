@@ -560,33 +560,70 @@ export const generateShoppingList = createServerFn({ method: "POST" })
       return s.trim();
     };
 
-    // Normalize units so "lb"/"lbs"/"pound", "tbsp"/"tablespoon", etc. combine.
-    const UNIT_ALIASES: Record<string, string> = {
-      lb: "lb", lbs: "lb", pound: "lb", pounds: "lb",
-      oz: "oz", ozs: "oz", ounce: "oz", ounces: "oz",
-      g: "g", gram: "g", grams: "g",
-      kg: "kg", kilogram: "kg", kilograms: "kg",
-      tsp: "tsp", teaspoon: "tsp", teaspoons: "tsp",
-      tbsp: "tbsp", tablespoon: "tbsp", tablespoons: "tbsp",
-      cup: "cup", cups: "cup",
-      qt: "qt", quart: "qt", quarts: "qt",
-      gal: "gal", gallon: "gal", gallons: "gal",
-      ml: "ml", milliliter: "ml", milliliters: "ml",
-      l: "l", liter: "l", liters: "l",
-      ea: "ea", each: "ea", piece: "ea", pieces: "ea", pc: "ea", pcs: "ea",
-      bunch: "bunch", bunches: "bunch",
-      can: "can", cans: "can",
-      jar: "jar", jars: "jar",
-      pkg: "pkg", package: "pkg", packages: "pkg", pack: "pkg", packs: "pkg",
+    // Unit conversion table — each alias maps to a canonical unit + multiplier.
+    // Canonicals chosen for readability:
+    //   weight → "oz"   (1 lb = 16 oz, 1 g ≈ 0.035274 oz, 1 kg ≈ 35.274 oz)
+    //   volume → "tbsp" (1 cup = 16 tbsp, 1 tsp = 1/3 tbsp, 1 qt = 64 tbsp,
+    //                     1 gal = 256 tbsp, 1 ml ≈ 0.067628 tbsp, 1 l ≈ 67.628 tbsp)
+    //   count  → "ea"
+    // Anything not in this table is treated as its own dimension (e.g. "bunch",
+    // "can", "jar", "pkg") and only combines with the same literal unit.
+    const UNIT_CONVERSIONS: Record<string, { canonical: string; factor: number }> = {
+      // weight
+      oz: { canonical: "oz", factor: 1 },
+      ozs: { canonical: "oz", factor: 1 },
+      ounce: { canonical: "oz", factor: 1 },
+      ounces: { canonical: "oz", factor: 1 },
+      lb: { canonical: "oz", factor: 16 },
+      lbs: { canonical: "oz", factor: 16 },
+      pound: { canonical: "oz", factor: 16 },
+      pounds: { canonical: "oz", factor: 16 },
+      g: { canonical: "oz", factor: 0.035274 },
+      gram: { canonical: "oz", factor: 0.035274 },
+      grams: { canonical: "oz", factor: 0.035274 },
+      kg: { canonical: "oz", factor: 35.274 },
+      kilogram: { canonical: "oz", factor: 35.274 },
+      kilograms: { canonical: "oz", factor: 35.274 },
+      // volume
+      tbsp: { canonical: "tbsp", factor: 1 },
+      tablespoon: { canonical: "tbsp", factor: 1 },
+      tablespoons: { canonical: "tbsp", factor: 1 },
+      tsp: { canonical: "tbsp", factor: 1 / 3 },
+      teaspoon: { canonical: "tbsp", factor: 1 / 3 },
+      teaspoons: { canonical: "tbsp", factor: 1 / 3 },
+      cup: { canonical: "tbsp", factor: 16 },
+      cups: { canonical: "tbsp", factor: 16 },
+      qt: { canonical: "tbsp", factor: 64 },
+      quart: { canonical: "tbsp", factor: 64 },
+      quarts: { canonical: "tbsp", factor: 64 },
+      gal: { canonical: "tbsp", factor: 256 },
+      gallon: { canonical: "tbsp", factor: 256 },
+      gallons: { canonical: "tbsp", factor: 256 },
+      ml: { canonical: "tbsp", factor: 0.067628 },
+      milliliter: { canonical: "tbsp", factor: 0.067628 },
+      milliliters: { canonical: "tbsp", factor: 0.067628 },
+      l: { canonical: "tbsp", factor: 67.628 },
+      liter: { canonical: "tbsp", factor: 67.628 },
+      liters: { canonical: "tbsp", factor: 67.628 },
+      // count / piecewise (no conversion)
+      ea: { canonical: "ea", factor: 1 },
+      each: { canonical: "ea", factor: 1 },
+      piece: { canonical: "ea", factor: 1 },
+      pieces: { canonical: "ea", factor: 1 },
+      pc: { canonical: "ea", factor: 1 },
+      pcs: { canonical: "ea", factor: 1 },
     };
-    const normalizeUnit = (raw: string | null | undefined): string | null => {
-      if (!raw) return null;
+    const normalizeUnit = (raw: string | null | undefined): { unit: string | null; factor: number } => {
+      if (!raw) return { unit: null, factor: 1 };
       const k = String(raw).toLowerCase().trim().replace(/\.$/, "");
-      return (UNIT_ALIASES[k] ?? k) || null;
+      const conv = UNIT_CONVERSIONS[k];
+      if (conv) return { unit: conv.canonical, factor: conv.factor };
+      return { unit: k || null, factor: 1 };
     };
 
-    // Aggregate items by normalized (ingredient_name, unit). Sums quantities,
-    // preserves the most readable display name and merges notes/dish allocations.
+    // Aggregate items by normalized (ingredient_name, canonical unit). Quantities
+    // are converted into the canonical unit before summing so e.g. 1 lb + 8 oz
+    // collapses into a single 24 oz line.
     const aggregated = new Map<string, {
       ingredient_name: string;
       unit: string | null;
@@ -602,8 +639,8 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         if (!rawName) continue;
         const normName = normalizeName(rawName);
         if (!normName) continue;
-        const unit = normalizeUnit(ing.unit);
-        const qty = Number(ing.quantity) || 0;
+        const { unit, factor } = normalizeUnit(ing.unit);
+        const qty = (Number(ing.quantity) || 0) * factor;
         const key = `${normName}::${unit ?? ""}`;
         const existing = aggregated.get(key);
         if (existing) {
@@ -629,6 +666,15 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         }
       }
     }
+
+    // Round summed quantities to 2 decimals to avoid floating-point noise from conversions.
+    for (const a of aggregated.values()) {
+      a.quantity = Math.round(a.quantity * 100) / 100;
+      for (const k of Object.keys(a.per_dish_allocation)) {
+        a.per_dish_allocation[k] = Math.round(a.per_dish_allocation[k] * 100) / 100;
+      }
+    }
+
 
 
     const itemRows = Array.from(aggregated.values()).map((a) => ({
