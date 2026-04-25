@@ -3447,51 +3447,116 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_followup_queue: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          prospect_id: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          prospect_id: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          step: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          prospect_id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          step?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_followup_queue_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "sales_prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_prospects: {
         Row: {
+          address: string | null
           business_name: string
           city: string
           contact_name: string | null
           created_at: string
+          distance_miles: number | null
           email: string | null
           id: string
           last_contacted: string | null
+          last_outreach_date: string | null
           next_follow_up: string | null
           notes: string | null
           phone: string | null
+          priority: string
+          role_department: string | null
           status: string
           type: string
           updated_at: string
+          use_cases: string | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
           business_name: string
           city: string
           contact_name?: string | null
           created_at?: string
+          distance_miles?: number | null
           email?: string | null
           id?: string
           last_contacted?: string | null
+          last_outreach_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
           phone?: string | null
+          priority?: string
+          role_department?: string | null
           status?: string
           type: string
           updated_at?: string
+          use_cases?: string | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
           business_name?: string
           city?: string
           contact_name?: string | null
           created_at?: string
+          distance_miles?: number | null
           email?: string | null
           id?: string
           last_contacted?: string | null
+          last_outreach_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
           phone?: string | null
+          priority?: string
+          role_department?: string | null
           status?: string
           type?: string
           updated_at?: string
+          use_cases?: string | null
+          website?: string | null
         }
         Relationships: []
       }

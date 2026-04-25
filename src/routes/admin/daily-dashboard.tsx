@@ -9,14 +9,10 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sun, Target, Bell, ArrowRight, Phone, Star,
-  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight, TrendingUp, History,
+  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend,
-} from "recharts";
 
 export const Route = createFileRoute("/admin/daily-dashboard")({
   component: DailyDashboardPage,
@@ -70,13 +66,6 @@ function DailyDashboardPage() {
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const [pricingAlerts, setPricingAlerts] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [trend, setTrend] = useState<Array<{ week: string; target: number; completed: number; pct: number }>>([]);
-  const [activity, setActivity] = useState<Array<{
-    id: string; created_at: string; entity_type: string; entity_id: string | null;
-    action: string; title: string | null; changes: Record<string, { from: any; to: any }>;
-    actor_email: string | null;
-  }>>([]);
-  const [activityFilter, setActivityFilter] = useState<"all" | "priority" | "goal">("all");
 
   const today = todayISO();
   const wkStart = weekStartISO();
@@ -157,48 +146,7 @@ function DailyDashboardPage() {
     } catch { /* ignore */ }
   };
 
-  const loadTrend = async () => {
-    // Pull last 8 weeks of weekly goals and aggregate target vs completed per week.
-    const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 86400000).toISOString().slice(0, 10);
-    const { data } = await (supabase as any)
-      .from("admin_weekly_goals")
-      .select("week_start, target_value, progress_value, done")
-      .gte("week_start", eightWeeksAgo)
-      .order("week_start", { ascending: true });
-    const byWeek = new Map<string, { target: number; completed: number }>();
-    for (const g of (data || []) as any[]) {
-      const wk = g.week_start as string;
-      const tgt = Number(g.target_value) || 0;
-      // "Completed" = capped progress (so over-shooting doesn't inflate the line)
-      const rawProg = Number(g.progress_value) || 0;
-      const prog = tgt > 0 ? Math.min(rawProg, tgt) : (g.done ? 1 : 0);
-      const effTarget = tgt > 0 ? tgt : 1; // count goals without explicit target as 1-unit
-      const cur = byWeek.get(wk) || { target: 0, completed: 0 };
-      cur.target += effTarget;
-      cur.completed += prog;
-      byWeek.set(wk, cur);
-    }
-    const points = Array.from(byWeek.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([week, v]) => ({
-        week: week.slice(5), // MM-DD
-        target: Math.round(v.target * 10) / 10,
-        completed: Math.round(v.completed * 10) / 10,
-        pct: v.target > 0 ? Math.round((v.completed / v.target) * 100) : 0,
-      }));
-    setTrend(points);
-  };
-
-  const loadActivity = async () => {
-    const { data } = await (supabase as any)
-      .from("admin_activity_log")
-      .select("id, created_at, entity_type, entity_id, action, title, changes, actor_email")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setActivity((data || []) as any);
-  };
-
-  useEffect(() => { loadCore(); loadReminders(); loadTrend(); loadActivity(); }, []);
+  useEffect(() => { loadCore(); loadReminders(); }, []);
 
   // Priorities
   const addPriority = async () => {
@@ -271,7 +219,7 @@ function DailyDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); loadTrend(); loadActivity(); }}>
+          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); }}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={carryUnfinished}>
@@ -389,50 +337,6 @@ function DailyDashboardPage() {
         </Card>
       </div>
 
-      {/* Weekly goal trend */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" /> Weekly Goal Trend
-            <Badge variant="secondary" className="ml-auto">Last 8 weeks</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {trend.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              No weekly goals yet. Add a goal above to start building the trend.
-            </p>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={trend} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                    formatter={(value: any, name: any) => [value, name === "pct" ? `${value}%` : name]}
-                    labelFormatter={(l) => `Week of ${l}`}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="target" name="Target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="pct" name="% complete" stroke="hsl(var(--accent-foreground))" strokeWidth={2} dot={{ r: 3 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground mt-2">
-            Bars sum target and completed values across all goals per week. Progress is capped at each goal's target so over-shooting doesn't skew the line.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Reminders */}
       <Card>
         <CardHeader className="pb-3">
@@ -515,103 +419,8 @@ function DailyDashboardPage() {
           </p>
         </CardContent>
       </Card>
-
-      {/* Activity Log */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" /> Activity Log
-            <span className="ml-auto flex gap-1">
-              {(["all", "priority", "goal"] as const).map((f) => (
-                <Button
-                  key={f}
-                  size="sm"
-                  variant={activityFilter === f ? "default" : "outline"}
-                  className="h-7 px-2 text-xs"
-                  onClick={() => setActivityFilter(f)}
-                >
-                  {f === "all" ? "All" : f === "priority" ? "Priorities" : "Goals"}
-                </Button>
-              ))}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(() => {
-            const filtered = activity.filter((a) => activityFilter === "all" || a.entity_type === activityFilter);
-            if (filtered.length === 0) {
-              return <p className="text-sm text-muted-foreground py-4">No recent activity.</p>;
-            }
-            return (
-              <ul className="divide-y max-h-96 overflow-auto">
-                {filtered.map((a) => (
-                  <li key={a.id} className="py-2.5 flex items-start gap-3 text-sm">
-                    <Badge variant="outline" className="text-[10px] uppercase shrink-0 mt-0.5">
-                      {a.entity_type}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{a.actor_email || "Unknown"}</span>
-                        <span className="text-muted-foreground">{actionLabel(a.action)}</span>
-                        {a.title && <span className="truncate">"{a.title}"</span>}
-                      </div>
-                      {Object.keys(a.changes || {}).length > 0 && (
-                        <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                          {Object.entries(a.changes).map(([field, diff]) => (
-                            <div key={field}>
-                              <span className="font-medium">{field}:</span>{" "}
-                              <span className="line-through opacity-70">{formatVal(diff.from)}</span>
-                              {" → "}
-                              <span>{formatVal(diff.to)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
-                      {timeAgo(a.created_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            );
-          })()}
-          <Separator className="my-3" />
-          <p className="text-xs text-muted-foreground">
-            Tracks the last 50 changes to Daily Priorities and Weekly Goals.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
-}
-
-function actionLabel(action: string) {
-  switch (action) {
-    case "created": return "created";
-    case "updated": return "edited";
-    case "deleted": return "deleted";
-    case "completed": return "completed";
-    case "reopened": return "reopened";
-    default: return action;
-  }
-}
-
-function formatVal(v: any) {
-  if (v === null || v === undefined || v === "") return "—";
-  if (typeof v === "boolean") return v ? "yes" : "no";
-  return String(v);
-}
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
 }
 
 function ReminderBlock({

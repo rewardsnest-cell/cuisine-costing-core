@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Lock, Star, Gift } from "lucide-react";
-import { REVIEW_SCRIPTS, REVIEW_RULES, REFERRAL_ASK } from "@/lib/sales-hub/scripts";
+import { Copy, Lock, Star } from "lucide-react";
+import { REVIEW_SCRIPTS, REVIEW_RULES } from "@/lib/sales-hub/scripts";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/admin/sales-hub/reviews")({
@@ -59,36 +59,9 @@ function ReviewsPage() {
   };
 
   const markReceived = async (id: string, val: boolean) => {
-    const patch: any = { review_received: val };
-    if (!val) patch.star_rating = null;
-    const { error } = await (supabase as any).from("sales_review_asks").update(patch).eq("id", id);
+    const { error } = await (supabase as any).from("sales_review_asks").update({ review_received: val }).eq("id", id);
     if (error) return toast.error(error.message);
     load();
-  };
-
-  const setStars = async (id: string, stars: number) => {
-    const { error } = await (supabase as any)
-      .from("sales_review_asks")
-      .update({ star_rating: stars, review_received: true })
-      .eq("id", id);
-    if (error) return toast.error(error.message);
-    load();
-  };
-
-  const triggerReferral = async (ask: any) => {
-    // Copy the referral script with the saved Google review link interpolated
-    const text = REFERRAL_ASK(savedLink);
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-    // Create a draft referral row from this happy client
-    const { error } = await (supabase as any).from("sales_referrals").insert({
-      referrer_name: ask.client_name,
-      referred_name: "",
-      referred_contact: "",
-      notes: "Auto-created from 5-star review trigger.",
-      status: "open",
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Script copied + draft referral created. Send it now.");
   };
 
   const scripts = [
@@ -161,39 +134,15 @@ function ReviewsPage() {
           ) : (
             <ul className="divide-y">
               {asks.map((a) => (
-                <li key={a.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm min-w-0">
+                <li key={a.id} className="py-2 flex items-center justify-between gap-3">
+                  <div className="text-sm">
                     <p className="font-medium">{a.client_name}</p>
                     <p className="text-xs text-muted-foreground">{a.channel} · {new Date(a.asked_at).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <label className="text-xs flex items-center gap-1.5">
-                      <Checkbox checked={a.review_received} onCheckedChange={(v) => markReceived(a.id, !!v)} />
-                      <span>Received</span>
-                    </label>
-                    {a.review_received && (
-                      <div className="flex items-center gap-0.5" aria-label="Star rating">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <button
-                            key={n}
-                            type="button"
-                            onClick={() => setStars(a.id, n)}
-                            className="p-0.5"
-                            title={`${n} star${n > 1 ? "s" : ""}`}
-                          >
-                            <Star
-                              className={`w-4 h-4 ${a.star_rating && n <= a.star_rating ? "fill-warning text-warning" : "text-muted-foreground"}`}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {a.star_rating === 5 && (
-                      <Button size="sm" variant="default" className="gap-1.5 h-8" onClick={() => triggerReferral(a)}>
-                        <Gift className="w-3.5 h-3.5" /> Ask for referral
-                      </Button>
-                    )}
-                  </div>
+                  <label className="text-xs flex items-center gap-2">
+                    <Checkbox checked={a.review_received} onCheckedChange={(v) => markReceived(a.id, !!v)} />
+                    <span className="flex items-center gap-1">{a.review_received && <Star className="w-3 h-3 text-warning" />}Received</span>
+                  </label>
                 </li>
               ))}
             </ul>

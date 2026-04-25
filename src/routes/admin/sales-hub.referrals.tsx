@@ -27,7 +27,7 @@ function ReferralsPage() {
   const load = async () => {
     const [kv, reviews, refs] = await Promise.all([
       (supabase as any).from("app_kv").select("value").eq("key", "google_review_link").maybeSingle(),
-      (supabase as any).from("sales_review_asks").select("*").eq("review_received", true).eq("star_rating", 5).order("asked_at", { ascending: false }).limit(10),
+      (supabase as any).from("sales_review_asks").select("*").eq("review_received", true).order("asked_at", { ascending: false }).limit(10),
       (supabase as any).from("sales_referrals").select("*").order("asked_at", { ascending: false }),
     ]);
     setLink(kv?.data?.value || "");
