@@ -191,8 +191,16 @@ export function RecipeScaler({
       doc.setTextColor(140, 140, 140);
       doc.text("Recipe card from VPS Finest — vpsfinest.com", margin, y);
 
-      doc.save(`${recipeName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-recipe-card.pdf`);
-      toast.success("Recipe card downloaded");
+      const filename = `${recipeName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-recipe-card.pdf`;
+      const blob = doc.output("blob");
+      const res = await saveAndLogDownload({
+        blob,
+        filename,
+        kind: "recipe_card",
+        sourceId: recipeId,
+        sourceLabel: recipeName,
+      });
+      toast.success(res.persisted ? "Recipe card downloaded & saved to your account" : "Recipe card downloaded");
     } catch (e: any) {
       toast.error(e?.message || "Couldn't generate PDF");
     } finally {
