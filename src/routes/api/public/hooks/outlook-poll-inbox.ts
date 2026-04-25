@@ -150,9 +150,15 @@ export const Route = createFileRoute('/api/public/hooks/outlook-poll-inbox')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.CATERING_CRON_SECRET
+        // Auth: accept either x-cron-secret (CATERING_CRON_SECRET) or Bearer anon key
+        const cronSecret = process.env.CATERING_CRON_SECRET
         const provided = request.headers.get('x-cron-secret')
-        if (!expected || provided !== expected) {
+        const authHeader = request.headers.get('authorization') ?? ''
+        const bearer = authHeader.replace(/^Bearer\s+/i, '')
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+        const cronOk = !!cronSecret && provided === cronSecret
+        const bearerOk = !!anonKey && bearer === anonKey
+        if (!cronOk && !bearerOk) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
