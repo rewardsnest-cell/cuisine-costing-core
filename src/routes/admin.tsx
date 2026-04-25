@@ -249,31 +249,45 @@ function AdminLayout() {
             </button>
           </div>
           <nav className="flex-1 py-4 px-3 overflow-y-auto">
-            {visibleGroups.map((group) => (
-              <div key={group.label} className="mb-4 last:mb-0">
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 flex items-center gap-1.5">
-                  <span>{group.label}</span>
-                  {group.phaseNote && (
-                    <span className="inline-flex items-center gap-1 normal-case tracking-normal text-[10px] text-amber-500/80">
-                      <Lock className="w-3 h-3" />
-                      {group.phaseNote}
-                    </span>
+            {visibleGroups.map((group) => {
+              const forceOpen = groupHasActive(group);
+              const collapsed = !forceOpen && collapsedGroups.has(group.label);
+              return (
+                <div key={group.label} className="mb-4 last:mb-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.label)}
+                    className="w-full px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground/70 flex items-center gap-1.5 transition-colors"
+                    aria-expanded={!collapsed}
+                  >
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform ${collapsed ? "-rotate-90" : ""}`}
+                    />
+                    <span>{group.label}</span>
+                    {group.phaseNote && (
+                      <span className="inline-flex items-center gap-1 normal-case tracking-normal text-[10px] text-amber-500/80">
+                        <Lock className="w-3 h-3" />
+                        {group.phaseNote}
+                      </span>
+                    )}
+                  </button>
+                  {!collapsed && (
+                    <div className="space-y-1">
+                      {group.items.map((item) => {
+                        const active = isActive(item.to, item.exact);
+                        return (
+                          <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
+                            <item.icon className="w-4.5 h-4.5" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
-                </p>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const active = isActive(item.to, item.exact);
-                    return (
-                      <Link key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}>
-                        <item.icon className="w-4.5 h-4.5" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
           <div className="p-3 border-t border-sidebar-border space-y-1">
             <div className="px-3 py-1.5 text-xs text-sidebar-foreground/50 truncate">{user.email}</div>
