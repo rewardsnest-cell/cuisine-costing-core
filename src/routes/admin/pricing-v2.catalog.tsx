@@ -38,6 +38,10 @@ import {
   recoverStuckCatalogRuns,
   getBootstrapPreflight,
   replayCatalogRun,
+  listActiveStuckAlerts,
+  acknowledgeStuckAlert,
+  getAlertConfig,
+  saveAlertConfig,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -67,6 +71,31 @@ function CatalogBootstrapPage() {
     queryKey: ["pricing-v2", "catalog", "preflight"],
     queryFn: () => getBootstrapPreflight(),
     refetchInterval: 15_000,
+  });
+  const activeAlerts = useQuery({
+    queryKey: ["pricing-v2", "catalog", "stuck-alerts"],
+    queryFn: () => listActiveStuckAlerts(),
+    refetchInterval: 15_000,
+  });
+  const alertConfig = useQuery({
+    queryKey: ["pricing-v2", "catalog", "alert-config"],
+    queryFn: () => getAlertConfig(),
+  });
+  const ackAlertMut = useMutation({
+    mutationFn: (id: string) => acknowledgeStuckAlert({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Alert acknowledged");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "stuck-alerts"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Acknowledge failed"),
+  });
+  const saveAlertCfgMut = useMutation({
+    mutationFn: (cfg: any) => saveAlertConfig({ data: cfg }),
+    onSuccess: () => {
+      toast.success("Alert config saved");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "alert-config"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 
   const [batchSize, setBatchSize] = useState<string>("");
@@ -229,6 +258,42 @@ function CatalogBootstrapPage() {
           <div>ZIP: <span className="font-mono">{settings.data?.settings?.kroger_zip ?? "—"}</span></div>
         </div>
       </header>
+
+      {/* Stuck-recovery alert banner */}
+      {(activeAlerts.data?.alerts ?? []).length > 0 && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>
+            {activeAlerts.data!.alerts.length} stuck-run alert{activeAlerts.data!.alerts.length === 1 ? "" : "s"} (auto-recovered)
+          </AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1 text-xs">
+              {activeAlerts.data!.alerts.map((a: any) => (
+                <li key={a.id} className="flex items-center justify-between gap-2 border-t border-destructive/30 pt-1">
+                  <span className="truncate">
+                    <span className="font-mono">{String(a.run_id ?? "").slice(0, 8)}…</span>
+                    {" "}stuck ~{a.stuck_for_minutes}m (threshold {a.threshold_minutes}m) · {a.stage}
+                  </span>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]"
+                    onClick={() => ackAlertMut.mutate(a.id)} disabled={ackAlertMut.isPending}>
+                    Acknowledge
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Alert config */}
+      {alertConfig.data && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Stuck-run alert config</CardTitle></CardHeader>
+          <CardContent>
+            <AlertConfigForm initial={alertConfig.data} onSave={(v) => saveAlertCfgMut.mutate(v)} saving={saveAlertCfgMut.isPending} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Live progress panel — always visible, polls while a run is active */}
       <BootstrapLiveProgress guardedPhase={guardedPhase} />
@@ -864,4 +929,55 @@ async function exportErrorsCsv(runId: string, stage?: "catalog_bootstrap_test") 
   a.download = `pv2-catalog-errors-${runId}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v: any) => void; saving: boolean }) {
+  const [threshold, setThreshold] = useState<number>(initial.stuck_minutes_threshold ?? 30);
+  const [bannerEnabled, setBannerEnabled] = useState<boolean>(!!initial.banner_enabled);
+  const [emailEnabled, setEmailEnabled] = useState<boolean>(!!initial.email_enabled);
+  const [recipients, setRecipients] = useState<string>((initial.email_recipients ?? []).join(", "));
+  const [webhookEnabled, setWebhookEnabled] = useState<boolean>(!!initial.webhook_enabled);
+  const [webhookUrl, setWebhookUrl] = useState<string>(initial.webhook_url ?? "");
+  const [webhookSecret, setWebhookSecret] = useState<string>(initial.webhook_secret ?? "");
+  return (
+    <div className="grid gap-3 text-sm">
+      <div className="flex items-center gap-2">
+        <Label className="w-44">Stuck threshold (minutes)</Label>
+        <Input type="number" min={1} max={1440} className="h-8 w-28" value={threshold}
+          onChange={(e) => setThreshold(Number(e.target.value) || 1)} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={bannerEnabled} onChange={(e) => setBannerEnabled(e.target.checked)} />
+        <Label>Banner enabled</Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={emailEnabled} onChange={(e) => setEmailEnabled(e.target.checked)} />
+        <Label>Email enabled</Label>
+        <Input className="h-8 flex-1" placeholder="comma-separated emails" value={recipients}
+          onChange={(e) => setRecipients(e.target.value)} disabled={!emailEnabled} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={webhookEnabled} onChange={(e) => setWebhookEnabled(e.target.checked)} />
+        <Label className="w-32">Webhook enabled</Label>
+        <Input className="h-8 flex-1" placeholder="https://..." value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)} disabled={!webhookEnabled} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Label className="w-44">Webhook signing secret</Label>
+        <Input className="h-8 flex-1 font-mono text-xs" placeholder="optional" value={webhookSecret}
+          onChange={(e) => setWebhookSecret(e.target.value)} disabled={!webhookEnabled} />
+      </div>
+      <div>
+        <Button size="sm" disabled={saving} onClick={() => onSave({
+          stuck_minutes_threshold: threshold,
+          banner_enabled: bannerEnabled,
+          email_enabled: emailEnabled,
+          email_recipients: recipients.split(",").map((s) => s.trim()).filter(Boolean),
+          webhook_enabled: webhookEnabled,
+          webhook_url: webhookUrl.trim() || null,
+          webhook_secret: webhookSecret.trim() || null,
+        })}>{saving ? "Saving…" : "Save alert config"}</Button>
+      </div>
+    </div>
+  );
 }

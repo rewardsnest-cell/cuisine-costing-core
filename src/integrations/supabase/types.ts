@@ -2675,6 +2675,84 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_alert_config: {
+        Row: {
+          banner_enabled: boolean
+          created_at: string
+          email_enabled: boolean
+          email_recipients: string[]
+          id: number
+          stuck_minutes_threshold: number
+          updated_at: string
+          webhook_enabled: boolean
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          banner_enabled?: boolean
+          created_at?: string
+          email_enabled?: boolean
+          email_recipients?: string[]
+          id?: number
+          stuck_minutes_threshold?: number
+          updated_at?: string
+          webhook_enabled?: boolean
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          banner_enabled?: boolean
+          created_at?: string
+          email_enabled?: boolean
+          email_recipients?: string[]
+          id?: number
+          stuck_minutes_threshold?: number
+          updated_at?: string
+          webhook_enabled?: boolean
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      pricing_v2_alert_events: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          channels: Json
+          created_at: string
+          id: string
+          message: string
+          run_id: string | null
+          stage: string
+          stuck_for_minutes: number
+          threshold_minutes: number
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channels?: Json
+          created_at?: string
+          id?: string
+          message: string
+          run_id?: string | null
+          stage: string
+          stuck_for_minutes: number
+          threshold_minutes: number
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          channels?: Json
+          created_at?: string
+          id?: string
+          message?: string
+          run_id?: string | null
+          stage?: string
+          stuck_for_minutes?: number
+          threshold_minutes?: number
+        }
+        Relationships: []
+      }
       pricing_v2_catalog_bootstrap_state: {
         Row: {
           completed_at: string | null

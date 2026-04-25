@@ -11,10 +11,16 @@
 // Stage value reused: "catalog" (no enum migration needed).
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchProductsByIds, searchProducts, type KrogerProduct } from "@/lib/server/pricing-v2/kroger";
 import { parseWeightToGrams } from "@/lib/server/pricing-v2/weight-parser";
+import {
+  dispatchStuckRecoveryAlerts,
+  loadAlertConfig,
+  type RecoveredRunBreach,
+} from "@/lib/server/pricing-v2/alerts";
 
 const STAGE = "catalog" as const;
 
@@ -758,7 +764,44 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
         .eq("status", "IN_PROGRESS");
     }
 
-    return { ok: true, recovered: runIds.length, run_ids: runIds, cutoff: cutoffIso };
+    // Fire alerts (banner + optional email + optional webhook) for any run
+    // whose stuck_for_minutes meets the configured threshold.
+    const breaches: RecoveredRunBreach[] = stuckRuns.map((r: any) => {
+      const startedAt = r.started_at as string | null;
+      const stuckMs = startedAt ? Date.now() - new Date(startedAt).getTime() : 0;
+      const stuckMin = Math.round(stuckMs / 60_000);
+      return {
+        run_id: r.run_id,
+        stage: r.stage,
+        stuck_for_minutes: stuckMin,
+        started_at: startedAt,
+        counts_in: r.counts_in ?? 0,
+        counts_out: r.counts_out ?? 0,
+        warnings_count: r.warnings_count ?? 0,
+        errors_count: r.errors_count ?? 0,
+        message:
+          `Auto-recovered ${r.stage} run ${r.run_id} stuck for ~${stuckMin}m ` +
+          `(threshold breach). Marked failed at ${nowIso}.`,
+      };
+    });
+    let alertResult = { fired: 0, events: [] as any[] };
+    try {
+      const req = getRequest();
+      const baseUrl = new URL(req.url).origin;
+      alertResult = await dispatchStuckRecoveryAlerts(supabase, breaches, baseUrl);
+    } catch (e) {
+      // Never let alert dispatch break recovery itself.
+      console.error("[stuck-recovery-alerts] dispatch failed:", e);
+    }
+
+    return {
+      ok: true,
+      recovered: runIds.length,
+      run_ids: runIds,
+      cutoff: cutoffIso,
+      alerts_fired: alertResult.fired,
+      alert_events: alertResult.events,
+    };
   });
 
 /**
@@ -946,6 +989,76 @@ export const listCatalogRuns = createServerFn({ method: "GET" })
     });
 
     return { runs: enriched };
+  });
+
+// ---- Stuck-recovery alerts (banner + config) -----------------------------
+
+export const listActiveStuckAlerts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase
+      .from("pricing_v2_alert_events")
+      .select("id, run_id, stage, stuck_for_minutes, threshold_minutes, message, channels, created_at")
+      .is("acknowledged_at", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) throw new Error(error.message);
+    return { alerts: data ?? [] };
+  });
+
+export const acknowledgeStuckAlert = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { error } = await supabase
+      .from("pricing_v2_alert_events")
+      .update({ acknowledged_at: new Date().toISOString(), acknowledged_by: userId ?? null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getAlertConfig = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const cfg = await loadAlertConfig(supabase);
+    return cfg;
+  });
+
+const alertConfigSchema = z.object({
+  stuck_minutes_threshold: z.number().int().min(1).max(1440),
+  banner_enabled: z.boolean(),
+  email_enabled: z.boolean(),
+  email_recipients: z.array(z.string().email()).max(20),
+  webhook_enabled: z.boolean(),
+  webhook_url: z.string().url().nullable().or(z.literal("").transform(() => null)),
+  webhook_secret: z.string().max(200).nullable().or(z.literal("").transform(() => null)),
+});
+
+export const saveAlertConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => alertConfigSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { error } = await supabase
+      .from("pricing_v2_alert_config")
+      .update({
+        stuck_minutes_threshold: data.stuck_minutes_threshold,
+        banner_enabled: data.banner_enabled,
+        email_enabled: data.email_enabled,
+        email_recipients: data.email_recipients,
+        webhook_enabled: data.webhook_enabled,
+        webhook_url: data.webhook_url,
+        webhook_secret: data.webhook_secret,
+      })
+      .eq("id", 1);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ---- Manual weight override ----------------------------------------------
