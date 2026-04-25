@@ -362,8 +362,8 @@ export const listCatalogRuns = createServerFn({ method: "GET" })
     const { supabase } = context as any;
     const { data, error } = await supabase
       .from("pricing_v2_runs")
-      .select("run_id, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, params, notes, last_error")
-      .eq("stage", STAGE)
+      .select("run_id, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, params, notes, last_error, stage")
+      .in("stage", ["catalog", "catalog_bootstrap_test"])
       .order("started_at", { ascending: false })
       .limit(20);
     if (error) throw new Error(error.message);
