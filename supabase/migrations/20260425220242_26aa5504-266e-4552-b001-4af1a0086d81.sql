@@ -1,0 +1,1 @@
+UPDATE public.pricing_v2_runs SET status='failed', ended_at=COALESCE(ended_at, now()), last_error=COALESCE(last_error, 'Orphaned run finalized after enum-value bug fix') WHERE status='running' AND started_at < now() - interval '1 minute';
