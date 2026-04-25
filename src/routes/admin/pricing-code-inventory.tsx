@@ -333,6 +333,7 @@ function PricingCodeInventoryPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <LegacyArchivedBanner />
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Pricing Code Inventory</h1>
