@@ -258,7 +258,14 @@ function AdminDownloadsPage() {
                       <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
                         {new Date(r.created_at).toLocaleString()}
                       </td>
-                      <td className="py-2 pr-4"><Badge variant="secondary">{r.kind}</Badge></td>
+                      <td className="py-2 pr-4">
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary">{r.kind}</Badge>
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                            {MODULES.find((m) => m.key === moduleOf(r))?.label ?? "Other"}
+                          </Badge>
+                        </div>
+                      </td>
                       <td className="py-2 pr-4">
                         <p className="font-medium">{r.source_label || r.filename}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[280px]">{r.filename}</p>
