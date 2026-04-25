@@ -178,6 +178,15 @@ async function processMessages(
     if (leadId) {
       result.matchedToLeads++
 
+      // Backfill lead_id on the row we just inserted (insert above didn't know
+      // about the thread/recipient match yet for those branches).
+      if (matchReason !== 'sender') {
+        await supabase
+          .from('lead_emails')
+          .update({ lead_id: leadId })
+          .eq('outlook_message_id', msg.id)
+      }
+
       // Bump lead to 'replied' and update last_inbound_at + last_channel.
       await supabase
         .from('leads')
@@ -185,19 +194,28 @@ async function processMessages(
           status: 'replied',
           last_channel: 'email',
           last_outreach_date: msg.receivedDateTime.slice(0, 10),
+          last_contact_date: msg.receivedDateTime.slice(0, 10),
         })
         .eq('id', leadId)
 
-      // Log activity (best-effort — table may have different columns).
       await supabase.from('lead_activity').insert({
         lead_id: leadId,
-        activity_type: 'inbound_email',
-        notes: `Outlook reply: ${msg.subject ?? '(no subject)'} — ${msg.bodyPreview.slice(0, 200)}`,
+        action: 'inbound_email',
+        summary: `Outlook reply (matched by ${matchReason}): ${msg.subject ?? '(no subject)'} — ${(msg.bodyPreview ?? '').slice(0, 200)}`,
+        metadata: {
+          match_reason: matchReason,
+          from_email: fromEmail,
+          conversation_id: msg.conversationId,
+          message_id: msg.id,
+        } as any,
       } as any)
     }
 
-    // Match the same inbound to a prospect (independent of leads).
-    const prospectId = fromEmail ? prospectByEmail.get(fromEmail) ?? null : null
+    // Match the same inbound to a prospect (sender first, then thread).
+    let prospectId = fromEmail ? prospectByEmail.get(fromEmail) ?? null : null
+    if (!prospectId && msg.conversationId) {
+      prospectId = conversationToProspect.get(msg.conversationId) ?? null
+    }
     if (prospectId) {
       await (supabase as any).from('sales_contact_log').insert({
         prospect_id: prospectId,
