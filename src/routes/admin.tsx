@@ -216,6 +216,25 @@ function AdminLayout() {
     return location.pathname.startsWith(path);
   };
 
+  const STORAGE_KEY = "admin:collapsedNavGroups";
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))); } catch {}
+      return next;
+    });
+  };
+  const groupHasActive = (group: { items: NavItem[] }) =>
+    group.items.some((it) => isActive(it.to, it.exact));
+
   return (
     <div className="min-h-screen flex bg-background">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground transform transition-transform lg:translate-x-0 lg:static lg:flex-shrink-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
