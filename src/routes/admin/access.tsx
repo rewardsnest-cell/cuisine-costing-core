@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Mail, RotateCw, Trash2, UserPlus, Search, ShieldCheck, History } from "lucide-react";
-import { SECTION_KEYS, SECTION_LABELS, ROLE_KEYS, type SectionKey, type RoleKey } from "@/lib/access/sections";
+import { SECTION_KEYS, SECTION_LABELS, ROLE_KEYS, ROLE_LABELS, type SectionKey, type RoleKey } from "@/lib/access/sections";
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
 import {
