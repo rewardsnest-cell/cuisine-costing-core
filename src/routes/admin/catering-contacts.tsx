@@ -181,6 +181,12 @@ function LeadsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/outreach">
+              <Phone className="h-4 w-4 mr-2" />
+              Outreach Queue
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <Link to="/admin/leads/import">
               <Upload className="h-4 w-4 mr-2" />
               Import

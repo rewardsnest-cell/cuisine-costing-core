@@ -2557,6 +2557,59 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_tasks: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          due_date: string
+          id: string
+          lead_id: string
+          notes: string | null
+          priority: string
+          snoozed_until: string | null
+          status: string
+          suggested_channel: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          priority?: string
+          snoozed_until?: string | null
+          status?: string
+          suggested_channel?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          priority?: string
+          snoozed_until?: string | null
+          status?: string
+          suggested_channel?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           created_at: string
@@ -4477,6 +4530,7 @@ export type Database = {
         }[]
       }
       generate_cron_secret: { Args: { _name: string }; Returns: Json }
+      generate_outreach_tasks: { Args: never; Returns: number }
       get_active_flyer_for_supplier: {
         Args: { _supplier_id: string }
         Returns: string
@@ -4527,6 +4581,16 @@ export type Database = {
           kroger_last_observed: string
           kroger_sample_count: number
         }[]
+      }
+      log_lead_contact: {
+        Args: {
+          p_channel: string
+          p_lead_id: string
+          p_notes?: string
+          p_outcome: string
+          p_task_id?: string
+        }
+        Returns: string
       }
       move_to_dlq: {
         Args: {
@@ -4591,6 +4655,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      snooze_outreach_task: {
+        Args: { p_days?: number; p_task_id: string }
+        Returns: undefined
+      }
       verify_cron_secret: {
         Args: { _name: string; _secret: string }
         Returns: boolean
