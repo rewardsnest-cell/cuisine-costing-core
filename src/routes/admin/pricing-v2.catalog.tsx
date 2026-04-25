@@ -18,6 +18,7 @@ import {
   reparseCatalogItem,
   traceCatalogProduct,
   runCatalogTestHarness,
+  listCatalogTestErrors,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -441,10 +442,12 @@ function downloadJson(name: string, payload: any) {
   URL.revokeObjectURL(url);
 }
 
-async function exportErrorsCsv(runId: string) {
-  const res = await listCatalogRunErrors({ data: { run_id: runId, limit: 1000 } });
+async function exportErrorsCsv(runId: string, stage?: "catalog_bootstrap_test") {
+  const res = stage === "catalog_bootstrap_test"
+    ? await listCatalogTestErrors({ data: { run_id: runId, limit: 1000 } })
+    : await listCatalogRunErrors({ data: { run_id: runId, limit: 1000 } });
   const rows = res.errors;
-  const headers = ["created_at", "severity", "type", "entity_id", "message", "suggested_fix"];
+  const headers = ["created_at", "severity", "type", "entity_id", "entity_name", "message", "suggested_fix"];
   const csv = [
     headers.join(","),
     ...rows.map((r: any) => headers.map((h) => JSON.stringify(r[h] ?? "")).join(",")),
