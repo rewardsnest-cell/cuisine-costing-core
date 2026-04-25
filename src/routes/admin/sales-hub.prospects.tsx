@@ -347,6 +347,7 @@ function ProspectsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8"></TableHead>
                     <TableHead>Business</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Contact</TableHead>
