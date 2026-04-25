@@ -266,16 +266,28 @@ function ProspectsPage() {
                           <Button size="sm" variant="ghost" onClick={() => callProspect(p)} title={p.phone ? `Call ${p.phone}` : "No phone on file"} disabled={!p.phone}>
                             <Phone className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 gap-1.5"
-                            onClick={() => emailProspect(p)}
-                            title={p.email ? `Pick a template & preview email for ${p.email}` : "No email on file — add one in Edit prospect"}
-                            disabled={!p.email}
-                          >
-                            <MailIcon className="w-3.5 h-3.5" /> Generate email
-                          </Button>
+                          {!p.email && !p.phone ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5"
+                              onClick={() => { setContactDialogProspect(p); setContactDialogOpen(true); }}
+                              title="Use AI to research likely contact info for this prospect"
+                            >
+                              <UserSearch className="w-3.5 h-3.5" /> Generate contact
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5"
+                              onClick={() => emailProspect(p)}
+                              title={p.email ? `Pick a template & preview email for ${p.email}` : "No email on file — add one in Edit prospect"}
+                              disabled={!p.email}
+                            >
+                              <MailIcon className="w-3.5 h-3.5" /> Generate email
+                            </Button>
+                          )}
                           {hasUnreadReply(p) && (
                             <Button
                               size="sm"
