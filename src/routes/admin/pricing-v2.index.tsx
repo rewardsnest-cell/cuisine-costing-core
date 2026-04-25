@@ -94,6 +94,8 @@ function PricingV2ControlCenter() {
         </div>
       </div>
 
+      <PipelineLiveStatus />
+
       {/* Stage -1 gate banner */}
       {gate.data && (
         <Card className={gate.data.pricing_allowed ? "border-success/50" : "border-destructive/60"}>
