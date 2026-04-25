@@ -43,8 +43,8 @@ function DailyChecklistPage() {
     if (!user) return;
     const [row, list, recentLogs] = await Promise.all([
       (supabase as any).from("sales_daily_checklist").select("*").eq("user_id", user.id).eq("day", today).maybeSingle(),
-      (supabase as any).from("sales_prospects").select("id, business_name, city").order("business_name"),
-      (supabase as any).from("sales_contact_log").select("*, sales_prospects(business_name)").gte("contacted_at", `${today}T00:00:00`).order("contacted_at", { ascending: false }),
+      (supabase as any).from("sales_prospects").select("id, business_name, city, status").order("business_name"),
+      (supabase as any).from("sales_contact_log").select("*, sales_prospects(id, business_name, status)").gte("contacted_at", `${today}T00:00:00`).order("contacted_at", { ascending: false }),
     ]);
     setState(row?.data || {});
     setProspects(list?.data || []);
