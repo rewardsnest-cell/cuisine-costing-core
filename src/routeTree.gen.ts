@@ -101,6 +101,7 @@ import { Route as AdminNationalPricesRouteImport } from './routes/admin/national
 import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-modules'
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
+import { Route as AdminLocalCateringContactsRouteImport } from './routes/admin/local-catering-contacts'
 import { Route as AdminKrogerSkuReviewRouteImport } from './routes/admin/kroger-sku-review'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
 import { Route as AdminKrogerPriceSignalsRouteImport } from './routes/admin/kroger-price-signals'
@@ -640,6 +641,12 @@ const AdminMarginVolatilityRoute = AdminMarginVolatilityRouteImport.update({
   path: '/margin-volatility',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLocalCateringContactsRoute =
+  AdminLocalCateringContactsRouteImport.update({
+    id: '/local-catering-contacts',
+    path: '/local-catering-contacts',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminKrogerSkuReviewRoute = AdminKrogerSkuReviewRouteImport.update({
   id: '/kroger-sku-review',
   path: '/kroger-sku-review',
@@ -1066,6 +1073,7 @@ export interface FileRoutesByFullPath {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
@@ -1228,6 +1236,7 @@ export interface FileRoutesByTo {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
@@ -1393,6 +1402,7 @@ export interface FileRoutesById {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
@@ -1559,6 +1569,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/menu-modules'
@@ -1721,6 +1732,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/menu-modules'
@@ -1885,6 +1897,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
     | '/admin/menu-modules'
@@ -2697,6 +2710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMarginVolatilityRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/local-catering-contacts': {
+      id: '/admin/local-catering-contacts'
+      path: '/local-catering-contacts'
+      fullPath: '/admin/local-catering-contacts'
+      preLoaderRoute: typeof AdminLocalCateringContactsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/kroger-sku-review': {
       id: '/admin/kroger-sku-review'
       path: '/kroger-sku-review'
@@ -3349,6 +3369,7 @@ interface AdminRouteChildren {
   AdminKrogerPriceSignalsRoute: typeof AdminKrogerPriceSignalsRoute
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
   AdminKrogerSkuReviewRoute: typeof AdminKrogerSkuReviewRoute
+  AdminLocalCateringContactsRoute: typeof AdminLocalCateringContactsRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminMenuModulesRoute: typeof AdminMenuModulesRouteWithChildren
@@ -3430,6 +3451,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminKrogerPriceSignalsRoute: AdminKrogerPriceSignalsRoute,
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
   AdminKrogerSkuReviewRoute: AdminKrogerSkuReviewRoute,
+  AdminLocalCateringContactsRoute: AdminLocalCateringContactsRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminMenuModulesRoute: AdminMenuModulesRouteWithChildren,
