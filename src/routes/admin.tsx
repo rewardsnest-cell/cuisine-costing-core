@@ -124,6 +124,18 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/receipts", label: "Receipt Diagnostics",  icon: Receipt, featureKey: "admin_receipt_diagnostics" },
     ],
   },
+  {
+    label: "Archive",
+    phaseNote: "Read-only / Reference only",
+    items: [
+      { to: "/admin/cost-queue",              label: "Cost Update Queue (Legacy)",   icon: ServerCrash },
+      { to: "/admin/trends",                  label: "Price Trends (Legacy)",        icon: ServerCrash },
+      { to: "/admin/national-prices",         label: "National Prices (Legacy)",     icon: ServerCrash },
+      { to: "/admin/margin-volatility",       label: "Margin & Volatility (Legacy)", icon: ServerCrash },
+      { to: "/admin/pricing-code-inventory",  label: "Pricing Code Inventory (Legacy)", icon: ServerCrash },
+      { to: "/admin/pricing-visibility",      label: "Pricing Visibility (Legacy)",  icon: ServerCrash },
+    ],
+  },
 ];
 
 /**

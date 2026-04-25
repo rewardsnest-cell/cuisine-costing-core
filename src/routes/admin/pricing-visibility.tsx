@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LegacyArchivedBanner } from "@/components/admin/LegacyArchivedBanner";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +109,7 @@ function PricingVisibilityPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
+      <LegacyArchivedBanner />
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Pricing Visibility &amp; Verification</h1>
         <p className="text-muted-foreground text-sm mt-1">

@@ -1,5 +1,6 @@
 // ARCHIVED — Pricing v1 cost queue. See /docs/pricing-archive.md.
 import { createFileRoute } from "@tanstack/react-router";
+import { LegacyArchivedBanner } from "@/components/admin/LegacyArchivedBanner";
 
 export const Route = createFileRoute("/admin/cost-queue")({
   component: ArchivedPage,
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/admin/cost-queue")({
 
 function ArchivedPage() {
   return (
-    <div className="max-w-2xl mx-auto p-8">
+    <div className="max-w-2xl mx-auto p-8"><LegacyArchivedBanner />
       <h1 className="text-2xl font-bold mb-2">Cost Update Queue — Archived</h1>
       <p className="text-muted-foreground">
         This page belonged to Pricing v1 and has been archived. The

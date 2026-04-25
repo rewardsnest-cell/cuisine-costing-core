@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LegacyArchivedBanner } from "@/components/admin/LegacyArchivedBanner";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -333,6 +334,7 @@ function PricingCodeInventoryPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <LegacyArchivedBanner />
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Pricing Code Inventory</h1>
