@@ -52,6 +52,19 @@ async function processMessages(
     }
   }
 
+  // Also build a map for matched prospects (sales_prospects.email).
+  let prospectByEmail = new Map<string, string>()
+  if (senderEmails.length > 0) {
+    const { data: matchedProspects } = await (supabase as any)
+      .from('sales_prospects')
+      .select('id, email')
+      .in('email', senderEmails)
+    for (const row of matchedProspects ?? []) {
+      const e = (row as any).email?.toLowerCase()
+      if (e) prospectByEmail.set(e, (row as any).id as string)
+    }
+  }
+
   // Skip messages we've already imported (by Outlook message id).
   const messageIds = messages.map((m) => m.id)
   const { data: existing } = await supabase
