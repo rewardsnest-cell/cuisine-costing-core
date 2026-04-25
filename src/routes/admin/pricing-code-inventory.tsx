@@ -217,10 +217,14 @@ function PricingCodeInventoryPage() {
             Generated {PRICING_INVENTORY_GENERATED_AT}.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handleJsonExport} disabled={downloading !== null}>
             <FileJson className="w-4 h-4 mr-2" />
             {downloading === "json" ? "Exporting…" : "Export JSON"}
+          </Button>
+          <Button variant="outline" onClick={handleSqlExport} disabled={downloading !== null}>
+            <FileCode2 className="w-4 h-4 mr-2" />
+            {downloading === "sql" ? "Exporting…" : "Export SQL"}
           </Button>
           <Button onClick={handlePdfExport} disabled={downloading !== null}>
             <Download className="w-4 h-4 mr-2" />
