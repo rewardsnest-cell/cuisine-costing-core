@@ -1,0 +1,1 @@
+ALTER TYPE public.pricing_v2_stage ADD VALUE IF NOT EXISTS 'catalog_bootstrap_test';
