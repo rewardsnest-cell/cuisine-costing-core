@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight, ShieldCheck, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Reply } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 
