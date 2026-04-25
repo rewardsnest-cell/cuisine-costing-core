@@ -72,7 +72,7 @@ export function canonicalize(rawUnit: string | null | undefined, qty: number): {
   const converted = conv.canonical !== k || conv.factor !== 1;
   return {
     unit: conv.canonical,
-    quantity: Math.round(qty * conv.factor * 100) / 100,
+    quantity: roundQty(qty * conv.factor, conv.canonical, conv.dimension),
     dimension: conv.dimension,
     converted,
   };
