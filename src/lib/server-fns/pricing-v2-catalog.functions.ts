@@ -22,7 +22,9 @@ const STAGE = "catalog" as const;
 
 const bootstrapSchema = z.object({
   dry_run: z.boolean().default(false),
-  limit: z.number().int().min(1).max(2000).optional(),
+  // Per-call batch size (a single page of inventory IDs to fetch this invocation).
+  // Bootstrap loops across multiple invocations until all inventory IDs are processed.
+  batch_size: z.number().int().min(1).max(2000).optional(),
   keyword: z.string().trim().max(120).optional(),
 });
 
@@ -52,17 +54,42 @@ async function getStoreId(supabase: any): Promise<string> {
   return id;
 }
 
-async function collectInventoryProductIds(supabase: any, max: number): Promise<string[]> {
+/**
+ * Returns ALL distinct kroger_product_ids on inventory, sorted, for stable
+ * cursoring. Resume position is the last successfully-fetched ID
+ * (last_page_token); the next batch starts strictly after it.
+ */
+async function listAllInventoryProductIds(supabase: any): Promise<string[]> {
   const { data, error } = await supabase
     .from("inventory_items")
     .select("kroger_product_id")
     .not("kroger_product_id", "is", null)
-    .limit(max);
+    .order("kroger_product_id", { ascending: true });
   if (error) throw new Error(error.message);
   const ids = (data ?? [])
     .map((r: any) => String(r.kroger_product_id ?? "").trim())
     .filter(Boolean);
-  return Array.from(new Set(ids));
+  // dedupe but keep sort order
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) if (!seen.has(id)) { seen.add(id); out.push(id); }
+  return out;
+}
+
+async function getOrCreateBootstrapState(supabase: any, storeId: string) {
+  const { data } = await supabase
+    .from("pricing_v2_catalog_bootstrap_state")
+    .select("*")
+    .eq("store_id", storeId)
+    .maybeSingle();
+  if (data) return data;
+  const { data: created, error } = await supabase
+    .from("pricing_v2_catalog_bootstrap_state")
+    .insert({ store_id: storeId, status: "NOT_STARTED", total_items_fetched: 0 })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return created;
 }
 
 type ErrorRow = {
