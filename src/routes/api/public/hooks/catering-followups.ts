@@ -217,17 +217,15 @@ async function processStage(
 
     if (result.ok) {
       sent++
-      const update: Record<string, any> = {
+      const update: Database['public']['Tables']['local_catering_contacts']['Update'] = {
         status: cfg.nextStatus,
         last_outreach_date: daysAgo(0),
         last_channel: 'email',
       }
       if (!c.first_outreach_date) update.first_outreach_date = daysAgo(0)
-      if (cfg.nextFollowUpDays !== null) {
-        update.next_follow_up_date = daysAhead(cfg.nextFollowUpDays)
-      } else {
-        update.next_follow_up_date = null
-      }
+      update.next_follow_up_date = cfg.nextFollowUpDays !== null
+        ? daysAhead(cfg.nextFollowUpDays)
+        : null
       await supabase.from('local_catering_contacts').update(update).eq('id', c.id)
     } else {
       failed++
