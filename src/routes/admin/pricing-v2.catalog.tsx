@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
@@ -19,6 +21,8 @@ import {
   traceCatalogProduct,
   runCatalogTestHarness,
   listCatalogTestErrors,
+  getCatalogBootstrapState,
+  resetCatalogBootstrap,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
