@@ -133,6 +133,7 @@ function QuoteDetailPage() {
       )}
 
       <MarginVarianceCard variance={variance} />
+      <IngredientVarianceCard data={ingredientVariance} />
     </div>
   );
 }
