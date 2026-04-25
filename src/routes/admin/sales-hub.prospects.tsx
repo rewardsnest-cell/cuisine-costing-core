@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, CalendarClock, X } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
