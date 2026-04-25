@@ -5,6 +5,7 @@ import { format, addDays } from "date-fns";
 import {
   ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowLeft,
   CalendarPlus, MapPin, Building2, X, CalendarIcon, Sparkles,
+  ShieldAlert, ShieldCheck, ShieldQuestion,
 } from "lucide-react";
 import { OutreachDraftDialog, type DraftLead } from "@/components/outreach/OutreachDraftDialog";
 import { supabase } from "@/integrations/supabase/client";
