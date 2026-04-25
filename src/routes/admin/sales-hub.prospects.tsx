@@ -76,12 +76,13 @@ function ProspectsPage() {
     return true;
   }), [rows, filterCity, filterType, filterStatus, search]);
 
-  // Group by city for display
+  // Group by City → Type
   const grouped = useMemo(() => {
-    const g: Record<string, Prospect[]> = {};
+    const g: Record<string, Record<string, Prospect[]>> = {};
     for (const p of filtered) {
-      g[p.city] = g[p.city] || [];
-      g[p.city].push(p);
+      g[p.city] = g[p.city] || {};
+      g[p.city][p.type] = g[p.city][p.type] || [];
+      g[p.city][p.type].push(p);
     }
     return g;
   }, [filtered]);
