@@ -71,6 +71,12 @@ function DailyDashboardPage() {
   const [pricingAlerts, setPricingAlerts] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [trend, setTrend] = useState<Array<{ week: string; target: number; completed: number; pct: number }>>([]);
+  const [activity, setActivity] = useState<Array<{
+    id: string; created_at: string; entity_type: string; entity_id: string | null;
+    action: string; title: string | null; changes: Record<string, { from: any; to: any }>;
+    actor_email: string | null;
+  }>>([]);
+  const [activityFilter, setActivityFilter] = useState<"all" | "priority" | "goal">("all");
 
   const today = todayISO();
   const wkStart = weekStartISO();
