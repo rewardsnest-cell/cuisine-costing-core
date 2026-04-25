@@ -232,15 +232,20 @@ async function executeCatalogBootstrap(
         stage: STAGE,
         status: "running",
         initiated_by: userId ?? null,
-        triggered_by: "ui",
+        triggered_by: opts.triggered_by ?? "ui",
         params: {
           dry_run: data.dry_run,
           batch_size: data.batch_size ?? null,
           keyword: data.keyword ?? null,
           store_id: storeId,
           resumed_from: state.last_page_token ?? null,
+          replay_of: opts.replay_of ?? null,
         },
-        notes: data.dry_run ? "dry_run=true (catalog_bootstrap)" : "catalog_bootstrap",
+        notes: opts.replay_of
+          ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
+          : data.dry_run
+            ? "dry_run=true (catalog_bootstrap)"
+            : "catalog_bootstrap",
       })
       .select("run_id")
       .single();
