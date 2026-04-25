@@ -131,6 +131,48 @@ function PricingCodeInventoryPage() {
         headStyles: { fillColor: [30, 30, 30] },
       });
 
+      // SQL Appendix — full definitions, one section per entry.
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text("SQL Appendix — Pricing & Costing", 40, 48);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        "Verbatim definitions of functions, triggers, and views referenced by costing/pricing.",
+        40, 64,
+      );
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 80,
+        head: [["Name", "Kind", "Purpose"]],
+        body: SQL_PRICING_APPENDIX.map((e) => [e.name, e.kind, e.purpose]),
+        styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+        headStyles: { fillColor: [30, 30, 30] },
+        columnStyles: {
+          0: { cellWidth: 170 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 280 },
+        },
+      });
+
+      for (const entry of SQL_PRICING_APPENDIX) {
+        doc.addPage();
+        doc.setFontSize(12);
+        doc.text(`${entry.kind.toUpperCase()} — ${entry.name}`, 40, 48);
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        const purposeLines = doc.splitTextToSize(entry.purpose, 520);
+        doc.text(purposeLines, 40, 64);
+        doc.setTextColor(0);
+        doc.setFont("courier", "normal");
+        doc.setFontSize(8);
+        const startY = 64 + purposeLines.length * 11 + 12;
+        const lines = doc.splitTextToSize(entry.definition, 530);
+        doc.text(lines, 40, startY);
+        doc.setFont("helvetica", "normal");
+      }
+
       const blob = doc.output("blob");
       const result = await saveAndLogDownload({
         blob,
@@ -141,6 +183,25 @@ function PricingCodeInventoryPage() {
       toast.success(result.persisted ? "PDF saved to Downloads Hub" : "PDF downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export PDF");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  async function handleSqlExport() {
+    try {
+      setDownloading("sql");
+      const text = buildSqlAppendixText();
+      const blob = new Blob([text], { type: "application/sql" });
+      const result = await saveAndLogDownload({
+        blob,
+        filename: `pricing-sql-appendix-${PRICING_INVENTORY_GENERATED_AT}.sql`,
+        kind: "admin_export",
+        sourceLabel: "Pricing SQL Appendix (.sql)",
+      });
+      toast.success(result.persisted ? "SQL saved to Downloads Hub" : "SQL downloaded");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not export SQL");
     } finally {
       setDownloading(null);
     }
