@@ -143,6 +143,7 @@ function AdminDownloadsPage() {
       return (
         r.filename.toLowerCase().includes(needle) ||
         (r.source_label || "").toLowerCase().includes(needle) ||
+        (r.generated_by_email || "").toLowerCase().includes(needle) ||
         (emails[r.user_id || ""] || "").toLowerCase().includes(needle)
       );
     });
