@@ -93,6 +93,16 @@ async function getKv(key: string): Promise<string | null> {
 // `getSavedKrogerLocationId` was removed: per pricing intent, there is no
 // admin-pinned location. Locations are derived from ZIP only.
 
+/**
+ * Kroger's Product API requires `filter.locationId` to be EXACTLY 8
+ * alphanumeric characters (e.g. "540FC008"). Anything else (5-digit ZIP,
+ * lowercase, hyphens, empty) causes the API to reject the request with
+ * `PRODUCT-2011`. Use this guard everywhere a locationId is consumed.
+ */
+export const KROGER_LOCATION_ID_REGEX = /^[A-Za-z0-9]{8}$/;
+export function isValidKrogerLocationId(id: string | null | undefined): id is string {
+  return typeof id === "string" && KROGER_LOCATION_ID_REGEX.test(id);
+}
 
 /**
  * Resolve a Kroger locationId from a US ZIP code.
@@ -112,7 +122,12 @@ export async function resolveLocationFromZip(
     try {
       const parsed = JSON.parse(cached) as { locationId: string; cachedAt: string };
       const ageMs = Date.now() - new Date(parsed.cachedAt).getTime();
-      if (ageMs < 30 * 86400000 && parsed.locationId) return parsed.locationId;
+      // Defensive: only honor cache if stored id passes the 8-char rule.
+      // Older runs cached invalid 5-digit ZIPs (e.g. "44870") that broke
+      // every downstream Product API call with PRODUCT-2011.
+      if (ageMs < 30 * 86400000 && isValidKrogerLocationId(parsed.locationId)) {
+        return parsed.locationId;
+      }
     } catch { /* refresh */ }
   }
 
@@ -123,13 +138,14 @@ export async function resolveLocationFromZip(
   if (!res.ok) return null;
   const body = (await res.json().catch(() => null)) as { data?: Array<{ locationId?: string }> } | null;
   const id = body?.data?.[0]?.locationId ?? null;
-  if (id) {
-    await supabaseAdmin.from("app_kv").upsert({
-      key: cacheKey,
-      value: JSON.stringify({ locationId: id, cachedAt: new Date().toISOString() }),
-      updated_at: new Date().toISOString(),
-    });
-  }
+  // Reject anything that doesn't match Kroger's documented format. Better
+  // to fail the run cleanly than issue thousands of doomed Product calls.
+  if (!isValidKrogerLocationId(id)) return null;
+  await supabaseAdmin.from("app_kv").upsert({
+    key: cacheKey,
+    value: JSON.stringify({ locationId: id, cachedAt: new Date().toISOString() }),
+    updated_at: new Date().toISOString(),
+  });
   return id;
 }
 
@@ -143,7 +159,8 @@ export async function resolveLocationFromZip(
  * that pass an explicit ZIP-derived value through; it is NOT exposed to
  * any admin UI surface.
  *
- * Returns null if the Locations API can't resolve the ZIP — callers MUST
+ * Returns null if the Locations API can't resolve the ZIP, OR if the
+ * resolved/override id fails the 8-char alphanumeric format. Callers MUST
  * abort the run when null.
  */
 export async function resolveRunLocationId(
@@ -151,7 +168,10 @@ export async function resolveRunLocationId(
   zip: string,
   kFetch: (url: string, init?: RequestInit) => Promise<Response>,
 ): Promise<string | null> {
-  if (override && override.trim()) return override.trim();
+  if (override && override.trim()) {
+    const trimmed = override.trim();
+    return isValidKrogerLocationId(trimmed) ? trimmed : null;
+  }
   return resolveLocationFromZip(zip, kFetch);
 }
 
