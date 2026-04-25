@@ -205,5 +205,5 @@ export const REVIEW_RULES = [
 ];
 
 export const PROSPECT_CITIES = ["Aurora, OH", "Solon, OH", "Hudson, OH"] as const;
-export const PROSPECT_TYPES = ["Venue", "Corporate", "Medical"] as const;
+export const PROSPECT_TYPES = ["Wedding/Event", "Corporate", "Medical"] as const;
 export const PROSPECT_STATUSES = ["New", "Contacted", "Interested", "Booked", "Repeat", "Archived"] as const;
