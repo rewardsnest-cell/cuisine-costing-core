@@ -48,7 +48,7 @@ export const Route = createFileRoute('/admin/leads/$id')({
 
 function LeadDetailPage() {
   const router = useRouter()
-  const { lead, emails, audit } = Route.useLoaderData()
+  const { lead, emails, audit, attachments } = Route.useLoaderData()
 
   if (!lead) {
     return (
@@ -59,6 +59,14 @@ function LeadDetailPage() {
         <p className="mt-6">Lead not found.</p>
       </div>
     )
+  }
+
+  // Index attachments by lead_email_id for inline rendering in the thread.
+  const attachmentsByEmail = new Map<string, any[]>()
+  for (const a of attachments) {
+    if (!a.lead_email_id) continue
+    if (!attachmentsByEmail.has(a.lead_email_id)) attachmentsByEmail.set(a.lead_email_id, [])
+    attachmentsByEmail.get(a.lead_email_id)!.push(a)
   }
 
   return (
@@ -86,7 +94,7 @@ function LeadDetailPage() {
 
       <ComposeCard lead={lead} onSent={() => router.invalidate()} />
 
-      <EmailThreadCard emails={emails} />
+      <EmailThreadCard emails={emails} attachmentsByEmail={attachmentsByEmail} />
 
       <AuditCard audit={audit} />
     </div>
