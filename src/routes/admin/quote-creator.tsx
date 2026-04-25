@@ -1208,8 +1208,9 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
   );
 }
 
-function ItemRow({ item, list, isApproved, onChanged }: {
+function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }: {
   item: CqhShoppingListItem; list: CqhShoppingList; isApproved: boolean; onChanged: () => void;
+  selected?: boolean; onToggleSelect?: () => void;
 }) {
   const [name, setName] = useState(item.ingredient_name);
   const [qty, setQty] = useState(String(item.quantity));
