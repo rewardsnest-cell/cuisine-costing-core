@@ -967,271 +967,6 @@ export type Database = {
           },
         ]
       }
-      cqh_audit_log: {
-        Row: {
-          action: string
-          actor_id: string | null
-          created_at: string
-          event_id: string | null
-          id: string
-          payload: Json | null
-          quote_id: string | null
-          shopping_list_id: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          created_at?: string
-          event_id?: string | null
-          id?: string
-          payload?: Json | null
-          quote_id?: string | null
-          shopping_list_id?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          created_at?: string
-          event_id?: string | null
-          id?: string
-          payload?: Json | null
-          quote_id?: string | null
-          shopping_list_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cqh_audit_log_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cqh_audit_log_quote_id_fkey"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cqh_audit_log_shopping_list_id_fkey"
-            columns: ["shopping_list_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_shopping_lists"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cqh_dishes: {
-        Row: {
-          created_at: string
-          event_id: string
-          id: string
-          is_main: boolean
-          merged_from: string[] | null
-          name: string
-          source_documents: string[] | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          id?: string
-          is_main?: boolean
-          merged_from?: string[] | null
-          name: string
-          source_documents?: string[] | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          id?: string
-          is_main?: boolean
-          merged_from?: string[] | null
-          name?: string
-          source_documents?: string[] | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cqh_dishes_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cqh_documents: {
-        Row: {
-          created_at: string
-          event_id: string
-          extracted_text: string | null
-          file_type: string
-          filename: string
-          id: string
-          storage_path: string | null
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          extracted_text?: string | null
-          file_type: string
-          filename: string
-          id?: string
-          storage_path?: string | null
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          extracted_text?: string | null
-          file_type?: string
-          filename?: string
-          id?: string
-          storage_path?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cqh_documents_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cqh_events: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          event_date: string | null
-          guest_count: number | null
-          id: string
-          name: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          event_date?: string | null
-          guest_count?: number | null
-          id?: string
-          name: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          event_date?: string | null
-          guest_count?: number | null
-          id?: string
-          name?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      cqh_shopping_list_items: {
-        Row: {
-          created_at: string
-          dish_id: string | null
-          id: string
-          ingredient_name: string
-          notes: string | null
-          per_dish_allocation: Json | null
-          quantity: number
-          shopping_list_id: string
-          unit: string | null
-          unit_price: number
-        }
-        Insert: {
-          created_at?: string
-          dish_id?: string | null
-          id?: string
-          ingredient_name: string
-          notes?: string | null
-          per_dish_allocation?: Json | null
-          quantity?: number
-          shopping_list_id: string
-          unit?: string | null
-          unit_price?: number
-        }
-        Update: {
-          created_at?: string
-          dish_id?: string | null
-          id?: string
-          ingredient_name?: string
-          notes?: string | null
-          per_dish_allocation?: Json | null
-          quantity?: number
-          shopping_list_id?: string
-          unit?: string | null
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cqh_shopping_list_items_dish_id_fkey"
-            columns: ["dish_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_dishes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cqh_shopping_list_items_shopping_list_id_fkey"
-            columns: ["shopping_list_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_shopping_lists"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cqh_shopping_lists: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string
-          event_id: string
-          generated_by_ai: boolean
-          id: string
-          revision_number: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string
-          event_id: string
-          generated_by_ai?: boolean
-          id?: string
-          revision_number?: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string
-          event_id?: string
-          generated_by_ai?: boolean
-          id?: string
-          revision_number?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cqh_shopping_lists_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cron_secrets: {
         Row: {
           created_at: string
@@ -3369,8 +3104,6 @@ export type Database = {
           client_name: string | null
           client_phone: string | null
           conversation: Json | null
-          cqh_event_id: string | null
-          cqh_shopping_list_id: string | null
           created_at: string
           dietary_preferences: Json | null
           event_date: string | null
@@ -3383,10 +3116,8 @@ export type Database = {
           notes: string | null
           quote_state: Database["public"]["Enums"]["quote_state"]
           reference_number: string | null
-          source: string | null
           status: string
           subtotal: number | null
-          superseded_by: string | null
           tax_rate: number | null
           theoretical_cost: number | null
           total: number | null
@@ -3399,8 +3130,6 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           conversation?: Json | null
-          cqh_event_id?: string | null
-          cqh_shopping_list_id?: string | null
           created_at?: string
           dietary_preferences?: Json | null
           event_date?: string | null
@@ -3413,10 +3142,8 @@ export type Database = {
           notes?: string | null
           quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
-          source?: string | null
           status?: string
           subtotal?: number | null
-          superseded_by?: string | null
           tax_rate?: number | null
           theoretical_cost?: number | null
           total?: number | null
@@ -3429,8 +3156,6 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           conversation?: Json | null
-          cqh_event_id?: string | null
-          cqh_shopping_list_id?: string | null
           created_at?: string
           dietary_preferences?: Json | null
           event_date?: string | null
@@ -3443,39 +3168,15 @@ export type Database = {
           notes?: string | null
           quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
-          source?: string | null
           status?: string
           subtotal?: number | null
-          superseded_by?: string | null
           tax_rate?: number | null
           theoretical_cost?: number | null
           total?: number | null
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "quotes_cqh_event_id_fkey"
-            columns: ["cqh_event_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_cqh_shopping_list_id_fkey"
-            columns: ["cqh_shopping_list_id"]
-            isOneToOne: false
-            referencedRelation: "cqh_shopping_lists"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quotes_superseded_by_fkey"
-            columns: ["superseded_by"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       receipts: {
         Row: {
