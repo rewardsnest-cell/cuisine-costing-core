@@ -183,14 +183,27 @@ function ReceiptsPage() {
 
       const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(fileName);
 
-      await supabase.from("receipts").insert({
-        image_url: urlData.publicUrl,
-        status: "pending",
-        receipt_date: new Date().toISOString().split("T")[0],
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from("receipts")
+        .insert({
+          image_url: urlData.publicUrl,
+          status: "pending",
+          receipt_date: new Date().toISOString().split("T")[0],
+        })
+        .select("id,receipt_date,image_url,total_amount,status,extracted_line_items,supplier_id,created_at,raw_ocr_text")
+        .single();
+      if (insertError) throw insertError;
 
-      toast.success("Receipt uploaded successfully");
+      toast.success("Receipt uploaded — preview before running OCR");
       load();
+
+      // Open the preview drawer so the user can verify the file before OCR
+      setPreviewReceipt({
+        row: inserted as ReceiptRow,
+        fileName: file.name,
+        mimeType: file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/*"),
+        size: file.size,
+      });
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload receipt");
