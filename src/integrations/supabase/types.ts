@@ -1964,6 +1964,90 @@ export type Database = {
           },
         ]
       }
+      local_catering_contacts: {
+        Row: {
+          address_city: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          catering_use_cases: string[]
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          distance_miles: number | null
+          email: string | null
+          first_outreach_date: string | null
+          id: string
+          last_channel: string | null
+          last_outreach_date: string | null
+          next_follow_up_date: string | null
+          notes: string | null
+          organization_name: string
+          organization_type: string | null
+          phone: string | null
+          priority: string
+          role_department: string | null
+          source: string | null
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          catering_use_cases?: string[]
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_miles?: number | null
+          email?: string | null
+          first_outreach_date?: string | null
+          id?: string
+          last_channel?: string | null
+          last_outreach_date?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_name: string
+          organization_type?: string | null
+          phone?: string | null
+          priority?: string
+          role_department?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          catering_use_cases?: string[]
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_miles?: number | null
+          email?: string | null
+          first_outreach_date?: string | null
+          id?: string
+          last_channel?: string | null
+          last_outreach_date?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_name?: string
+          organization_type?: string | null
+          phone?: string | null
+          priority?: string
+          role_department?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       menu_module_items: {
         Row: {
           created_at: string
