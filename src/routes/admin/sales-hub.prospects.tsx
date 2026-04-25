@@ -125,6 +125,44 @@ function ProspectsPage() {
     load();
   };
 
+  const emailProspect = async (p: Prospect) => {
+    if (!p.email) {
+      toast.error("No email on file. Add one in Edit prospect.");
+      return;
+    }
+    const subject = encodeURIComponent(`Following up — ${p.business_name}`);
+    const greeting = p.contact_name ? `Hi ${p.contact_name},` : "Hello,";
+    const body = encodeURIComponent(
+      `${greeting}\n\nI wanted to reach out from VPs Finest about catering options for ${p.business_name}. ` +
+      `We work with ${p.type.toLowerCase()} clients in ${p.city} and would love to share what we offer.\n\n` +
+      `Would you have a few minutes this week to chat?\n\nThanks!`
+    );
+    // Open the user's email client with a pre-filled draft
+    window.open(`mailto:${p.email}?subject=${subject}&body=${body}`, "_self");
+    // Log it as well
+    await logContact(p, "email");
+  };
+
+  const callProspect = async (p: Prospect) => {
+    if (!p.phone) {
+      toast.error("No phone on file. Add one in Edit prospect.");
+      return;
+    }
+    window.open(`tel:${p.phone.replace(/[^\d+]/g, "")}`, "_self");
+    await logContact(p, "call");
+  };
+
+  const resetContacted = async (p: Prospect) => {
+    if (!confirm(`Reset contact history for ${p.business_name}? This clears Last Contacted and sets status back to New.`)) return;
+    const { error } = await (supabase as any)
+      .from("sales_prospects")
+      .update({ last_contacted: null, status: "New" })
+      .eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success("Contact reset");
+    load();
+  };
+
   return (
     <div className="space-y-4">
       <Card>
