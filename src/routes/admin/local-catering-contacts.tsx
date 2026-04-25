@@ -125,6 +125,8 @@ function LocalCateringContactsPage() {
   const [scheduleNote, setScheduleNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [draftLead, setDraftLead] = useState<DraftLead | null>(null);
+  const [previewLead, setPreviewLead] = useState<PreviewLead | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [reviewLead, setReviewLead] = useState<Lead | null>(null);
   const [reviewEmail, setReviewEmail] = useState("");
   const [reviewPhone, setReviewPhone] = useState("");
