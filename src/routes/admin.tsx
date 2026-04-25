@@ -98,7 +98,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Competitor Quote Hub",
     items: [
       { to: "/admin/quote-creator",   label: "Quote Creator",   icon: ClipboardList },
-      { to: "/admin/pricing-sandbox", label: "Pricing Sandbox", icon: FlaskConical },
     ],
   },
   {
