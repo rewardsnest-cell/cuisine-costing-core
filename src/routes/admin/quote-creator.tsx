@@ -781,7 +781,7 @@ function QuoteCreatorHub() {
                     )}
                     {list && !isApproved && (
                       <Button onClick={generate} disabled={busy} variant="outline">
-                        <RefreshCw className="w-4 h-4 mr-1" /> Re-generate (replaces draft)
+                        <RefreshCw className="w-4 h-4 mr-1" /> Create Shopping List
                       </Button>
                     )}
                     {isApproved && (
