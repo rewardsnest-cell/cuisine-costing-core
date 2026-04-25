@@ -125,6 +125,7 @@ function QuoteCreatorHub() {
     items: CqhShoppingListItem[]; auditLog: any[]; quotes: any[];
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [genProgress, setGenProgress] = useState<{ value: number; label: string } | null>(null);
   const [tab, setTab] = useState("workflow");
   const [eventQuery, setEventQuery] = useState("");
   const [eventStatusFilter, setEventStatusFilter] = useState<string>("all");
