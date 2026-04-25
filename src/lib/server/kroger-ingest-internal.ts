@@ -3,7 +3,6 @@ import {
   BOOTSTRAP_SEARCH_TERMS,
   KROGER_DEFAULT_ZIP,
   getKrogerFetch,
-  isValidKrogerLocationId,
   normalizeForScoring,
   normalizeKrogerPrice,
   resolveRunLocationId,
