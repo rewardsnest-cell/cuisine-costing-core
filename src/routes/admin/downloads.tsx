@@ -42,11 +42,39 @@ const KINDS = [
   "shopping_list", "audit_export", "admin_export", "other",
 ];
 
+/** Best-effort module classification from filename + label. */
+const MODULES: { key: string; label: string; match: RegExp }[] = [
+  { key: "pricing",    label: "Pricing",     match: /pricing|cost|sql.appendix/i },
+  { key: "quote",      label: "Quotes",      match: /quote/i },
+  { key: "recipe",     label: "Recipes",     match: /recipe/i },
+  { key: "audit",      label: "Audit",       match: /audit|inventory|inspection/i },
+  { key: "newsletter", label: "Newsletter",  match: /newsletter|guide/i },
+  { key: "shopping",   label: "Shopping",    match: /shopping/i },
+  { key: "kroger",     label: "Kroger",      match: /kroger/i },
+  { key: "menu",       label: "Menu",        match: /menu/i },
+  { key: "brand",      label: "Brand",       match: /brand|logo/i },
+];
+
+function moduleOf(r: { filename: string; source_label: string | null }): string {
+  const hay = `${r.source_label ?? ""} ${r.filename}`;
+  for (const m of MODULES) if (m.match.test(hay)) return m.key;
+  return "other";
+}
+
 function fmtBytes(n: number | null) {
   if (!n) return "—";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
+}
+
+/** YYYY-MM-DD in local time for <input type="date"> value comparisons. */
+function localDay(iso: string) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function AdminDownloadsPage() {
