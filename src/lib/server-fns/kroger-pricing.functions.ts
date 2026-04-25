@@ -461,7 +461,16 @@ export const ingestKrogerPrices = createServerFn({ method: "POST" })
     const limit = requested === 0
       ? 5000
       : Math.max(1, Math.min(5000, requested ?? 25));
-    const locationId = await getKrogerLocationId();
+    // Always derive location server-side from DEFAULT_ZIP — no admin override.
+    let token: string;
+    try { token = await getKrogerAccessToken(); }
+    catch (e: any) {
+      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
+    }
+    const locationId = await resolveLocationForRun(token);
+    if (!locationId) {
+      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${DEFAULT_ZIP}.` } as const;
+    }
 
     const { data: runRow, error: insErr } = await supabaseAdmin
       .from("kroger_ingest_runs")
