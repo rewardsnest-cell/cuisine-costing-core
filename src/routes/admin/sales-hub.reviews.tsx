@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Lock, Star } from "lucide-react";
-import { REVIEW_SCRIPTS, REVIEW_RULES } from "@/lib/sales-hub/scripts";
+import { Copy, Lock, Star, Gift } from "lucide-react";
+import { REVIEW_SCRIPTS, REVIEW_RULES, REFERRAL_ASK } from "@/lib/sales-hub/scripts";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/admin/sales-hub/reviews")({
