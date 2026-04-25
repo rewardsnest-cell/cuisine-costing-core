@@ -2048,6 +2048,62 @@ export type Database = {
         }
         Relationships: []
       }
+      local_catering_outreach_log: {
+        Row: {
+          channel: string
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          message_id: string | null
+          notes: string | null
+          recipient_email: string | null
+          sent_at: string
+          status: string
+          template_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          recipient_email?: string | null
+          sent_at?: string
+          status?: string
+          template_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          recipient_email?: string | null
+          sent_at?: string
+          status?: string
+          template_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_catering_outreach_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "local_catering_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_module_items: {
         Row: {
           created_at: string
