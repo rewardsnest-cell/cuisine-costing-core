@@ -158,15 +158,39 @@ function DailyChecklistPage() {
             <p className="text-sm text-muted-foreground">Nothing logged yet today.</p>
           ) : (
             <ul className="divide-y">
-              {recent.map((r) => (
-                <li key={r.id} className="py-2 text-sm flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{r.sales_prospects?.business_name || "Unknown"}</p>
-                    <p className="text-xs text-muted-foreground">{r.channel} · {r.outcome || "—"}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{new Date(r.contacted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                </li>
-              ))}
+              {recent.map((r) => {
+                const pid = r.sales_prospects?.id || r.prospect_id;
+                const stage = r.sales_prospects?.status || prospects.find((p) => p.id === pid)?.status || "New";
+                const next = nextStage(stage);
+                return (
+                  <li key={r.id} className="py-2.5 text-sm flex items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{r.sales_prospects?.business_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {r.channel} · {r.outcome || "—"} · <Badge variant="outline" className="text-[10px]">{stage}</Badge>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {next && pid && (
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => setStage(pid, next)}>
+                          <ArrowRight className="h-3 w-3" /> {next}
+                        </Button>
+                      )}
+                      {pid && (
+                        <Select value={stage} onValueChange={(v) => v !== stage && setStage(pid, v)}>
+                          <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PROSPECT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(r.contacted_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
