@@ -618,7 +618,7 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
     const updateRunsSql =
       `UPDATE public.pricing_v2_runs\n` +
       `SET status = 'failed', ended_at = '${nowIso}', last_error = '${summary.replace(/'/g, "''")}'\n` +
-      `WHERE run_id IN (${runIds.map((id) => `'${id}'`).join(", ")});`;
+      `WHERE run_id IN (${runIds.map((id: string) => `'${id}'`).join(", ")});`;
 
     const { error: updErr } = await supabase
       .from("pricing_v2_runs")
