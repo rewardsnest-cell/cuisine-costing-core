@@ -149,7 +149,58 @@ function ProspectsPage() {
     load();
   };
 
-  const logContact = async (p: Prospect, channel: string) => {
+  const runBulkGenerateContact = async () => {
+    const targets = rows.filter((r) => selectedIds.has(r.id) && isMissingContact(r));
+    if (targets.length === 0) {
+      toast.error("Select prospects missing email and phone first.");
+      return;
+    }
+    if (!confirm(`Generate AI contact info for ${targets.length} prospect${targets.length === 1 ? "" : "s"}? Results are saved automatically — review and edit afterward.`)) return;
+
+    setBulkRunning(true);
+    setBulkProgress({ done: 0, total: targets.length });
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      try {
+        const res = await generateContact({
+          data: { businessName: p.business_name, city: p.city, type: p.type },
+        });
+        if (!res.ok) { failed++; }
+        else {
+          const c = res.contact;
+          const aiNote = c.notes
+            ? `AI contact research (${c.confidence ?? "?"} confidence): ${c.notes}${c.website ? ` · Website: ${c.website}` : ""}`
+            : null;
+          const mergedNotes = [p.notes?.trim(), aiNote].filter(Boolean).join("\n\n") || null;
+          const { error } = await (supabase as any)
+            .from("sales_prospects")
+            .update({
+              contact_name: p.contact_name || c.contact_name || null,
+              email: p.email || c.email || null,
+              phone: p.phone || c.phone || null,
+              notes: mergedNotes,
+            })
+            .eq("id", p.id);
+          if (error) failed++; else success++;
+        }
+      } catch {
+        failed++;
+      }
+      setBulkProgress({ done: i + 1, total: targets.length });
+      // Small delay to avoid hammering the AI gateway rate limit
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    setBulkRunning(false);
+    setBulkProgress(null);
+    setSelectedIds(new Set());
+    if (success) toast.success(`Generated contact info for ${success} prospect${success === 1 ? "" : "s"}${failed ? ` (${failed} failed)` : ""}`);
+    else toast.error(`Bulk generate failed for all ${failed} prospects`);
+    load();
+  };
     const now = new Date().toISOString();
     const { error: logErr } = await (supabase as any).from("sales_contact_log").insert({
       prospect_id: p.id, channel, outcome: "logged", contacted_at: now,
