@@ -114,6 +114,27 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const storeId = await getStoreId(supabase);
 
+    // ---- Pre-check: bootstrap_state guard --------------------------------
+    // Bootstrap stops permanently once COMPLETED. Re-running is a no-op
+    // until the admin explicitly Resets the catalog.
+    const state = await getOrCreateBootstrapState(supabase, storeId);
+    if (state.status === "COMPLETED") {
+      return {
+        run_id: null as string | null,
+        skipped: true,
+        message: "Catalog bootstrap already completed",
+        store_id: storeId,
+        bootstrap_state: state,
+        counts_in: 0,
+        counts_out: 0,
+        warnings_count: 0,
+        errors_count: 0,
+        page_done: true,
+        bootstrap_completed: true,
+        errors_preview: [] as ErrorRow[],
+      };
+    }
+
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
@@ -121,7 +142,13 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         status: "running",
         initiated_by: userId ?? null,
         triggered_by: "ui",
-        params: { dry_run: data.dry_run, limit: data.limit ?? null, keyword: data.keyword ?? null, store_id: storeId },
+        params: {
+          dry_run: data.dry_run,
+          batch_size: data.batch_size ?? null,
+          keyword: data.keyword ?? null,
+          store_id: storeId,
+          resumed_from: state.last_page_token ?? null,
+        },
         notes: data.dry_run ? "dry_run=true (catalog_bootstrap)" : "catalog_bootstrap",
       })
       .select("run_id")
@@ -129,45 +156,70 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
     if (runErr) throw new Error(runErr.message);
     const runId: string = runRow.run_id;
 
+    // Mark IN_PROGRESS (idempotent) — only on a real (non-dry) run.
+    if (!data.dry_run) {
+      const patch: Record<string, any> = { status: "IN_PROGRESS", last_run_id: runId };
+      if (state.status === "NOT_STARTED" || !state.started_at) {
+        patch.started_at = new Date().toISOString();
+      }
+      await supabase
+        .from("pricing_v2_catalog_bootstrap_state")
+        .update(patch)
+        .eq("store_id", storeId);
+    }
+
     const errors: ErrorRow[] = [];
     let countsIn = 0;
     let countsOut = 0;
     let warnings = 0;
     let errCount = 0;
+    let pageDone = false;
+    let nextCursor: string | null = state.last_page_token ?? null;
 
     try {
-      // 1) Build target product list.
-      const cap = data.limit ?? (data.dry_run ? 50 : 1000);
-      const fromInventory = await collectInventoryProductIds(supabase, cap);
-      let products: KrogerProduct[] = [];
+      // 1) Resumable inventory cursor: fetch ALL inventory ids, slice strictly
+      //    after the resume cursor, take batch_size for this invocation.
+      const batchSize = data.batch_size ?? (data.dry_run ? 50 : 200);
+      const allIds = await listAllInventoryProductIds(supabase);
+      const startIdx = nextCursor ? allIds.findIndex((id) => id > nextCursor!) : 0;
+      const sliceStart = startIdx === -1 ? allIds.length : Math.max(0, startIdx);
+      const slice = allIds.slice(sliceStart, sliceStart + batchSize);
+      const remainingAfter = Math.max(0, allIds.length - (sliceStart + slice.length));
 
-      if (fromInventory.length) {
-        const slice = fromInventory.slice(0, cap);
+      let products: KrogerProduct[] = [];
+      if (slice.length) {
         products = await fetchProductsByIds({ storeId, productIds: slice });
       }
-      if (data.keyword && products.length < cap) {
-        const more = await searchProducts({
-          storeId,
-          term: data.keyword,
-          limit: cap - products.length,
-        });
-        // de-dupe by productKey
-        const seen = new Set(products.map((p) => productKey(storeId, p)));
+
+      // Keyword sweep is supplemental and only runs on the FIRST invocation.
+      if (data.keyword && !nextCursor) {
+        const more = await searchProducts({ storeId, term: data.keyword, limit: 250 });
+        const seenK = new Set(products.map((p) => productKey(storeId, p)));
         for (const p of more) {
           const k = productKey(storeId, p);
-          if (!seen.has(k)) {
-            products.push(p);
-            seen.add(k);
-          }
+          if (!seenK.has(k)) { products.push(p); seenK.add(k); }
         }
       }
-      countsIn = products.length;
 
-      if (!products.length) {
+      countsIn = products.length;
+      pageDone = remainingAfter === 0;
+
+      if (!slice.length && !products.length) {
         warnings += 1;
         errors.push({
           run_id: runId,
           stage: STAGE,
+          severity: "warning",
+          type: "NO_PRODUCTS",
+          entity_type: "run",
+          entity_id: null,
+          entity_name: null,
+          message: "No inventory items have a kroger_product_id mapped — nothing to bootstrap.",
+          suggested_fix: "Map inventory items to Kroger products, then re-run bootstrap.",
+          debug_json: { store_id: storeId, inventory_ids_total: allIds.length },
+        });
+      }
+
           severity: "warning",
           type: "NO_PRODUCTS",
           entity_type: "run",
