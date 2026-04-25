@@ -2,11 +2,13 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getQuoteMarginVariance } from "@/lib/server-fns/margin-reporting.functions";
+import { getQuoteMarginVariance, getQuoteIngredientVariance } from "@/lib/server-fns/margin-reporting.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingState } from "@/components/LoadingState";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Flame } from "lucide-react";
 
 export const Route = createFileRoute("/admin/quotes/$id")({
   head: () => ({
