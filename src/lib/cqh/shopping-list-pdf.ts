@@ -33,19 +33,20 @@ export function generateShoppingListPdf(
     .filter(Boolean)
     .join(" · ");
 
-  let y = drawBrandedHeader(doc, {
+  // Draw the page-1 header now (returns Y baseline below the brand block).
+  const headerY = drawBrandedHeader(doc, {
     rightText: meta.revisionNumber != null ? `Revision ${meta.revisionNumber}` : undefined,
     subTitle: subTitle || undefined,
   });
 
   doc.setFontSize(16);
   doc.setTextColor(...BRAND.ink);
-  doc.text("Shopping List", 36, y + 24);
+  doc.text("Shopping List", 36, headerY + 24);
 
   if (meta.status) {
     doc.setFontSize(10);
     doc.setTextColor(...BRAND.muted);
-    doc.text(meta.status.toUpperCase(), W - 36, y + 24, { align: "right" });
+    doc.text(meta.status.toUpperCase(), W - 36, headerY + 24, { align: "right" });
   }
 
   const total = items.reduce(
@@ -53,9 +54,15 @@ export function generateShoppingListPdf(
     0,
   );
 
+  // Reserve a top margin on continuation pages so rows don't render under the
+  // brand header, and a bottom margin so rows + the foot don't collide with
+  // the brand footer. autoTable will auto-paginate within these margins.
+  const TOP_CONTINUATION = 72;   // header (~48) + breathing room
+  const BOTTOM_RESERVE = 72;     // footer (~32) + foot row + breathing room
+
   autoTable(doc, {
-    startY: y + 36,
-    margin: { left: 36, right: 36, bottom: 60 },
+    startY: headerY + 36,
+    margin: { left: 36, right: 36, top: TOP_CONTINUATION, bottom: BOTTOM_RESERVE },
     head: [["Ingredient", "Qty", "Unit", "$ / unit", "Subtotal"]],
     body: items.map((i) => {
       const conv = canonicalize(i.unit ?? null, Number(i.quantity || 0));
@@ -70,16 +77,36 @@ export function generateShoppingListPdf(
       ];
     }),
     foot: [["", "", "", "Total", `$${total.toFixed(2)}`]],
-    styles: { font: "helvetica", fontSize: 10, cellPadding: 6, textColor: BRAND.body as any },
+    // Pagination safety:
+    //  - rowPageBreak 'avoid' keeps a single row from splitting across pages.
+    //  - showFoot 'lastPage' ensures the Total row only renders once, at the
+    //    end (autoTable pushes it to a new page if it doesn't fit with the
+    //    final body row, preventing an orphaned/cut total).
+    pageBreak: "auto",
+    rowPageBreak: "avoid",
+    showFoot: "lastPage",
+    showHead: "everyPage",
+    styles: { font: "helvetica", fontSize: 10, cellPadding: 6, textColor: BRAND.body as any, overflow: "linebreak" },
     headStyles: { fillColor: BRAND.cocoa as any, textColor: [255, 255, 255] as any },
     footStyles: { fillColor: BRAND.cream as any, textColor: BRAND.ink as any, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [250, 247, 240] },
     columnStyles: {
-      1: { halign: "right" },
-      3: { halign: "right" },
-      4: { halign: "right" },
+      0: { cellWidth: "auto" },
+      1: { halign: "right", cellWidth: 60 },
+      2: { cellWidth: 60 },
+      3: { halign: "right", cellWidth: 70 },
+      4: { halign: "right", cellWidth: 80 },
     },
-    didDrawPage: () => drawBrandedFooter(doc),
+    didDrawPage: (data) => {
+      // Re-draw brand header on continuation pages so every page is branded.
+      if (data.pageNumber > 1) {
+        drawBrandedHeader(doc, {
+          rightText: meta.revisionNumber != null ? `Revision ${meta.revisionNumber}` : undefined,
+          subTitle: subTitle || undefined,
+        });
+      }
+      drawBrandedFooter(doc);
+    },
   });
 
   return doc;
