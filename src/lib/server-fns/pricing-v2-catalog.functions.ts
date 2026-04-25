@@ -169,11 +169,15 @@ type ErrorRow = {
 
 // ---- runCatalogBootstrap --------------------------------------------------
 
-export const runCatalogBootstrap = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => bootstrapSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+type BootstrapInput = z.infer<typeof bootstrapSchema>;
+type ExecOpts = { triggered_by?: string; replay_of?: string | null };
+
+async function executeCatalogBootstrap(
+  supabase: any,
+  userId: string | null,
+  data: BootstrapInput,
+  opts: ExecOpts = {},
+) {
     const storeId = await getStoreId(supabase);
 
     // ---- Pre-check: bootstrap_state guard --------------------------------
@@ -228,15 +232,20 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         stage: STAGE,
         status: "running",
         initiated_by: userId ?? null,
-        triggered_by: "ui",
+        triggered_by: opts.triggered_by ?? "ui",
         params: {
           dry_run: data.dry_run,
           batch_size: data.batch_size ?? null,
           keyword: data.keyword ?? null,
           store_id: storeId,
           resumed_from: state.last_page_token ?? null,
+          replay_of: opts.replay_of ?? null,
         },
-        notes: data.dry_run ? "dry_run=true (catalog_bootstrap)" : "catalog_bootstrap",
+        notes: opts.replay_of
+          ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
+          : data.dry_run
+            ? "dry_run=true (catalog_bootstrap)"
+            : "catalog_bootstrap",
       })
       .select("run_id")
       .single();
@@ -514,6 +523,63 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         .eq("run_id", runId);
       throw e;
     }
+}
+
+export const runCatalogBootstrap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => bootstrapSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    return executeCatalogBootstrap(supabase, userId ?? null, data, { triggered_by: "ui" });
+  });
+
+// ---- replayCatalogRun -----------------------------------------------------
+//
+// Re-run a previously failed (or auto-recovered) bootstrap attempt using the
+// EXACT params saved on the original run. Appends a new audit-trail entry
+// (a fresh pricing_v2_runs row) tagged with triggered_by='replay' and
+// params.replay_of = <original run_id>.
+export const replayCatalogRun = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ run_id: z.string().uuid() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+
+    const { data: orig, error: origErr } = await supabase
+      .from("pricing_v2_runs")
+      .select("run_id, stage, status, params")
+      .eq("run_id", data.run_id)
+      .maybeSingle();
+    if (origErr) throw new Error(origErr.message);
+    if (!orig) throw new Error(`Run ${data.run_id} not found`);
+    if (orig.stage !== "catalog" && orig.stage !== "catalog_bootstrap_test") {
+      throw new Error(`Run ${data.run_id} is not a catalog bootstrap run (stage=${orig.stage})`);
+    }
+    if (orig.status !== "failed" && orig.status !== "running") {
+      throw new Error(
+        `Replay is only supported for failed or stuck-running runs (this run is '${orig.status}'). ` +
+          `Use Recover Stuck Runs first if needed.`,
+      );
+    }
+
+    const p = (orig.params ?? {}) as Record<string, any>;
+    const replayInput: BootstrapInput = bootstrapSchema.parse({
+      dry_run: Boolean(p.dry_run ?? false),
+      batch_size: typeof p.batch_size === "number" ? p.batch_size : undefined,
+      keyword: typeof p.keyword === "string" && p.keyword ? p.keyword : undefined,
+      // Bypass the preflight gate on replay — operator already triggered the
+      // original attempt; failing the gate now would mask the real failure.
+      bypass_min_mapped_check: true,
+    });
+
+    const result = await executeCatalogBootstrap(supabase, userId ?? null, replayInput, {
+      triggered_by: "replay",
+      replay_of: orig.run_id,
+    });
+
+    return { ...result, replay_of: orig.run_id, original_params: p };
   });
 
 // ---- Bootstrap state (status panel + reset) -------------------------------

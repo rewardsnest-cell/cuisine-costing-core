@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug, ShieldAlert, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
 import { BootstrapRunDetailsDialog } from "@/components/admin/BootstrapRunDetailsDialog";
@@ -37,6 +37,7 @@ import {
   resetCatalogBootstrap,
   recoverStuckCatalogRuns,
   getBootstrapPreflight,
+  replayCatalogRun,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -176,6 +177,21 @@ function CatalogBootstrapPage() {
       qc.invalidateQueries({ queryKey: ["pricing-v2", "live-status"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Recovery failed"),
+  });
+
+  const replayMut = useMutation({
+    mutationFn: (run_id: string) => replayCatalogRun({ data: { run_id } }),
+    onSuccess: (res: any) => {
+      setLastResult(res);
+      if (res.run_id) setErrFilterRun(res.run_id);
+      const tail =
+        res.bootstrap_completed
+          ? `bootstrap COMPLETED — fetched ${res.counts_out}`
+          : `in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`;
+      toast.success(`Replayed ${String(res.replay_of).slice(0, 8)}… → ${tail}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Replay failed"),
   });
 
   const testMut = useMutation({
@@ -564,14 +580,33 @@ function CatalogBootstrapPage() {
                         <td className="pr-2 text-right">{r.errors_count}</td>
                         <td className="text-muted-foreground truncate max-w-[24ch]" title={r.notes ?? ""}>{r.notes}</td>
                         <td>
-                          <Button
-                            size="sm"
-                            variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
-                            className="h-6 px-2 gap-1 text-[11px]"
-                            onClick={() => setDetailsRunId(r.run_id)}
-                          >
-                            <Bug className="w-3 h-3" /> Details
-                          </Button>
+                          <div className="flex items-center gap-1 justify-end">
+                            {(r.status === "failed" || r.status === "running") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 gap-1 text-[11px]"
+                                disabled={replayMut.isPending && replayMut.variables === r.run_id}
+                                onClick={() => replayMut.mutate(r.run_id)}
+                                title="Re-run this stage with the same params; appends a new audit entry"
+                              >
+                                {replayMut.isPending && replayMut.variables === r.run_id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Repeat className="w-3 h-3" />
+                                )}
+                                Replay
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
+                              className="h-6 px-2 gap-1 text-[11px]"
+                              onClick={() => setDetailsRunId(r.run_id)}
+                            >
+                              <Bug className="w-3 h-3" /> Details
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
