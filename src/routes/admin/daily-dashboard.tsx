@@ -9,10 +9,14 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sun, Target, Bell, ArrowRight, Phone, Star,
-  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight,
+  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight, TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+} from "recharts";
 
 export const Route = createFileRoute("/admin/daily-dashboard")({
   component: DailyDashboardPage,
@@ -66,6 +70,7 @@ function DailyDashboardPage() {
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const [pricingAlerts, setPricingAlerts] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [trend, setTrend] = useState<Array<{ week: string; target: number; completed: number; pct: number }>>([]);
 
   const today = todayISO();
   const wkStart = weekStartISO();
@@ -146,7 +151,39 @@ function DailyDashboardPage() {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { loadCore(); loadReminders(); }, []);
+  const loadTrend = async () => {
+    // Pull last 8 weeks of weekly goals and aggregate target vs completed per week.
+    const eightWeeksAgo = new Date(Date.now() - 8 * 7 * 86400000).toISOString().slice(0, 10);
+    const { data } = await (supabase as any)
+      .from("admin_weekly_goals")
+      .select("week_start, target_value, progress_value, done")
+      .gte("week_start", eightWeeksAgo)
+      .order("week_start", { ascending: true });
+    const byWeek = new Map<string, { target: number; completed: number }>();
+    for (const g of (data || []) as any[]) {
+      const wk = g.week_start as string;
+      const tgt = Number(g.target_value) || 0;
+      // "Completed" = capped progress (so over-shooting doesn't inflate the line)
+      const rawProg = Number(g.progress_value) || 0;
+      const prog = tgt > 0 ? Math.min(rawProg, tgt) : (g.done ? 1 : 0);
+      const effTarget = tgt > 0 ? tgt : 1; // count goals without explicit target as 1-unit
+      const cur = byWeek.get(wk) || { target: 0, completed: 0 };
+      cur.target += effTarget;
+      cur.completed += prog;
+      byWeek.set(wk, cur);
+    }
+    const points = Array.from(byWeek.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([week, v]) => ({
+        week: week.slice(5), // MM-DD
+        target: Math.round(v.target * 10) / 10,
+        completed: Math.round(v.completed * 10) / 10,
+        pct: v.target > 0 ? Math.round((v.completed / v.target) * 100) : 0,
+      }));
+    setTrend(points);
+  };
+
+  useEffect(() => { loadCore(); loadReminders(); loadTrend(); }, []);
 
   // Priorities
   const addPriority = async () => {
@@ -219,7 +256,7 @@ function DailyDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); }}>
+          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); loadTrend(); }}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={carryUnfinished}>
@@ -336,6 +373,50 @@ function DailyDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Weekly goal trend */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" /> Weekly Goal Trend
+            <Badge variant="secondary" className="ml-auto">Last 8 weeks</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trend.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No weekly goals yet. Add a goal above to start building the trend.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={trend} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="week" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: any, name: any) => [value, name === "pct" ? `${value}%` : name]}
+                    labelFormatter={(l) => `Week of ${l}`}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="target" name="Target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="pct" name="% complete" stroke="hsl(var(--accent-foreground))" strokeWidth={2} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            Bars sum target and completed values across all goals per week. Progress is capped at each goal's target so over-shooting doesn't skew the line.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Reminders */}
       <Card>
