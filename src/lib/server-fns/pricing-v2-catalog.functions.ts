@@ -384,7 +384,7 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
       // 5) Finalize run row.
       const runNotes = bootstrapCompleted
         ? `catalog_bootstrap completed — total_items_fetched=${(state.total_items_fetched ?? 0) + countsOut}`
-        : `catalog_bootstrap batch — fetched=${countsOut} remaining_inventory_ids=${Math.max(0, (await listAllInventoryProductIds(supabase)).length - ((nextCursor ? 0 : 0) + 0)) /* approx */ }`;
+        : `catalog_bootstrap batch — fetched=${countsOut} of batch_size=${batchSize}`;
 
       await supabase
         .from("pricing_v2_runs")
