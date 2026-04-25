@@ -374,6 +374,50 @@ function DailyDashboardPage() {
         </Card>
       </div>
 
+      {/* Weekly goal trend */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" /> Weekly Goal Trend
+            <Badge variant="secondary" className="ml-auto">Last 8 weeks</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trend.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              No weekly goals yet. Add a goal above to start building the trend.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={trend} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="week" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value: any, name: any) => [value, name === "pct" ? `${value}%` : name]}
+                    labelFormatter={(l) => `Week of ${l}`}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="target" name="Target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="pct" name="% complete" stroke="hsl(var(--accent-foreground))" strokeWidth={2} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            Bars sum target and completed values across all goals per week. Progress is capped at each goal's target so over-shooting doesn't skew the line.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Reminders */}
       <Card>
         <CardHeader className="pb-3">
