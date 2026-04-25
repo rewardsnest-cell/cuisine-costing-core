@@ -374,6 +374,13 @@ function ProspectsPage() {
         isReply={emailDialogIsReply}
         onSent={load}
       />
+
+      <GenerateContactDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        prospect={contactDialogProspect}
+        onSaved={load}
+      />
     </div>
   );
 }
