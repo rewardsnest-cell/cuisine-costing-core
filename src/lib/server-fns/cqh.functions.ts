@@ -632,6 +632,52 @@ export const generateShoppingList = createServerFn({ method: "POST" })
       notes: string | null;
     }>();
 
+    // Levenshtein distance + similarity ratio for fuzzy ingredient matching.
+    // Catches OCR/spelling variants like "Tomatoe"/"Tomato", "Olive Oill"/"Olive Oil".
+    const levenshtein = (a: string, b: string): number => {
+      if (a === b) return 0;
+      if (!a.length) return b.length;
+      if (!b.length) return a.length;
+      const prev = new Array<number>(b.length + 1);
+      for (let j = 0; j <= b.length; j++) prev[j] = j;
+      for (let i = 1; i <= a.length; i++) {
+        let prevDiag = prev[0];
+        prev[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+          const tmp = prev[j];
+          prev[j] = a[i - 1] === b[j - 1]
+            ? prevDiag
+            : 1 + Math.min(prevDiag, prev[j - 1], prev[j]);
+          prevDiag = tmp;
+        }
+      }
+      return prev[b.length];
+    };
+    const similarity = (a: string, b: string): number => {
+      const max = Math.max(a.length, b.length);
+      if (max === 0) return 1;
+      return 1 - levenshtein(a, b) / max;
+    };
+    const FUZZY_THRESHOLD = 0.85;
+
+    // Index keys by unit so we only fuzzy-compare within the same unit bucket.
+    const keysByUnit = new Map<string, string[]>();
+    const findFuzzyKey = (normName: string, unit: string | null): string | null => {
+      const bucket = keysByUnit.get(unit ?? "") ?? [];
+      let best: { key: string; score: number } | null = null;
+      for (const key of bucket) {
+        const otherName = key.split("::")[0];
+        // Cheap guards: skip obvious non-matches before paying for Levenshtein.
+        if (Math.abs(otherName.length - normName.length) > 4) continue;
+        if (otherName[0] !== normName[0]) continue;
+        const score = similarity(normName, otherName);
+        if (score >= FUZZY_THRESHOLD && (!best || score > best.score)) {
+          best = { key, score };
+        }
+      }
+      return best?.key ?? null;
+    };
+
     for (const dishOut of parsed.dishes ?? []) {
       const dishId = dishByName.get(String(dishOut.dish_name ?? "").toLowerCase()) ?? null;
       for (const ing of dishOut.ingredients ?? []) {
@@ -641,9 +687,13 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         if (!normName) continue;
         const { unit, factor } = normalizeUnit(ing.unit);
         const qty = (Number(ing.quantity) || 0) * factor;
-        const key = `${normName}::${unit ?? ""}`;
-        const existing = aggregated.get(key);
-        if (existing) {
+        const exactKey = `${normName}::${unit ?? ""}`;
+        // Try exact match first, then fuzzy within the same unit bucket.
+        const matchedKey = aggregated.has(exactKey)
+          ? exactKey
+          : findFuzzyKey(normName, unit);
+        const existing = matchedKey ? aggregated.get(matchedKey) : undefined;
+        if (existing && matchedKey) {
           existing.quantity += qty;
           if (dishId) existing.per_dish_allocation[dishId] = (existing.per_dish_allocation[dishId] ?? 0) + qty;
           // Prefer the longer / more descriptive display name.
@@ -656,13 +706,16 @@ export const generateShoppingList = createServerFn({ method: "POST" })
             }
           }
         } else {
-          aggregated.set(key, {
+          aggregated.set(exactKey, {
             ingredient_name: rawName,
             unit,
             quantity: qty,
             per_dish_allocation: dishId ? { [dishId]: qty } : {},
             notes: ing.notes ?? null,
           });
+          const bucket = keysByUnit.get(unit ?? "") ?? [];
+          bucket.push(exactKey);
+          keysByUnit.set(unit ?? "", bucket);
         }
       }
     }
