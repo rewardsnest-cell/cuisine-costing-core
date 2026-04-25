@@ -59,9 +59,36 @@ function ReviewsPage() {
   };
 
   const markReceived = async (id: string, val: boolean) => {
-    const { error } = await (supabase as any).from("sales_review_asks").update({ review_received: val }).eq("id", id);
+    const patch: any = { review_received: val };
+    if (!val) patch.star_rating = null;
+    const { error } = await (supabase as any).from("sales_review_asks").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     load();
+  };
+
+  const setStars = async (id: string, stars: number) => {
+    const { error } = await (supabase as any)
+      .from("sales_review_asks")
+      .update({ star_rating: stars, review_received: true })
+      .eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  const triggerReferral = async (ask: any) => {
+    // Copy the referral script with the saved Google review link interpolated
+    const text = REFERRAL_ASK(savedLink);
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    // Create a draft referral row from this happy client
+    const { error } = await (supabase as any).from("sales_referrals").insert({
+      referrer_name: ask.client_name,
+      referred_name: "",
+      referred_contact: "",
+      notes: "Auto-created from 5-star review trigger.",
+      status: "open",
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Script copied + draft referral created. Send it now.");
   };
 
   const scripts = [
