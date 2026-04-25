@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight, ShieldCheck, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Reply } from 'lucide-react'
+import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight, ShieldCheck, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Reply, Paperclip, X, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 
@@ -15,7 +15,7 @@ import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 export const Route = createFileRoute('/admin/leads/$id')({
   component: LeadDetailPage,
   loader: async ({ params }) => {
-    const [leadRes, emailsRes, auditRes] = await Promise.all([
+    const [leadRes, emailsRes, auditRes, attachmentsRes] = await Promise.all([
       supabase.from('leads').select('*').eq('id', params.id).maybeSingle(),
       supabase
         .from('lead_emails')
@@ -30,18 +30,25 @@ export const Route = createFileRoute('/admin/leads/$id')({
         .eq('lead_id', params.id)
         .order('attempted_at', { ascending: false })
         .limit(100),
+      supabase
+        .from('lead_email_attachments')
+        .select('*')
+        .eq('lead_id', params.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
     ])
     return {
       lead: leadRes.data,
       emails: emailsRes.data ?? [],
       audit: auditRes.data ?? [],
+      attachments: attachmentsRes.data ?? [],
     }
   },
 })
 
 function LeadDetailPage() {
   const router = useRouter()
-  const { lead, emails, audit } = Route.useLoaderData()
+  const { lead, emails, audit, attachments } = Route.useLoaderData()
 
   if (!lead) {
     return (
@@ -52,6 +59,14 @@ function LeadDetailPage() {
         <p className="mt-6">Lead not found.</p>
       </div>
     )
+  }
+
+  // Index attachments by lead_email_id for inline rendering in the thread.
+  const attachmentsByEmail = new Map<string, any[]>()
+  for (const a of attachments) {
+    if (!a.lead_email_id) continue
+    if (!attachmentsByEmail.has(a.lead_email_id)) attachmentsByEmail.set(a.lead_email_id, [])
+    attachmentsByEmail.get(a.lead_email_id)!.push(a)
   }
 
   return (
@@ -79,7 +94,7 @@ function LeadDetailPage() {
 
       <ComposeCard lead={lead} onSent={() => router.invalidate()} />
 
-      <EmailThreadCard emails={emails} />
+      <EmailThreadCard emails={emails} attachmentsByEmail={attachmentsByEmail} />
 
       <AuditCard audit={audit} />
     </div>
@@ -156,6 +171,62 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
   const [subject, setSubject] = useState<string>('')
   const [body, setBody] = useState<string>('')
   const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  type StagedAttachment = {
+    storagePath: string
+    fileName: string
+    contentType: string
+    sizeBytes: number
+  }
+  const [attachments, setAttachments] = useState<StagedAttachment[]>([])
+
+  const MAX_BYTES = 3 * 1024 * 1024 // Outlook inline attachment limit
+  const MAX_COUNT = 10
+
+  const onFilesPicked = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    if (attachments.length + files.length > MAX_COUNT) {
+      toast.error(`Max ${MAX_COUNT} attachments per email`)
+      return
+    }
+    setUploading(true)
+    try {
+      const next: StagedAttachment[] = []
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_BYTES) {
+          toast.error(`"${file.name}" exceeds 3 MB Outlook limit`)
+          continue
+        }
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_')
+        const path = `${lead.id}/${Date.now()}-${crypto.randomUUID()}-${safe}`
+        const { error } = await supabase.storage
+          .from('lead-email-attachments')
+          .upload(path, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false,
+          })
+        if (error) {
+          toast.error(`Upload failed for "${file.name}": ${error.message}`)
+          continue
+        }
+        next.push({
+          storagePath: path,
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+        })
+      }
+      if (next.length > 0) setAttachments((prev) => [...prev, ...next])
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeAttachment = async (path: string) => {
+    setAttachments((prev) => prev.filter((a) => a.storagePath !== path))
+    // Best-effort cleanup; ignore errors so the user isn't blocked.
+    await supabase.storage.from('lead-email-attachments').remove([path]).catch(() => {})
+  }
 
   const send = async () => {
     if (!to || !subject || !body) {
@@ -164,11 +235,20 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
     }
     setSending(true)
     try {
-      const res = await sendLeadEmail({ data: { leadId: lead.id, to, subject, body } })
+      const res = await sendLeadEmail({
+        data: {
+          leadId: lead.id,
+          to,
+          subject,
+          body,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        },
+      })
       if (res.ok) {
-        toast.success('Email sent via Outlook')
+        toast.success(`Email sent via Outlook${attachments.length ? ` with ${attachments.length} attachment${attachments.length === 1 ? '' : 's'}` : ''}`)
         setSubject('')
         setBody('')
+        setAttachments([])
         onSent()
       } else {
         toast.error(res.error || 'Send failed')
@@ -204,8 +284,56 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
           onChange={(e) => setBody(e.target.value)}
           rows={8}
         />
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
+              <Paperclip className="h-3.5 w-3.5" /> Attachments (PDFs, images — max 3 MB each)
+            </label>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                multiple
+                accept="application/pdf,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  void onFilesPicked(e.target.files)
+                  e.target.value = ''
+                }}
+                disabled={uploading || sending}
+              />
+              <span className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs hover:bg-muted">
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                {uploading ? 'Uploading…' : 'Add files'}
+              </span>
+            </label>
+          </div>
+          {attachments.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {attachments.map((a) => (
+                <li
+                  key={a.storagePath}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span className="font-medium">{a.fileName}</span>
+                  <span className="text-muted-foreground">· {formatBytes(a.sizeBytes)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(a.storagePath)}
+                    className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-destructive"
+                    aria-label={`Remove ${a.fileName}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="flex justify-end">
-          <Button onClick={send} disabled={sending}>
+          <Button onClick={send} disabled={sending || uploading}>
             {sending ? 'Sending…' : 'Send via Outlook'}
           </Button>
         </div>
@@ -215,7 +343,7 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
 }
 
 // ---------- Email thread ----------
-function EmailThreadCard({ emails }: { emails: any[] }) {
+function EmailThreadCard({ emails, attachmentsByEmail }: { emails: any[]; attachmentsByEmail: Map<string, any[]> }) {
   // Sort chronologically (ascending) for thread reading order
   const sorted = [...emails].sort((a, b) => {
     const ta = new Date(a.received_at || a.sent_at || a.created_at || 0).getTime()
@@ -249,7 +377,7 @@ function EmailThreadCard({ emails }: { emails: any[] }) {
         ) : (
           <div className="space-y-6">
             {threads.map((thread, idx) => (
-              <ThreadView key={thread[0].outlook_conversation_id || thread[0].id} thread={thread} defaultOpen={idx === 0} />
+              <ThreadView key={thread[0].outlook_conversation_id || thread[0].id} thread={thread} defaultOpen={idx === 0} attachmentsByEmail={attachmentsByEmail} />
             ))}
           </div>
         )}
@@ -258,7 +386,7 @@ function EmailThreadCard({ emails }: { emails: any[] }) {
   )
 }
 
-function ThreadView({ thread, defaultOpen }: { thread: any[]; defaultOpen: boolean }) {
+function ThreadView({ thread, defaultOpen, attachmentsByEmail }: { thread: any[]; defaultOpen: boolean; attachmentsByEmail: Map<string, any[]> }) {
   const subject = thread[0].subject || '(no subject)'
   const inboundCount = thread.filter((m) => m.direction === 'inbound').length
   const outboundCount = thread.filter((m) => m.direction === 'outbound').length
@@ -286,14 +414,14 @@ function ThreadView({ thread, defaultOpen }: { thread: any[]; defaultOpen: boole
       </div>
       <div className="divide-y">
         {thread.map((m, i) => (
-          <MessageItem key={m.id} message={m} defaultOpen={defaultOpen && i === thread.length - 1} />
+          <MessageItem key={m.id} message={m} defaultOpen={defaultOpen && i === thread.length - 1} attachments={attachmentsByEmail.get(m.id) ?? []} />
         ))}
       </div>
     </div>
   )
 }
 
-function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: boolean }) {
+function MessageItem({ message: m, defaultOpen, attachments }: { message: any; defaultOpen: boolean; attachments: any[] }) {
   const [open, setOpen] = useState(defaultOpen)
   const isInbound = m.direction === 'inbound'
   const ts = m.received_at || m.sent_at
@@ -329,14 +457,19 @@ function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: b
             </div>
           )}
         </div>
+        {attachments.length > 0 && (
+          <Badge variant="outline" className="ml-2 text-xs">
+            <Paperclip className="mr-1 h-3 w-3" /> {attachments.length}
+          </Badge>
+        )}
         <div className="ml-auto shrink-0 text-xs text-muted-foreground">
           {ts ? new Date(ts).toLocaleString() : ''}
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-3">
           {m.template_name && (
-            <Badge variant="outline" className="mb-2 text-xs">template: {m.template_name}</Badge>
+            <Badge variant="outline" className="text-xs">template: {m.template_name}</Badge>
           )}
           {m.body_html ? (
             <div
@@ -348,8 +481,46 @@ function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: b
               {m.body_text || m.body_preview || '(no content)'}
             </pre>
           )}
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Paperclip className="h-3 w-3" /> Attachments ({attachments.length})
+              </div>
+              <ul className="flex flex-wrap gap-2">
+                {attachments.map((a) => {
+                  const { data: pub } = supabase.storage
+                    .from(a.storage_bucket || 'lead-email-attachments')
+                    .getPublicUrl(a.storage_path)
+                  return (
+                    <li key={a.id}>
+                      <a
+                        href={pub.publicUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs hover:bg-muted"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="font-medium">{a.file_name}</span>
+                        {a.size_bytes != null && (
+                          <span className="text-muted-foreground">
+                            · {formatBytes(a.size_bytes)}
+                          </span>
+                        )}
+                      </a>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
