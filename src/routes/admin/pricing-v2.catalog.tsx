@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
 import { BootstrapRunDetailsDialog } from "@/components/admin/BootstrapRunDetailsDialog";
@@ -36,6 +36,7 @@ import {
   getCatalogBootstrapState,
   resetCatalogBootstrap,
   recoverStuckCatalogRuns,
+  getBootstrapPreflight,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -60,6 +61,11 @@ function CatalogBootstrapPage() {
     queryKey: ["pricing-v2", "catalog", "bootstrap-state"],
     queryFn: () => getCatalogBootstrapState(),
     refetchInterval: (q: any) => (q.state?.data?.state?.status === "IN_PROGRESS" ? 4000 : false),
+  });
+  const preflight = useQuery({
+    queryKey: ["pricing-v2", "catalog", "preflight"],
+    queryFn: () => getBootstrapPreflight(),
+    refetchInterval: 15_000,
   });
 
   const [batchSize, setBatchSize] = useState<string>("");
@@ -142,7 +148,8 @@ function CatalogBootstrapPage() {
     onSuccess: (res: any) => {
       setLastResult(res);
       if (res.run_id) setErrFilterRun(res.run_id);
-      if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
+      if (res.blocked_by_preflight) toast.error(res.message ?? "Bootstrap blocked by preflight");
+      else if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
       else if (res.bootstrap_completed) toast.success(`Bootstrap COMPLETED — fetched ${res.counts_out} this batch`);
       else toast.success(`Batch done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`);
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
@@ -210,6 +217,29 @@ function CatalogBootstrapPage() {
       {/* Live progress panel — always visible, polls while a run is active */}
       <BootstrapLiveProgress guardedPhase={guardedPhase} />
 
+      {/* Mapped-inventory preflight banner */}
+      {preflight.data && !preflight.data.ok && (
+        <Alert variant="destructive">
+          <ShieldAlert className="w-4 h-4" />
+          <AlertTitle>Bootstrap blocked — not enough mapped inventory</AlertTitle>
+          <AlertDescription>
+            <div className="mb-2">
+              <span className="font-mono">{preflight.data.mapped_count}</span> inventory items are mapped to a Kroger product
+              (minimum <span className="font-mono">{preflight.data.threshold}</span>).
+            </div>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {preflight.data.guidance.map((g, i) => <li key={i}>{g}</li>)}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      {preflight.data?.ok && (
+        <div className="text-xs text-muted-foreground">
+          Preflight OK — <span className="font-mono">{preflight.data.mapped_count}</span> mapped inventory items
+          (≥ <span className="font-mono">{preflight.data.threshold}</span> required).
+        </div>
+      )}
+
       {/* Bootstrap Status panel */}
 
       <Card className={isCompleted ? "border-success/50" : status === "IN_PROGRESS" ? "border-amber-500/60" : ""}>
@@ -250,7 +280,13 @@ function CatalogBootstrapPage() {
               </div>
               <Button
                 onClick={runGuarded}
-                disabled={runMut.isPending || guardedPhase === "dry-running" || guardedPhase === "full-running"}
+                disabled={
+                  runMut.isPending ||
+                  guardedPhase === "dry-running" ||
+                  guardedPhase === "full-running" ||
+                  (preflight.data && !preflight.data.ok)
+                }
+                title={preflight.data && !preflight.data.ok ? (preflight.data.reason ?? "Preflight blocked") : undefined}
                 className="gap-1.5"
               >
                 {guardedPhase === "dry-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -263,9 +299,13 @@ function CatalogBootstrapPage() {
               <Button
                 variant="secondary"
                 onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
-                disabled={runMut.isPending || guardedPhase !== "idle"}
+                disabled={
+                  runMut.isPending ||
+                  guardedPhase !== "idle" ||
+                  (preflight.data && !preflight.data.ok)
+                }
                 className="gap-1.5"
-                title="Skip the dry-run preflight and run immediately"
+                title={preflight.data && !preflight.data.ok ? (preflight.data.reason ?? "Preflight blocked") : "Skip the dry-run preflight and run immediately"}
               >
                 <Play className="w-4 h-4" />
                 Run Now (skip dry-run)

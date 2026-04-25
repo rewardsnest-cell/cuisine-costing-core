@@ -3008,6 +3008,7 @@ export type Database = {
           id: number
           kroger_store_id: string
           kroger_zip: string
+          min_mapped_inventory_for_bootstrap: number
           monthly_schedule_day: number
           monthly_schedule_hour: number
           updated_at: string
@@ -3019,6 +3020,7 @@ export type Database = {
           id?: number
           kroger_store_id?: string
           kroger_zip?: string
+          min_mapped_inventory_for_bootstrap?: number
           monthly_schedule_day?: number
           monthly_schedule_hour?: number
           updated_at?: string
@@ -3030,6 +3032,7 @@ export type Database = {
           id?: number
           kroger_store_id?: string
           kroger_zip?: string
+          min_mapped_inventory_for_bootstrap?: number
           monthly_schedule_day?: number
           monthly_schedule_hour?: number
           updated_at?: string
