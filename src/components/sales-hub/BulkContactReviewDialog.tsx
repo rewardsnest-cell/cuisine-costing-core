@@ -78,6 +78,12 @@ export function BulkContactReviewDialog({
         email: c.email ?? item.email,
         phone: c.phone ?? item.phone,
         website: c.website ?? item.website,
+        address: c.address ?? item.address,
+        contacts: (c.contacts && c.contacts.length > 0)
+          ? c.contacts.map((x) => ({
+              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+            }))
+          : item.contacts,
         ai_notes: c.notes ?? "",
         confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
         error: null,
@@ -91,16 +97,22 @@ export function BulkContactReviewDialog({
   };
 
   const saveOne = async (item: BulkReviewItem): Promise<boolean> => {
-    const aiNote = item.ai_notes
-      ? `AI contact research (${item.confidence ?? "?"} confidence): ${item.ai_notes}${item.website ? ` · Website: ${item.website}` : ""}`
+    const cleanContacts = item.contacts.filter((c) => c.name || c.email || c.phone || c.role);
+    const contactsBlock = cleanContacts.length > 0
+      ? `Contacts:\n${cleanContacts.map((c) => `• ${[c.name, c.role].filter(Boolean).join(" — ") || "Contact"}${c.email ? ` <${c.email}>` : ""}${c.phone ? ` · ${c.phone}` : ""}`).join("\n")}`
       : null;
-    const mergedNotes = [item.original_notes?.trim(), aiNote].filter(Boolean).join("\n\n") || null;
+    const aiNote = item.ai_notes
+      ? `AI contact research (${item.confidence ?? "?"} confidence): ${item.ai_notes}`
+      : null;
+    const mergedNotes = [item.original_notes?.trim(), aiNote, contactsBlock].filter(Boolean).join("\n\n") || null;
     const { error } = await (supabase as any)
       .from("sales_prospects")
       .update({
         contact_name: (item.contact_name || item.original_contact_name || "").trim() || null,
         email: (item.email || item.original_email || "").trim() || null,
         phone: (item.phone || item.original_phone || "").trim() || null,
+        website: (item.website || item.original_website || "").trim() || null,
+        address: (item.address || item.original_address || "").trim() || null,
         notes: mergedNotes,
       })
       .eq("id", item.id);
