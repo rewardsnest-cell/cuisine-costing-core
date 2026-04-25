@@ -130,7 +130,74 @@ function LeadDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <AuditCard audit={audit} />
     </div>
+  )
+}
+
+function AuditCard({ audit }: { audit: any[] }) {
+  const sent = audit.filter((a) => a.status === 'sent').length
+  const failed = audit.filter((a) => a.status === 'failed').length
+  const lastAttempt = audit[0]?.attempted_at
+    ? new Date(audit[0].attempted_at).toLocaleString()
+    : '—'
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5" /> Outlook send audit ({audit.length})
+        </CardTitle>
+        <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {sent} sent</span>
+          <span className="inline-flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 text-destructive" /> {failed} failed</span>
+          <span>Last attempt: {lastAttempt}</span>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {audit.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No send attempts logged yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {audit.map((a) => (
+              <li
+                key={a.id}
+                className={`rounded-md border p-3 text-sm ${a.status === 'failed' ? 'border-destructive/40 bg-destructive/5' : 'bg-muted/30'}`}
+              >
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {a.status === 'sent' ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  )}
+                  <Badge variant={a.status === 'failed' ? 'destructive' : 'secondary'} className="text-xs">
+                    {a.status}
+                  </Badge>
+                  {a.http_status != null && (
+                    <Badge variant="outline" className="text-xs">HTTP {a.http_status}</Badge>
+                  )}
+                  {a.source && (
+                    <Badge variant="outline" className="text-xs">{a.source}</Badge>
+                  )}
+                  <span className="ml-auto">
+                    {a.attempted_at ? new Date(a.attempted_at).toLocaleString() : ''}
+                    {a.duration_ms != null && (
+                      <span className="ml-2 text-muted-foreground">({a.duration_ms}ms)</span>
+                    )}
+                  </span>
+                </div>
+                <div className="mt-1 font-medium">{a.subject || '(no subject)'}</div>
+                <div className="text-xs text-muted-foreground">to {a.recipient}</div>
+                {a.error_message && (
+                  <div className="mt-2 text-xs text-destructive whitespace-pre-wrap">{a.error_message}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
