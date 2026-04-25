@@ -81,7 +81,18 @@ export function GenerateContactDialog({
       if (!contactName && res.contact.contact_name) setContactName(res.contact.contact_name);
       if (!email && res.contact.email) setEmail(res.contact.email);
       if (!phone && res.contact.phone) setPhone(res.contact.phone);
-      if (res.contact.website) setWebsite(res.contact.website);
+      if (!website && res.contact.website) setWebsite(res.contact.website);
+      if (!address && res.contact.address) setAddress(res.contact.address);
+      if (Array.isArray(res.contact.contacts) && res.contact.contacts.length > 0) {
+        setExtraContacts(
+          res.contact.contacts.map((c) => ({
+            name: c.name ?? "",
+            role: c.role ?? "",
+            email: c.email ?? "",
+            phone: c.phone ?? "",
+          })),
+        );
+      }
       if (res.contact.notes) setAiNotes(res.contact.notes);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to generate contact info");
