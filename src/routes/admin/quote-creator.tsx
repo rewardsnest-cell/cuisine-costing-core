@@ -1243,7 +1243,7 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
   // Always show the canonical unit + converted qty, even for legacy rows.
   const initial = canonicalize(item.unit ?? null, Number(item.quantity) || 0);
   const [name, setName] = useState(item.ingredient_name);
-  const [qty, setQty] = useState(String(initial.quantity));
+  const [qty, setQty] = useState(formatQty(initial.quantity, initial.unit, initial.dimension));
   const [unit, setUnit] = useState(initial.unit ?? "");
   const [dimension, setDimension] = useState<Dimension>(initial.dimension);
   const [price, setPrice] = useState(String(item.unit_price));
