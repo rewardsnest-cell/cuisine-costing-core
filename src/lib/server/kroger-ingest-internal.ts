@@ -387,7 +387,7 @@ async function runDailyUpdate(
     await supabaseAdmin.from("kroger_ingest_runs").update({
       status: "completed",
       finished_at: new Date().toISOString(),
-      message: "daily_update: no confirmed mappings yet",
+      message: "daily_update: no eligible mappings yet (need confirmed or pending with confidence ≥ 0.7 and a reference_id)",
     }).eq("id", runId);
     return { run_id: runId, mode: "daily_update", location_id: locationId, status: "completed", message: "no_confirmed_mappings" };
   }
