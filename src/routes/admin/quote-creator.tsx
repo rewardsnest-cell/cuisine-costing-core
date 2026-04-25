@@ -715,9 +715,17 @@ function QuoteCreatorHub() {
                             : "Select all"}
                         </label>
                         {selectedDishIds.size > 0 && (
-                          <Button size="sm" variant="destructive" onClick={bulkDeleteDishes}>
-                            <Trash2 className="w-4 h-4 mr-1" /> Delete {selectedDishIds.size}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => bulkSetMain(true)}>
+                              Main: On
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => bulkSetMain(false)}>
+                              Main: Off
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={bulkDeleteDishes}>
+                              <Trash2 className="w-4 h-4 mr-1" /> Delete {selectedDishIds.size}
+                            </Button>
+                          </div>
                         )}
                       </div>
                       <ul className="divide-y">
