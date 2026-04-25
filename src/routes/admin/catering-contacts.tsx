@@ -267,6 +267,7 @@ function LeadsPage() {
 }
 
 function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
+  const [composeLead, setComposeLead] = useState<Lead | null>(null);
   if (rows.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
