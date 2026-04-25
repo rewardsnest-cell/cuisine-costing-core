@@ -576,6 +576,8 @@ function ProspectsPage() {
               <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={draft.email || ""} onChange={(e) => setDraft({ ...draft, email: e.target.value })} /></div>
             </div>
+            <div><Label>Address</Label><Input value={draft.address || ""} onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Street, City, State ZIP" /></div>
+            <div><Label>Website</Label><Input value={draft.website || ""} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="https://…" /></div>
             <div>
               <Label>Next follow-up</Label>
               <Input type="date" value={draft.next_follow_up || ""} onChange={(e) => setDraft({ ...draft, next_follow_up: e.target.value || null })} />
