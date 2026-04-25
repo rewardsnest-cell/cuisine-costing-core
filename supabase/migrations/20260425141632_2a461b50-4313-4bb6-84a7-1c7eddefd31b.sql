@@ -1,0 +1,2 @@
+ALTER TABLE public.kroger_sku_map DROP CONSTRAINT IF EXISTS kroger_sku_map_review_state_check;
+ALTER TABLE public.kroger_sku_map ADD CONSTRAINT kroger_sku_map_review_state_check CHECK (review_state = ANY (ARRAY['auto'::text, 'pending'::text, 'confirmed'::text, 'rejected'::text, 'unmatched'::text]));
