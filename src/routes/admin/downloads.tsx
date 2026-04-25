@@ -102,6 +102,12 @@ function AdminDownloadsPage() {
   const [dateTo, setDateTo] = useState("");
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [detailsRow, setDetailsRow] = useState<Row | null>(null);
+
+  const copyText = async (text: string, label: string) => {
+    try { await navigator.clipboard.writeText(text); toast.success(`${label} copied`); }
+    catch { toast.error("Couldn't copy"); }
+  };
 
   const toggleExpand = (id: string) =>
     setExpanded((prev) => {
