@@ -87,13 +87,7 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
     const id = await recordFailure(`Could not resolve locationId for ZIP ${zip}`, mode);
     return { run_id: id, mode, location_id: null, status: "failed", message: "no_location" };
   }
-  if (!isValidKrogerLocationId(locationId)) {
-    const id = await recordFailure(
-      `Resolved locationId "${locationId}" failed format check (must be 8 alphanumeric chars). ZIP=${zip}`,
-      mode,
-    );
-    return { run_id: id, mode, location_id: locationId, status: "failed", message: "invalid_location_format" };
-  }
+  // (resolveRunLocationId already enforces 8-char alphanumeric format.)
 
   // 3) create run row
   const { data: runRow } = await supabaseAdmin
