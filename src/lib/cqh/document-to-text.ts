@@ -24,21 +24,11 @@ async function xlsxToText(file: File): Promise<string> {
 }
 
 async function pdfToText(file: File): Promise<string> {
-  // pdfjs-dist is already a transitive dependency in this project (used by
-  // pdf-to-images). Use the legacy build to avoid worker setup pain.
-  const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs").catch(
-    () => import("pdfjs-dist") as any,
-  );
-  if (pdfjs.GlobalWorkerOptions) {
-    try {
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/legacy/build/pdf.worker.mjs",
-        import.meta.url,
-      ).toString();
-    } catch {
-      /* ignore */
-    }
-  }
+  // Reuse the same pdfjs-dist entry + CDN worker setup as pdf-to-images.ts to
+  // avoid bundler issues with the legacy build path.
+  const pdfjs: any = await import("pdfjs-dist");
+  const version: string = pdfjs.version || "4.7.76";
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const out: string[] = [];
