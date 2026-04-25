@@ -1938,13 +1938,18 @@ export type Database = {
       inventory_items: {
         Row: {
           average_cost_per_unit: number
+          catalog_notes: string | null
+          catalog_status: string
+          catalog_validated_at: string | null
           category: string | null
           created_at: string
           created_source: string
           current_stock: number
           id: string
+          kroger_product_id: string | null
           last_receipt_cost: number | null
           name: string
+          pack_weight_grams: number | null
           par_level: number
           pending_review: boolean
           supplier_id: string | null
@@ -1953,13 +1958,18 @@ export type Database = {
         }
         Insert: {
           average_cost_per_unit?: number
+          catalog_notes?: string | null
+          catalog_status?: string
+          catalog_validated_at?: string | null
           category?: string | null
           created_at?: string
           created_source?: string
           current_stock?: number
           id?: string
+          kroger_product_id?: string | null
           last_receipt_cost?: number | null
           name: string
+          pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
           supplier_id?: string | null
@@ -1968,13 +1978,18 @@ export type Database = {
         }
         Update: {
           average_cost_per_unit?: number
+          catalog_notes?: string | null
+          catalog_status?: string
+          catalog_validated_at?: string | null
           category?: string | null
           created_at?: string
           created_source?: string
           current_stock?: number
           id?: string
+          kroger_product_id?: string | null
           last_receipt_cost?: number | null
           name?: string
+          pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
           supplier_id?: string | null
