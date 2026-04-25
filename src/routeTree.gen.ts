@@ -104,6 +104,7 @@ import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-module
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminLocalCateringContactsRouteImport } from './routes/admin/local-catering-contacts'
+import { Route as AdminKrogerValidationRouteImport } from './routes/admin/kroger-validation'
 import { Route as AdminKrogerSkuReviewRouteImport } from './routes/admin/kroger-sku-review'
 import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
 import { Route as AdminKrogerPriceSignalsRouteImport } from './routes/admin/kroger-price-signals'
@@ -174,6 +175,7 @@ import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.
 import { Route as ApiPublicHooksSendProspectEmailRouteImport } from './routes/api/public/hooks/send-prospect-email'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
 import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
+import { Route as ApiPublicHooksKrogerValidationRouteImport } from './routes/api/public/hooks/kroger-validation'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
 import { Route as ApiPublicHooksCateringFollowupsRouteImport } from './routes/api/public/hooks/catering-followups'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
@@ -662,6 +664,11 @@ const AdminLocalCateringContactsRoute =
     path: '/local-catering-contacts',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminKrogerValidationRoute = AdminKrogerValidationRouteImport.update({
+  id: '/kroger-validation',
+  path: '/kroger-validation',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminKrogerSkuReviewRoute = AdminKrogerSkuReviewRouteImport.update({
   id: '/kroger-sku-review',
   path: '/kroger-sku-review',
@@ -1025,6 +1032,12 @@ const ApiPublicHooksOutlookPollInboxRoute =
     path: '/api/public/hooks/outlook-poll-inbox',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksKrogerValidationRoute =
+  ApiPublicHooksKrogerValidationRouteImport.update({
+    id: '/api/public/hooks/kroger-validation',
+    path: '/api/public/hooks/kroger-validation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksKrogerDailyIngestRoute =
   ApiPublicHooksKrogerDailyIngestRouteImport.update({
     id: '/api/public/hooks/kroger-daily-ingest',
@@ -1105,6 +1118,7 @@ export interface FileRoutesByFullPath {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1203,6 +1217,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1273,6 +1288,7 @@ export interface FileRoutesByTo {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1371,6 +1387,7 @@ export interface FileRoutesByTo {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1444,6 +1461,7 @@ export interface FileRoutesById {
   '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
   '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
   '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
+  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1542,6 +1560,7 @@ export interface FileRoutesById {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1616,6 +1635,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1714,6 +1734,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -1784,6 +1805,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1882,6 +1904,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -1954,6 +1977,7 @@ export interface FileRouteTypes {
     | '/admin/kroger-price-signals'
     | '/admin/kroger-pricing'
     | '/admin/kroger-sku-review'
+    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -2052,6 +2076,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2115,6 +2140,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksCateringFollowupsRoute: typeof ApiPublicHooksCateringFollowupsRoute
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
+  ApiPublicHooksKrogerValidationRoute: typeof ApiPublicHooksKrogerValidationRoute
   ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiPublicHooksSendProspectEmailRoute: typeof ApiPublicHooksSendProspectEmailRoute
@@ -2793,6 +2819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLocalCateringContactsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/kroger-validation': {
+      id: '/admin/kroger-validation'
+      path: '/kroger-validation'
+      fullPath: '/admin/kroger-validation'
+      preLoaderRoute: typeof AdminKrogerValidationRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/kroger-sku-review': {
       id: '/admin/kroger-sku-review'
       path: '/kroger-sku-review'
@@ -3283,6 +3316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksOutlookPollInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/kroger-validation': {
+      id: '/api/public/hooks/kroger-validation'
+      path: '/api/public/hooks/kroger-validation'
+      fullPath: '/api/public/hooks/kroger-validation'
+      preLoaderRoute: typeof ApiPublicHooksKrogerValidationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kroger-daily-ingest': {
       id: '/api/public/hooks/kroger-daily-ingest'
       path: '/api/public/hooks/kroger-daily-ingest'
@@ -3478,6 +3518,7 @@ interface AdminRouteChildren {
   AdminKrogerPriceSignalsRoute: typeof AdminKrogerPriceSignalsRoute
   AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
   AdminKrogerSkuReviewRoute: typeof AdminKrogerSkuReviewRoute
+  AdminKrogerValidationRoute: typeof AdminKrogerValidationRoute
   AdminLocalCateringContactsRoute: typeof AdminLocalCateringContactsRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -3563,6 +3604,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminKrogerPriceSignalsRoute: AdminKrogerPriceSignalsRoute,
   AdminKrogerPricingRoute: AdminKrogerPricingRoute,
   AdminKrogerSkuReviewRoute: AdminKrogerSkuReviewRoute,
+  AdminKrogerValidationRoute: AdminKrogerValidationRoute,
   AdminLocalCateringContactsRoute: AdminLocalCateringContactsRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
@@ -3709,6 +3751,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksCateringFollowupsRoute: ApiPublicHooksCateringFollowupsRoute,
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
+  ApiPublicHooksKrogerValidationRoute: ApiPublicHooksKrogerValidationRoute,
   ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiPublicHooksSendProspectEmailRoute: ApiPublicHooksSendProspectEmailRoute,

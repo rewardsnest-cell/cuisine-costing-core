@@ -2303,6 +2303,92 @@ export type Database = {
           },
         ]
       }
+      kroger_validation_anomalies: {
+        Row: {
+          category: string
+          created_at: string
+          details: Json
+          id: string
+          message: string
+          run_id: string
+          severity: string
+          subject_id: string | null
+          subject_type: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          details?: Json
+          id?: string
+          message: string
+          run_id: string
+          severity?: string
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          message?: string
+          run_id?: string
+          severity?: string
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kroger_validation_anomalies_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "kroger_validation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kroger_validation_runs: {
+        Row: {
+          created_at: string
+          failed_refresh_count: number
+          finished_at: string | null
+          id: string
+          message: string | null
+          missing_zip_count: number
+          outlier_median_count: number
+          started_at: string
+          status: string
+          total_anomalies: number
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          failed_refresh_count?: number
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          missing_zip_count?: number
+          outlier_median_count?: number
+          started_at?: string
+          status?: string
+          total_anomalies?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          failed_refresh_count?: number
+          finished_at?: string | null
+          id?: string
+          message?: string | null
+          missing_zip_count?: number
+          outlier_median_count?: number
+          started_at?: string
+          status?: string
+          total_anomalies?: number
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       lead_activity: {
         Row: {
           action: string
@@ -5056,6 +5142,36 @@ export type Database = {
           total_runs: number
         }[]
       }
+      admin_kroger_validation_anomalies: {
+        Args: { _category?: string; _limit?: number; _run_id?: string }
+        Returns: {
+          category: string
+          created_at: string
+          details: Json
+          id: string
+          message: string
+          run_id: string
+          severity: string
+          subject_id: string
+          subject_type: string
+        }[]
+      }
+      admin_kroger_validation_summary: {
+        Args: { _limit?: number }
+        Returns: {
+          failed_refresh_count: number
+          finished_at: string
+          id: string
+          message: string
+          missing_zip_count: number
+          outlier_median_count: number
+          started_at: string
+          status: string
+          total_anomalies: number
+          triggered_by: string
+        }[]
+      }
+      admin_run_kroger_validation: { Args: never; Returns: string }
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
       approve_cost_update: {
         Args: { _notes?: string; _queue_id: string }
@@ -5219,6 +5335,10 @@ export type Database = {
       reject_cost_update: {
         Args: { _notes?: string; _queue_id: string }
         Returns: Json
+      }
+      run_kroger_validation: {
+        Args: { _triggered_by?: string }
+        Returns: string
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
