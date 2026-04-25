@@ -107,6 +107,7 @@ function ReceiptsPage() {
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
   const [reviewReceipt, setReviewReceipt] = useState<ReceiptRow | null>(null);
+  const [previewReceipt, setPreviewReceipt] = useState<{ row: ReceiptRow; fileName: string; mimeType: string; size: number } | null>(null);
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
