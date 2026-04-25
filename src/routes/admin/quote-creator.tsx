@@ -321,13 +321,37 @@ function QuoteCreatorHub() {
     toast.success("Merged"); reload();
   };
 
+  const runWithProgress = async (label: string, fn: () => Promise<void>) => {
+    const stages = [
+      { v: 10, l: `${label}: collecting dishes…` },
+      { v: 30, l: `${label}: parsing recipes…` },
+      { v: 55, l: `${label}: aggregating ingredients…` },
+      { v: 80, l: `${label}: pricing items…` },
+      { v: 92, l: `${label}: finalizing…` },
+    ];
+    let i = 0;
+    setGenProgress({ value: 5, label: `${label}: starting…` });
+    const interval = setInterval(() => {
+      if (i < stages.length) { setGenProgress(stages[i]); i++; }
+    }, 900);
+    try {
+      await fn();
+      setGenProgress({ value: 100, label: `${label}: done` });
+    } finally {
+      clearInterval(interval);
+      setTimeout(() => setGenProgress(null), 800);
+    }
+  };
+
   const generate = async () => {
     if (!selectedId) return;
     setBusy(true);
     try {
-      const res = await generateShoppingList({ data: { event_id: selectedId } });
-      toast.success(`Shopping list generated (${res.item_count} items)`);
-      reload();
+      await runWithProgress("Shopping list", async () => {
+        const res = await generateShoppingList({ data: { event_id: selectedId } });
+        toast.success(`Shopping list generated (${res.item_count} items)`);
+        reload();
+      });
     } catch (e: any) { toast.error("AI generation failed", { description: e.message }); }
     finally { setBusy(false); }
   };
@@ -336,7 +360,13 @@ function QuoteCreatorHub() {
     if (!selectedId) return;
     if (!(await confirm({ title: "Rebuild Shopping List?", description: "Creates a new revision. The previous draft quote (if any) will be marked superseded after you create a new one.", confirmText: "Rebuild" }))) return;
     setBusy(true);
-    try { await generateShoppingList({ data: { event_id: selectedId } }); toast.success("New revision created"); reload(); }
+    try {
+      await runWithProgress("Rebuilding", async () => {
+        await generateShoppingList({ data: { event_id: selectedId } });
+        toast.success("New revision created");
+        reload();
+      });
+    }
     catch (e: any) { toast.error("Rebuild failed", { description: e.message }); }
     finally { setBusy(false); }
   };
