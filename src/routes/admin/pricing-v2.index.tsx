@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, CalendarClock, AlertTriangle, ChefHat, Receipt, Scale } from "lucide-react";
+import { Play, CalendarClock, AlertTriangle, ChefHat, Receipt, Scale, CheckCircle2, XCircle, FlaskConical } from "lucide-react";
 import {
   getPricingV2Overview,
   getPricingV2Health,
+  runPricingV2SelfTest,
 } from "@/lib/server-fns/pricing-v2.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/")({
