@@ -132,6 +132,7 @@ import { Route as AdminAssetDebugRouteImport } from './routes/admin/asset-debug'
 import { Route as AdminArchiveAuditRouteImport } from './routes/admin/archive-audit'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
+import { Route as AdminPricingV2IndexRouteImport } from './routes/admin/pricing-v2.index'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CookingLabCSlugRouteImport } from './routes/cooking-lab.c.$slug'
@@ -798,6 +799,11 @@ const AdminAccessRoute = AdminAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingV2IndexRoute = AdminPricingV2IndexRouteImport.update({
+  id: '/pricing-v2/',
+  path: '/pricing-v2/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompetitorQuotesIndexRoute =
   AdminCompetitorQuotesIndexRouteImport.update({
     id: '/competitor-quotes/',
@@ -1157,6 +1163,7 @@ export interface FileRoutesByFullPath {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1319,6 +1326,7 @@ export interface FileRoutesByTo {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1484,6 +1492,7 @@ export interface FileRoutesById {
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
+  '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
@@ -1650,6 +1659,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
+    | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -1812,6 +1822,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes'
+    | '/admin/pricing-v2'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -1976,6 +1987,7 @@ export interface FileRouteTypes {
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
     | '/admin/competitor-quotes/'
+    | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
@@ -2918,6 +2930,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccessRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-v2/': {
+      id: '/admin/pricing-v2/'
+      path: '/pricing-v2'
+      fullPath: '/admin/pricing-v2/'
+      preLoaderRoute: typeof AdminPricingV2IndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/competitor-quotes/': {
       id: '/admin/competitor-quotes/'
       path: '/competitor-quotes'
@@ -3406,6 +3425,7 @@ interface AdminRouteChildren {
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
+  AdminPricingV2IndexRoute: typeof AdminPricingV2IndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -3484,6 +3504,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLeadsImportRoute: AdminLeadsImportRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
+  AdminPricingV2IndexRoute: AdminPricingV2IndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
