@@ -148,7 +148,8 @@ function CatalogBootstrapPage() {
     onSuccess: (res: any) => {
       setLastResult(res);
       if (res.run_id) setErrFilterRun(res.run_id);
-      if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
+      if (res.blocked_by_preflight) toast.error(res.message ?? "Bootstrap blocked by preflight");
+      else if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
       else if (res.bootstrap_completed) toast.success(`Bootstrap COMPLETED — fetched ${res.counts_out} this batch`);
       else toast.success(`Batch done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`);
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
