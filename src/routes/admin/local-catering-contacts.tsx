@@ -544,6 +544,22 @@ function LocalCateringContactsPage() {
                                 >
                                   <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  title="Preview Day 0/5/14 emails for this contact"
+                                  onClick={() => {
+                                    setPreviewLead({
+                                      id: l.id,
+                                      contactName: l.name,
+                                      businessName: l.company,
+                                      email: l.email,
+                                    });
+                                    setPreviewOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />Preview
+                                </Button>
                                 <Button size="sm" onClick={() => quickSchedule(l, 3)}>
                                   <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
                                 </Button>
