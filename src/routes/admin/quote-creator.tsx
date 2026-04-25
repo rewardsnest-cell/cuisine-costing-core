@@ -652,21 +652,45 @@ function QuoteCreatorHub() {
                   {data.dishes.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No dishes yet.</p>
                   ) : (
-                    <ul className="divide-y">
-                      {data.dishes.map((d) => (
-                        <li key={d.id} className="flex items-center justify-between py-2 gap-2">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Switch checked={d.is_main} onCheckedChange={() => toggleMain(d)} aria-label="Main dish" />
-                            <span className="text-sm font-medium truncate">{d.name}</span>
-                            {d.is_main && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">MAIN</Badge>}
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => renameDish(d)}>Rename</Button>
-                            <Button size="sm" variant="ghost" onClick={() => removeDish(d)}><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <div className="flex items-center justify-between py-2 px-1 border-b bg-muted/30 rounded-t-md">
+                        <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                          <Checkbox
+                            checked={selectedDishIds.size > 0 && selectedDishIds.size === data.dishes.length}
+                            onCheckedChange={toggleAllDishes}
+                            aria-label="Select all dishes"
+                          />
+                          {selectedDishIds.size > 0
+                            ? `${selectedDishIds.size} selected`
+                            : "Select all"}
+                        </label>
+                        {selectedDishIds.size > 0 && (
+                          <Button size="sm" variant="destructive" onClick={bulkDeleteDishes}>
+                            <Trash2 className="w-4 h-4 mr-1" /> Delete {selectedDishIds.size}
+                          </Button>
+                        )}
+                      </div>
+                      <ul className="divide-y">
+                        {data.dishes.map((d) => (
+                          <li key={d.id} className="flex items-center justify-between py-2 gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Checkbox
+                                checked={selectedDishIds.has(d.id)}
+                                onCheckedChange={() => toggleDishSelected(d.id)}
+                                aria-label={`Select ${d.name}`}
+                              />
+                              <Switch checked={d.is_main} onCheckedChange={() => toggleMain(d)} aria-label="Main dish" />
+                              <span className="text-sm font-medium truncate">{d.name}</span>
+                              {d.is_main && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">MAIN</Badge>}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => renameDish(d)}>Rename</Button>
+                              <Button size="sm" variant="ghost" onClick={() => removeDish(d)}><Trash2 className="w-4 h-4" /></Button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
 
                   <div className="mt-4 flex justify-end gap-2">
