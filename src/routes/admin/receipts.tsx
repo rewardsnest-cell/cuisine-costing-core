@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert, XCircle } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Receipt, Upload, CheckCircle, Clock, FileText, Scan, ArrowRight, Loader2, Plus, Trash2, Pencil, PackagePlus, AlertTriangle, RefreshCw, Settings, Save, ShieldAlert, XCircle, Eye, ExternalLink, FileType2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -106,6 +107,7 @@ function ReceiptsPage() {
   const [dragOver, setDragOver] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
   const [reviewReceipt, setReviewReceipt] = useState<ReceiptRow | null>(null);
+  const [previewReceipt, setPreviewReceipt] = useState<{ row: ReceiptRow; fileName: string; mimeType: string; size: number } | null>(null);
   const [editedLineItems, setEditedLineItems] = useState<LineItem[]>([]);
   const [applyingCosts, setApplyingCosts] = useState(false);
   const [bulkAdding, setBulkAdding] = useState(false);
@@ -181,14 +183,27 @@ function ReceiptsPage() {
 
       const { data: urlData } = supabase.storage.from("receipts").getPublicUrl(fileName);
 
-      await supabase.from("receipts").insert({
-        image_url: urlData.publicUrl,
-        status: "pending",
-        receipt_date: new Date().toISOString().split("T")[0],
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from("receipts")
+        .insert({
+          image_url: urlData.publicUrl,
+          status: "pending",
+          receipt_date: new Date().toISOString().split("T")[0],
+        })
+        .select("id,receipt_date,image_url,total_amount,status,extracted_line_items,supplier_id,created_at,raw_ocr_text")
+        .single();
+      if (insertError) throw insertError;
 
-      toast.success("Receipt uploaded successfully");
+      toast.success("Receipt uploaded — preview before running OCR");
       load();
+
+      // Open the preview drawer so the user can verify the file before OCR
+      setPreviewReceipt({
+        row: inserted as ReceiptRow,
+        fileName: file.name,
+        mimeType: file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/*"),
+        size: file.size,
+      });
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload receipt");
@@ -877,6 +892,97 @@ function ReceiptsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Upload Preview Drawer — shown right after upload, before OCR */}
+      <Sheet open={!!previewReceipt} onOpenChange={(open) => !open && setPreviewReceipt(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="font-display flex items-center gap-2">
+              <Eye className="w-5 h-5" /> Receipt Preview
+            </SheetTitle>
+            <SheetDescription>
+              Review the uploaded file before starting OCR. Nothing is processed until you click <span className="font-medium">Start OCR</span>.
+            </SheetDescription>
+          </SheetHeader>
+
+          {previewReceipt && (
+            <div className="mt-4 space-y-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs space-y-1">
+                <div className="flex items-center gap-2 font-medium text-foreground">
+                  <FileType2 className="w-3.5 h-3.5" />
+                  <span className="truncate">{previewReceipt.fileName}</span>
+                </div>
+                <div className="text-muted-foreground">
+                  {previewReceipt.mimeType} · {(previewReceipt.size / 1024).toFixed(1)} KB
+                </div>
+                <a
+                  href={previewReceipt.row.image_url ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  Open in new tab <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              <div className="rounded-lg border border-border overflow-hidden bg-background">
+                {previewReceipt.row.image_url ? (
+                  previewReceipt.mimeType.includes("pdf") ||
+                  previewReceipt.fileName.toLowerCase().endsWith(".pdf") ? (
+                    <object
+                      data={previewReceipt.row.image_url}
+                      type="application/pdf"
+                      className="w-full h-[60vh]"
+                    >
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        PDF preview not available in this browser.{" "}
+                        <a href={previewReceipt.row.image_url} target="_blank" rel="noreferrer" className="text-primary underline">
+                          Open the PDF
+                        </a>
+                        .
+                      </div>
+                    </object>
+                  ) : (
+                    <img
+                      src={previewReceipt.row.image_url}
+                      alt={previewReceipt.fileName}
+                      className="w-full max-h-[60vh] object-contain bg-muted/40"
+                    />
+                  )
+                ) : (
+                  <div className="p-6 text-center text-sm text-muted-foreground">No file URL available.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <SheetFooter className="mt-6 gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setPreviewReceipt(null)}
+              disabled={processing === previewReceipt?.row.id}
+            >
+              Close
+            </Button>
+            <Button
+              className="bg-gradient-warm text-primary-foreground gap-2"
+              disabled={!previewReceipt || processing === previewReceipt.row.id}
+              onClick={async () => {
+                if (!previewReceipt) return;
+                const row = previewReceipt.row;
+                await handleOCR(row);
+                setPreviewReceipt(null);
+              }}
+            >
+              {processing === previewReceipt?.row.id ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Running OCR…</>
+              ) : (
+                <><Scan className="w-4 h-4" /> Start OCR</>
+              )}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
