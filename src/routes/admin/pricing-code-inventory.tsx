@@ -310,6 +310,7 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing Code Inventory (PDF)",
       });
+      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "PDF saved to Downloads Hub" : "PDF downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export PDF");
