@@ -3792,34 +3792,61 @@ export type Database = {
       }
       sales_contact_log: {
         Row: {
+          body_html: string | null
+          body_preview: string | null
           channel: string
           contacted_at: string
           contacted_by: string | null
           created_at: string
+          direction: string
+          from_email: string | null
           id: string
           notes: string | null
           outcome: string | null
+          outlook_conversation_id: string | null
+          outlook_message_id: string | null
           prospect_id: string | null
+          subject: string | null
+          template_key: string | null
+          to_email: string | null
         }
         Insert: {
+          body_html?: string | null
+          body_preview?: string | null
           channel: string
           contacted_at?: string
           contacted_by?: string | null
           created_at?: string
+          direction?: string
+          from_email?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
+          outlook_conversation_id?: string | null
+          outlook_message_id?: string | null
           prospect_id?: string | null
+          subject?: string | null
+          template_key?: string | null
+          to_email?: string | null
         }
         Update: {
+          body_html?: string | null
+          body_preview?: string | null
           channel?: string
           contacted_at?: string
           contacted_by?: string | null
           created_at?: string
+          direction?: string
+          from_email?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
+          outlook_conversation_id?: string | null
+          outlook_message_id?: string | null
           prospect_id?: string | null
+          subject?: string | null
+          template_key?: string | null
+          to_email?: string | null
         }
         Relationships: [
           {
@@ -3985,6 +4012,9 @@ export type Database = {
           email: string | null
           id: string
           last_contacted: string | null
+          last_inbound_at: string | null
+          last_outbound_at: string | null
+          last_outlook_conversation_id: string | null
           last_outreach_date: string | null
           next_follow_up: string | null
           notes: string | null
@@ -4007,6 +4037,9 @@ export type Database = {
           email?: string | null
           id?: string
           last_contacted?: string | null
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          last_outlook_conversation_id?: string | null
           last_outreach_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
@@ -4029,6 +4062,9 @@ export type Database = {
           email?: string | null
           id?: string
           last_contacted?: string | null
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          last_outlook_conversation_id?: string | null
           last_outreach_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
