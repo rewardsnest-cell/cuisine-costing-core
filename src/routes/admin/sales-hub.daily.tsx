@@ -95,7 +95,38 @@ function DailyChecklistPage() {
     return PROSPECT_STATUSES[idx + 1];
   };
 
-  const completed = ITEMS.filter((i) => state[i.key]).length;
+  const eligibleProspectIds = (() => {
+    const ids = new Set<string>();
+    for (const r of recent) {
+      if (!bulkChannels[r.channel]) continue;
+      const pid = r.sales_prospects?.id || r.prospect_id;
+      if (pid) ids.add(pid);
+    }
+    return Array.from(ids);
+  })();
+
+  const scheduleBulkFollowUps = async () => {
+    const ids = eligibleProspectIds;
+    if (ids.length === 0) { toast.error("No eligible contacts today"); return; }
+    const days = Math.max(1, parseInt(bulkDays, 10) || 3);
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const targetISO = target.toISOString().slice(0, 10);
+    setBulkBusy(true);
+    const { error } = await (supabase as any)
+      .from("sales_prospects")
+      .update({ next_follow_up: targetISO })
+      .in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Scheduled follow-ups for ${ids.length} prospect${ids.length === 1 ? "" : "s"} on ${targetISO}`);
+    if (user) {
+      await (supabase as any)
+        .from("sales_daily_checklist")
+        .upsert({ user_id: user.id, day: today, followups_scheduled: true }, { onConflict: "user_id,day" });
+    }
+    load();
+  };
 
   return (
     <div className="space-y-4">
