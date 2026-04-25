@@ -689,7 +689,9 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         const normName = normalizeName(rawName);
         if (!normName) continue;
         const { unit, factor } = normalizeUnit(ing.unit);
-        const qty = (Number(ing.quantity) || 0) * factor;
+        const rawQtyNum = Number(ing.quantity) || 0;
+        const rawUnit = ing.unit ? String(ing.unit).toLowerCase().trim().replace(/\.$/, "") : null;
+        const qty = rawQtyNum * factor;
         const exactKey = `${normName}::${unit ?? ""}`;
         // Try exact match first, then fuzzy within the same unit bucket.
         const matchedKey = aggregated.has(exactKey)
@@ -698,6 +700,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         const existing = matchedKey ? aggregated.get(matchedKey) : undefined;
         if (existing && matchedKey) {
           existing.quantity += qty;
+          if (rawQtyNum > 0) existing.sources.push({ qty: rawQtyNum, unit: rawUnit });
           if (dishId) existing.per_dish_allocation[dishId] = (existing.per_dish_allocation[dishId] ?? 0) + qty;
           // Prefer the longer / more descriptive display name.
           if (rawName.length > existing.ingredient_name.length) existing.ingredient_name = rawName;
@@ -715,6 +718,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
             quantity: qty,
             per_dish_allocation: dishId ? { [dishId]: qty } : {},
             notes: ing.notes ?? null,
+            sources: rawQtyNum > 0 ? [{ qty: rawQtyNum, unit: rawUnit }] : [],
           });
           const bucket = keysByUnit.get(unit ?? "") ?? [];
           bucket.push(exactKey);
