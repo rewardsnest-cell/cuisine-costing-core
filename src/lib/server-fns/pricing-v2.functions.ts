@@ -323,3 +323,95 @@ export const listPricingV2InitLog = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { entries: rows ?? [] };
   });
+
+// ---- Live job status: per-stage rollup with progress + counts ------------
+
+export const getPipelineLiveStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+
+    // Pull the latest run per stage (single query, dedupe in JS).
+    const { data: runs, error: runsErr } = await supabase
+      .from("pricing_v2_runs")
+      .select("run_id, stage, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, last_error, notes")
+      .order("started_at", { ascending: false })
+      .limit(500);
+    if (runsErr) throw new Error(runsErr.message);
+
+    const lastByStage = new Map<string, any>();
+    for (const r of runs ?? []) {
+      if (!lastByStage.has(r.stage)) lastByStage.set(r.stage, r);
+    }
+
+    // Bootstrap state powers the catalog stage's progress bar.
+    const { data: bs } = await supabase
+      .from("pricing_v2_catalog_bootstrap_state")
+      .select("status, total_items_fetched, started_at, completed_at, last_run_id")
+      .eq("id", 1)
+      .maybeSingle();
+
+    // Inventory mapping coverage — the upstream input to the catalog stage.
+    const [mappedRes, totalRes, rawRes, normRes] = await Promise.all([
+      supabase.from("inventory_items").select("*", { count: "exact", head: true }).not("kroger_product_id", "is", null),
+      supabase.from("inventory_items").select("*", { count: "exact", head: true }),
+      supabase.from("pricing_v2_kroger_catalog_raw").select("*", { count: "exact", head: true }),
+      supabase.from("pricing_v2_item_catalog").select("*", { count: "exact", head: true }),
+    ]);
+    const inventoryMapped = mappedRes.count ?? 0;
+    const inventoryTotal = totalRes.count ?? 0;
+    const rawCount = rawRes.count ?? 0;
+    const normalizedCount = normRes.count ?? 0;
+
+    // Open errors per stage (severity error or critical, last 7d).
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    const { data: errs } = await supabase
+      .from("pricing_v2_errors")
+      .select("stage, severity")
+      .gte("created_at", sevenDaysAgo)
+      .limit(2000);
+    const errorsByStage = new Map<string, { error: number; warning: number }>();
+    for (const e of errs ?? []) {
+      const bucket = errorsByStage.get(e.stage) ?? { error: 0, warning: 0 };
+      if (e.severity === "error" || e.severity === "critical") bucket.error += 1;
+      else if (e.severity === "warning") bucket.warning += 1;
+      errorsByStage.set(e.stage, bucket);
+    }
+
+    const stages = PRICING_V2_STAGES.map((s) => {
+      const last = lastByStage.get(s.key) ?? null;
+      const errs7d = errorsByStage.get(s.key) ?? { error: 0, warning: 0 };
+      let progress: { current: number; total: number; pct: number } | null = null;
+      let extra: Record<string, any> = {};
+
+      if (s.key === "catalog") {
+        const total = inventoryMapped;
+        const current = bs?.status === "COMPLETED" ? total : Math.min(rawCount, total || rawCount);
+        const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+        progress = { current, total, pct };
+        extra = {
+          bootstrap_status: bs?.status ?? "NOT_STARTED",
+          bootstrap_started_at: bs?.started_at ?? null,
+          bootstrap_completed_at: bs?.completed_at ?? null,
+          inventory_mapped: inventoryMapped,
+          inventory_total: inventoryTotal,
+          inventory_unmapped: Math.max(inventoryTotal - inventoryMapped, 0),
+          raw_rows_written: rawCount,
+          normalized_rows_written: normalizedCount,
+        };
+      }
+
+      return {
+        key: s.key,
+        label: s.label,
+        last_run: last,
+        is_running: last?.status === "running" || last?.status === "in_progress",
+        progress,
+        errors_7d: errs7d.error,
+        warnings_7d: errs7d.warning,
+        ...extra,
+      };
+    });
+
+    return { stages, generated_at: new Date().toISOString() };
+  });
