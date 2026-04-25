@@ -229,3 +229,161 @@ function Stat({
     </div>
   );
 }
+
+function fmtMoney(n: number) {
+  const sign = n < 0 ? "-" : "";
+  return `${sign}$${Math.abs(n).toFixed(2)}`;
+}
+
+function IngredientVarianceCard({ data }: { data: IngredientVariance | null }) {
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ingredient Variance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No ingredient variance data available.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const rows = data.rows;
+  const top = rows.slice(0, 5);
+  const maxAbs = top.reduce((m, r) => Math.max(m, r.absVariance), 0) || 1;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Flame className="w-4 h-4 text-amber-600" /> Ingredient Variance — Theoretical vs Actual
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <Stat label="Theoretical" value={fmtMoney(data.totals.theoreticalCost)} />
+          <Stat label="Actual" value={fmtMoney(data.totals.actualCost)} />
+          <Stat
+            label="$ Variance"
+            value={fmtMoney(data.totals.variance)}
+            tone={data.totals.variance > 0 ? "bad" : data.totals.variance < 0 ? "good" : undefined}
+          />
+          <Stat
+            label="% Variance"
+            value={`${data.totals.variancePct}%`}
+            tone={
+              data.totals.variancePct > 0
+                ? "bad"
+                : data.totals.variancePct < 0
+                  ? "good"
+                  : undefined
+            }
+          />
+        </div>
+
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No ingredient-level data yet. Link receipts to this quote and ensure recipe ingredients
+            are mapped to inventory items.
+          </p>
+        ) : (
+          <>
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Top {top.length} variance drivers
+              </div>
+              <div className="space-y-2">
+                {top.map((r) => {
+                  const pct = (r.absVariance / maxAbs) * 100;
+                  const bad = r.variance > 0;
+                  return (
+                    <div key={r.key} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-foreground truncate pr-2">{r.name}</span>
+                        <span
+                          className={`tabular-nums font-semibold ${bad ? "text-destructive" : "text-success"}`}
+                        >
+                          {bad ? "+" : ""}
+                          {fmtMoney(r.variance)}
+                          {r.variancePct !== null && (
+                            <span className="text-muted-foreground font-normal ml-1">
+                              ({bad ? "+" : ""}
+                              {r.variancePct}%)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full ${bad ? "bg-destructive" : "bg-success"}`}
+                          style={{ width: `${Math.max(2, pct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ingredient</TableHead>
+                    <TableHead className="text-right">Theoretical</TableHead>
+                    <TableHead className="text-right">Actual</TableHead>
+                    <TableHead className="text-right">$ Variance</TableHead>
+                    <TableHead className="text-right">% Variance</TableHead>
+                    <TableHead>Source</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => {
+                    const tone =
+                      r.variance > 0
+                        ? "text-destructive"
+                        : r.variance < 0
+                          ? "text-success"
+                          : "text-muted-foreground";
+                    return (
+                      <TableRow key={r.key}>
+                        <TableCell className="font-medium">{r.name}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtMoney(r.theoreticalCost)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtMoney(r.actualCost)}
+                        </TableCell>
+                        <TableCell className={`text-right tabular-nums font-semibold ${tone}`}>
+                          {r.variance > 0 ? "+" : ""}
+                          {fmtMoney(r.variance)}
+                        </TableCell>
+                        <TableCell className={`text-right tabular-nums ${tone}`}>
+                          {r.variancePct === null
+                            ? "—"
+                            : `${r.variancePct > 0 ? "+" : ""}${r.variancePct}%`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {r.inventory_item_id ? "inventory" : "name match"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Theoretical cost = recipe ingredient quantity × cost-per-unit × servings quoted. Actual
+          cost = matched line items from receipts linked to this quote. Sorted by absolute
+          variance.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
