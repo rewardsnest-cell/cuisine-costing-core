@@ -96,6 +96,33 @@ function PricingV2ControlCenter() {
 
       <PipelineLiveStatus />
 
+      {/* Quick links */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quick Links</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Link to="/admin/pricing-v2/catalog-data" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <Receipt className="w-4 h-4" /> Kroger Catalog (Raw + Normalized)
+          </Link>
+          <Link to="/admin/pricing-v2/catalog" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <ChefHat className="w-4 h-4" /> Catalog Bootstrap
+          </Link>
+          <Link to="/admin/pricing-v2/search" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <Play className="w-4 h-4" /> Kroger Search
+          </Link>
+          <Link to="/admin/pricing-v2/errors" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <AlertTriangle className="w-4 h-4" /> Errors
+          </Link>
+          <Link to="/admin/pricing-v2/unit-rules" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <Scale className="w-4 h-4" /> Unit Rules
+          </Link>
+          <Link to="/admin/pricing-v2/settings" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <CalendarClock className="w-4 h-4" /> Settings
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Stage -1 gate banner */}
       {gate.data && (
         <Card className={gate.data.pricing_allowed ? "border-success/50" : "border-destructive/60"}>
