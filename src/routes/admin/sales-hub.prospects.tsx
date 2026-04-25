@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
+import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
@@ -36,12 +37,15 @@ type Prospect = {
   status: string;
   last_contacted: string | null;
   next_follow_up: string | null;
+  last_inbound_at: string | null;
+  last_outbound_at: string | null;
 };
 
 const EMPTY: Omit<Prospect, "id"> = {
   business_name: "", city: PROSPECT_CITIES[0], type: PROSPECT_TYPES[0],
   contact_name: "", phone: "", email: "", notes: "", status: "New",
   last_contacted: null, next_follow_up: null,
+  last_inbound_at: null, last_outbound_at: null,
 };
 
 function ProspectsPage() {
@@ -54,6 +58,18 @@ function ProspectsPage() {
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Prospect, "id">>(EMPTY);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailDialogProspect, setEmailDialogProspect] = useState<Prospect | null>(null);
+  const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
+
+  const openEmailDialog = (p: Prospect, isReply: boolean) => {
+    setEmailDialogProspect(p);
+    setEmailDialogIsReply(isReply);
+    setEmailDialogOpen(true);
+  };
+
+  const hasUnreadReply = (p: Prospect) =>
+    !!p.last_inbound_at && (!p.last_outbound_at || p.last_inbound_at > p.last_outbound_at);
 
   const load = async () => {
     setLoading(true);
@@ -125,22 +141,12 @@ function ProspectsPage() {
     load();
   };
 
-  const emailProspect = async (p: Prospect) => {
+  const emailProspect = (p: Prospect) => {
     if (!p.email) {
       toast.error("No email on file. Add one in Edit prospect.");
       return;
     }
-    const subject = encodeURIComponent(`Following up — ${p.business_name}`);
-    const greeting = p.contact_name ? `Hi ${p.contact_name},` : "Hello,";
-    const body = encodeURIComponent(
-      `${greeting}\n\nI wanted to reach out from VPs Finest about catering options for ${p.business_name}. ` +
-      `We work with ${p.type.toLowerCase()} clients in ${p.city} and would love to share what we offer.\n\n` +
-      `Would you have a few minutes this week to chat?\n\nThanks!`
-    );
-    // Open the user's email client with a pre-filled draft
-    window.open(`mailto:${p.email}?subject=${subject}&body=${body}`, "_self");
-    // Log it as well
-    await logContact(p, "email");
+    openEmailDialog(p, false);
   };
 
   const callProspect = async (p: Prospect) => {
@@ -260,6 +266,17 @@ function ProspectsPage() {
                           <Button size="sm" variant="ghost" onClick={() => emailProspect(p)} title={p.email ? `Email ${p.email}` : "No email on file"} disabled={!p.email}>
                             <MailIcon className="w-4 h-4" />
                           </Button>
+                          {hasUnreadReply(p) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-8 gap-1.5"
+                              onClick={() => openEmailDialog(p, true)}
+                              title={`New reply received ${new Date(p.last_inbound_at!).toLocaleString()}`}
+                            >
+                              <Reply className="w-3.5 h-3.5" /> Respond
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" onClick={() => resetContacted(p)} title="Reset contacted" disabled={!p.last_contacted}>
                             <RotateCcw className="w-4 h-4" />
                           </Button>
@@ -327,6 +344,14 @@ function ProspectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProspectEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        prospect={emailDialogProspect}
+        isReply={emailDialogIsReply}
+        onSent={load}
+      />
     </div>
   );
 }

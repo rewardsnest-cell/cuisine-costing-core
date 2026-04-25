@@ -168,6 +168,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
+import { Route as ApiPublicHooksSendProspectEmailRouteImport } from './routes/api/public/hooks/send-prospect-email'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
 import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
@@ -988,6 +989,12 @@ const ApiRecipesIdPrintableRoute = ApiRecipesIdPrintableRouteImport.update({
   path: '/api/recipes/$id/printable',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSendProspectEmailRoute =
+  ApiPublicHooksSendProspectEmailRouteImport.update({
+    id: '/api/public/hooks/send-prospect-email',
+    path: '/api/public/hooks/send-prospect-email',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksProspectFollowupsRoute =
   ApiPublicHooksProspectFollowupsRouteImport.update({
     id: '/api/public/hooks/prospect-followups',
@@ -1177,6 +1184,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
+  '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1341,6 +1349,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
+  '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1508,6 +1517,7 @@ export interface FileRoutesById {
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
+  '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1676,6 +1686,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
+    | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1840,6 +1851,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
+    | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2006,6 +2018,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
+    | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2068,6 +2081,7 @@ export interface RootRouteChildren {
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
   ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
+  ApiPublicHooksSendProspectEmailRoute: typeof ApiPublicHooksSendProspectEmailRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -3191,6 +3205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRecipesIdPrintableRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/send-prospect-email': {
+      id: '/api/public/hooks/send-prospect-email'
+      path: '/api/public/hooks/send-prospect-email'
+      fullPath: '/api/public/hooks/send-prospect-email'
+      preLoaderRoute: typeof ApiPublicHooksSendProspectEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/prospect-followups': {
       id: '/api/public/hooks/prospect-followups'
       path: '/api/public/hooks/prospect-followups'
@@ -3618,6 +3639,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
   ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
+  ApiPublicHooksSendProspectEmailRoute: ApiPublicHooksSendProspectEmailRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
