@@ -105,7 +105,10 @@ function CatalogBootstrapPage() {
     onError: (e: any) => toast.error(e?.message ?? "Test harness failed"),
   });
 
-  const limitNum = limit ? Number(limit) : undefined;
+  const batchNum = batchSize ? Number(batchSize) : undefined;
+  const bs = bootstrapState.data;
+  const status = bs?.state?.status ?? "NOT_STARTED";
+  const isCompleted = status === "COMPLETED";
 
   return (
     <div className="space-y-6">
@@ -126,33 +129,81 @@ function CatalogBootstrapPage() {
         </div>
       </header>
 
-      {/* Run controls */}
-      <Card>
-        <CardHeader><CardTitle>Run Controls</CardTitle></CardHeader>
+      {/* Bootstrap Status panel */}
+      <Card className={isCompleted ? "border-success/50" : status === "IN_PROGRESS" ? "border-amber-500/60" : ""}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {isCompleted ? <CheckCircle2 className="w-4 h-4 text-success" /> :
+              status === "IN_PROGRESS" ? <Loader2 className="w-4 h-4 animate-spin text-amber-600" /> :
+              <AlertTriangle className="w-4 h-4 text-muted-foreground" />}
+            Bootstrap Status
+            <Badge variant={isCompleted ? "default" : status === "IN_PROGRESS" ? "secondary" : "outline"}>
+              {status}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="limit">Limit</Label>
-              <Input id="limit" inputMode="numeric" placeholder="e.g. 200" value={limit} onChange={(e) => setLimit(e.target.value.replace(/\D/g, ""))} />
-            </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="kw">Keyword (optional search filter)</Label>
-              <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+            <Stat label="Total fetched" value={bs?.state?.total_items_fetched ?? 0} />
+            <Stat label="Inventory IDs" value={`${bs?.inventory_ids_processed ?? 0} / ${bs?.inventory_ids_total ?? 0}`} />
+            <Stat label="Remaining" value={bs?.inventory_ids_remaining ?? 0} />
+            <Stat label="Started at" value={bs?.state?.started_at ? new Date(bs.state.started_at).toLocaleString() : "—"} />
+            <Stat label="Completed at" value={bs?.state?.completed_at ? new Date(bs.state.completed_at).toLocaleString() : "—"} />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => runMut.mutate({ dry_run: false, limit: limitNum, keyword: keyword || undefined })} disabled={runMut.isPending}>
-              Run Bootstrap
-            </Button>
-            <Button variant="secondary" onClick={() => runMut.mutate({ dry_run: true, limit: 50, keyword: keyword || undefined })} disabled={runMut.isPending}>
-              Dry Run (50 items)
-            </Button>
-            <Button variant="outline" onClick={() => runMut.mutate({ dry_run: false, limit: limitNum ?? 25, keyword: keyword || undefined })} disabled={runMut.isPending || !limitNum}>
-              Run Subset
-            </Button>
-            <Button variant="ghost" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
-              Run Test Cases
-            </Button>
+          <div className="text-xs text-muted-foreground">
+            Last run: <span className="font-mono">{bs?.state?.last_run_id ?? "—"}</span>
+            {bs?.state?.last_page_token && <> · cursor: <span className="font-mono">{bs.state.last_page_token}</span></>}
+          </div>
+
+          {!isCompleted && (
+            <div className="flex flex-wrap items-end gap-3 pt-2 border-t border-border">
+              <div className="w-32">
+                <Label htmlFor="batch">Batch size</Label>
+                <Input id="batch" inputMode="numeric" placeholder="200" value={batchSize}
+                  onChange={(e) => setBatchSize(e.target.value.replace(/\D/g, ""))} />
+              </div>
+              <div className="flex-1 min-w-[180px]">
+                <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
+                <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+              </div>
+              <Button onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })} disabled={runMut.isPending} className="gap-1.5">
+                <Play className="w-4 h-4" />
+                {status === "IN_PROGRESS" ? "Resume Bootstrap" : "Run Bootstrap"}
+              </Button>
+              <Button variant="secondary" onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })} disabled={runMut.isPending}>
+                Dry Run (50)
+              </Button>
+              <Button variant="ghost" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+                Run Test Cases
+              </Button>
+            </div>
+          )}
+
+          {isCompleted && (
+            <Alert>
+              <CheckCircle2 className="w-4 h-4" />
+              <AlertTitle>Catalog bootstrap completed</AlertTitle>
+              <AlertDescription>
+                All inventory-mapped Kroger products were downloaded once. Re-runs are blocked
+                until you reset.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Reset (dangerous) */}
+          <div className="pt-3 border-t border-destructive/30 space-y-2">
+            <div className="text-xs font-semibold text-destructive uppercase">Danger zone — Reset Bootstrap</div>
+            <p className="text-xs text-muted-foreground">
+              Sets status back to NOT_STARTED so the loop restarts from the first inventory id.
+              Does NOT delete catalog or raw rows. Type <span className="font-mono">RESET CATALOG</span> to enable.
+            </p>
+            <div className="flex gap-2">
+              <Input value={resetConfirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="Type RESET CATALOG" className="max-w-xs" />
+              <Button variant="destructive" disabled={resetConfirm !== "RESET CATALOG" || resetMut.isPending}
+                onClick={() => resetMut.mutate()} className="gap-1.5">
+                <RotateCcw className="w-4 h-4" /> Reset Bootstrap
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
