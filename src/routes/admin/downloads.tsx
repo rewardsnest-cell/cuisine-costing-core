@@ -8,7 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Download, Trash2, FileDown, Search, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import {
+  Download, Trash2, FileDown, Search, RefreshCw, ChevronDown, ChevronRight, Info, Copy, ExternalLink,
+} from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 
