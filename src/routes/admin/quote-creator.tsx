@@ -28,8 +28,9 @@ import {
 import {
   Upload, FileText, Trash2, Sparkles, Lock, RefreshCw, ChefHat,
   CheckCircle2, FilePlus, ArrowRight, ListChecks, ScrollText, History,
-  Files, DollarSign, ClipboardList, Plus,
+  Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
+import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
 
 export const Route = createFileRoute("/admin/quote-creator")({
   validateSearch: (search: Record<string, unknown>) => ({
