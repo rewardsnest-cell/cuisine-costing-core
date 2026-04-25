@@ -128,6 +128,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Archive",
     phaseNote: "Read-only / Reference only",
     items: [
+      { to: "/admin/archive-audit",           label: "Archive Audit",                icon: ShieldCheck },
       { to: "/admin/cost-queue",              label: "Cost Update Queue (Legacy)",   icon: ServerCrash },
       { to: "/admin/trends",                  label: "Price Trends (Legacy)",        icon: ServerCrash },
       { to: "/admin/national-prices",         label: "National Prices (Legacy)",     icon: ServerCrash },
