@@ -131,3 +131,147 @@ export const getPricingV2Health = createServerFn({ method: "GET" })
       },
     };
   });
+
+// ---- Self test ------------------------------------------------------------
+
+export const runPricingV2SelfTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    const steps: Array<{ name: string; ok: boolean; detail?: string }> = [];
+    const startedAt = new Date().toISOString();
+
+    // 1) Create a run record under stage="self_test"
+    let runId: string | null = null;
+    try {
+      const { data, error } = await supabase
+        .from("pricing_v2_runs")
+        .insert({
+          stage: "self_test",
+          status: "running",
+          initiated_by: userId ?? null,
+          notes: "Self-test diagnostic",
+          counts_in: 0,
+          counts_out: 0,
+        })
+        .select("run_id")
+        .single();
+      if (error) throw error;
+      runId = data.run_id;
+      steps.push({ name: "Create pricing_v2_runs row", ok: true, detail: `run_id=${runId}` });
+    } catch (e: any) {
+      steps.push({ name: "Create pricing_v2_runs row", ok: false, detail: e?.message });
+    }
+
+    // 2) Insert two sample errors (one warning, one error)
+    let insertedErrorIds: string[] = [];
+    if (runId) {
+      try {
+        const { data, error } = await supabase
+          .from("pricing_v2_errors")
+          .insert([
+            {
+              run_id: runId,
+              stage: "self_test",
+              severity: "warning",
+              type: "self_test_warning",
+              entity_type: "diagnostic",
+              entity_id: "sample-1",
+              message: "Self-test warning sample — no real issue.",
+              suggested_fix: "Ignore. This row was created by Run Self Test.",
+              debug_json: { source: "self-test", at: startedAt },
+            },
+            {
+              run_id: runId,
+              stage: "self_test",
+              severity: "error",
+              type: "self_test_error",
+              entity_type: "diagnostic",
+              entity_id: "sample-2",
+              message: "Self-test error sample — no real issue.",
+              suggested_fix: "Ignore. This row was created by Run Self Test.",
+              debug_json: { source: "self-test", at: startedAt },
+            },
+          ])
+          .select("id");
+        if (error) throw error;
+        insertedErrorIds = (data ?? []).map((r: any) => r.id);
+        steps.push({
+          name: "Insert sample warning + error",
+          ok: insertedErrorIds.length === 2,
+          detail: `inserted ${insertedErrorIds.length} rows`,
+        });
+      } catch (e: any) {
+        steps.push({ name: "Insert sample warning + error", ok: false, detail: e?.message });
+      }
+    }
+
+    // 3) Verify settings round-trip (read, write same values back, re-read)
+    try {
+      const { data: before, error: readErr } = await supabase
+        .from("pricing_v2_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+      if (readErr) throw readErr;
+      if (!before) throw new Error("settings row missing");
+
+      const { error: updErr } = await supabase
+        .from("pricing_v2_settings")
+        .update({
+          kroger_store_id: before.kroger_store_id,
+          kroger_zip: before.kroger_zip,
+          warning_threshold_pct: before.warning_threshold_pct,
+        })
+        .eq("id", 1);
+      if (updErr) throw updErr;
+
+      const { data: after, error: readErr2 } = await supabase
+        .from("pricing_v2_settings")
+        .select("kroger_store_id, kroger_zip, warning_threshold_pct")
+        .eq("id", 1)
+        .maybeSingle();
+      if (readErr2) throw readErr2;
+
+      const ok =
+        after?.kroger_store_id === before.kroger_store_id &&
+        after?.kroger_zip === before.kroger_zip &&
+        Number(after?.warning_threshold_pct) === Number(before.warning_threshold_pct);
+
+      steps.push({
+        name: "Settings save + reload",
+        ok,
+        detail: ok ? "round-trip matched" : "values changed unexpectedly",
+      });
+    } catch (e: any) {
+      steps.push({ name: "Settings save + reload", ok: false, detail: e?.message });
+    }
+
+    // 4) Finalize run record
+    const pass = steps.every((s) => s.ok);
+    if (runId) {
+      await supabase
+        .from("pricing_v2_runs")
+        .update({
+          status: pass ? "success" : "failed",
+          ended_at: new Date().toISOString(),
+          warnings_count: 1,
+          errors_count: 1,
+          counts_out: insertedErrorIds.length,
+        })
+        .eq("run_id", runId);
+    }
+
+    // 5) Return inserted error rows for on-screen display
+    let sampleErrors: any[] = [];
+    if (insertedErrorIds.length) {
+      const { data } = await supabase
+        .from("pricing_v2_errors")
+        .select("*")
+        .in("id", insertedErrorIds)
+        .order("severity");
+      sampleErrors = data ?? [];
+    }
+
+    return { pass, runId, steps, sampleErrors };
+  });
