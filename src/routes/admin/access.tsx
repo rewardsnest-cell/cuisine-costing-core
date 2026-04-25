@@ -28,6 +28,7 @@ import {
   setRolePermission,
   setUserOverride,
 } from "@/lib/admin/access-control.functions";
+import { ensureAccessInitialized } from "@/lib/server-fns/pricing-v2.functions";
 
 export const Route = createFileRoute("/admin/access")({
   head: () => ({ meta: [{ title: "Access Control — VPS Finest Admin" }] }),
@@ -61,8 +62,17 @@ function AccessControlPage() {
   const roleFn = useServerFn(setUserRole);
   const permFn = useServerFn(setRolePermission);
   const overrideFn = useServerFn(setUserOverride);
+  const ensureAccessFn = useServerFn(ensureAccessInitialized);
 
   const loadAll = async () => {
+    // Server-side, idempotent seeding of (role × section) defaults.
+    // Replaces the previous UI useEffect auto-seed loop.
+    try {
+      await ensureAccessFn({});
+    } catch {
+      // Non-fatal: the table may already be fully seeded; load proceeds anyway.
+    }
+
     const [perms, profs, rls, invs, log] = await Promise.all([
       (supabase as any).from("role_section_permissions").select("role, section, enabled"),
       (supabase as any).from("profiles").select("user_id, full_name, email").order("full_name"),
@@ -85,27 +95,6 @@ function AccessControlPage() {
     setRoles(rls.data ?? []);
     setInvites(invs.data ?? []);
     setAudit(log.data ?? []);
-
-    // Auto-seed any missing (role × section) combos as disabled (admin is always on, skipped).
-    const missing: { role: RoleKey; section: SectionKey }[] = [];
-    for (const role of ROLE_KEYS) {
-      if (role === "admin") continue;
-      for (const section of SECTION_KEYS) {
-        if (!(`${role}:${section}` in m)) missing.push({ role, section });
-      }
-    }
-    if (missing.length > 0) {
-      await Promise.all(
-        missing.map((mc) =>
-          permFn({ data: { role: mc.role, section: mc.section, enabled: false } }).catch(() => null),
-        ),
-      );
-      setPermMatrix((cur) => {
-        const next = { ...cur };
-        for (const mc of missing) next[`${mc.role}:${mc.section}`] = false;
-        return next;
-      });
-    }
   };
 
   useEffect(() => {
