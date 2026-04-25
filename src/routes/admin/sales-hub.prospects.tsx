@@ -58,6 +58,18 @@ function ProspectsPage() {
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Omit<Prospect, "id">>(EMPTY);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailDialogProspect, setEmailDialogProspect] = useState<Prospect | null>(null);
+  const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
+
+  const openEmailDialog = (p: Prospect, isReply: boolean) => {
+    setEmailDialogProspect(p);
+    setEmailDialogIsReply(isReply);
+    setEmailDialogOpen(true);
+  };
+
+  const hasUnreadReply = (p: Prospect) =>
+    !!p.last_inbound_at && (!p.last_outbound_at || p.last_inbound_at > p.last_outbound_at);
 
   const load = async () => {
     setLoading(true);
