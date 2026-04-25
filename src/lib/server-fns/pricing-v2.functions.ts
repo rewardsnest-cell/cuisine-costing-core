@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const PRICING_V2_STAGES = [
+  { key: "recipe_weight_normalization", label: "Stage -1 — Recipe Weight Normalization" },
   { key: "catalog",          label: "Stage 0 — Catalog (bootstrap)" },
   { key: "monthly_snapshot", label: "Stage 1 — Monthly Snapshot" },
   { key: "receipts",         label: "Stage 2 — Receipts" },

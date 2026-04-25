@@ -1945,6 +1945,7 @@ export type Database = {
           created_at: string
           created_source: string
           current_stock: number
+          each_weight_grams: number | null
           id: string
           kroger_product_id: string | null
           last_receipt_cost: number | null
@@ -1965,6 +1966,7 @@ export type Database = {
           created_at?: string
           created_source?: string
           current_stock?: number
+          each_weight_grams?: number | null
           id?: string
           kroger_product_id?: string | null
           last_receipt_cost?: number | null
@@ -1985,6 +1987,7 @@ export type Database = {
           created_at?: string
           created_source?: string
           current_stock?: number
+          each_weight_grams?: number | null
           id?: string
           kroger_product_id?: string | null
           last_receipt_cost?: number | null
@@ -2924,6 +2927,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_v2_unit_conversion_rules: {
+        Row: {
+          grams_per_unit: number | null
+          notes: string | null
+          requires_density: boolean
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          grams_per_unit?: number | null
+          notes?: string | null
+          requires_density?: boolean
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          grams_per_unit?: number | null
+          notes?: string | null
+          requires_density?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_v2_weight_parse_rules: {
         Row: {
           created_at: string
@@ -3452,34 +3479,61 @@ export type Database = {
       }
       recipe_ingredients: {
         Row: {
+          conversion_notes: string | null
+          conversion_source: string | null
           cost_per_unit: number | null
           id: string
           inventory_item_id: string | null
+          last_normalize_run_id: string | null
           name: string
+          normalization_status:
+            | Database["public"]["Enums"]["recipe_ingredient_norm_status"]
+            | null
           notes: string | null
+          original_quantity: number | null
+          original_unit: string | null
           quantity: number
+          quantity_grams: number | null
           recipe_id: string
           reference_id: string | null
           unit: string
         }
         Insert: {
+          conversion_notes?: string | null
+          conversion_source?: string | null
           cost_per_unit?: number | null
           id?: string
           inventory_item_id?: string | null
+          last_normalize_run_id?: string | null
           name: string
+          normalization_status?:
+            | Database["public"]["Enums"]["recipe_ingredient_norm_status"]
+            | null
           notes?: string | null
+          original_quantity?: number | null
+          original_unit?: string | null
           quantity: number
+          quantity_grams?: number | null
           recipe_id: string
           reference_id?: string | null
           unit: string
         }
         Update: {
+          conversion_notes?: string | null
+          conversion_source?: string | null
           cost_per_unit?: number | null
           id?: string
           inventory_item_id?: string | null
+          last_normalize_run_id?: string | null
           name?: string
+          normalization_status?:
+            | Database["public"]["Enums"]["recipe_ingredient_norm_status"]
+            | null
           notes?: string | null
+          original_quantity?: number | null
+          original_unit?: string | null
           quantity?: number
+          quantity_grams?: number | null
           recipe_id?: string
           reference_id?: string | null
           unit?: string
@@ -3491,6 +3545,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_last_normalize_run_id_fkey"
+            columns: ["last_normalize_run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
           },
           {
             foreignKeyName: "recipe_ingredients_recipe_id_fkey"
@@ -5042,11 +5103,18 @@ export type Database = {
         | "rollups"
         | "self_test"
         | "catalog_bootstrap_test"
+        | "recipe_weight_normalization"
+        | "recipe_weight_normalization_test"
       quote_state:
         | "initiated"
         | "info_collected"
         | "structured"
         | "awaiting_pricing"
+      recipe_ingredient_norm_status:
+        | "normalized"
+        | "blocked_missing_weight"
+        | "blocked_ambiguous_unit"
+        | "blocked_unmapped_inventory"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
       visibility_phase: "off" | "admin_preview" | "soft_launch" | "public"
@@ -5201,12 +5269,20 @@ export const Constants = {
         "rollups",
         "self_test",
         "catalog_bootstrap_test",
+        "recipe_weight_normalization",
+        "recipe_weight_normalization_test",
       ],
       quote_state: [
         "initiated",
         "info_collected",
         "structured",
         "awaiting_pricing",
+      ],
+      recipe_ingredient_norm_status: [
+        "normalized",
+        "blocked_missing_weight",
+        "blocked_ambiguous_unit",
+        "blocked_unmapped_inventory",
       ],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],

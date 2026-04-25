@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown, ServerCrash, AlertTriangle,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown, ServerCrash, AlertTriangle, Scale,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -120,10 +120,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Pricing v2",
     items: [
-      { to: "/admin/pricing-v2",          label: "Control Center",       icon: LayoutDashboard, exact: true },
-      { to: "/admin/pricing-v2/catalog",  label: "Stage 0 — Catalog Bootstrap", icon: Tag },
-      { to: "/admin/pricing-v2/errors",   label: "Errors",               icon: AlertTriangle },
-      { to: "/admin/pricing-v2/settings", label: "Settings",             icon: ShieldCheck },
+      { to: "/admin/pricing-v2",                    label: "Control Center",                       icon: LayoutDashboard, exact: true },
+      { to: "/admin/pricing-v2/recipes-normalize",  label: "Stage -1 — Recipe Normalization",      icon: Scale },
+      { to: "/admin/pricing-v2/catalog",            label: "Stage 0 — Catalog Bootstrap",          icon: Tag },
+      { to: "/admin/pricing-v2/errors",             label: "Errors",                               icon: AlertTriangle },
+      { to: "/admin/pricing-v2/settings",           label: "Settings",                             icon: ShieldCheck },
     ],
   },
   {

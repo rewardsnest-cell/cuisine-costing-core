@@ -9,6 +9,7 @@ import {
   getPricingV2Health,
   runPricingV2SelfTest,
 } from "@/lib/server-fns/pricing-v2.functions";
+import { getRecipeNormalizationGate } from "@/lib/server-fns/pricing-v2-recipe-normalize.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/")({
   head: () => ({ meta: [{ title: "Pricing v2 — Control Center" }] }),
@@ -41,6 +42,10 @@ function PricingV2ControlCenter() {
   const health = useQuery({
     queryKey: ["pricing-v2", "health"],
     queryFn: () => getPricingV2Health(),
+  });
+  const gate = useQuery({
+    queryKey: ["pricing-v2", "norm", "gate"],
+    queryFn: () => getRecipeNormalizationGate(),
   });
   const selfTest = useMutation({
     mutationFn: () => runPricingV2SelfTest(),
@@ -77,6 +82,36 @@ function PricingV2ControlCenter() {
           </Button>
         </div>
       </div>
+
+      {/* Stage -1 gate banner */}
+      {gate.data && (
+        <Card className={gate.data.pricing_allowed ? "border-success/50" : "border-destructive/60"}>
+          <CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              {gate.data.pricing_allowed ? (
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              ) : (
+                <XCircle className="w-5 h-5 text-destructive" />
+              )}
+              <div>
+                <div className="font-display font-bold">
+                  Stage -1 — Recipe Weight Normalization:{" "}
+                  {gate.data.pricing_allowed ? "PASS" : "FAILED"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {gate.data.normalized_ingredients}/{gate.data.total_ingredients} ingredients normalized
+                  {gate.data.blocked_ingredients > 0 && (
+                    <> · <span className="text-destructive">{gate.data.blocked_ingredients} blocked</span> · pricing stages cannot run</>
+                  )}
+                </div>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/admin/pricing-v2/recipes-normalize">Open Stage -1</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Self-test result */}
       {(selfTest.data || selfTest.error) && (
@@ -123,33 +158,48 @@ function PricingV2ControlCenter() {
           {overview.isLoading && (
             <p className="text-sm text-muted-foreground">Loading…</p>
           )}
-          {overview.data?.stages.map((s) => (
-            <div
-              key={s.key}
-              className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/60 hover:bg-muted/30"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{s.label}</div>
-                <div className="text-xs text-muted-foreground">
-                  Last run: {fmtTime(s.last?.started_at)}
-                  {s.last && (
-                    <>
-                      {" • "}
-                      in {s.last.counts_in ?? 0} → out {s.last.counts_out ?? 0}
-                      {" • "}
-                      {s.last.warnings_count ?? 0} warn / {s.last.errors_count ?? 0} err
-                    </>
-                  )}
+          {overview.data?.stages.map((s) => {
+            const isStageMinusOne = s.key === "recipe_weight_normalization";
+            const blockedByGate = !isStageMinusOne && gate.data && !gate.data.pricing_allowed;
+            return (
+              <div
+                key={s.key}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/60 hover:bg-muted/30"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{s.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Last run: {fmtTime(s.last?.started_at)}
+                    {s.last && (
+                      <>
+                        {" • "}
+                        in {s.last.counts_in ?? 0} → out {s.last.counts_out ?? 0}
+                        {" • "}
+                        {s.last.warnings_count ?? 0} warn / {s.last.errors_count ?? 0} err
+                      </>
+                    )}
+                    {blockedByGate && (
+                      <> · <span className="text-destructive">blocked by Stage -1</span></>
+                    )}
+                  </div>
                 </div>
+                <Badge variant={blockedByGate ? "destructive" : statusVariant(s.last?.status)}>
+                  {blockedByGate ? "blocked" : (s.last?.status ?? "never run")}
+                </Badge>
+                {isStageMinusOne ? (
+                  <Button size="sm" variant="outline" asChild className="gap-1.5">
+                    <Link to="/admin/pricing-v2/recipes-normalize">
+                      <Play className="w-3.5 h-3.5" /> Open
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" disabled className="gap-1.5">
+                    <Play className="w-3.5 h-3.5" /> Run Stage
+                  </Button>
+                )}
               </div>
-              <Badge variant={statusVariant(s.last?.status)}>
-                {s.last?.status ?? "never run"}
-              </Badge>
-              <Button size="sm" variant="outline" disabled className="gap-1.5">
-                <Play className="w-3.5 h-3.5" /> Run Stage
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
