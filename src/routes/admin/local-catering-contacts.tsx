@@ -628,6 +628,12 @@ function LocalCateringContactsPage() {
         lead={draftLead}
       />
 
+      <TemplatePreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        lead={previewLead}
+      />
+
       <Dialog open={!!reviewLead} onOpenChange={(o) => !o && setReviewLead(null)}>
         <DialogContent>
           <DialogHeader>
