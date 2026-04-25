@@ -304,7 +304,7 @@ export function BulkCompetitorUpload({
         <DialogHeader>
           <DialogTitle>Bulk upload competitor quotes</DialogTitle>
           <DialogDescription>
-            Add multiple PDFs or images, then choose whether each file is its own competitor quote or all files belong to one packet.
+            Add multiple PDFs, images, Word docs, Excel sheets, CSVs, or text files. Choose whether each file is its own competitor quote or all files belong to one packet.
           </DialogDescription>
         </DialogHeader>
 
