@@ -150,8 +150,8 @@ function KrogerValidationPage() {
     enabled: !!activeRunId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_kroger_validation_anomalies", {
-        _run_id: activeRunId,
-        _category: categoryFilter === "all" ? null : categoryFilter,
+        _run_id: activeRunId ?? undefined,
+        _category: categoryFilter === "all" ? undefined : categoryFilter,
         _limit: 500,
       });
       if (error) throw error;
