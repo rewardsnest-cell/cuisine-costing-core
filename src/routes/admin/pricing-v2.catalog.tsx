@@ -10,7 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Play, FlaskConical, RefreshCw, Search, CheckCircle2, AlertTriangle, XCircle, Download,
+  Play, FlaskConical, RefreshCw, Search, CheckCircle2, AlertTriangle, XCircle, Download, TestTube2,
 } from "lucide-react";
 import {
   runCatalogStage,
@@ -18,6 +18,7 @@ import {
   listCatalogRuns,
   traceCatalogEntity,
   resolveCatalogErrors,
+  runCatalogTestHarness,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 import { listPricingV2Errors } from "@/lib/server-fns/pricing-v2.functions";
 
