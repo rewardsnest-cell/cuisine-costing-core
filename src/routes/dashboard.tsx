@@ -154,6 +154,11 @@ function DashboardPage() {
                   <FileText className="w-4 h-4" /> All My Quotes
                 </Button>
               </Link>
+              <Link to="/my-downloads">
+                <Button variant="outline" className="gap-2">
+                  <FileText className="w-4 h-4" /> My Downloads
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
