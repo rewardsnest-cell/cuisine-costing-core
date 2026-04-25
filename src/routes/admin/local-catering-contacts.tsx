@@ -281,6 +281,7 @@ function LocalCateringContactsPage() {
     (l) => l.next_follow_up_date && l.next_follow_up_date < today
   ).length;
   const dueTodayCount = filtered.filter((l) => l.next_follow_up_date === today).length;
+  const needsReviewCount = (data ?? []).filter((l) => l.verification_status === "needs_review").length;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -293,7 +294,7 @@ function LocalCateringContactsPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight mt-1">Local Catering Contacts</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} of {data?.length ?? 0} contacts • {overdueCount} overdue • {dueTodayCount} due today
+            {filtered.length} of {data?.length ?? 0} contacts • {overdueCount} overdue • {dueTodayCount} due today • {needsReviewCount} need review
           </p>
         </div>
         <div className="flex gap-2">
