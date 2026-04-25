@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
   runCatalogBootstrap,
