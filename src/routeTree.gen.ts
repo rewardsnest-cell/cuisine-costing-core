@@ -20,6 +20,7 @@ import { Route as QuoteRouteImport } from './routes/quote'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyQuotesRouteImport } from './routes/my-quotes'
 import { Route as MyEventsRouteImport } from './routes/my-events'
+import { Route as MyDownloadsRouteImport } from './routes/my-downloads'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as LookupRouteImport } from './routes/lookup'
 import { Route as LoginRouteImport } from './routes/login'
@@ -202,6 +203,11 @@ const MyQuotesRoute = MyQuotesRouteImport.update({
 const MyEventsRoute = MyEventsRouteImport.update({
   id: '/my-events',
   path: '/my-events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyDownloadsRoute = MyDownloadsRouteImport.update({
+  id: '/my-downloads',
+  path: '/my-downloads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MenuRoute = MenuRouteImport.update({
@@ -878,6 +884,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -1018,6 +1025,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -1159,6 +1167,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/lookup': typeof LookupRoute
   '/menu': typeof MenuRoute
+  '/my-downloads': typeof MyDownloadsRoute
   '/my-events': typeof MyEventsRoute
   '/my-quotes': typeof MyQuotesRoute
   '/privacy': typeof PrivacyRoute
@@ -1302,6 +1311,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1442,6 +1452,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1582,6 +1593,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/lookup'
     | '/menu'
+    | '/my-downloads'
     | '/my-events'
     | '/my-quotes'
     | '/privacy'
@@ -1724,6 +1736,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LookupRoute: typeof LookupRoute
   MenuRoute: typeof MenuRoute
+  MyDownloadsRoute: typeof MyDownloadsRoute
   MyEventsRoute: typeof MyEventsRoute
   MyQuotesRoute: typeof MyQuotesRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -1843,6 +1856,13 @@ declare module '@tanstack/react-router' {
       path: '/my-events'
       fullPath: '/my-events'
       preLoaderRoute: typeof MyEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-downloads': {
+      id: '/my-downloads'
+      path: '/my-downloads'
+      fullPath: '/my-downloads'
+      preLoaderRoute: typeof MyDownloadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/menu': {
@@ -3043,6 +3063,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LookupRoute: LookupRoute,
   MenuRoute: MenuRoute,
+  MyDownloadsRoute: MyDownloadsRoute,
   MyEventsRoute: MyEventsRoute,
   MyQuotesRoute: MyQuotesRoute,
   PrivacyRoute: PrivacyRoute,
