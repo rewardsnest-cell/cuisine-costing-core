@@ -448,21 +448,61 @@ function QuoteCreatorHub() {
           <CardTitle className="text-base">Event</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+          <div className="grid md:grid-cols-[1fr_180px_180px_auto] gap-3 items-end">
+            <div>
+              <Label className="text-xs">Search events</Label>
+              <Input
+                value={eventQuery}
+                onChange={(e) => setEventQuery(e.target.value)}
+                placeholder="Search by name or date…"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={eventStatusFilter} onValueChange={setEventStatusFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="input">Input</SelectItem>
+                  <SelectItem value="shopping_list">Shopping List</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="draft_quote">Draft Quote</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label className="text-xs">Active event</Label>
-              {eventsLoading ? <LoadingState /> : (
-                <Select value={selectedId ?? ""} onValueChange={(v) => setSelectedId(v || null)}>
-                  <SelectTrigger><SelectValue placeholder={events.length === 0 ? "No events yet — create one below" : "Select event"} /></SelectTrigger>
-                  <SelectContent>
-                    {events.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.name} {e.event_date ? `· ${e.event_date}` : ""} · {STATUS_LABEL[e.status] ?? e.status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              {eventsLoading ? <LoadingState inline /> : (() => {
+                const q = eventQuery.trim().toLowerCase();
+                const filtered = events.filter((e) => {
+                  if (eventStatusFilter !== "all" && e.status !== eventStatusFilter) return false;
+                  if (!q) return true;
+                  return (
+                    e.name.toLowerCase().includes(q) ||
+                    (e.event_date ?? "").toLowerCase().includes(q)
+                  );
+                });
+                return (
+                  <Select value={selectedId ?? ""} onValueChange={(v) => setSelectedId(v || null)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        events.length === 0 ? "No events yet — create one below"
+                        : filtered.length === 0 ? "No matches"
+                        : `Select event (${filtered.length})`
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filtered.length === 0 ? (
+                        <div className="px-2 py-3 text-xs text-muted-foreground">No events match the filter.</div>
+                      ) : filtered.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name} {e.event_date ? `· ${e.event_date}` : ""} · {STATUS_LABEL[e.status] ?? e.status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
             {ev && <ProgressBar status={ev.status} />}
           </div>
