@@ -590,7 +590,7 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
 
     const { data: stuck, error: selErr } = await supabase
       .from("pricing_v2_runs")
-      .select("run_id, started_at, stage")
+      .select("run_id, started_at, stage, counts_in, counts_out, warnings_count, errors_count, params, notes")
       .in("stage", ["catalog", "catalog_bootstrap_test"])
       .eq("status", "running")
       .lt("started_at", cutoffIso);
@@ -612,14 +612,44 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
       .in("run_id", runIds);
     if (updErr) throw new Error(updErr.message);
 
-    const errorRows = stuckRuns.map((r: any) => ({
-      stage: r.stage,
-      run_id: r.run_id,
-      severity: "error",
-      type: "stuck_run_recovered",
-      message: summary,
-      debug_json: { older_than_minutes: data.older_than_minutes, started_at: r.started_at },
-    }));
+    // One uniform error row per recovered run, with full audit context:
+    // started_at, stage, and the exact SQL counts captured at recovery time.
+    const errorRows = stuckRuns.map((r: any) => {
+      const startedAt = r.started_at as string | null;
+      const stuckMs = startedAt ? Date.now() - new Date(startedAt).getTime() : null;
+      const counts = {
+        counts_in: r.counts_in ?? 0,
+        counts_out: r.counts_out ?? 0,
+        warnings_count: r.warnings_count ?? 0,
+        errors_count: r.errors_count ?? 0,
+      };
+      const perRunMessage =
+        `Auto-recovered ${r.stage} run ${r.run_id} stuck since ${startedAt ?? "unknown"} ` +
+        `(>${data.older_than_minutes}m). Counts at recovery — in:${counts.counts_in} ` +
+        `out:${counts.counts_out} warn:${counts.warnings_count} err:${counts.errors_count}.`;
+      return {
+        stage: r.stage,
+        run_id: r.run_id,
+        severity: "error",
+        type: "stuck_run_recovered",
+        message: perRunMessage,
+        debug_json: {
+          older_than_minutes: data.older_than_minutes,
+          recovered_at: nowIso,
+          cutoff: cutoffIso,
+          run: {
+            run_id: r.run_id,
+            stage: r.stage,
+            started_at: startedAt,
+            stuck_for_ms: stuckMs,
+            stuck_for_minutes: stuckMs != null ? Math.round(stuckMs / 60_000) : null,
+            params: r.params ?? null,
+            notes: r.notes ?? null,
+          },
+          counts,
+        },
+      };
+    });
     await supabase.from("pricing_v2_errors").insert(errorRows);
 
     const { data: bsRows } = await supabase
