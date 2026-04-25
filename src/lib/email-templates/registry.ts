@@ -14,6 +14,7 @@ import { template as recipeWelcome } from './recipe-welcome'
 import { template as recipeRelated } from './recipe-related'
 import { template as recipeTools } from './recipe-tools'
 import { template as recipeCatering } from './recipe-catering'
+import { template as prospectFollowUpDay0 } from './prospect-followup-day0'
 import { template as prospectFollowUpDay5 } from './prospect-followup-day5'
 import { template as prospectFollowUpDay14 } from './prospect-followup-day14'
 
@@ -23,6 +24,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'recipe-related': recipeRelated,
   'recipe-tools': recipeTools,
   'recipe-catering': recipeCatering,
+  'prospect-followup-day0': prospectFollowUpDay0,
   'prospect-followup-day5': prospectFollowUpDay5,
   'prospect-followup-day14': prospectFollowUpDay14,
 }
