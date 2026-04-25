@@ -17,10 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
 import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useServerFn } from "@tanstack/react-start";
+import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
@@ -64,6 +67,19 @@ function ProspectsPage() {
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const generateContact = useServerFn(generateProspectContact);
+
+  const isMissingContact = (p: Prospect) => !p.email && !p.phone;
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
 
   const openEmailDialog = (p: Prospect, isReply: boolean) => {
     setEmailDialogProspect(p);
@@ -130,6 +146,59 @@ function ProspectsPage() {
     const { error } = await (supabase as any).from("sales_prospects").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
+    load();
+  };
+
+  const runBulkGenerateContact = async () => {
+    const targets = rows.filter((r) => selectedIds.has(r.id) && isMissingContact(r));
+    if (targets.length === 0) {
+      toast.error("Select prospects missing email and phone first.");
+      return;
+    }
+    if (!confirm(`Generate AI contact info for ${targets.length} prospect${targets.length === 1 ? "" : "s"}? Results are saved automatically — review and edit afterward.`)) return;
+
+    setBulkRunning(true);
+    setBulkProgress({ done: 0, total: targets.length });
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      try {
+        const res = await generateContact({
+          data: { businessName: p.business_name, city: p.city, type: p.type },
+        });
+        if (!res.ok) { failed++; }
+        else {
+          const c = res.contact;
+          const aiNote = c.notes
+            ? `AI contact research (${c.confidence ?? "?"} confidence): ${c.notes}${c.website ? ` · Website: ${c.website}` : ""}`
+            : null;
+          const mergedNotes = [p.notes?.trim(), aiNote].filter(Boolean).join("\n\n") || null;
+          const { error } = await (supabase as any)
+            .from("sales_prospects")
+            .update({
+              contact_name: p.contact_name || c.contact_name || null,
+              email: p.email || c.email || null,
+              phone: p.phone || c.phone || null,
+              notes: mergedNotes,
+            })
+            .eq("id", p.id);
+          if (error) failed++; else success++;
+        }
+      } catch {
+        failed++;
+      }
+      setBulkProgress({ done: i + 1, total: targets.length });
+      // Small delay to avoid hammering the AI gateway rate limit
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    setBulkRunning(false);
+    setBulkProgress(null);
+    setSelectedIds(new Set());
+    if (success) toast.success(`Generated contact info for ${success} prospect${success === 1 ? "" : "s"}${failed ? ` (${failed} failed)` : ""}`);
+    else toast.error(`Bulk generate failed for all ${failed} prospects`);
     load();
   };
 
@@ -214,6 +283,55 @@ function ProspectsPage() {
         </CardContent>
       </Card>
 
+      {(() => {
+        const missingFiltered = filtered.filter(isMissingContact);
+        const selectedMissingCount = missingFiltered.filter((p) => selectedIds.has(p.id)).length;
+        const allMissingSelected = missingFiltered.length > 0 && selectedMissingCount === missingFiltered.length;
+        return (
+          <Card>
+            <CardContent className="p-3 flex flex-wrap items-center gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={allMissingSelected}
+                  onCheckedChange={(v) => {
+                    if (v) setSelectedIds(new Set(missingFiltered.map((p) => p.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                  disabled={missingFiltered.length === 0 || bulkRunning}
+                  aria-label="Select all prospects missing contact info"
+                />
+                <span className="text-muted-foreground">
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} selected`
+                    : `Select all missing contact info (${missingFiltered.length})`}
+                </span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {bulkProgress && (
+                  <span className="text-xs text-muted-foreground">
+                    {bulkProgress.done} / {bulkProgress.total}
+                  </span>
+                )}
+                {selectedIds.size > 0 && !bulkRunning && (
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+                    Clear
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={runBulkGenerateContact}
+                  disabled={bulkRunning || selectedIds.size === 0}
+                  className="gap-1.5"
+                >
+                  {bulkRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {bulkRunning ? "Generating…" : "Generate contact info for selected"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {loading ? (
         <p className="text-muted-foreground text-sm">Loading…</p>
       ) : Object.keys(grouped).length === 0 ? (
@@ -229,6 +347,7 @@ function ProspectsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8"></TableHead>
                     <TableHead>Business</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Contact</TableHead>
@@ -241,7 +360,15 @@ function ProspectsPage() {
                 </TableHeader>
                 <TableBody>
                   {list.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} data-state={selectedIds.has(p.id) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(p.id)}
+                          onCheckedChange={(v) => toggleSelect(p.id, !!v)}
+                          disabled={!isMissingContact(p) || bulkRunning}
+                          aria-label={`Select ${p.business_name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <button onClick={() => openEdit(p)} className="font-medium text-left hover:underline">
                           {p.business_name}
