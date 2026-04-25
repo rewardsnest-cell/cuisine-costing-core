@@ -17,10 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
 import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useServerFn } from "@tanstack/react-start";
+import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
