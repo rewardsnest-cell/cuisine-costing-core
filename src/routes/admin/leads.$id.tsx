@@ -308,7 +308,7 @@ function ThreadView({ thread, defaultOpen, attachmentsByEmail }: { thread: any[]
   )
 }
 
-function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: boolean }) {
+function MessageItem({ message: m, defaultOpen, attachments }: { message: any; defaultOpen: boolean; attachments: any[] }) {
   const [open, setOpen] = useState(defaultOpen)
   const isInbound = m.direction === 'inbound'
   const ts = m.received_at || m.sent_at
@@ -344,14 +344,19 @@ function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: b
             </div>
           )}
         </div>
+        {attachments.length > 0 && (
+          <Badge variant="outline" className="ml-2 text-xs">
+            <Paperclip className="mr-1 h-3 w-3" /> {attachments.length}
+          </Badge>
+        )}
         <div className="ml-auto shrink-0 text-xs text-muted-foreground">
           {ts ? new Date(ts).toLocaleString() : ''}
         </div>
       </button>
       {open && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-3">
           {m.template_name && (
-            <Badge variant="outline" className="mb-2 text-xs">template: {m.template_name}</Badge>
+            <Badge variant="outline" className="text-xs">template: {m.template_name}</Badge>
           )}
           {m.body_html ? (
             <div
@@ -363,8 +368,46 @@ function MessageItem({ message: m, defaultOpen }: { message: any; defaultOpen: b
               {m.body_text || m.body_preview || '(no content)'}
             </pre>
           )}
+          {attachments.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Paperclip className="h-3 w-3" /> Attachments ({attachments.length})
+              </div>
+              <ul className="flex flex-wrap gap-2">
+                {attachments.map((a) => {
+                  const { data: pub } = supabase.storage
+                    .from(a.storage_bucket || 'lead-email-attachments')
+                    .getPublicUrl(a.storage_path)
+                  return (
+                    <li key={a.id}>
+                      <a
+                        href={pub.publicUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs hover:bg-muted"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="font-medium">{a.file_name}</span>
+                        {a.size_bytes != null && (
+                          <span className="text-muted-foreground">
+                            · {formatBytes(a.size_bytes)}
+                          </span>
+                        )}
+                      </a>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
