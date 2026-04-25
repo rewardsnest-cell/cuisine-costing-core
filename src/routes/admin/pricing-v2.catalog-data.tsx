@@ -162,6 +162,23 @@ function CatalogDataPage() {
         </TabsList>
 
         <TabsContent value="normalized">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              disabled={(normalized.data?.rows.length ?? 0) === 0}
+              onClick={() =>
+                downloadCsv(
+                  `pv2-item-catalog-${stamp()}.csv`,
+                  NORMALIZED_COLS,
+                  normalized.data?.rows ?? [],
+                )
+              }
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </Button>
+          </div>
           <Card>
             <CardContent className="p-0">
               {normalized.isLoading ? (
