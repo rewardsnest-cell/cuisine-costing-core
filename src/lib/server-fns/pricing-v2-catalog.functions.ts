@@ -353,7 +353,39 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         }
       }
 
-      // 4) Finalize run row.
+      // 4) Advance bootstrap_state cursor + counters; finalize when done.
+      let bootstrapCompleted = false;
+      if (!data.dry_run) {
+        // Cursor advances even if some products weren't returned by Kroger,
+        // so unmapped/invalid IDs don't permanently block progress.
+        const advancedCursor = slice.length ? slice[slice.length - 1] : nextCursor;
+
+        const statePatch: Record<string, any> = {
+          last_run_id: runId,
+          last_page_token: advancedCursor,
+          total_items_fetched: (state.total_items_fetched ?? 0) + countsOut,
+        };
+
+        if (pageDone) {
+          bootstrapCompleted = true;
+          statePatch.status = "COMPLETED";
+          statePatch.completed_at = new Date().toISOString();
+          statePatch.last_page_token = null;
+        } else {
+          statePatch.status = "IN_PROGRESS";
+        }
+
+        await supabase
+          .from("pricing_v2_catalog_bootstrap_state")
+          .update(statePatch)
+          .eq("store_id", storeId);
+      }
+
+      // 5) Finalize run row.
+      const runNotes = bootstrapCompleted
+        ? `catalog_bootstrap completed — total_items_fetched=${(state.total_items_fetched ?? 0) + countsOut}`
+        : `catalog_bootstrap batch — fetched=${countsOut} remaining_inventory_ids=${Math.max(0, (await listAllInventoryProductIds(supabase)).length - ((nextCursor ? 0 : 0) + 0)) /* approx */ }`;
+
       await supabase
         .from("pricing_v2_runs")
         .update({
@@ -364,6 +396,7 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
           warnings_count: warnings,
           errors_count: errCount,
           last_error: errors.find((e) => e.severity === "error")?.message ?? null,
+          notes: runNotes,
         })
         .eq("run_id", runId);
 
@@ -375,6 +408,8 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         counts_out: countsOut,
         warnings_count: warnings,
         errors_count: errCount,
+        page_done: pageDone,
+        bootstrap_completed: bootstrapCompleted,
         errors_preview: errors.slice(0, 50),
       };
     } catch (e: any) {
