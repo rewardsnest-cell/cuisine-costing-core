@@ -294,7 +294,7 @@ function ProspectsPage() {
         <CardContent className="p-4 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[180px]">
             <Label className="text-xs">Search</Label>
-            <Input placeholder="Business name…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Search name, email, phone, address…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">City</Label>
