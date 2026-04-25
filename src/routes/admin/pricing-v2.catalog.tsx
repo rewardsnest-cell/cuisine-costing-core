@@ -37,6 +37,7 @@ import {
   resetCatalogBootstrap,
   recoverStuckCatalogRuns,
   getBootstrapPreflight,
+  replayCatalogRun,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
