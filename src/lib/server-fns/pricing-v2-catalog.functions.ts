@@ -169,11 +169,15 @@ type ErrorRow = {
 
 // ---- runCatalogBootstrap --------------------------------------------------
 
-export const runCatalogBootstrap = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => bootstrapSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context as any;
+type BootstrapInput = z.infer<typeof bootstrapSchema>;
+type ExecOpts = { triggered_by?: string; replay_of?: string | null };
+
+async function executeCatalogBootstrap(
+  supabase: any,
+  userId: string | null,
+  data: BootstrapInput,
+  opts: ExecOpts = {},
+) {
     const storeId = await getStoreId(supabase);
 
     // ---- Pre-check: bootstrap_state guard --------------------------------
