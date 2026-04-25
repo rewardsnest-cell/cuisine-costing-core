@@ -195,6 +195,62 @@ function VisibilityPage() {
         </p>
       </div>
 
+      {(() => {
+        const menuRow = rows.find((r) => r.feature_key === "menu");
+        const menuOn = menuRow?.phase === "public" && menuRow?.nav_enabled;
+        const isToggling = quickToggling === "menu";
+        return (
+          <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <UtensilsCrossed className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+                      Public Menu
+                      {menuRow && (
+                        <Badge variant="outline" className={PHASE_BADGE_CLASS[menuRow.phase]}>
+                          {PHASE_LABEL[menuRow.phase]}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {menuOn
+                        ? "Currently visible to everyone at /menu."
+                        : "Currently hidden from the public. Admins can still preview it."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5">
+                  <Power className={`w-4 h-4 ${menuOn ? "text-emerald-500" : "text-muted-foreground"}`} />
+                  <span className={`text-sm font-semibold ${menuOn ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                    {isToggling ? "Saving…" : menuOn ? "ON — Public" : "OFF — Hidden"}
+                  </span>
+                  <Switch
+                    checked={!!menuOn}
+                    disabled={isToggling || loading || !menuRow}
+                    onCheckedChange={(v) => onQuickToggle("menu", v)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex items-center gap-2 flex-wrap">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <Link to="/menu">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Open public menu
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Toggling here saves immediately and updates everywhere — no publish needed.
+              </p>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Phase legend</CardTitle>
