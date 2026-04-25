@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug, ShieldAlert, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
 import { BootstrapRunDetailsDialog } from "@/components/admin/BootstrapRunDetailsDialog";
