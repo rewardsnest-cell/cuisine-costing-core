@@ -228,6 +228,23 @@ function CatalogDataPage() {
         </TabsContent>
 
         <TabsContent value="raw">
+          <div className="flex justify-end mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              disabled={(raw.data?.rows.length ?? 0) === 0}
+              onClick={() =>
+                downloadCsv(
+                  `pv2-kroger-raw-${stamp()}.csv`,
+                  RAW_COLS,
+                  raw.data?.rows ?? [],
+                )
+              }
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </Button>
+          </div>
           <Card>
             <CardContent className="p-0">
               {raw.isLoading ? (
@@ -243,6 +260,61 @@ function CatalogDataPage() {
       </Tabs>
     </div>
   );
+}
+
+const NORMALIZED_COLS = [
+  "id",
+  "store_id",
+  "upc",
+  "kroger_product_id",
+  "name",
+  "brand",
+  "size_raw",
+  "net_weight_grams",
+  "weight_source",
+  "manual_net_weight_grams",
+  "manual_override_reason",
+  "updated_at",
+];
+
+const RAW_COLS = [
+  "id",
+  "run_id",
+  "store_id",
+  "upc",
+  "kroger_product_id",
+  "name",
+  "brand",
+  "size_raw",
+  "fetched_at",
+  "payload_json",
+];
+
+function stamp() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function csvEscape(v: unknown): string {
+  if (v == null) return "";
+  const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsv(filename: string, cols: string[], rows: any[]) {
+  const lines = [cols.join(",")];
+  for (const r of rows) {
+    lines.push(cols.map((c) => csvEscape(r?.[c])).join(","));
+  }
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function StatCard({
