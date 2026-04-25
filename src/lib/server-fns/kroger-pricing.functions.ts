@@ -184,18 +184,20 @@ export const setKrogerEnabled = createServerFn({ method: "POST" })
     return { ok: true, enabled: data.enabled };
   });
 
-export const setKrogerLocationId = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { location_id: string | null }) => d)
-  .handler(async ({ context, data }) => {
-    await ensureAdmin(context.supabase, context.userId);
-    const v = (data.location_id ?? "").trim();
-    if (v && !/^[A-Za-z0-9-]{1,32}$/.test(v)) {
-      throw new Error("Invalid locationId format");
-    }
-    await setKv("kroger_location_id", v, context.userId);
-    return { ok: true, location_id: v || null };
-  });
+// `setKrogerLocationId` and `getKrogerLocationId` were intentionally removed.
+// Pricing intent: humans supervise the pipeline; they do NOT control which store
+// Kroger pricing is pulled from. Location is always derived from a fixed ZIP
+// (DEFAULT_ZIP) on the server and cached for 30 days in app_kv.
+
+/**
+ * Always-ZIP-based location resolver used by every ingest path.
+ * Derives + caches a Kroger locationId. Returns null only when the upstream
+ * Locations API itself cannot resolve the ZIP — never reads a saved override.
+ */
+async function resolveLocationForRun(token: string, zipOverride?: string | null): Promise<string | null> {
+  const zip = (zipOverride ?? DEFAULT_ZIP).trim();
+  return resolveLocationIdFromZip(zip, token);
+}
 
 /**
  * Kroger OAuth2 client_credentials token exchange.
