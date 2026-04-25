@@ -43,13 +43,19 @@ function CatalogBootstrapPage() {
     queryKey: ["pricing-v2", "catalog", "runs"],
     queryFn: () => listCatalogRuns(),
   });
+  const bootstrapState = useQuery({
+    queryKey: ["pricing-v2", "catalog", "bootstrap-state"],
+    queryFn: () => getCatalogBootstrapState(),
+    refetchInterval: (q: any) => (q.state?.data?.state?.status === "IN_PROGRESS" ? 4000 : false),
+  });
 
-  const [limit, setLimit] = useState<string>("");
+  const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
+  const [resetConfirm, setResetConfirm] = useState<string>("");
 
-  const [errFilterRun, setErrFilterRun] = useState<string | "">("");
+  const [errFilterRun, setErrFilterRun] = useState<string>("");
   const [errFilterSeverity, setErrFilterSeverity] = useState<"" | "warning" | "error">("");
   const errors = useQuery({
     queryKey: ["pricing-v2", "catalog", "errors", errFilterRun, errFilterSeverity],
@@ -64,17 +70,27 @@ function CatalogBootstrapPage() {
   });
 
   const runMut = useMutation({
-    mutationFn: (vars: { dry_run: boolean; limit?: number; keyword?: string }) =>
+    mutationFn: (vars: { dry_run: boolean; batch_size?: number; keyword?: string }) =>
       runCatalogBootstrap({ data: vars }),
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       setLastResult(res);
-      setErrFilterRun(res.run_id);
-      toast.success(
-        `${res.dry_run ? "Dry run" : "Bootstrap"} done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`
-      );
+      if (res.run_id) setErrFilterRun(res.run_id);
+      if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
+      else if (res.bootstrap_completed) toast.success(`Bootstrap COMPLETED — fetched ${res.counts_out} this batch`);
+      else toast.success(`Batch done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`);
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Run failed"),
+  });
+
+  const resetMut = useMutation({
+    mutationFn: () => resetCatalogBootstrap({ data: { confirmation: "RESET CATALOG" } }),
+    onSuccess: () => {
+      setResetConfirm("");
+      toast.success("Bootstrap reset to NOT_STARTED");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Reset failed"),
   });
 
   const testMut = useMutation({
