@@ -2675,6 +2675,45 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_catalog_bootstrap_state: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_page_token: string | null
+          last_run_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["pricing_v2_bootstrap_status"]
+          store_id: string
+          total_items_fetched: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_page_token?: string | null
+          last_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["pricing_v2_bootstrap_status"]
+          store_id: string
+          total_items_fetched?: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_page_token?: string | null
+          last_run_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["pricing_v2_bootstrap_status"]
+          store_id?: string
+          total_items_fetched?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_v2_errors: {
         Row: {
           created_at: string
@@ -5086,6 +5125,7 @@ export type Database = {
       inspired_phase: "off" | "admin_preview" | "soft_launch" | "public"
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
+      pricing_v2_bootstrap_status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
       pricing_v2_run_status:
         | "queued"
         | "running"
@@ -5251,6 +5291,7 @@ export const Constants = {
       inspired_phase: ["off", "admin_preview", "soft_launch", "public"],
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
+      pricing_v2_bootstrap_status: ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"],
       pricing_v2_run_status: [
         "queued",
         "running",
