@@ -1938,13 +1938,18 @@ export type Database = {
       inventory_items: {
         Row: {
           average_cost_per_unit: number
+          catalog_notes: string | null
+          catalog_status: string
+          catalog_validated_at: string | null
           category: string | null
           created_at: string
           created_source: string
           current_stock: number
           id: string
+          kroger_product_id: string | null
           last_receipt_cost: number | null
           name: string
+          pack_weight_grams: number | null
           par_level: number
           pending_review: boolean
           supplier_id: string | null
@@ -1953,13 +1958,18 @@ export type Database = {
         }
         Insert: {
           average_cost_per_unit?: number
+          catalog_notes?: string | null
+          catalog_status?: string
+          catalog_validated_at?: string | null
           category?: string | null
           created_at?: string
           created_source?: string
           current_stock?: number
           id?: string
+          kroger_product_id?: string | null
           last_receipt_cost?: number | null
           name: string
+          pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
           supplier_id?: string | null
@@ -1968,13 +1978,18 @@ export type Database = {
         }
         Update: {
           average_cost_per_unit?: number
+          catalog_notes?: string | null
+          catalog_status?: string
+          catalog_validated_at?: string | null
           category?: string | null
           created_at?: string
           created_source?: string
           current_stock?: number
           id?: string
+          kroger_product_id?: string | null
           last_receipt_cost?: number | null
           name?: string
+          pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
           supplier_id?: string | null
@@ -2662,9 +2677,11 @@ export type Database = {
           created_at: string
           debug_json: Json
           entity_id: string | null
+          entity_name: string | null
           entity_type: string | null
           id: string
           message: string
+          resolved_at: string | null
           run_id: string | null
           severity: Database["public"]["Enums"]["pricing_v2_severity"]
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
@@ -2675,9 +2692,11 @@ export type Database = {
           created_at?: string
           debug_json?: Json
           entity_id?: string | null
+          entity_name?: string | null
           entity_type?: string | null
           id?: string
           message: string
+          resolved_at?: string | null
           run_id?: string | null
           severity?: Database["public"]["Enums"]["pricing_v2_severity"]
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
@@ -2688,9 +2707,11 @@ export type Database = {
           created_at?: string
           debug_json?: Json
           entity_id?: string | null
+          entity_name?: string | null
           entity_type?: string | null
           id?: string
           message?: string
+          resolved_at?: string | null
           run_id?: string | null
           severity?: Database["public"]["Enums"]["pricing_v2_severity"]
           stage?: Database["public"]["Enums"]["pricing_v2_stage"]
@@ -2715,11 +2736,14 @@ export type Database = {
           ended_at: string | null
           errors_count: number
           initiated_by: string | null
+          last_error: string | null
           notes: string | null
+          params: Json
           run_id: string
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
           started_at: string
           status: Database["public"]["Enums"]["pricing_v2_run_status"]
+          triggered_by: string | null
           warnings_count: number
         }
         Insert: {
@@ -2729,11 +2753,14 @@ export type Database = {
           ended_at?: string | null
           errors_count?: number
           initiated_by?: string | null
+          last_error?: string | null
           notes?: string | null
+          params?: Json
           run_id?: string
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
           started_at?: string
           status?: Database["public"]["Enums"]["pricing_v2_run_status"]
+          triggered_by?: string | null
           warnings_count?: number
         }
         Update: {
@@ -2743,11 +2770,14 @@ export type Database = {
           ended_at?: string | null
           errors_count?: number
           initiated_by?: string | null
+          last_error?: string | null
           notes?: string | null
+          params?: Json
           run_id?: string
           stage?: Database["public"]["Enums"]["pricing_v2_stage"]
           started_at?: string
           status?: Database["public"]["Enums"]["pricing_v2_run_status"]
+          triggered_by?: string | null
           warnings_count?: number
         }
         Relationships: []
