@@ -9,6 +9,7 @@ import {
   getPricingV2Health,
   runPricingV2SelfTest,
 } from "@/lib/server-fns/pricing-v2.functions";
+import { getRecipeNormalizationGate } from "@/lib/server-fns/pricing-v2-recipe-normalize.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/")({
   head: () => ({ meta: [{ title: "Pricing v2 — Control Center" }] }),
@@ -41,6 +42,10 @@ function PricingV2ControlCenter() {
   const health = useQuery({
     queryKey: ["pricing-v2", "health"],
     queryFn: () => getPricingV2Health(),
+  });
+  const gate = useQuery({
+    queryKey: ["pricing-v2", "norm", "gate"],
+    queryFn: () => getRecipeNormalizationGate(),
   });
   const selfTest = useMutation({
     mutationFn: () => runPricingV2SelfTest(),
