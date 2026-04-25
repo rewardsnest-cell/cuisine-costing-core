@@ -330,6 +330,7 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing SQL Appendix (.sql)",
       });
+      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "SQL saved to Downloads Hub" : "SQL downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export SQL");
