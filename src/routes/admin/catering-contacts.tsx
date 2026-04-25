@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin, Activity } from "lucide-react";
+import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin, Activity, Send } from "lucide-react";
+import { LeadEmailDialog } from "@/components/leads/LeadEmailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
