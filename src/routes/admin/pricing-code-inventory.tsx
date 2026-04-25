@@ -85,7 +85,6 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing Code Inventory (JSON)",
       });
-      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "JSON saved to Downloads Hub" : "JSON downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export JSON");
@@ -310,7 +309,6 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing Code Inventory (PDF)",
       });
-      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "PDF saved to Downloads Hub" : "PDF downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export PDF");
@@ -330,7 +328,6 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing SQL Appendix (.sql)",
       });
-      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "SQL saved to Downloads Hub" : "SQL downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export SQL");
