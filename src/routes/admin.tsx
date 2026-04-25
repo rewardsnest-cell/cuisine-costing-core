@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun, ChevronDown, ServerCrash,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -133,6 +133,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/trends",               label: "Price Trends",           icon: TrendingUp,      featureKey: "admin_price_trends" },
       { to: "/admin/kroger-pricing",       label: "Kroger Pricing",         icon: Tag,             featureKey: "admin_kroger_pricing" },
       { to: "/admin/kroger-sku-review",    label: "Kroger SKU Review",      icon: ClipboardCheck,  featureKey: "admin_kroger_sku_review" },
+      { to: "/admin/kroger-ingest-runs",   label: "Kroger Ingest Runs",     icon: ServerCrash,     featureKey: "admin_kroger_ingest_runs" },
       { to: "/admin/cost-queue",           label: "Cost Update Queue",      icon: ClipboardCheck,  featureKey: "admin_cost_queue" },
       { to: "/admin/receipts",             label: "Receipt Diagnostics",    icon: Receipt,         featureKey: "admin_receipt_diagnostics" },
       { to: "/admin/pricing-code-inventory", label: "Pricing Code Inventory", icon: FileSearch,    featureKey: "admin_pricing_code_inventory" },
