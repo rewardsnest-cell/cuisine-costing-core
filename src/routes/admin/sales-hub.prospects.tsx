@@ -360,7 +360,15 @@ function ProspectsPage() {
                 </TableHeader>
                 <TableBody>
                   {list.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} data-state={selectedIds.has(p.id) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(p.id)}
+                          onCheckedChange={(v) => toggleSelect(p.id, !!v)}
+                          disabled={!isMissingContact(p) || bulkRunning}
+                          aria-label={`Select ${p.business_name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <button onClick={() => openEdit(p)} className="font-medium text-left hover:underline">
                           {p.business_name}
