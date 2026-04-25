@@ -258,8 +258,83 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   const fmt = (n: number) => n.toFixed(n < 1 && n > 0 ? 2 : 1);
-  const grandTotal = groups.reduce((s, g) => s + g.estCost, 0);
-  const grandSavings = groups.reduce(
+
+  // Apply user exclusions (delete from list) before render
+  const visibleGroups: Group[] = useMemo(() => {
+    return groups
+      .map((g) => {
+        const rows = g.rows.filter((r) => !excluded.has(rowKey(r, g.supplierId)));
+        const estCost = rows.reduce((s, r) => s + r.toBuy * r.unitCost, 0);
+        return { ...g, rows, estCost };
+      })
+      .filter((g) => g.rows.length > 0);
+  }, [groups, excluded]);
+
+  const allKeys: string[] = useMemo(
+    () => visibleGroups.flatMap((g) => g.rows.map((r) => rowKey(r, g.supplierId))),
+    [visibleGroups],
+  );
+  const allSelected = allKeys.length > 0 && allKeys.every((k) => selected.has(k));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleRow = (key: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(allKeys));
+  };
+
+  const toggleGroup = (g: Group) => {
+    const keys = g.rows.map((r) => rowKey(r, g.supplierId));
+    const allOn = keys.every((k) => selected.has(k));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOn) keys.forEach((k) => next.delete(k));
+      else keys.forEach((k) => next.add(k));
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    const ok = await confirm({
+      title: `Remove ${selected.size} item${selected.size === 1 ? "" : "s"} from shopping list?`,
+      description: "They will be hidden until the list is rebuilt.",
+      confirmText: "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
+    setExcluded((prev) => new Set([...prev, ...selected]));
+    setSelected(new Set());
+  };
+
+  const deleteAll = async () => {
+    if (allKeys.length === 0) return;
+    const ok = await confirm({
+      title: "Clear entire shopping list?",
+      description: "All items will be hidden until the list is rebuilt.",
+      confirmText: "Clear all",
+      destructive: true,
+    });
+    if (!ok) return;
+    setExcluded((prev) => new Set([...prev, ...allKeys]));
+    setSelected(new Set());
+  };
+
+  const restoreAll = () => {
+    setExcluded(new Set());
+    setSelected(new Set());
+  };
+
+  const grandTotal = visibleGroups.reduce((s, g) => s + g.estCost, 0);
+  const grandSavings = visibleGroups.reduce(
     (s, g) => s + g.rows.reduce((rs, r) => rs + (r.totalSavings || 0), 0),
     0,
   );
@@ -267,9 +342,25 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center flex-wrap gap-2">
-        <p className="text-xs text-muted-foreground">
-          Grouped by supplier. Items on active sale are switched to the cheapest supplier.
-        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={toggleAll}
+              aria-label="Select all rows"
+            />
+            <span>
+              {selected.size > 0
+                ? `${selected.size} selected`
+                : "Select all"}
+            </span>
+          </label>
+          {excluded.size > 0 && (
+            <Button size="sm" variant="ghost" onClick={restoreAll}>
+              Restore {excluded.size} hidden
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm">
             Estimated total:{" "}
@@ -280,13 +371,31 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
               Saving <span className="font-display font-bold">${grandSavings.toFixed(2)}</span> from sales
             </span>
           )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={deleteSelected}
+            disabled={selected.size === 0}
+            className="gap-2"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete selected
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={deleteAll}
+            disabled={allKeys.length === 0}
+            className="gap-2 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete all
+          </Button>
           <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
             <Printer className="w-3.5 h-3.5" /> Print
           </Button>
           <Button
             size="sm"
             onClick={createPurchaseOrders}
-            disabled={creatingPOs || groups.length === 0}
+            disabled={creatingPOs || visibleGroups.length === 0}
             className="gap-2"
           >
             {creatingPOs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />}
@@ -295,18 +404,29 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
         </div>
       </div>
 
-      {groups.length === 0 ? (
+      {visibleGroups.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
-          No ingredients found. Menu items must be linked to recipes with ingredients.
+          {groups.length === 0
+            ? "No ingredients found. Menu items must be linked to recipes with ingredients."
+            : "All items hidden. Use “Restore hidden” to bring them back."}
         </p>
       ) : (
-        groups.map((g) => (
+        visibleGroups.map((g) => {
+          const groupKeys = g.rows.map((r) => rowKey(r, g.supplierId));
+          const groupAllSelected = groupKeys.every((k) => selected.has(k));
+          const groupSomeSelected = !groupAllSelected && groupKeys.some((k) => selected.has(k));
+          return (
           <div
             key={g.supplierId || "none"}
             className="border border-border/50 rounded-lg overflow-hidden"
           >
             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-muted/40 border-b border-border/40">
               <div className="flex items-center gap-2 min-w-0">
+                <Checkbox
+                  checked={groupAllSelected ? true : groupSomeSelected ? "indeterminate" : false}
+                  onCheckedChange={() => toggleGroup(g)}
+                  aria-label={`Select all from ${g.supplierName}`}
+                />
                 <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <span className="font-medium text-sm truncate">{g.supplierName}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
@@ -325,6 +445,7 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
             <table className="w-full text-sm">
               <thead className="bg-background">
                 <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-2 px-3 font-medium w-8"></th>
                   <th className="py-2 px-3 font-medium">Ingredient</th>
                   <th className="py-2 px-3 font-medium text-right">Needed</th>
                   <th className="py-2 px-3 font-medium text-right">In stock</th>
@@ -337,11 +458,20 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
                 {g.rows.map((r, i) => {
                   const covered = r.toBuy === 0 && r.needed > 0;
                   const lineCost = r.toBuy * r.unitCost;
+                  const k = rowKey(r, g.supplierId);
+                  const isSel = selected.has(k);
                   return (
                     <tr
                       key={i}
-                      className={`border-t border-border/40 ${covered ? "bg-success/5" : ""}`}
+                      className={`border-t border-border/40 ${covered ? "bg-success/5" : ""} ${isSel ? "bg-primary/5" : ""}`}
                     >
+                      <td className="py-2 px-3">
+                        <Checkbox
+                          checked={isSel}
+                          onCheckedChange={() => toggleRow(k)}
+                          aria-label={`Select ${r.name}`}
+                        />
+                      </td>
                       <td className="py-2 px-3">
                         <div className="flex flex-col gap-0.5">
                           <span>
@@ -407,8 +537,10 @@ export function ShoppingList({ quoteId }: { quoteId: string }) {
               </tbody>
             </table>
           </div>
-        ))
+          );
+        })
       )}
     </div>
   );
 }
+
