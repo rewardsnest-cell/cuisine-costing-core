@@ -132,6 +132,32 @@ async function processMessages(
         notes: `Outlook reply: ${msg.subject ?? '(no subject)'} — ${msg.bodyPreview.slice(0, 200)}`,
       } as any)
     }
+
+    // Match the same inbound to a prospect (independent of leads).
+    const prospectId = fromEmail ? prospectByEmail.get(fromEmail) ?? null : null
+    if (prospectId) {
+      await (supabase as any).from('sales_contact_log').insert({
+        prospect_id: prospectId,
+        channel: 'email',
+        outcome: 'replied',
+        direction: 'inbound',
+        subject: msg.subject ?? null,
+        body_preview: (msg.bodyPreview ?? '').slice(0, 500),
+        body_html: (msg.body?.contentType ?? '').toLowerCase() === 'html' ? msg.body?.content ?? null : null,
+        from_email: fromEmail,
+        outlook_message_id: msg.id,
+        outlook_conversation_id: msg.conversationId,
+        contacted_at: msg.receivedDateTime,
+      })
+      await (supabase as any)
+        .from('sales_prospects')
+        .update({
+          last_inbound_at: msg.receivedDateTime,
+          last_outlook_conversation_id: msg.conversationId,
+          status: 'Interested',
+        })
+        .eq('id', prospectId)
+    }
   }
 
   // Update sync state
