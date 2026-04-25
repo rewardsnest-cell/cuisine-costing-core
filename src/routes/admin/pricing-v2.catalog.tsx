@@ -26,6 +26,7 @@ export const Route = createFileRoute("/admin/pricing-v2/catalog")({
 });
 
 type RunResult = Awaited<ReturnType<typeof runCatalogBootstrap>>;
+type TestResult = Awaited<ReturnType<typeof runCatalogTestHarness>>;
 
 function CatalogBootstrapPage() {
   const qc = useQueryClient();
@@ -41,6 +42,7 @@ function CatalogBootstrapPage() {
   const [limit, setLimit] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
+  const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
 
   const [errFilterRun, setErrFilterRun] = useState<string | "">("");
   const [errFilterSeverity, setErrFilterSeverity] = useState<"" | "warning" | "error">("");
@@ -73,8 +75,10 @@ function CatalogBootstrapPage() {
   const testMut = useMutation({
     mutationFn: () => runCatalogTestHarness(),
     onSuccess: (res) => {
-      toast.success(`Test harness: ${res.passed}/${res.total} passed`);
+      setLastTestResult(res);
       setErrFilterRun(res.run_id);
+      if (res.failed === 0) toast.success(`Test harness: ${res.passed}/${res.total} passed`);
+      else toast.error(`Test harness: ${res.failed} of ${res.total} failed`);
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Test harness failed"),
