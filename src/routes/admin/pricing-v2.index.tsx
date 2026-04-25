@@ -8,11 +8,21 @@ import {
   getPricingV2Overview,
   getPricingV2Health,
   runPricingV2SelfTest,
+  ensurePricingV2Initialized,
 } from "@/lib/server-fns/pricing-v2.functions";
 import { getRecipeNormalizationGate } from "@/lib/server-fns/pricing-v2-recipe-normalize.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/")({
   head: () => ({ meta: [{ title: "Pricing v2 — Control Center" }] }),
+  loader: async () => {
+    // Server-side, idempotent bootstrap. Single transaction. Safe on every load.
+    try {
+      await ensurePricingV2Initialized({});
+    } catch {
+      // Non-fatal — UI will surface real errors via overview/health queries.
+    }
+    return null;
+  },
   component: PricingV2ControlCenter,
 });
 

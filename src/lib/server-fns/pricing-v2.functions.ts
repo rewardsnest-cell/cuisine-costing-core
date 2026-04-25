@@ -276,3 +276,25 @@ export const runPricingV2SelfTest = createServerFn({ method: "POST" })
 
     return { pass, runId, steps, sampleErrors };
   });
+
+// ---- Server-side initialization (idempotent) -----------------------------
+// Single entry point for ALL Pricing v2 auto-seeding. Calls the SECURITY
+// DEFINER DB function in one transaction. Safe to call repeatedly.
+
+export const ensurePricingV2Initialized = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase.rpc("ensure_pricing_v2_initialized");
+    if (error) throw new Error(error.message);
+    return { summary: data };
+  });
+
+export const ensureAccessInitialized = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase.rpc("ensure_access_initialized");
+    if (error) throw new Error(error.message);
+    return { summary: data };
+  });

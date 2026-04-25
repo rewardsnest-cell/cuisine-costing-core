@@ -2876,6 +2876,36 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_pipeline_stages: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          label: string
+          sort_order: number
+          stage_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          label: string
+          sort_order?: number
+          stage_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          label?: string
+          sort_order?: number
+          stage_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_v2_runs: {
         Row: {
           counts_in: number
@@ -4964,6 +4994,8 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      ensure_access_initialized: { Args: never; Returns: Json }
+      ensure_pricing_v2_initialized: { Args: never; Returns: Json }
       find_ingredient_matches: {
         Args: { _limit?: number; _name: string }
         Returns: {

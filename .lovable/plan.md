@@ -1,106 +1,67 @@
-## Goal
+# Pricing v2 — Foundation & Initialization Plan
 
-Reset the Kroger pricing pipeline to a clean, minimal state with:
-1. A hard-coded Kroger location (Cincinnati 45202).
-2. Per-lb pricing as the canonical default with an editable global markup multiplier (default 3.0).
-3. One clean admin page (`/admin/pricing`) replacing the eight tangled ones.
-4. A reset action that wipes Kroger tables and zeros inventory costs so we can rebuild from scratch.
+## Status as of this turn
 
----
+### ✅ Phase 0 — Legacy archive
+- Tables already in `archive` schema: `fred_pull_log`, `fred_series_map`, `kroger_bootstrap_progress`, `kroger_ingest_runs`, `kroger_sku_map`, `kroger_validation_*`, `national_price_*`, `price_history`, `pricing_models*`, `cost_update_queue`.
+- Legacy admin pages stubbed via `LegacyArchivedBanner` + `FredPullPanel`/`PricingHealthWidget` no-ops.
+- **Remaining**: Admin nav grouping under "Archive" label (cosmetic; pages already banner-ed).
 
-## What gets built
+### ✅ Phase 1 — Server-side initialization (THIS TURN)
+- New DB function `public.ensure_pricing_v2_initialized()` — idempotent, single transaction. Seeds `pricing_v2_settings` row, `pricing_v2_catalog_bootstrap_state` row, and `pricing_v2_pipeline_stages` registry.
+- New DB function `public.ensure_access_initialized()` — idempotent seed of role × section permissions (all OFF for non-admin).
+- New table `pricing_v2_pipeline_stages` (registry).
+- Server fns `ensurePricingV2Initialized` / `ensureAccessInitialized` wrap the RPC calls.
+- Pricing v2 Control Center loader calls `ensurePricingV2Initialized` on every navigation.
+- `/admin/access` no longer auto-seeds from the browser — calls `ensureAccessInitialized` server-side instead.
 
-### 1. Hard-coded Kroger location
+### ✅ Phase 2 — Admin foundation
+- `/admin/pricing-v2` Control Center exists with stage list, health tiles, self-test, Stage -1 gate banner.
+- "Run Monthly Pipeline" button is disabled (correctly — gated until stages built).
+- **Remaining**: Visual polish to display the new `pricing_v2_pipeline_stages` registry rather than the hard-coded `PRICING_V2_STAGES` constant. (Both currently coexist; safe.)
 
-In `src/lib/server/kroger-core.ts`:
-- Change `KROGER_DEFAULT_ZIP` from `"45202"` (already correct) but **also** export a `KROGER_HARDCODED_LOCATION_ID` constant. On first run we resolve 45202 → 8-char locationId via the Locations API and persist it in `app_kv` (already cached 30 days). Remove all UI/cron paths that accept an overriding `zip_code` payload — they all now ignore the override and use 45202.
-- Update `runKrogerIngestInternal` and `kroger-daily-ingest` webhook to drop ZIP arguments entirely.
+### 🟡 Phase 3 — Recipe weight normalization
+- Route `/admin/pricing-v2/recipes-normalize` exists (632 lines).
+- `getRecipeNormalizationGate` server fn exists and gates downstream stages.
+- **Verify next turn**: blocked statuses (`blocked_volume_unit`, `blocked_missing_inventory`, `blocked_each_no_weight`) match spec; manual override flow with reason; dry-run; test harness.
 
-### 2. Per-lb pricing default
+### 🟡 Phase 4 — Kroger catalog bootstrap
+- Route `/admin/pricing-v2/catalog` exists (533 lines).
+- Tables `pricing_v2_kroger_catalog_raw`, `pricing_v2_item_catalog`, `pricing_v2_catalog_bootstrap_state` exist.
+- Kroger client + weight parser exist (`src/lib/server/pricing-v2/`).
+- **Verify next turn**: pagination with `last_page_token`, run-until-done semantics, auto-mark COMPLETED, typed-confirmation Reset button, weight-parse test harness.
 
-In `normalizeKrogerPrice` (`kroger-core.ts`):
-- When the parsed canonical unit is a weight (`lb`, `oz`, `kg`, `g`), convert the per-unit price to **per-lb** before writing. `oz → /16`, `g → ×453.59`, `kg → ÷2.205`. Store `canonical_unit = 'lb'`.
-- When the size parses to volume or `each`, keep current behavior (store in native unit). These remain usable but flagged in the new admin page as "non-weight".
-- Add a small migration to record `canonical_unit` per row in `kroger_sku_map` (new column, nullable text) so the admin page can show what's per-lb vs not.
+### ❌ Phase 5/6 — Monthly pipeline + approval queue (NOT BUILT)
+Required new tables:
+- `pricing_v2_monthly_snapshots` (append-only Kroger price snapshots)
+- `pricing_v2_receipt_lines_normalized` (cost_per_gram per observation)
+- `pricing_v2_item_costs` (rolling avg with safety floor)
+- `pricing_v2_cost_update_queue` (proposals requiring approval if Δ ≥ 10% or cost ≤ 0)
+- `pricing_v2_recipe_costs` (rollup)
+- `pricing_v2_menu_costs` (rollup)
 
-### 3. Editable global markup multiplier
+Required server fns / routes:
+- Stage 1 runner — monthly snapshot ingest
+- Stage 2 runner — normalize new receipt lines
+- Stage 3 runner — recompute cost_per_gram
+- Stage 4 runner — compute rolling avg, emit warnings, populate approval queue
+- Stage 5/6 runners — recipe + menu rollups (skip recipes with blocked ingredients)
+- Approval UI page `/admin/pricing-v2/approvals`
+- Pipeline orchestrator + cron route under `/api/public/hooks/pricing-v2-monthly`
 
-`app_settings.markup_multiplier` already exists (default 3.0) and is consumed by `recalc-quote-pricing.functions.ts`. New work:
-- A simple input on the new `/admin/pricing` page bound to that column with Save.
-- Server function `updateMarkupMultiplier({ value })` with validation `0.5 ≤ x ≤ 10`.
+Estimated 1–2 additional turns minimum.
 
-### 4. New `/admin/pricing` page (single source of truth)
+## Non-negotiable rules (enforced)
+1. ✅ UI never auto-seeds (access-control + pricing-v2 both moved server-side this turn).
+2. ✅ All seeding is idempotent + transactional (`ensure_*_initialized` use SECURITY DEFINER, single tx).
+3. 🟡 Pipeline downstream blocking — Stage -1 gate works; Stages 1–6 don't exist yet.
+4. ✅ Weight-only canonical unit (grams) in `pricing_v2_item_catalog`.
+5. 🟡 Monthly recompute — runner not built.
+6. 🟡 ≥10% / zero cost approval queue — table + workflow not built.
 
-Three cards:
-
-**a. Configuration**
-- Read-only: Kroger location = "Cincinnati, OH (45202)".
-- Editable: Markup multiplier (number input, default 3.0).
-
-**b. Run pricing pull**
-- Two buttons: "Bootstrap catalog" and "Refresh prices today".
-- Both call existing `runKrogerIngestInternal` (already wired, already works from cron). Show last run summary (rows, errors, duration) from `kroger_ingest_runs`.
-
-**c. Reset / clean slate** (destructive, with confirm dialog)
-- Server function `resetPricingPipeline()` that:
-  - `DELETE FROM kroger_sku_map`
-  - `DELETE FROM kroger_ingest_runs`
-  - `DELETE FROM kroger_bootstrap_progress`
-  - `DELETE FROM kroger_validation_anomalies`
-  - `DELETE FROM kroger_validation_runs`
-  - `DELETE FROM price_history`
-  - `UPDATE inventory_items SET average_cost_per_unit = 0, last_receipt_cost = 0`
-  - Returns counts.
-- Confirmation dialog requires typing `RESET` to enable the button.
-
-### 5. Retire old admin pages
-
-Delete these route files and remove their entries from `src/routes/admin.tsx` sidebar:
-- `kroger-pricing.tsx`
-- `kroger-sku-review.tsx`
-- `kroger-mapping-diagnostics.tsx`
-- `kroger-price-signals.tsx`
-- `kroger-validation.tsx`
-- `kroger-ingest-runs.tsx`
-- `ingest-diagnostics.tsx`
-- `receipt-kroger-diagnostics.tsx`
-- `pricing-pipeline.tsx`, `pricing-test.tsx`, `pricing-sandbox.tsx`, `pricing-lab.tsx`, `pricing-lab.preview.tsx` (legacy experiments)
-
-`recalc-quote-pricing` and the cron webhook stay — they consume the data, they aren't admin UI.
-
----
-
-## Technical details
-
-**Files created**
-- `src/routes/admin/pricing.tsx` — the new single page.
-- `src/lib/server-fns/pricing-admin.functions.ts` — `updateMarkupMultiplier`, `resetPricingPipeline`, `getPricingStatus` (last run + counts).
-
-**Files edited**
-- `src/lib/server/kroger-core.ts` — remove ZIP override paths, force 45202, add per-lb conversion in `normalizeKrogerPrice`.
-- `src/lib/server/kroger-ingest-internal.ts` — drop ZIP arg, write `canonical_unit` column.
-- `src/routes/api/public/hooks/kroger-daily-ingest.ts` — ignore `zip_code` payload.
-- `src/lib/server-fns/kroger-pricing.functions.ts` — keep `runKrogerIngest` thin wrapper used by new page; remove unused legacy exports.
-- `src/routes/admin.tsx` — sidebar cleanup.
-
-**Files deleted** (13 route files listed above).
-
-**DB migration**
-- `ALTER TABLE kroger_sku_map ADD COLUMN canonical_unit text;`
-- No data migration needed — old rows get wiped by the reset action.
-
-**What stays untouched**
-- `inventory_items` schema (still has `unit`, `average_cost_per_unit`).
-- Recipe costing logic in `src/lib/recipe-costing.ts` — already converts between units, will work with per-lb inventory transparently.
-- `app_settings.markup_multiplier` + `recalc-quote-pricing.functions.ts`.
-
----
-
-## Workflow after this lands
-
-1. Open `/admin/pricing`.
-2. Click **Reset** → type `RESET` → confirm. (Wipes Kroger tables + zeroes inventory costs.)
-3. Adjust **Markup multiplier** if not 3.0.
-4. Click **Bootstrap catalog** → wait. SKUs populate `kroger_sku_map` with per-lb prices where size parses.
-5. Click **Refresh prices today** to hydrate `inventory_items.average_cost_per_unit` from confirmed SKUs.
-6. Quote pricing automatically uses the new costs × markup.
+## Next-turn ask
+Pick one to tackle next:
+- **A**: Phase 5/6 schema + Stage 1 runner (monthly Kroger snapshot)
+- **B**: Approval queue table + UI
+- **C**: Polish Phase 3/4 against spec (test harnesses, override flows)
+- **D**: Wire Control Center to `pricing_v2_pipeline_stages` registry table
