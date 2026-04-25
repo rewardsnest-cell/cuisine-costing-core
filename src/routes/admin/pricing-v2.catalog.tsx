@@ -62,6 +62,11 @@ function CatalogBootstrapPage() {
     queryFn: () => getCatalogBootstrapState(),
     refetchInterval: (q: any) => (q.state?.data?.state?.status === "IN_PROGRESS" ? 4000 : false),
   });
+  const preflight = useQuery({
+    queryKey: ["pricing-v2", "catalog", "preflight"],
+    queryFn: () => getBootstrapPreflight(),
+    refetchInterval: 15_000,
+  });
 
   const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
