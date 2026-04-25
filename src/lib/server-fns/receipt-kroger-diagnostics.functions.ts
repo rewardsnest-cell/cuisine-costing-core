@@ -114,14 +114,9 @@ export const listReceiptKrogerDiagnostics = createServerFn({ method: "POST" })
     const { data: receipts, error } = await q;
     if (error) throw new Error(error.message);
 
-    // 2. Resolve current Kroger location_id (used for the "would-be" query params)
-    const { data: kvLoc } = await supabaseAdmin
-      .from("app_kv")
-      .select("value")
-      .eq("key", "kroger_location_id")
-      .maybeSingle();
-    const locationId =
-      kvLoc?.value && String(kvLoc.value).trim().length > 0 ? String(kvLoc.value).trim() : null;
+    // 2. Per pricing intent, no admin-pinned Kroger location exists.
+    //    The diagnostics view shows raw matches; no per-store query is shaped here.
+    const locationId: string | null = null;
 
     // 3. Collect every matched_inventory_id across all lines, batch-fetch
     //    ingredient_reference + kroger_sku_map.
