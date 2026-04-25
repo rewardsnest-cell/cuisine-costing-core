@@ -57,7 +57,13 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
 }> {
   const mode = opts.mode;
   const zip = (opts.zip_code ?? KROGER_DEFAULT_ZIP).trim();
-  const limit = Math.max(1, Math.min(5000, opts.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
+  // Per-run safety cap. Bootstrap is allowed a much wider net so a single
+  // cron run can collect thousands of SKUs across all a-z + 0-9 search terms;
+  // daily_update stays small and fast. Both are still capped to prevent runaway
+  // API usage.
+  const defaultCap = mode === "catalog_bootstrap" ? 8000 : 100;
+  const hardCeiling = mode === "catalog_bootstrap" ? 10000 : 1000;
+  const limit = Math.max(1, Math.min(hardCeiling, opts.limit ?? defaultCap));
 
   // 1) OAuth — fatal if it fails
   let kFetch: Awaited<ReturnType<typeof getKrogerFetch>>;
