@@ -218,7 +218,7 @@ export function BulkContactReviewDialog({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Contact name</Label>
+                      <Label className="text-xs">Primary contact name</Label>
                       <Input value={item.contact_name} onChange={(e) => update(item.id, { contact_name: e.target.value })} />
                     </div>
                     <div>
@@ -230,9 +230,47 @@ export function BulkContactReviewDialog({
                       <Input value={item.phone} onChange={(e) => update(item.id, { phone: e.target.value })} />
                     </div>
                     <div>
-                      <Label className="text-xs">Website (saved to notes)</Label>
+                      <Label className="text-xs">Website</Label>
                       <Input value={item.website} onChange={(e) => update(item.id, { website: e.target.value })} />
                     </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-xs">Address</Label>
+                      <Input value={item.address} onChange={(e) => update(item.id, { address: e.target.value })} placeholder="123 Main St, City, ST 12345" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Additional contacts (saved to notes)</Label>
+                      <Button
+                        type="button" size="sm" variant="ghost" className="h-7 gap-1"
+                        onClick={() => update(item.id, { contacts: [...item.contacts, { name: "", role: "", email: "", phone: "" }] })}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add
+                      </Button>
+                    </div>
+                    {item.contacts.map((c, idx) => (
+                      <div key={idx} className="rounded-md border p-2 relative">
+                        <button
+                          type="button"
+                          onClick={() => update(item.id, { contacts: item.contacts.filter((_, i) => i !== idx) })}
+                          className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove contact"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input placeholder="Name" value={c.name}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, name: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Role" value={c.role}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, role: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Email" value={c.email}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, email: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Phone" value={c.phone}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, phone: e.target.value }; update(item.id, { contacts: next }); }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="flex justify-end">
