@@ -129,6 +129,7 @@ import { Route as AdminBrandAssetsRouteImport } from './routes/admin/brand-asset
 import { Route as AdminAutoLinkIngredientsRouteImport } from './routes/admin/auto-link-ingredients'
 import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as AdminAssetDebugRouteImport } from './routes/admin/asset-debug'
+import { Route as AdminArchiveAuditRouteImport } from './routes/admin/archive-audit'
 import { Route as AdminAffiliatesRouteImport } from './routes/admin/affiliates'
 import { Route as AdminAccessRouteImport } from './routes/admin/access'
 import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/competitor-quotes.index'
@@ -782,6 +783,11 @@ const AdminAssetDebugRoute = AdminAssetDebugRouteImport.update({
   path: '/asset-debug',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminArchiveAuditRoute = AdminArchiveAuditRouteImport.update({
+  id: '/archive-audit',
+  path: '/archive-audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAffiliatesRoute = AdminAffiliatesRouteImport.update({
   id: '/affiliates',
   path: '/affiliates',
@@ -1031,6 +1037,7 @@ export interface FileRoutesByFullPath {
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/archive-audit': typeof AdminArchiveAuditRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
@@ -1192,6 +1199,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/archive-audit': typeof AdminArchiveAuditRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
@@ -1356,6 +1364,7 @@ export interface FileRoutesById {
   '/weddings': typeof WeddingsRouteWithChildren
   '/admin/access': typeof AdminAccessRoute
   '/admin/affiliates': typeof AdminAffiliatesRoute
+  '/admin/archive-audit': typeof AdminArchiveAuditRoute
   '/admin/asset-debug': typeof AdminAssetDebugRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/auto-link-ingredients': typeof AdminAutoLinkIngredientsRoute
@@ -1521,6 +1530,7 @@ export interface FileRouteTypes {
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/archive-audit'
     | '/admin/asset-debug'
     | '/admin/audit'
     | '/admin/auto-link-ingredients'
@@ -1682,6 +1692,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/archive-audit'
     | '/admin/asset-debug'
     | '/admin/audit'
     | '/admin/auto-link-ingredients'
@@ -1845,6 +1856,7 @@ export interface FileRouteTypes {
     | '/weddings'
     | '/admin/access'
     | '/admin/affiliates'
+    | '/admin/archive-audit'
     | '/admin/asset-debug'
     | '/admin/audit'
     | '/admin/auto-link-ingredients'
@@ -2885,6 +2897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAssetDebugRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/archive-audit': {
+      id: '/admin/archive-audit'
+      path: '/archive-audit'
+      fullPath: '/admin/archive-audit'
+      preLoaderRoute: typeof AdminArchiveAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/affiliates': {
       id: '/admin/affiliates'
       path: '/affiliates'
@@ -3314,6 +3333,7 @@ const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminAccessRoute: typeof AdminAccessRoute
   AdminAffiliatesRoute: typeof AdminAffiliatesRoute
+  AdminArchiveAuditRoute: typeof AdminArchiveAuditRoute
   AdminAssetDebugRoute: typeof AdminAssetDebugRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminAutoLinkIngredientsRoute: typeof AdminAutoLinkIngredientsRoute
@@ -3391,6 +3411,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccessRoute: AdminAccessRoute,
   AdminAffiliatesRoute: AdminAffiliatesRoute,
+  AdminArchiveAuditRoute: AdminArchiveAuditRoute,
   AdminAssetDebugRoute: AdminAssetDebugRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminAutoLinkIngredientsRoute: AdminAutoLinkIngredientsRoute,
