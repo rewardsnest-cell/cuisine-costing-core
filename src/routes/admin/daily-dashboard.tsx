@@ -9,10 +9,14 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sun, Target, Bell, ArrowRight, Phone, Star,
-  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight,
+  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight, TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+} from "recharts";
 
 export const Route = createFileRoute("/admin/daily-dashboard")({
   component: DailyDashboardPage,
