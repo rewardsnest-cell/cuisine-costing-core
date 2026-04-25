@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Printer, Truck, ShoppingCart, Loader2, Tag } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Printer, Truck, ShoppingCart, Loader2, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveSales } from "@/lib/use-active-sales";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Row = {
   name: string;
