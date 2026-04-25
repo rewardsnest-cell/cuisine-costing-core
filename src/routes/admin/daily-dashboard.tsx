@@ -189,7 +189,16 @@ function DailyDashboardPage() {
     setTrend(points);
   };
 
-  useEffect(() => { loadCore(); loadReminders(); loadTrend(); }, []);
+  const loadActivity = async () => {
+    const { data } = await (supabase as any)
+      .from("admin_activity_log")
+      .select("id, created_at, entity_type, entity_id, action, title, changes, actor_email")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setActivity((data || []) as any);
+  };
+
+  useEffect(() => { loadCore(); loadReminders(); loadTrend(); loadActivity(); }, []);
 
   // Priorities
   const addPriority = async () => {
