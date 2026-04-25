@@ -33,6 +33,7 @@ function fmtTime(iso?: string | null) {
 }
 
 function PricingV2ControlCenter() {
+  const qc = useQueryClient();
   const overview = useQuery({
     queryKey: ["pricing-v2", "overview"],
     queryFn: () => getPricingV2Overview(),
@@ -40,6 +41,12 @@ function PricingV2ControlCenter() {
   const health = useQuery({
     queryKey: ["pricing-v2", "health"],
     queryFn: () => getPricingV2Health(),
+  });
+  const selfTest = useMutation({
+    mutationFn: () => runPricingV2SelfTest(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "overview"] });
+    },
   });
 
   return (
@@ -55,12 +62,29 @@ function PricingV2ControlCenter() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => selfTest.mutate()}
+            disabled={selfTest.isPending}
+          >
+            <FlaskConical className="w-4 h-4" />
+            {selfTest.isPending ? "Running…" : "Run Self Test"}
+          </Button>
           <Button disabled className="gap-2">
             <CalendarClock className="w-4 h-4" />
             Run Monthly Pipeline
           </Button>
         </div>
       </div>
+
+      {/* Self-test result */}
+      {(selfTest.data || selfTest.error) && (
+        <SelfTestResult
+          data={selfTest.data}
+          error={selfTest.error as Error | null}
+        />
+      )}
 
       {/* Health tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
