@@ -85,7 +85,7 @@ export const runCatalogStage = createServerFn({ method: "POST" })
         triggered_by: userId ?? null,
         params: data,
       })
-      .select("*")
+      .select("run_id")
       .single();
     if (runErr) throw new Error(runErr.message);
 
@@ -123,7 +123,7 @@ export const runCatalogStage = createServerFn({ method: "POST" })
       // 3) Persist errors
       if (allIssues.length > 0) {
         const errorRows = allIssues.map((i) => ({
-          run_id: run.id,
+          run_id: run.run_id,
           stage: STAGE,
           severity: i.severity,
           type: i.type,
@@ -172,11 +172,11 @@ export const runCatalogStage = createServerFn({ method: "POST" })
           warnings_count: warnings,
           errors_count: errors,
         })
-        .eq("id", run.id);
+        .eq("run_id", run.run_id);
       if (updErr) throw new Error(updErr.message);
 
       return {
-        run_id: run.id,
+        run_id: run.run_id,
         status,
         dry_run: data.dry_run,
         counts_in: inputCount,
@@ -192,7 +192,7 @@ export const runCatalogStage = createServerFn({ method: "POST" })
           ended_at: new Date().toISOString(),
           last_error: e?.message ?? String(e),
         })
-        .eq("id", run.id);
+        .eq("run_id", run.run_id);
       throw e;
     }
   });
@@ -225,7 +225,7 @@ export const getCatalogSummary = createServerFn({ method: "GET" })
 
     const lastRun = await supabase
       .from("pricing_v2_runs")
-      .select("*")
+      .select("run_id")
       .eq("stage", STAGE)
       .order("started_at", { ascending: false })
       .limit(1)
