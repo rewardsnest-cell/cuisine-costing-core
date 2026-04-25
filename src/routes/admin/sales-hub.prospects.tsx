@@ -38,6 +38,8 @@ type Prospect = {
   contact_name: string | null;
   phone: string | null;
   email: string | null;
+  address: string | null;
+  website: string | null;
   notes: string | null;
   status: string;
   last_contacted: string | null;
@@ -48,7 +50,7 @@ type Prospect = {
 
 const EMPTY: Omit<Prospect, "id"> = {
   business_name: "", city: PROSPECT_CITIES[0], type: PROSPECT_TYPES[0],
-  contact_name: "", phone: "", email: "", notes: "", status: "New",
+  contact_name: "", phone: "", email: "", address: "", website: "", notes: "", status: "New",
   last_contacted: null, next_follow_up: null,
   last_inbound_at: null, last_outbound_at: null,
 };
@@ -174,6 +176,8 @@ function ProspectsPage() {
         original_contact_name: p.contact_name,
         original_email: p.email,
         original_phone: p.phone,
+        original_address: p.address,
+        original_website: p.website,
         original_notes: p.notes,
       };
       try {
@@ -187,7 +191,9 @@ function ProspectsPage() {
             contact_name: p.contact_name ?? "",
             email: p.email ?? "",
             phone: p.phone ?? "",
-            website: "",
+            website: p.website ?? "",
+            address: p.address ?? "",
+            contacts: [],
             ai_notes: "",
             confidence: null,
             error: res.error,
@@ -199,7 +205,11 @@ function ProspectsPage() {
             contact_name: c.contact_name ?? p.contact_name ?? "",
             email: c.email ?? p.email ?? "",
             phone: c.phone ?? p.phone ?? "",
-            website: c.website ?? "",
+            website: c.website ?? p.website ?? "",
+            address: c.address ?? p.address ?? "",
+            contacts: (c.contacts ?? []).map((x) => ({
+              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+            })),
             ai_notes: c.notes ?? "",
             confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
           });
@@ -211,7 +221,9 @@ function ProspectsPage() {
           contact_name: p.contact_name ?? "",
           email: p.email ?? "",
           phone: p.phone ?? "",
-          website: "",
+          website: p.website ?? "",
+          address: p.address ?? "",
+          contacts: [],
           ai_notes: "",
           confidence: null,
           error: e?.message ?? "Failed",

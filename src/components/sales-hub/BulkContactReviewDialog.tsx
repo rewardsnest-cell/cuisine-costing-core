@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Save, RotateCw, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Save, RotateCw, Trash2, AlertTriangle, Plus, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
 import { supabase } from "@/integrations/supabase/client";
+
+export type BulkReviewContact = { name: string; role: string; email: string; phone: string };
 
 export type BulkReviewItem = {
   id: string;
@@ -21,12 +23,16 @@ export type BulkReviewItem = {
   original_contact_name: string | null;
   original_email: string | null;
   original_phone: string | null;
+  original_address: string | null;
+  original_website: string | null;
   original_notes: string | null;
   // Editable fields (prefilled from AI suggestion)
   contact_name: string;
   email: string;
   phone: string;
   website: string;
+  address: string;
+  contacts: BulkReviewContact[];
   ai_notes: string;
   confidence: "high" | "medium" | "low" | "none" | null;
   error?: string | null;
@@ -72,6 +78,12 @@ export function BulkContactReviewDialog({
         email: c.email ?? item.email,
         phone: c.phone ?? item.phone,
         website: c.website ?? item.website,
+        address: c.address ?? item.address,
+        contacts: (c.contacts && c.contacts.length > 0)
+          ? c.contacts.map((x) => ({
+              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+            }))
+          : item.contacts,
         ai_notes: c.notes ?? "",
         confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
         error: null,
@@ -85,16 +97,22 @@ export function BulkContactReviewDialog({
   };
 
   const saveOne = async (item: BulkReviewItem): Promise<boolean> => {
-    const aiNote = item.ai_notes
-      ? `AI contact research (${item.confidence ?? "?"} confidence): ${item.ai_notes}${item.website ? ` · Website: ${item.website}` : ""}`
+    const cleanContacts = item.contacts.filter((c) => c.name || c.email || c.phone || c.role);
+    const contactsBlock = cleanContacts.length > 0
+      ? `Contacts:\n${cleanContacts.map((c) => `• ${[c.name, c.role].filter(Boolean).join(" — ") || "Contact"}${c.email ? ` <${c.email}>` : ""}${c.phone ? ` · ${c.phone}` : ""}`).join("\n")}`
       : null;
-    const mergedNotes = [item.original_notes?.trim(), aiNote].filter(Boolean).join("\n\n") || null;
+    const aiNote = item.ai_notes
+      ? `AI contact research (${item.confidence ?? "?"} confidence): ${item.ai_notes}`
+      : null;
+    const mergedNotes = [item.original_notes?.trim(), aiNote, contactsBlock].filter(Boolean).join("\n\n") || null;
     const { error } = await (supabase as any)
       .from("sales_prospects")
       .update({
         contact_name: (item.contact_name || item.original_contact_name || "").trim() || null,
         email: (item.email || item.original_email || "").trim() || null,
         phone: (item.phone || item.original_phone || "").trim() || null,
+        website: (item.website || item.original_website || "").trim() || null,
+        address: (item.address || item.original_address || "").trim() || null,
         notes: mergedNotes,
       })
       .eq("id", item.id);
@@ -200,7 +218,7 @@ export function BulkContactReviewDialog({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Contact name</Label>
+                      <Label className="text-xs">Primary contact name</Label>
                       <Input value={item.contact_name} onChange={(e) => update(item.id, { contact_name: e.target.value })} />
                     </div>
                     <div>
@@ -212,9 +230,47 @@ export function BulkContactReviewDialog({
                       <Input value={item.phone} onChange={(e) => update(item.id, { phone: e.target.value })} />
                     </div>
                     <div>
-                      <Label className="text-xs">Website (saved to notes)</Label>
+                      <Label className="text-xs">Website</Label>
                       <Input value={item.website} onChange={(e) => update(item.id, { website: e.target.value })} />
                     </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-xs">Address</Label>
+                      <Input value={item.address} onChange={(e) => update(item.id, { address: e.target.value })} placeholder="123 Main St, City, ST 12345" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Additional contacts (saved to notes)</Label>
+                      <Button
+                        type="button" size="sm" variant="ghost" className="h-7 gap-1"
+                        onClick={() => update(item.id, { contacts: [...item.contacts, { name: "", role: "", email: "", phone: "" }] })}
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add
+                      </Button>
+                    </div>
+                    {item.contacts.map((c, idx) => (
+                      <div key={idx} className="rounded-md border p-2 relative">
+                        <button
+                          type="button"
+                          onClick={() => update(item.id, { contacts: item.contacts.filter((_, i) => i !== idx) })}
+                          className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove contact"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input placeholder="Name" value={c.name}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, name: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Role" value={c.role}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, role: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Email" value={c.email}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, email: e.target.value }; update(item.id, { contacts: next }); }} />
+                          <Input placeholder="Phone" value={c.phone}
+                            onChange={(e) => { const next = [...item.contacts]; next[idx] = { ...c, phone: e.target.value }; update(item.id, { contacts: next }); }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="flex justify-end">

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Save, UserSearch, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, Save, UserSearch, AlertTriangle, Plus, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   generateProspectContact,
@@ -26,6 +26,8 @@ export interface GenerateContactDialogProps {
     contact_name: string | null;
     email: string | null;
     phone: string | null;
+    address?: string | null;
+    website?: string | null;
     notes: string | null;
   } | null;
   onSaved?: () => void;
@@ -44,6 +46,10 @@ export function GenerateContactDialog({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
+  const [extraContacts, setExtraContacts] = useState<
+    Array<{ name: string; role: string; email: string; phone: string }>
+  >([]);
   const [aiNotes, setAiNotes] = useState("");
 
   useEffect(() => {
@@ -52,7 +58,9 @@ export function GenerateContactDialog({
     setContactName(prospect.contact_name ?? "");
     setEmail(prospect.email ?? "");
     setPhone(prospect.phone ?? "");
-    setWebsite("");
+    setWebsite(prospect.website ?? "");
+    setAddress(prospect.address ?? "");
+    setExtraContacts([]);
     setAiNotes("");
   }, [open, prospect]);
 
@@ -73,7 +81,18 @@ export function GenerateContactDialog({
       if (!contactName && res.contact.contact_name) setContactName(res.contact.contact_name);
       if (!email && res.contact.email) setEmail(res.contact.email);
       if (!phone && res.contact.phone) setPhone(res.contact.phone);
-      if (res.contact.website) setWebsite(res.contact.website);
+      if (!website && res.contact.website) setWebsite(res.contact.website);
+      if (!address && res.contact.address) setAddress(res.contact.address);
+      if (Array.isArray(res.contact.contacts) && res.contact.contacts.length > 0) {
+        setExtraContacts(
+          res.contact.contacts.map((c) => ({
+            name: c.name ?? "",
+            role: c.role ?? "",
+            email: c.email ?? "",
+            phone: c.phone ?? "",
+          })),
+        );
+      }
       if (res.contact.notes) setAiNotes(res.contact.notes);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to generate contact info");
@@ -86,11 +105,17 @@ export function GenerateContactDialog({
     if (!prospect) return;
     setSaving(true);
     try {
+      const cleanContacts = extraContacts.filter((c) => c.name || c.email || c.phone || c.role);
+      const contactsBlock = cleanContacts.length > 0
+        ? `Contacts:\n${cleanContacts.map((c) => `• ${[c.name, c.role].filter(Boolean).join(" — ") || "Contact"}${c.email ? ` <${c.email}>` : ""}${c.phone ? ` · ${c.phone}` : ""}`).join("\n")}`
+        : null;
+      const aiBlock = aiNotes
+        ? `AI contact research (${result?.confidence ?? "?"} confidence): ${aiNotes}`
+        : null;
       const trimmedNotes = [
         prospect.notes?.trim(),
-        aiNotes
-          ? `AI contact research (${result?.confidence ?? "?"} confidence): ${aiNotes}${website ? ` · Website: ${website}` : ""}`
-          : null,
+        aiBlock,
+        contactsBlock,
       ].filter(Boolean).join("\n\n");
 
       const { error } = await (supabase as any)
@@ -99,6 +124,8 @@ export function GenerateContactDialog({
           contact_name: contactName.trim() || null,
           email: email.trim() || null,
           phone: phone.trim() || null,
+          website: website.trim() || null,
+          address: address.trim() || null,
           notes: trimmedNotes || null,
         })
         .eq("id", prospect.id);
@@ -161,23 +188,88 @@ export function GenerateContactDialog({
 
             <div className="grid gap-3">
               <div>
-                <Label className="text-xs">Contact name</Label>
+                <Label className="text-xs">Primary contact name</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Jane Smith" />
               </div>
-              <div>
-                <Label className="text-xs">Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="events@business.com" />
-              </div>
-              <div>
-                <Label className="text-xs">Phone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
-              </div>
-              {(website || result) && (
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Website (saved to notes)</Label>
-                  <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://business.com" />
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="events@business.com" />
                 </div>
-              )}
+                <div>
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Address</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, ST 12345" />
+              </div>
+              <div>
+                <Label className="text-xs">Website</Label>
+                <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://business.com" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Additional contacts (saved to notes)</Label>
+                  <Button
+                    type="button" size="sm" variant="ghost" className="h-7 gap-1"
+                    onClick={() => setExtraContacts([...extraContacts, { name: "", role: "", email: "", phone: "" }])}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </Button>
+                </div>
+                {extraContacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">None yet. AI may suggest specific people when you generate.</p>
+                )}
+                {extraContacts.map((c, idx) => (
+                  <div key={idx} className="rounded-md border p-2 space-y-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => setExtraContacts(extraContacts.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                      aria-label="Remove contact"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Name"
+                        value={c.name}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, name: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Role (e.g. Events Manager)"
+                        value={c.role}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, role: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Email"
+                        value={c.email}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, email: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Phone"
+                        value={c.phone}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, phone: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
