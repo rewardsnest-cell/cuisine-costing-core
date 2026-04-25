@@ -26,7 +26,69 @@ const bootstrapSchema = z.object({
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
   batch_size: z.number().int().min(1).max(2000).optional(),
   keyword: z.string().trim().max(120).optional(),
+  // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
+  // ignores the gate automatically so admins can preview without mapping.
+  bypass_min_mapped_check: z.boolean().default(false),
 });
+
+// ---- Mapped-inventory preflight ------------------------------------------
+
+const DEFAULT_MIN_MAPPED = 10;
+
+async function getMinMappedThreshold(supabase: any): Promise<number> {
+  const { data } = await supabase
+    .from("pricing_v2_settings")
+    .select("min_mapped_inventory_for_bootstrap")
+    .eq("id", 1)
+    .maybeSingle();
+  const v = Number(data?.min_mapped_inventory_for_bootstrap);
+  return Number.isFinite(v) && v >= 0 ? v : DEFAULT_MIN_MAPPED;
+}
+
+async function countMappedInventoryIds(supabase: any): Promise<number> {
+  const ids = await listAllInventoryProductIds(supabase);
+  return ids.length;
+}
+
+export type BootstrapPreflight = {
+  ok: boolean;
+  mapped_count: number;
+  threshold: number;
+  store_id: string;
+  reason: string | null;
+  guidance: string[];
+};
+
+async function evaluatePreflight(supabase: any): Promise<BootstrapPreflight> {
+  const storeId = await getStoreId(supabase);
+  const [mapped, threshold] = await Promise.all([
+    countMappedInventoryIds(supabase),
+    getMinMappedThreshold(supabase),
+  ]);
+  if (mapped >= threshold) {
+    return { ok: true, mapped_count: mapped, threshold, store_id: storeId, reason: null, guidance: [] };
+  }
+  return {
+    ok: false,
+    mapped_count: mapped,
+    threshold,
+    store_id: storeId,
+    reason: `Only ${mapped} inventory item${mapped === 1 ? "" : "s"} mapped to a Kroger product (minimum ${threshold}).`,
+    guidance: [
+      "Open Inventory and set 'Kroger product ID' on more items.",
+      "Or import a Kroger mapping CSV from the Inventory page.",
+      `Or lower 'min_mapped_inventory_for_bootstrap' in pricing_v2_settings (currently ${threshold}).`,
+      "You can still run a Dry-run preview — the gate only blocks the full bootstrap.",
+    ],
+  };
+}
+
+export const getBootstrapPreflight = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    return evaluatePreflight(supabase);
+  });
 
 // ---- Helpers --------------------------------------------------------------
 
