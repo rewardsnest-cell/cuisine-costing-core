@@ -81,25 +81,57 @@ export async function sendOutlookEmail(params: SendOutlookEmailParams): Promise<
     bccRecipients: recipientList(params.bcc),
   }
 
-  const response = await fetch(`${GATEWAY_URL}/me/sendMail`, {
+  // Use the draft → send flow so we can read back the message identifiers
+  // (Graph's /sendMail returns 202 with no body, losing all IDs).
+  const createRes = await fetch(`${GATEWAY_URL}/me/messages`, {
     method: 'POST',
     headers: gatewayHeaders(),
-    body: JSON.stringify({
-      message,
-      saveToSentItems: params.saveToSentItems !== false,
-    }),
+    body: JSON.stringify(message),
   })
 
-  // sendMail returns 202 Accepted with no body on success.
-  if (response.status === 202 || response.ok) {
-    return { ok: true, status: response.status }
+  if (!createRes.ok) {
+    const errBody = await createRes.text().catch(() => '')
+    return {
+      ok: false,
+      status: createRes.status,
+      error: `Outlook create-draft failed [${createRes.status}]: ${errBody.slice(0, 500)}`,
+    }
   }
 
-  const errBody = await response.text().catch(() => '')
+  const draft = (await createRes.json().catch(() => ({}))) as {
+    id?: string
+    conversationId?: string
+    internetMessageId?: string
+  }
+
+  const draftId = draft.id
+  if (!draftId) {
+    return { ok: false, status: createRes.status, error: 'Outlook did not return a draft id' }
+  }
+
+  const sendRes = await fetch(`${GATEWAY_URL}/me/messages/${encodeURIComponent(draftId)}/send`, {
+    method: 'POST',
+    headers: gatewayHeaders(),
+  })
+
+  if (sendRes.status !== 202 && !sendRes.ok) {
+    const errBody = await sendRes.text().catch(() => '')
+    return {
+      ok: false,
+      status: sendRes.status,
+      error: `Outlook send-draft failed [${sendRes.status}]: ${errBody.slice(0, 500)}`,
+      outlookMessageId: draftId,
+      outlookConversationId: draft.conversationId,
+      internetMessageId: draft.internetMessageId,
+    }
+  }
+
   return {
-    ok: false,
-    status: response.status,
-    error: `Outlook sendMail failed [${response.status}]: ${errBody.slice(0, 500)}`,
+    ok: true,
+    status: sendRes.status,
+    outlookMessageId: draftId,
+    outlookConversationId: draft.conversationId,
+    internetMessageId: draft.internetMessageId,
   }
 }
 
