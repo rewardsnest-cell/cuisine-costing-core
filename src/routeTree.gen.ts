@@ -95,6 +95,7 @@ import { Route as AdminPricingSandboxRouteImport } from './routes/admin/pricing-
 import { Route as AdminPricingPipelineRouteImport } from './routes/admin/pricing-pipeline'
 import { Route as AdminPricingLabRouteImport } from './routes/admin/pricing-lab'
 import { Route as AdminPricingCodeInventoryRouteImport } from './routes/admin/pricing-code-inventory'
+import { Route as AdminPricingRouteImport } from './routes/admin/pricing'
 import { Route as AdminPagesRouteImport } from './routes/admin/pages'
 import { Route as AdminPageInventoryRouteImport } from './routes/admin/page-inventory'
 import { Route as AdminOutreachRouteImport } from './routes/admin/outreach'
@@ -621,6 +622,11 @@ const AdminPricingCodeInventoryRoute =
     path: '/pricing-code-inventory',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminPricingRoute = AdminPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPagesRoute = AdminPagesRouteImport.update({
   id: '/pages',
   path: '/pages',
@@ -955,9 +961,9 @@ const AdminQuoteCreatorIdRoute = AdminQuoteCreatorIdRouteImport.update({
   getParentRoute: () => AdminQuoteCreatorRoute,
 } as any)
 const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
-  id: '/pricing/national',
-  path: '/pricing/national',
-  getParentRoute: () => AdminRoute,
+  id: '/national',
+  path: '/national',
+  getParentRoute: () => AdminPricingRoute,
 } as any)
 const AdminPricingLabPreviewRoute = AdminPricingLabPreviewRouteImport.update({
   id: '/preview',
@@ -1150,6 +1156,7 @@ export interface FileRoutesByFullPath {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
@@ -1323,6 +1330,7 @@ export interface FileRoutesByTo {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
@@ -1499,6 +1507,7 @@ export interface FileRoutesById {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
   '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
@@ -1676,6 +1685,7 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-pipeline'
@@ -1849,6 +1859,7 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-pipeline'
@@ -2024,6 +2035,7 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-lab'
     | '/admin/pricing-pipeline'
@@ -2793,6 +2805,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingCodeInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing': {
+      id: '/admin/pricing'
+      path: '/pricing'
+      fullPath: '/admin/pricing'
+      preLoaderRoute: typeof AdminPricingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pages': {
       id: '/admin/pages'
       path: '/pages'
@@ -3250,10 +3269,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/pricing/national': {
       id: '/admin/pricing/national'
-      path: '/pricing/national'
+      path: '/national'
       fullPath: '/admin/pricing/national'
       preLoaderRoute: typeof AdminPricingNationalRouteImport
-      parentRoute: typeof AdminRoute
+      parentRoute: typeof AdminPricingRoute
     }
     '/admin/pricing-lab/preview': {
       id: '/admin/pricing-lab/preview'
@@ -3430,6 +3449,18 @@ const AdminMenuModulesRouteChildren: AdminMenuModulesRouteChildren = {
 const AdminMenuModulesRouteWithChildren =
   AdminMenuModulesRoute._addFileChildren(AdminMenuModulesRouteChildren)
 
+interface AdminPricingRouteChildren {
+  AdminPricingNationalRoute: typeof AdminPricingNationalRoute
+}
+
+const AdminPricingRouteChildren: AdminPricingRouteChildren = {
+  AdminPricingNationalRoute: AdminPricingNationalRoute,
+}
+
+const AdminPricingRouteWithChildren = AdminPricingRoute._addFileChildren(
+  AdminPricingRouteChildren,
+)
+
 interface AdminPricingLabRouteChildren {
   AdminPricingLabPreviewRoute: typeof AdminPricingLabPreviewRoute
 }
@@ -3589,6 +3620,7 @@ interface AdminRouteChildren {
   AdminOutreachRoute: typeof AdminOutreachRoute
   AdminPageInventoryRoute: typeof AdminPageInventoryRoute
   AdminPagesRoute: typeof AdminPagesRoute
+  AdminPricingRoute: typeof AdminPricingRouteWithChildren
   AdminPricingCodeInventoryRoute: typeof AdminPricingCodeInventoryRoute
   AdminPricingLabRoute: typeof AdminPricingLabRouteWithChildren
   AdminPricingPipelineRoute: typeof AdminPricingPipelineRoute
@@ -3625,7 +3657,6 @@ interface AdminRouteChildren {
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
-  AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
 }
@@ -3678,6 +3709,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOutreachRoute: AdminOutreachRoute,
   AdminPageInventoryRoute: AdminPageInventoryRoute,
   AdminPagesRoute: AdminPagesRoute,
+  AdminPricingRoute: AdminPricingRouteWithChildren,
   AdminPricingCodeInventoryRoute: AdminPricingCodeInventoryRoute,
   AdminPricingLabRoute: AdminPricingLabRouteWithChildren,
   AdminPricingPipelineRoute: AdminPricingPipelineRoute,
@@ -3714,7 +3746,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminLeadsImportRoute: AdminLeadsImportRoute,
-  AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
 }
