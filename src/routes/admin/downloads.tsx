@@ -325,6 +325,14 @@ function AdminDownloadsPage() {
                           </td>
                           <td className="py-2 pr-4 tabular-nums text-xs">{fmtBytes(r.size_bytes)}</td>
                           <td className="py-2 text-right whitespace-nowrap">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDetailsRow(r)}
+                              aria-label="View details"
+                            >
+                              <Info className="w-4 h-4" />
+                            </Button>
                             {r.public_url && (
                               <a href={r.public_url} target="_blank" rel="noopener" download={r.filename}>
                                 <Button variant="ghost" size="icon" aria-label="Download"><Download className="w-4 h-4" /></Button>
