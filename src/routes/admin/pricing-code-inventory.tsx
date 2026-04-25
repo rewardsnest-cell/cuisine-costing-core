@@ -53,7 +53,7 @@ function matches(entry: InventoryEntry, q: string) {
 
 function PricingCodeInventoryPage() {
   const [query, setQuery] = useState("");
-  const [downloading, setDownloading] = useState<null | "pdf" | "json" | "sql">(null);
+  const [downloading, setDownloading] = useState<null | "pdf" | "json" | "sql" | "zip">(null);
 
   const filtered = useMemo(
     () => PRICING_INVENTORY.filter((e) => matches(e, query)),
