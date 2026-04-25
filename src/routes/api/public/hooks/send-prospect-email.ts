@@ -97,7 +97,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         // Granular audit row for every Outlook attempt (lead_id null for prospects).
         await (supabase as any).from("lead_email_audit").insert({
           lead_id: null,
-          recipient: prospect.email,
+          recipient: toEmail,
           subject: body.subject,
           body_preview: body.text.slice(0, 240),
           source: "prospect",
@@ -125,7 +125,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
             body_preview: body.text.slice(0, 240),
             template_key: body.templateKey,
             from_email: null,
-            to_email: prospect.email,
+            to_email: toEmail,
             outlook_message_id: sendResult.outlookMessageId ?? null,
             outlook_conversation_id: sendResult.outlookConversationId ?? null,
             internet_message_id: sendResult.internetMessageId ?? null,
@@ -150,7 +150,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
           body_preview: body.text.slice(0, 240),
           template_key: body.templateKey,
           from_email: null,
-          to_email: prospect.email,
+          to_email: toEmail,
           outlook_message_id: sendResult.outlookMessageId ?? null,
           outlook_conversation_id: sendResult.outlookConversationId ?? null,
           internet_message_id: sendResult.internetMessageId ?? null,
