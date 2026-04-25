@@ -2228,6 +2228,7 @@ export type Database = {
       }
       kroger_sku_map: {
         Row: {
+          canonical_unit: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -2250,6 +2251,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          canonical_unit?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -2272,6 +2274,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          canonical_unit?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.kroger_sku_map ADD COLUMN IF NOT EXISTS canonical_unit text;
