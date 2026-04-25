@@ -66,6 +66,7 @@ function PricingCodeInventoryPage() {
         summary,
         entries: PRICING_INVENTORY,
         sql_references: SQL_PRICING_REFERENCES,
+        sql_appendix: SQL_PRICING_APPENDIX,
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
