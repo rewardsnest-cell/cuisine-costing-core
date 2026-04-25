@@ -67,6 +67,7 @@ function CatalogBootstrapPage() {
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
+  const [detailsRunId, setDetailsRunId] = useState<string | null>(null);
 
   // Guarded "Run Bootstrap" flow: dry-run first, then confirm full run.
   const [guardedPhase, setGuardedPhase] = useState<"idle" | "dry-running" | "awaiting-confirm" | "full-running">("idle");
