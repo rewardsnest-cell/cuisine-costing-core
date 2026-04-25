@@ -357,16 +357,88 @@ function QuoteCreatorHub() {
   const list = data?.currentList ?? null;
   const isApproved = list?.status === "approved";
 
+  // Auth gate — show clear messages instead of a blank page
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-3xl">
+        <LoadingState label="Checking your session…" />
+      </div>
+    );
+  }
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-2xl text-center space-y-4">
+        <h1 className="font-display text-2xl font-bold">Sign in required</h1>
+        <p className="text-sm text-muted-foreground">You must be signed in as an admin to use the Quote Hub.</p>
+        <Button asChild><Link to="/login">Go to login</Link></Button>
+      </div>
+    );
+  }
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-10 max-w-2xl text-center space-y-4">
+        <h1 className="font-display text-2xl font-bold">Access denied</h1>
+        <p className="text-sm text-muted-foreground">Admin role required for the Competitor Quote Hub.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-primary" /> Competitor Quote Hub
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-          Upload competitor menus, let AI propose a shopping list, approve it, then generate a draft quote — all in one place.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2">
+            <ClipboardList className="w-6 h-6 text-primary" /> Competitor Quote Hub
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Upload competitor menus, let AI propose a shopping list, approve it, then generate a draft quote — all in one place.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowDiag((v) => !v)}>
+            {showDiag ? "Hide" : "Show"} diagnostics
+          </Button>
+          <Button variant="outline" size="sm" onClick={hardReload} title="Force-reload bypassing cache">
+            <RefreshCw className="w-4 h-4 mr-1" /> Hard reload
+          </Button>
+        </div>
       </div>
+
+      {showDiag && (
+        <Card className="mb-6 border-amber-500/40">
+          <CardHeader className="pb-2 flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ScrollText className="w-4 h-4" /> Diagnostics
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setDiag([])}>Clear</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xs grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+              <div><span className="text-muted-foreground">Route:</span> /admin/quote-creator</div>
+              <div><span className="text-muted-foreground">?event:</span> {search.event ?? "—"}</div>
+              <div><span className="text-muted-foreground">selectedId:</span> {selectedId ?? "—"}</div>
+              <div><span className="text-muted-foreground">User:</span> {user.email}</div>
+              <div><span className="text-muted-foreground">isAdmin:</span> {String(isAdmin)}</div>
+              <div><span className="text-muted-foreground">eventsLoading:</span> {String(eventsLoading)}</div>
+              <div><span className="text-muted-foreground">eventLoading:</span> {String(loading)}</div>
+              <div><span className="text-muted-foreground">events:</span> {events.length}</div>
+            </div>
+            <div className="bg-muted rounded-md p-2 max-h-60 overflow-auto font-mono text-[11px] leading-relaxed">
+              {diag.length === 0 ? (
+                <div className="text-muted-foreground">No log entries yet.</div>
+              ) : diag.map((e, i) => (
+                <div key={i} className={
+                  e.level === "error" ? "text-destructive"
+                  : e.level === "warn" ? "text-amber-600 dark:text-amber-400"
+                  : "text-foreground"
+                }>
+                  [{e.ts}] {e.level.toUpperCase()} — {e.msg}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Event picker + create */}
       <Card className="mb-6">
