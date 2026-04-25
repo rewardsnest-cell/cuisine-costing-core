@@ -11,6 +11,7 @@ import { SelectionTray, useMenuSelections } from "@/components/menu/SelectionTra
 import { isCocktail, type RecipeKind } from "@/lib/recipe-kind";
 import { RecipePlaceholder } from "@/components/RecipePlaceholder";
 import { usePricingVisibility } from "@/lib/use-pricing-visibility";
+import { useFeatureGate } from "@/lib/feature-visibility";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
