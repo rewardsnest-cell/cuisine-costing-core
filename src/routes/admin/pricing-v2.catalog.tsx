@@ -462,6 +462,66 @@ function CatalogBootstrapPage() {
         <FixWeightCard onSaved={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
         <TraceCard />
       </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open && guardedPhase === "awaiting-confirm") {
+            setGuardedPhase("idle");
+            setGuardedDryResult(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {guardedDryResult && (guardedDryResult.errors_count ?? 0) > 0 ? (
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              )}
+              Dry run complete — proceed with full bootstrap?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  Preflight executed against the Kroger API without writing to the catalog.
+                  Review the counts before committing.
+                </div>
+                {guardedDryResult && (
+                  <div className="grid grid-cols-2 gap-2 rounded-md border p-3 font-mono text-xs">
+                    <div>run_id: <span className="break-all">{guardedDryResult.run_id}</span></div>
+                    <div>store_id: {guardedDryResult.store_id}</div>
+                    <div>counts_in: {guardedDryResult.counts_in}</div>
+                    <div>counts_out: {guardedDryResult.counts_out}</div>
+                    <div>warnings: {guardedDryResult.warnings_count}</div>
+                    <div className={(guardedDryResult.errors_count ?? 0) > 0 ? "text-destructive" : ""}>
+                      errors: {guardedDryResult.errors_count}
+                    </div>
+                  </div>
+                )}
+                {guardedDryResult && (guardedDryResult.errors_count ?? 0) > 0 && (
+                  <div className="text-destructive text-xs">
+                    Dry run reported errors. You can still proceed, but consider reviewing the
+                    Errors panel below first.
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  The full run will write rows to <span className="font-mono">pricing_v2_kroger_catalog_raw</span>{" "}
+                  and <span className="font-mono">pricing_v2_item_catalog</span>.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFullRun}>
+              Run full bootstrap
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
