@@ -536,6 +536,15 @@ function ProspectsPage() {
         prospect={contactDialogProspect}
         onSaved={load}
       />
+
+
+      <BulkContactReviewDialog
+        open={bulkReviewOpen}
+        onOpenChange={setBulkReviewOpen}
+        items={bulkReviewItems}
+        setItems={setBulkReviewItems}
+        onSavedAll={load}
+      />
     </div>
   );
 }
