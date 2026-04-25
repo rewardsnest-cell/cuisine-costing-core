@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 
@@ -15,7 +15,7 @@ import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 export const Route = createFileRoute('/admin/leads/$id')({
   component: LeadDetailPage,
   loader: async ({ params }) => {
-    const [leadRes, emailsRes] = await Promise.all([
+    const [leadRes, emailsRes, auditRes] = await Promise.all([
       supabase.from('leads').select('*').eq('id', params.id).maybeSingle(),
       supabase
         .from('lead_emails')
@@ -24,10 +24,17 @@ export const Route = createFileRoute('/admin/leads/$id')({
         .order('received_at', { ascending: false, nullsFirst: false })
         .order('sent_at', { ascending: false, nullsFirst: false })
         .limit(200),
+      supabase
+        .from('lead_email_audit')
+        .select('*')
+        .eq('lead_id', params.id)
+        .order('attempted_at', { ascending: false })
+        .limit(100),
     ])
     return {
       lead: leadRes.data,
       emails: emailsRes.data ?? [],
+      audit: auditRes.data ?? [],
     }
   },
 })
