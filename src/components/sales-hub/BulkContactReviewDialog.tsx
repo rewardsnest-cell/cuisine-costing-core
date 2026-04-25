@@ -53,6 +53,19 @@ export function BulkContactReviewDialog({
   const generate = useServerFn(generateProspectContact);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [regenAll, setRegenAll] = useState(false);
+  const [regenProgress, setRegenProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const toggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const allSelected = items.length > 0 && selectedIds.size === items.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
 
   const update = (id: string, patch: Partial<BulkReviewItem>) => {
     setItems(items.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -60,6 +73,7 @@ export function BulkContactReviewDialog({
 
   const remove = (id: string) => {
     setItems(items.filter((it) => it.id !== id));
+    setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
   };
 
   const retry = async (item: BulkReviewItem) => {
