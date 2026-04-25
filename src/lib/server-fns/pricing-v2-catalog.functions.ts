@@ -68,7 +68,7 @@ async function collectInventoryProductIds(supabase: any, max: number): Promise<s
 type ErrorRow = {
   run_id: string;
   stage: "catalog" | "catalog_bootstrap_test";
-  severity: "warning" | "error";
+  severity: "warning" | "error" | "critical";
   type: string;
   entity_type: string;
   entity_id: string | null;
@@ -334,7 +334,7 @@ export const listCatalogRunErrors = createServerFn({ method: "POST" })
     z
       .object({
         run_id: z.string().uuid().optional(),
-        severity: z.enum(["warning", "error"]).optional(),
+        severity: z.enum(["warning", "error", "critical"]).optional(),
         type: z.string().max(100).optional(),
         limit: z.number().int().min(1).max(1000).default(200),
       })
@@ -506,7 +506,7 @@ const TEST_CASES: TestCase[] = [
   { id: "C_lb",     name: "C) 5 lb → 2267.96185 g",        size_raw: "5 lb",      expect_ok: true,  expect_grams: 5 * 453.59237 },
   // FAIL
   { id: "D_missing", name: "D) empty/null → MISSING_SIZE", size_raw: null,        expect_ok: false, expect_error_type: "MISSING_SIZE" },
-  { id: "E_volume",  name: "E) 32 fl oz → VOLUME_ONLY",    size_raw: "32 fl oz",  expect_ok: false, expect_error_type: "VOLUME_ONLY" },
+  { id: "E_volume",  name: "E) 1 gal → VOLUME_ONLY",       size_raw: "1 gal",     expect_ok: false, expect_error_type: "VOLUME_ONLY" },
   { id: "F_each",    name: "F) 12 ct → WEIGHT_PARSE_FAIL", size_raw: "12 ct",     expect_ok: false, expect_error_type: "WEIGHT_PARSE_FAIL" },
 ];
 
@@ -629,7 +629,7 @@ export const runCatalogTestHarness = createServerFn({ method: "POST" })
           errs.push({
             run_id: runId,
             stage: TEST_STAGE,
-            severity: "error", // blocker per spec for D/E/F
+            severity: "critical", // blocker per spec for D/E/F (DB enum: critical = blocker)
             type: r.failure,
             entity_type: "test_case",
             entity_id: productKey,
@@ -697,7 +697,7 @@ export const runCatalogTestHarness = createServerFn({ method: "POST" })
       const passed = results.filter((r) => r.pass).length;
       const failed = results.length - passed;
       const warningsCount = errs.filter((e) => e.severity === "warning").length;
-      const errorsCount = errs.filter((e) => e.severity === "error").length;
+      const errorsCount = errs.filter((e) => e.severity === "error" || e.severity === "critical").length;
 
       // 3) Finalize run.
       await supabase
