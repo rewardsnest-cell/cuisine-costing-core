@@ -70,6 +70,11 @@ function PricingCodeInventoryPage() {
         entries: PRICING_INVENTORY,
         sql_references: SQL_PRICING_REFERENCES,
         sql_appendix: SQL_PRICING_APPENDIX,
+        dependency_graph: {
+          nodes: PRICING_GRAPH_NODES,
+          edges: PRICING_GRAPH_EDGES,
+          mermaid: buildPricingGraphMermaid(),
+        },
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
