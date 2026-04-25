@@ -21,6 +21,7 @@ import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Lo
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
 import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
+import { BulkContactReviewDialog, type BulkReviewItem } from "@/components/sales-hub/BulkContactReviewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
@@ -70,6 +71,8 @@ function ProspectsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [bulkReviewOpen, setBulkReviewOpen] = useState(false);
+  const [bulkReviewItems, setBulkReviewItems] = useState<BulkReviewItem[]>([]);
   const generateContact = useServerFn(generateProspectContact);
 
   const isMissingContact = (p: Prospect) => !p.email && !p.phone;
@@ -155,39 +158,64 @@ function ProspectsPage() {
       toast.error("Select prospects missing email and phone first.");
       return;
     }
-    if (!confirm(`Generate AI contact info for ${targets.length} prospect${targets.length === 1 ? "" : "s"}? Results are saved automatically — review and edit afterward.`)) return;
 
     setBulkRunning(true);
     setBulkProgress({ done: 0, total: targets.length });
-    let success = 0;
+    const reviewItems: BulkReviewItem[] = [];
     let failed = 0;
 
     for (let i = 0; i < targets.length; i++) {
       const p = targets[i];
+      const base = {
+        id: p.id,
+        business_name: p.business_name,
+        city: p.city,
+        type: p.type,
+        original_contact_name: p.contact_name,
+        original_email: p.email,
+        original_phone: p.phone,
+        original_notes: p.notes,
+      };
       try {
         const res = await generateContact({
           data: { businessName: p.business_name, city: p.city, type: p.type },
         });
-        if (!res.ok) { failed++; }
-        else {
+        if (!res.ok) {
+          failed++;
+          reviewItems.push({
+            ...base,
+            contact_name: p.contact_name ?? "",
+            email: p.email ?? "",
+            phone: p.phone ?? "",
+            website: "",
+            ai_notes: "",
+            confidence: null,
+            error: res.error,
+          });
+        } else {
           const c = res.contact;
-          const aiNote = c.notes
-            ? `AI contact research (${c.confidence ?? "?"} confidence): ${c.notes}${c.website ? ` · Website: ${c.website}` : ""}`
-            : null;
-          const mergedNotes = [p.notes?.trim(), aiNote].filter(Boolean).join("\n\n") || null;
-          const { error } = await (supabase as any)
-            .from("sales_prospects")
-            .update({
-              contact_name: p.contact_name || c.contact_name || null,
-              email: p.email || c.email || null,
-              phone: p.phone || c.phone || null,
-              notes: mergedNotes,
-            })
-            .eq("id", p.id);
-          if (error) failed++; else success++;
+          reviewItems.push({
+            ...base,
+            contact_name: c.contact_name ?? p.contact_name ?? "",
+            email: c.email ?? p.email ?? "",
+            phone: c.phone ?? p.phone ?? "",
+            website: c.website ?? "",
+            ai_notes: c.notes ?? "",
+            confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
+          });
         }
-      } catch {
+      } catch (e: any) {
         failed++;
+        reviewItems.push({
+          ...base,
+          contact_name: p.contact_name ?? "",
+          email: p.email ?? "",
+          phone: p.phone ?? "",
+          website: "",
+          ai_notes: "",
+          confidence: null,
+          error: e?.message ?? "Failed",
+        });
       }
       setBulkProgress({ done: i + 1, total: targets.length });
       // Small delay to avoid hammering the AI gateway rate limit
@@ -197,9 +225,9 @@ function ProspectsPage() {
     setBulkRunning(false);
     setBulkProgress(null);
     setSelectedIds(new Set());
-    if (success) toast.success(`Generated contact info for ${success} prospect${success === 1 ? "" : "s"}${failed ? ` (${failed} failed)` : ""}`);
-    else toast.error(`Bulk generate failed for all ${failed} prospects`);
-    load();
+    setBulkReviewItems(reviewItems);
+    setBulkReviewOpen(true);
+    if (failed) toast.warning(`${failed} prospect${failed === 1 ? "" : "s"} returned errors — review and retry.`);
   };
 
   const logContact = async (p: Prospect, channel: string) => {
@@ -507,6 +535,15 @@ function ProspectsPage() {
         onOpenChange={setContactDialogOpen}
         prospect={contactDialogProspect}
         onSaved={load}
+      />
+
+
+      <BulkContactReviewDialog
+        open={bulkReviewOpen}
+        onOpenChange={setBulkReviewOpen}
+        items={bulkReviewItems}
+        setItems={setBulkReviewItems}
+        onSavedAll={load}
       />
     </div>
   );
