@@ -38,6 +38,9 @@ function DailyChecklistPage() {
   const [logOutcome, setLogOutcome] = useState("");
   const [logNotes, setLogNotes] = useState("");
   const [recent, setRecent] = useState<Array<any>>([]);
+  const [bulkDays, setBulkDays] = useState("3");
+  const [bulkChannels, setBulkChannels] = useState<Record<string, boolean>>({ call: true, email: true, "walk-in": true });
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     if (!user) return;
