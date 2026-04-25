@@ -457,14 +457,16 @@ async function runDailyUpdate(
       if (phErr) errors.push({ sku: (m as any).sku, error: phErr.message });
       else priceRows++;
 
-      // Touch last_seen + observed prices on the map row
+      // Touch last_seen + observed prices on the map row, including the
+      // canonical_unit we normalized to (lb when weight-based).
       await supabaseAdmin.from("kroger_sku_map").update({
         last_seen_at: nowIso,
         regular_price: regular,
         promo_price: promo,
         price_unit_size: sz,
         price_observed_at: nowIso,
-      }).eq("sku", (m as any).sku);
+        canonical_unit: norm.canonicalUnit,
+      } as any).eq("sku", (m as any).sku);
     } catch (e: any) {
       errors.push({ sku: (m as any).sku, error: e?.message ?? "unknown" });
     }
