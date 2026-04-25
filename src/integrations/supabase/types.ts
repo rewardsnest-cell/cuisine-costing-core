@@ -2728,6 +2728,112 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_item_catalog: {
+        Row: {
+          brand: string | null
+          id: string
+          kroger_product_id: string
+          last_run_id: string | null
+          manual_net_weight_grams: number | null
+          manual_override_reason: string | null
+          name: string
+          net_weight_grams: number | null
+          product_key: string
+          size_raw: string | null
+          store_id: string
+          upc: string | null
+          updated_at: string
+          weight_source: string
+        }
+        Insert: {
+          brand?: string | null
+          id?: string
+          kroger_product_id: string
+          last_run_id?: string | null
+          manual_net_weight_grams?: number | null
+          manual_override_reason?: string | null
+          name: string
+          net_weight_grams?: number | null
+          product_key: string
+          size_raw?: string | null
+          store_id: string
+          upc?: string | null
+          updated_at?: string
+          weight_source?: string
+        }
+        Update: {
+          brand?: string | null
+          id?: string
+          kroger_product_id?: string
+          last_run_id?: string | null
+          manual_net_weight_grams?: number | null
+          manual_override_reason?: string | null
+          name?: string
+          net_weight_grams?: number | null
+          product_key?: string
+          size_raw?: string | null
+          store_id?: string
+          upc?: string | null
+          updated_at?: string
+          weight_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_item_catalog_last_run_id_fkey"
+            columns: ["last_run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
+      pricing_v2_kroger_catalog_raw: {
+        Row: {
+          brand: string | null
+          fetched_at: string
+          id: string
+          kroger_product_id: string
+          name: string
+          payload_json: Json
+          run_id: string | null
+          size_raw: string | null
+          store_id: string
+          upc: string | null
+        }
+        Insert: {
+          brand?: string | null
+          fetched_at?: string
+          id?: string
+          kroger_product_id: string
+          name: string
+          payload_json?: Json
+          run_id?: string | null
+          size_raw?: string | null
+          store_id: string
+          upc?: string | null
+        }
+        Update: {
+          brand?: string | null
+          fetched_at?: string
+          id?: string
+          kroger_product_id?: string
+          name?: string
+          payload_json?: Json
+          run_id?: string | null
+          size_raw?: string | null
+          store_id?: string
+          upc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_kroger_catalog_raw_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       pricing_v2_runs: {
         Row: {
           counts_in: number
@@ -2815,6 +2921,33 @@ export type Database = {
           updated_at?: string
           warning_threshold_pct?: number
           zero_cost_blocking?: boolean
+        }
+        Relationships: []
+      }
+      pricing_v2_weight_parse_rules: {
+        Row: {
+          created_at: string
+          id: string
+          multiplier: number
+          notes: string | null
+          pattern: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          multiplier?: number
+          notes?: string | null
+          pattern: string
+          unit: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          multiplier?: number
+          notes?: string | null
+          pattern?: string
+          unit?: string
         }
         Relationships: []
       }
