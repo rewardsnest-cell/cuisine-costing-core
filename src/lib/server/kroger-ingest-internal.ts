@@ -3,7 +3,6 @@ import {
   BOOTSTRAP_SEARCH_TERMS,
   KROGER_DEFAULT_ZIP,
   getKrogerFetch,
-  isValidKrogerLocationId,
   normalizeForScoring,
   normalizeKrogerPrice,
   resolveRunLocationId,
@@ -57,7 +56,9 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
   message?: string;
 }> {
   const mode = opts.mode;
-  const zip = (opts.zip_code ?? KROGER_DEFAULT_ZIP).trim();
+  // HARD-CODED: pricing always pulls from Cincinnati 45202. Any caller-passed
+  // ZIP is intentionally ignored to keep one consistent pricing source.
+  const zip = KROGER_DEFAULT_ZIP;
   // Per-run safety cap. Bootstrap is allowed a much wider net so a single
   // cron run can collect thousands of SKUs across all a-z + 0-9 search terms;
   // daily_update stays small and fast. Both are still capped to prevent runaway
@@ -75,29 +76,18 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
     return { run_id: id, mode, location_id: null, status: "failed", message: e?.message };
   }
 
-  // 2) locationId — fatal if unresolved OR invalid format. Kroger's Product
-  //    API rejects anything that isn't exactly 8 alphanumeric chars with
-  //    PRODUCT-2011, so we validate up front and record the failure clearly.
-  const overrideRaw = (opts.location_id ?? "").trim();
-  if (overrideRaw && !isValidKrogerLocationId(overrideRaw)) {
-    const id = await recordFailure(
-      `Invalid locationId override "${overrideRaw}" — must be exactly 8 alphanumeric characters`,
-      mode,
-    );
-    return { run_id: id, mode, location_id: null, status: "failed", message: "invalid_location_format" };
-  }
-  const locationId = await resolveRunLocationId(opts.location_id ?? null, zip, kFetch);
+  // 2) locationId — fatal if unresolved OR invalid format. We always derive
+  //    from the hard-coded ZIP; any opts.location_id override is ignored.
+  const locationId = await resolveRunLocationId(null, zip, kFetch);
   if (!locationId) {
     const id = await recordFailure(`Could not resolve locationId for ZIP ${zip}`, mode);
     return { run_id: id, mode, location_id: null, status: "failed", message: "no_location" };
   }
-  if (!isValidKrogerLocationId(locationId)) {
-    const id = await recordFailure(
-      `Resolved locationId "${locationId}" failed format check (must be 8 alphanumeric chars). ZIP=${zip}`,
-      mode,
-    );
-    return { run_id: id, mode, location_id: locationId, status: "failed", message: "invalid_location_format" };
+  if (!locationId) {
+    const id = await recordFailure(`Could not resolve locationId for ZIP ${zip}`, mode);
+    return { run_id: id, mode, location_id: null, status: "failed", message: "no_location" };
   }
+  // (resolveRunLocationId already enforces 8-char alphanumeric format.)
 
   // 3) create run row
   const { data: runRow } = await supabaseAdmin
@@ -460,14 +450,16 @@ async function runDailyUpdate(
       if (phErr) errors.push({ sku: (m as any).sku, error: phErr.message });
       else priceRows++;
 
-      // Touch last_seen + observed prices on the map row
+      // Touch last_seen + observed prices on the map row, including the
+      // canonical_unit we normalized to (lb when weight-based).
       await supabaseAdmin.from("kroger_sku_map").update({
         last_seen_at: nowIso,
         regular_price: regular,
         promo_price: promo,
         price_unit_size: sz,
         price_observed_at: nowIso,
-      }).eq("sku", (m as any).sku);
+        canonical_unit: norm.canonicalUnit,
+      } as any).eq("sku", (m as any).sku);
     } catch (e: any) {
       errors.push({ sku: (m as any).sku, error: e?.message ?? "unknown" });
     }

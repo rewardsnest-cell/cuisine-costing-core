@@ -83,18 +83,14 @@ import { Route as AdminRegisterRouteImport } from './routes/admin/register'
 import { Route as AdminRecipesRouteImport } from './routes/admin/recipes'
 import { Route as AdminRecipeHubRouteImport } from './routes/admin/recipe-hub'
 import { Route as AdminReceiptsRouteImport } from './routes/admin/receipts'
-import { Route as AdminReceiptKrogerDiagnosticsRouteImport } from './routes/admin/receipt-kroger-diagnostics'
 import { Route as AdminQuotesRouteImport } from './routes/admin/quotes'
 import { Route as AdminQuoteLabRouteImport } from './routes/admin/quote-lab'
 import { Route as AdminQuoteCreatorRouteImport } from './routes/admin/quote-creator'
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/pricing-visibility'
-import { Route as AdminPricingTestRouteImport } from './routes/admin/pricing-test'
-import { Route as AdminPricingSandboxRouteImport } from './routes/admin/pricing-sandbox'
-import { Route as AdminPricingPipelineRouteImport } from './routes/admin/pricing-pipeline'
-import { Route as AdminPricingLabRouteImport } from './routes/admin/pricing-lab'
 import { Route as AdminPricingCodeInventoryRouteImport } from './routes/admin/pricing-code-inventory'
+import { Route as AdminPricingRouteImport } from './routes/admin/pricing'
 import { Route as AdminPagesRouteImport } from './routes/admin/pages'
 import { Route as AdminPageInventoryRouteImport } from './routes/admin/page-inventory'
 import { Route as AdminOutreachRouteImport } from './routes/admin/outreach'
@@ -104,19 +100,12 @@ import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-module
 import { Route as AdminMenuRouteImport } from './routes/admin/menu'
 import { Route as AdminMarginVolatilityRouteImport } from './routes/admin/margin-volatility'
 import { Route as AdminLocalCateringContactsRouteImport } from './routes/admin/local-catering-contacts'
-import { Route as AdminKrogerValidationRouteImport } from './routes/admin/kroger-validation'
-import { Route as AdminKrogerSkuReviewRouteImport } from './routes/admin/kroger-sku-review'
-import { Route as AdminKrogerPricingRouteImport } from './routes/admin/kroger-pricing'
-import { Route as AdminKrogerPriceSignalsRouteImport } from './routes/admin/kroger-price-signals'
-import { Route as AdminKrogerMappingDiagnosticsRouteImport } from './routes/admin/kroger-mapping-diagnostics'
-import { Route as AdminKrogerIngestRunsRouteImport } from './routes/admin/kroger-ingest-runs'
 import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminInventoryRouteImport } from './routes/admin/inventory'
 import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligence'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminInspiredPreviewRouteImport } from './routes/admin/inspired-preview'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
-import { Route as AdminIngestDiagnosticsRouteImport } from './routes/admin/ingest-diagnostics'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGuidesRouteImport } from './routes/admin/guides'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
@@ -161,7 +150,6 @@ import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/r
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminQuoteCreatorIdRouteImport } from './routes/admin/quote-creator.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
-import { Route as AdminPricingLabPreviewRouteImport } from './routes/admin/pricing-lab.preview'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminLeadsImportRouteImport } from './routes/admin/leads.import'
 import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
@@ -559,12 +547,6 @@ const AdminReceiptsRoute = AdminReceiptsRouteImport.update({
   path: '/receipts',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminReceiptKrogerDiagnosticsRoute =
-  AdminReceiptKrogerDiagnosticsRouteImport.update({
-    id: '/receipt-kroger-diagnostics',
-    path: '/receipt-kroger-diagnostics',
-    getParentRoute: () => AdminRoute,
-  } as any)
 const AdminQuotesRoute = AdminQuotesRouteImport.update({
   id: '/quotes',
   path: '/quotes',
@@ -595,32 +577,17 @@ const AdminPricingVisibilityRoute = AdminPricingVisibilityRouteImport.update({
   path: '/pricing-visibility',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminPricingTestRoute = AdminPricingTestRouteImport.update({
-  id: '/pricing-test',
-  path: '/pricing-test',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPricingSandboxRoute = AdminPricingSandboxRouteImport.update({
-  id: '/pricing-sandbox',
-  path: '/pricing-sandbox',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPricingPipelineRoute = AdminPricingPipelineRouteImport.update({
-  id: '/pricing-pipeline',
-  path: '/pricing-pipeline',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPricingLabRoute = AdminPricingLabRouteImport.update({
-  id: '/pricing-lab',
-  path: '/pricing-lab',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminPricingCodeInventoryRoute =
   AdminPricingCodeInventoryRouteImport.update({
     id: '/pricing-code-inventory',
     path: '/pricing-code-inventory',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminPricingRoute = AdminPricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPagesRoute = AdminPagesRouteImport.update({
   id: '/pages',
   path: '/pages',
@@ -667,37 +634,6 @@ const AdminLocalCateringContactsRoute =
     path: '/local-catering-contacts',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminKrogerValidationRoute = AdminKrogerValidationRouteImport.update({
-  id: '/kroger-validation',
-  path: '/kroger-validation',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKrogerSkuReviewRoute = AdminKrogerSkuReviewRouteImport.update({
-  id: '/kroger-sku-review',
-  path: '/kroger-sku-review',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKrogerPricingRoute = AdminKrogerPricingRouteImport.update({
-  id: '/kroger-pricing',
-  path: '/kroger-pricing',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKrogerPriceSignalsRoute = AdminKrogerPriceSignalsRouteImport.update({
-  id: '/kroger-price-signals',
-  path: '/kroger-price-signals',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKrogerMappingDiagnosticsRoute =
-  AdminKrogerMappingDiagnosticsRouteImport.update({
-    id: '/kroger-mapping-diagnostics',
-    path: '/kroger-mapping-diagnostics',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminKrogerIngestRunsRoute = AdminKrogerIngestRunsRouteImport.update({
-  id: '/kroger-ingest-runs',
-  path: '/kroger-ingest-runs',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminItemsRoute = AdminItemsRouteImport.update({
   id: '/items',
   path: '/items',
@@ -729,11 +665,6 @@ const AdminIngredientReferenceRoute =
     path: '/ingredient-reference',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminIngestDiagnosticsRoute = AdminIngestDiagnosticsRouteImport.update({
-  id: '/ingest-diagnostics',
-  path: '/ingest-diagnostics',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminImportRecipesRoute = AdminImportRecipesRouteImport.update({
   id: '/import-recipes',
   path: '/import-recipes',
@@ -955,14 +886,9 @@ const AdminQuoteCreatorIdRoute = AdminQuoteCreatorIdRouteImport.update({
   getParentRoute: () => AdminQuoteCreatorRoute,
 } as any)
 const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
-  id: '/pricing/national',
-  path: '/pricing/national',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPricingLabPreviewRoute = AdminPricingLabPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => AdminPricingLabRoute,
+  id: '/national',
+  path: '/national',
+  getParentRoute: () => AdminPricingRoute,
 } as any)
 const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   id: '/preview',
@@ -1128,19 +1054,12 @@ export interface FileRoutesByFullPath {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
-  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
-  '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
-  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
-  '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
-  '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
-  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1150,18 +1069,14 @@ export interface FileRoutesByFullPath {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
-  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
-  '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
-  '/admin/pricing-sandbox': typeof AdminPricingSandboxRoute
-  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quote-creator': typeof AdminQuoteCreatorRouteWithChildren
   '/admin/quote-lab': typeof AdminQuoteLabRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1216,7 +1131,6 @@ export interface FileRoutesByFullPath {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
-  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1301,19 +1215,12 @@ export interface FileRoutesByTo {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
-  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
-  '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
-  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
-  '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
-  '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
-  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1323,18 +1230,14 @@ export interface FileRoutesByTo {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
-  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
-  '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
-  '/admin/pricing-sandbox': typeof AdminPricingSandboxRoute
-  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quote-creator': typeof AdminQuoteCreatorRouteWithChildren
   '/admin/quote-lab': typeof AdminQuoteLabRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1389,7 +1292,6 @@ export interface FileRoutesByTo {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
-  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1477,19 +1379,12 @@ export interface FileRoutesById {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
-  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/intelligence': typeof AdminIntelligenceRoute
   '/admin/inventory': typeof AdminInventoryRoute
   '/admin/items': typeof AdminItemsRoute
-  '/admin/kroger-ingest-runs': typeof AdminKrogerIngestRunsRoute
-  '/admin/kroger-mapping-diagnostics': typeof AdminKrogerMappingDiagnosticsRoute
-  '/admin/kroger-price-signals': typeof AdminKrogerPriceSignalsRoute
-  '/admin/kroger-pricing': typeof AdminKrogerPricingRoute
-  '/admin/kroger-sku-review': typeof AdminKrogerSkuReviewRoute
-  '/admin/kroger-validation': typeof AdminKrogerValidationRoute
   '/admin/local-catering-contacts': typeof AdminLocalCateringContactsRoute
   '/admin/margin-volatility': typeof AdminMarginVolatilityRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -1499,18 +1394,14 @@ export interface FileRoutesById {
   '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
+  '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
-  '/admin/pricing-lab': typeof AdminPricingLabRouteWithChildren
-  '/admin/pricing-pipeline': typeof AdminPricingPipelineRoute
-  '/admin/pricing-sandbox': typeof AdminPricingSandboxRoute
-  '/admin/pricing-test': typeof AdminPricingTestRoute
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
   '/admin/quote-creator': typeof AdminQuoteCreatorRouteWithChildren
   '/admin/quote-lab': typeof AdminQuoteLabRoute
   '/admin/quotes': typeof AdminQuotesRouteWithChildren
-  '/admin/receipt-kroger-diagnostics': typeof AdminReceiptKrogerDiagnosticsRoute
   '/admin/receipts': typeof AdminReceiptsRouteWithChildren
   '/admin/recipe-hub': typeof AdminRecipeHubRouteWithChildren
   '/admin/recipes': typeof AdminRecipesRouteWithChildren
@@ -1565,7 +1456,6 @@ export interface FileRoutesById {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
-  '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1654,19 +1544,12 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
-    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/items'
-    | '/admin/kroger-ingest-runs'
-    | '/admin/kroger-mapping-diagnostics'
-    | '/admin/kroger-price-signals'
-    | '/admin/kroger-pricing'
-    | '/admin/kroger-sku-review'
-    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1676,18 +1559,14 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
-    | '/admin/pricing-lab'
-    | '/admin/pricing-pipeline'
-    | '/admin/pricing-sandbox'
-    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quote-creator'
     | '/admin/quote-lab'
     | '/admin/quotes'
-    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -1742,7 +1621,6 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
-    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1827,19 +1705,12 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
-    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/items'
-    | '/admin/kroger-ingest-runs'
-    | '/admin/kroger-mapping-diagnostics'
-    | '/admin/kroger-price-signals'
-    | '/admin/kroger-pricing'
-    | '/admin/kroger-sku-review'
-    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -1849,18 +1720,14 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
-    | '/admin/pricing-lab'
-    | '/admin/pricing-pipeline'
-    | '/admin/pricing-sandbox'
-    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quote-creator'
     | '/admin/quote-lab'
     | '/admin/quotes'
-    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -1915,7 +1782,6 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
-    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -2002,19 +1868,12 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
-    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
     | '/admin/intelligence'
     | '/admin/inventory'
     | '/admin/items'
-    | '/admin/kroger-ingest-runs'
-    | '/admin/kroger-mapping-diagnostics'
-    | '/admin/kroger-price-signals'
-    | '/admin/kroger-pricing'
-    | '/admin/kroger-sku-review'
-    | '/admin/kroger-validation'
     | '/admin/local-catering-contacts'
     | '/admin/margin-volatility'
     | '/admin/menu'
@@ -2024,18 +1883,14 @@ export interface FileRouteTypes {
     | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
+    | '/admin/pricing'
     | '/admin/pricing-code-inventory'
-    | '/admin/pricing-lab'
-    | '/admin/pricing-pipeline'
-    | '/admin/pricing-sandbox'
-    | '/admin/pricing-test'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
     | '/admin/quote-creator'
     | '/admin/quote-lab'
     | '/admin/quotes'
-    | '/admin/receipt-kroger-diagnostics'
     | '/admin/receipts'
     | '/admin/recipe-hub'
     | '/admin/recipes'
@@ -2090,7 +1945,6 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
-    | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -2709,13 +2563,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReceiptsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/receipt-kroger-diagnostics': {
-      id: '/admin/receipt-kroger-diagnostics'
-      path: '/receipt-kroger-diagnostics'
-      fullPath: '/admin/receipt-kroger-diagnostics'
-      preLoaderRoute: typeof AdminReceiptKrogerDiagnosticsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/quotes': {
       id: '/admin/quotes'
       path: '/quotes'
@@ -2758,39 +2605,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingVisibilityRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/pricing-test': {
-      id: '/admin/pricing-test'
-      path: '/pricing-test'
-      fullPath: '/admin/pricing-test'
-      preLoaderRoute: typeof AdminPricingTestRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pricing-sandbox': {
-      id: '/admin/pricing-sandbox'
-      path: '/pricing-sandbox'
-      fullPath: '/admin/pricing-sandbox'
-      preLoaderRoute: typeof AdminPricingSandboxRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pricing-pipeline': {
-      id: '/admin/pricing-pipeline'
-      path: '/pricing-pipeline'
-      fullPath: '/admin/pricing-pipeline'
-      preLoaderRoute: typeof AdminPricingPipelineRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pricing-lab': {
-      id: '/admin/pricing-lab'
-      path: '/pricing-lab'
-      fullPath: '/admin/pricing-lab'
-      preLoaderRoute: typeof AdminPricingLabRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/pricing-code-inventory': {
       id: '/admin/pricing-code-inventory'
       path: '/pricing-code-inventory'
       fullPath: '/admin/pricing-code-inventory'
       preLoaderRoute: typeof AdminPricingCodeInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pricing': {
+      id: '/admin/pricing'
+      path: '/pricing'
+      fullPath: '/admin/pricing'
+      preLoaderRoute: typeof AdminPricingRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pages': {
@@ -2856,48 +2682,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLocalCateringContactsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/kroger-validation': {
-      id: '/admin/kroger-validation'
-      path: '/kroger-validation'
-      fullPath: '/admin/kroger-validation'
-      preLoaderRoute: typeof AdminKrogerValidationRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kroger-sku-review': {
-      id: '/admin/kroger-sku-review'
-      path: '/kroger-sku-review'
-      fullPath: '/admin/kroger-sku-review'
-      preLoaderRoute: typeof AdminKrogerSkuReviewRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kroger-pricing': {
-      id: '/admin/kroger-pricing'
-      path: '/kroger-pricing'
-      fullPath: '/admin/kroger-pricing'
-      preLoaderRoute: typeof AdminKrogerPricingRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kroger-price-signals': {
-      id: '/admin/kroger-price-signals'
-      path: '/kroger-price-signals'
-      fullPath: '/admin/kroger-price-signals'
-      preLoaderRoute: typeof AdminKrogerPriceSignalsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kroger-mapping-diagnostics': {
-      id: '/admin/kroger-mapping-diagnostics'
-      path: '/kroger-mapping-diagnostics'
-      fullPath: '/admin/kroger-mapping-diagnostics'
-      preLoaderRoute: typeof AdminKrogerMappingDiagnosticsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kroger-ingest-runs': {
-      id: '/admin/kroger-ingest-runs'
-      path: '/kroger-ingest-runs'
-      fullPath: '/admin/kroger-ingest-runs'
-      preLoaderRoute: typeof AdminKrogerIngestRunsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/items': {
       id: '/admin/items'
       path: '/items'
@@ -2938,13 +2722,6 @@ declare module '@tanstack/react-router' {
       path: '/ingredient-reference'
       fullPath: '/admin/ingredient-reference'
       preLoaderRoute: typeof AdminIngredientReferenceRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/ingest-diagnostics': {
-      id: '/admin/ingest-diagnostics'
-      path: '/ingest-diagnostics'
-      fullPath: '/admin/ingest-diagnostics'
-      preLoaderRoute: typeof AdminIngestDiagnosticsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/import-recipes': {
@@ -3250,17 +3027,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/pricing/national': {
       id: '/admin/pricing/national'
-      path: '/pricing/national'
+      path: '/national'
       fullPath: '/admin/pricing/national'
       preLoaderRoute: typeof AdminPricingNationalRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pricing-lab/preview': {
-      id: '/admin/pricing-lab/preview'
-      path: '/preview'
-      fullPath: '/admin/pricing-lab/preview'
-      preLoaderRoute: typeof AdminPricingLabPreviewRouteImport
-      parentRoute: typeof AdminPricingLabRoute
+      parentRoute: typeof AdminPricingRoute
     }
     '/admin/menu-modules/preview': {
       id: '/admin/menu-modules/preview'
@@ -3430,16 +3200,16 @@ const AdminMenuModulesRouteChildren: AdminMenuModulesRouteChildren = {
 const AdminMenuModulesRouteWithChildren =
   AdminMenuModulesRoute._addFileChildren(AdminMenuModulesRouteChildren)
 
-interface AdminPricingLabRouteChildren {
-  AdminPricingLabPreviewRoute: typeof AdminPricingLabPreviewRoute
+interface AdminPricingRouteChildren {
+  AdminPricingNationalRoute: typeof AdminPricingNationalRoute
 }
 
-const AdminPricingLabRouteChildren: AdminPricingLabRouteChildren = {
-  AdminPricingLabPreviewRoute: AdminPricingLabPreviewRoute,
+const AdminPricingRouteChildren: AdminPricingRouteChildren = {
+  AdminPricingNationalRoute: AdminPricingNationalRoute,
 }
 
-const AdminPricingLabRouteWithChildren = AdminPricingLabRoute._addFileChildren(
-  AdminPricingLabRouteChildren,
+const AdminPricingRouteWithChildren = AdminPricingRoute._addFileChildren(
+  AdminPricingRouteChildren,
 )
 
 interface AdminQuoteCreatorRouteChildren {
@@ -3567,19 +3337,12 @@ interface AdminRouteChildren {
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminGuidesRoute: typeof AdminGuidesRouteWithChildren
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
-  AdminIngestDiagnosticsRoute: typeof AdminIngestDiagnosticsRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
   AdminInspiredPreviewRoute: typeof AdminInspiredPreviewRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminIntelligenceRoute: typeof AdminIntelligenceRoute
   AdminInventoryRoute: typeof AdminInventoryRoute
   AdminItemsRoute: typeof AdminItemsRoute
-  AdminKrogerIngestRunsRoute: typeof AdminKrogerIngestRunsRoute
-  AdminKrogerMappingDiagnosticsRoute: typeof AdminKrogerMappingDiagnosticsRoute
-  AdminKrogerPriceSignalsRoute: typeof AdminKrogerPriceSignalsRoute
-  AdminKrogerPricingRoute: typeof AdminKrogerPricingRoute
-  AdminKrogerSkuReviewRoute: typeof AdminKrogerSkuReviewRoute
-  AdminKrogerValidationRoute: typeof AdminKrogerValidationRoute
   AdminLocalCateringContactsRoute: typeof AdminLocalCateringContactsRoute
   AdminMarginVolatilityRoute: typeof AdminMarginVolatilityRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -3589,18 +3352,14 @@ interface AdminRouteChildren {
   AdminOutreachRoute: typeof AdminOutreachRoute
   AdminPageInventoryRoute: typeof AdminPageInventoryRoute
   AdminPagesRoute: typeof AdminPagesRoute
+  AdminPricingRoute: typeof AdminPricingRouteWithChildren
   AdminPricingCodeInventoryRoute: typeof AdminPricingCodeInventoryRoute
-  AdminPricingLabRoute: typeof AdminPricingLabRouteWithChildren
-  AdminPricingPipelineRoute: typeof AdminPricingPipelineRoute
-  AdminPricingSandboxRoute: typeof AdminPricingSandboxRoute
-  AdminPricingTestRoute: typeof AdminPricingTestRoute
   AdminPricingVisibilityRoute: typeof AdminPricingVisibilityRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
   AdminQuoteCreatorRoute: typeof AdminQuoteCreatorRouteWithChildren
   AdminQuoteLabRoute: typeof AdminQuoteLabRoute
   AdminQuotesRoute: typeof AdminQuotesRouteWithChildren
-  AdminReceiptKrogerDiagnosticsRoute: typeof AdminReceiptKrogerDiagnosticsRoute
   AdminReceiptsRoute: typeof AdminReceiptsRouteWithChildren
   AdminRecipeHubRoute: typeof AdminRecipeHubRouteWithChildren
   AdminRecipesRoute: typeof AdminRecipesRouteWithChildren
@@ -3625,7 +3384,6 @@ interface AdminRouteChildren {
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
-  AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
 }
@@ -3656,19 +3414,12 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminGuidesRoute: AdminGuidesRouteWithChildren,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
-  AdminIngestDiagnosticsRoute: AdminIngestDiagnosticsRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
   AdminInspiredPreviewRoute: AdminInspiredPreviewRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminIntelligenceRoute: AdminIntelligenceRoute,
   AdminInventoryRoute: AdminInventoryRoute,
   AdminItemsRoute: AdminItemsRoute,
-  AdminKrogerIngestRunsRoute: AdminKrogerIngestRunsRoute,
-  AdminKrogerMappingDiagnosticsRoute: AdminKrogerMappingDiagnosticsRoute,
-  AdminKrogerPriceSignalsRoute: AdminKrogerPriceSignalsRoute,
-  AdminKrogerPricingRoute: AdminKrogerPricingRoute,
-  AdminKrogerSkuReviewRoute: AdminKrogerSkuReviewRoute,
-  AdminKrogerValidationRoute: AdminKrogerValidationRoute,
   AdminLocalCateringContactsRoute: AdminLocalCateringContactsRoute,
   AdminMarginVolatilityRoute: AdminMarginVolatilityRoute,
   AdminMenuRoute: AdminMenuRoute,
@@ -3678,18 +3429,14 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOutreachRoute: AdminOutreachRoute,
   AdminPageInventoryRoute: AdminPageInventoryRoute,
   AdminPagesRoute: AdminPagesRoute,
+  AdminPricingRoute: AdminPricingRouteWithChildren,
   AdminPricingCodeInventoryRoute: AdminPricingCodeInventoryRoute,
-  AdminPricingLabRoute: AdminPricingLabRouteWithChildren,
-  AdminPricingPipelineRoute: AdminPricingPipelineRoute,
-  AdminPricingSandboxRoute: AdminPricingSandboxRoute,
-  AdminPricingTestRoute: AdminPricingTestRoute,
   AdminPricingVisibilityRoute: AdminPricingVisibilityRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
   AdminQuoteCreatorRoute: AdminQuoteCreatorRouteWithChildren,
   AdminQuoteLabRoute: AdminQuoteLabRoute,
   AdminQuotesRoute: AdminQuotesRouteWithChildren,
-  AdminReceiptKrogerDiagnosticsRoute: AdminReceiptKrogerDiagnosticsRoute,
   AdminReceiptsRoute: AdminReceiptsRouteWithChildren,
   AdminRecipeHubRoute: AdminRecipeHubRouteWithChildren,
   AdminRecipesRoute: AdminRecipesRouteWithChildren,
@@ -3714,7 +3461,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminLeadsImportRoute: AdminLeadsImportRoute,
-  AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
 }

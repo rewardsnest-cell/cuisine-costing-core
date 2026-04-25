@@ -18,11 +18,11 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  *  - All caller surfaces accept a bound `kFetch` instead of the token itself.
  */
 
-// ZIP 44202 (NE Ohio) has no retail Kroger nearby — only a distribution shed,
-// which returns 0 products for every search. Default to Cincinnati (Kroger's
-// HQ market) where retail stores reliably return SKUs. Callers can still pass
-// any ZIP via the cron payload's `zip_code` field.
+// HARD-CODED Kroger location: Cincinnati 45202 (Kroger HQ market). All
+// pricing pulls — admin and cron — resolve to this ZIP. Override args are
+// ignored everywhere downstream so we get one consistent pricing source.
 export const KROGER_DEFAULT_ZIP = "45202";
+export const KROGER_HARDCODED_ZIP = "45202";
 
 // ─────────────────────────── Token manager ────────────────────────────
 // Cached in module memory only — never written to the database, never
@@ -301,11 +301,30 @@ export function normalizeKrogerPrice(input: {
   }
 
   const token = m[2].replace(/\s+/g, "");
-  const canonicalUnit: CanonicalUnit = CANONICAL_UNIT_BY_TOKEN[token] ?? "each";
+  const parsedUnit: CanonicalUnit = CANONICAL_UNIT_BY_TOKEN[token] ?? "each";
+
+  // CANONICAL: weight units always normalize to per-lb. This is the project's
+  // standard pricing unit. Volume + each are kept native.
+  const WEIGHT_TO_LB: Partial<Record<CanonicalUnit, number>> = {
+    lb: 1,
+    oz: 1 / 16,
+    g: 1 / 453.592,
+    kg: 2.20462,
+  };
+  const lbFactor = WEIGHT_TO_LB[parsedUnit];
+  if (lbFactor != null) {
+    const qtyLb = qty * lbFactor;
+    return {
+      unitPrice: Number((observed / qtyLb).toFixed(4)),
+      canonicalUnit: "lb",
+      rawPackagePrice: observed,
+      isPromo,
+    };
+  }
 
   return {
     unitPrice: Number((observed / qty).toFixed(4)),
-    canonicalUnit,
+    canonicalUnit: parsedUnit,
     rawPackagePrice: observed,
     isPromo,
   };

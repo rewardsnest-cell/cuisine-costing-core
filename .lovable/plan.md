@@ -1,61 +1,106 @@
-## Problem
+## Goal
 
-The admin **Kroger Pricing** page (`/admin/kroger-pricing`) shows two buttons — "Run Daily" and "Run Bootstrap" — but clicking either inserts **zero** SKUs into `kroger_sku_map`. Meanwhile, hitting the cron webhook directly (`/api/public/hooks/kroger-daily-ingest` with `mode: "catalog_bootstrap"`) successfully populates 50 SKUs.
+Reset the Kroger pricing pipeline to a clean, minimal state with:
+1. A hard-coded Kroger location (Cincinnati 45202).
+2. Per-lb pricing as the canonical default with an editable global markup multiplier (default 3.0).
+3. One clean admin page (`/admin/pricing`) replacing the eight tangled ones.
+4. A reset action that wipes Kroger tables and zeros inventory costs so we can rebuild from scratch.
 
-## Root cause
+---
 
-The admin page and the cron webhook call **two completely different code paths**:
+## What gets built
 
-| Trigger | Server fn | Worker | Behavior |
-|---|---|---|---|
-| Cron webhook | route handler | `runKrogerIngestInternal` (`src/lib/server/kroger-ingest-internal.ts`) | Honors `mode`. Bootstrap iterates `BOOTSTRAP_SEARCH_TERMS` (a-z, 0-9), discovers products, upserts to `kroger_sku_map` with confidence scoring + `review_state`. **Works.** |
-| Admin button | `runKrogerIngest` (`src/lib/server-fns/kroger-pricing.functions.ts:853`) | local `performIngest` (same file, line 234) | **Ignores `mode` entirely.** Iterates `inventory_items` (689 internal ingredient names), searches Kroger by item name, only writes to `kroger_sku_map` when a price is also found. |
+### 1. Hard-coded Kroger location
 
-The admin path fails because:
-1. `mode` is read at line 867 then never used inside `performIngest` — bootstrap and daily do the exact same thing.
-2. Inventory item names ("EVOO", "AP flour", etc.) rarely match Kroger product search terms cleanly, so most yield zero hits.
-3. Even successful hits write `kroger_sku_map` rows without `review_state`, `reference_id`, or confidence scoring, so SKU Review can't surface them.
+In `src/lib/server/kroger-core.ts`:
+- Change `KROGER_DEFAULT_ZIP` from `"45202"` (already correct) but **also** export a `KROGER_HARDCODED_LOCATION_ID` constant. On first run we resolve 45202 → 8-char locationId via the Locations API and persist it in `app_kv` (already cached 30 days). Remove all UI/cron paths that accept an overriding `zip_code` payload — they all now ignore the override and use 45202.
+- Update `runKrogerIngestInternal` and `kroger-daily-ingest` webhook to drop ZIP arguments entirely.
 
-That's why prior runs from the admin page logged "Queried 500, wrote 0 price rows, touched 0 SKUs."
+### 2. Per-lb pricing default
 
-## Fix
+In `normalizeKrogerPrice` (`kroger-core.ts`):
+- When the parsed canonical unit is a weight (`lb`, `oz`, `kg`, `g`), convert the per-unit price to **per-lb** before writing. `oz → /16`, `g → ×453.59`, `kg → ÷2.205`. Store `canonical_unit = 'lb'`.
+- When the size parses to volume or `each`, keep current behavior (store in native unit). These remain usable but flagged in the new admin page as "non-weight".
+- Add a small migration to record `canonical_unit` per row in `kroger_sku_map` (new column, nullable text) so the admin page can show what's per-lb vs not.
 
-**Route the admin page through the same internal worker the cron uses.** Replace the legacy `performIngest` body in `runKrogerIngest` with a call to `runKrogerIngestInternal`, so both buttons (and cron) share one implementation.
+### 3. Editable global markup multiplier
 
-### Changes
+`app_settings.markup_multiplier` already exists (default 3.0) and is consumed by `recalc-quote-pricing.functions.ts`. New work:
+- A simple input on the new `/admin/pricing` page bound to that column with Save.
+- Server function `updateMarkupMultiplier({ value })` with validation `0.5 ≤ x ≤ 10`.
 
-**1. `src/lib/server-fns/kroger-pricing.functions.ts`**
+### 4. New `/admin/pricing` page (single source of truth)
 
-- In `runKrogerIngest` handler (lines 853–908):
-  - Remove the legacy `void performIngest(runRow.id, ...)` call.
-  - Instead, call `runKrogerIngestInternal({ mode, zip_code: zip, limit, location_id: locationId })` from `@/lib/server/kroger-ingest-internal`.
-  - Return the run result. Keep the existing flag/key/zip checks since they short-circuit faster with a friendly message before creating a run row.
-  - Remove the pre-created `kroger_ingest_runs` row insert here — `runKrogerIngestInternal` creates its own run row. (Otherwise we'd get duplicate rows per click.)
-- Leave `performIngest`, `runKrogerIngestSandbox`, and other consumers untouched (sandbox still uses the legacy path intentionally, or we mark it deprecated separately).
+Three cards:
 
-**2. Daily-update gating (carried over from prior plan)**
+**a. Configuration**
+- Read-only: Kroger location = "Cincinnati, OH (45202)".
+- Editable: Markup multiplier (number input, default 3.0).
 
-Once the admin button correctly runs `mode=catalog_bootstrap`, SKUs land as `pending`/`unmatched`. Daily updates still write 0 prices because `runDailyUpdate` filters on `review_state = 'confirmed'` and nothing promotes rows. Same two-line fix as before in `src/lib/server/kroger-ingest-internal.ts`:
+**b. Run pricing pull**
+- Two buttons: "Bootstrap catalog" and "Refresh prices today".
+- Both call existing `runKrogerIngestInternal` (already wired, already works from cron). Show last run summary (rows, errors, duration) from `kroger_ingest_runs`.
 
-- In bootstrap upsert (line ~293): when `bestScore >= 0.85`, set `review_state: "confirmed"` instead of `"pending"`.
-- In daily_update query (line ~377): change `.eq("review_state", "confirmed")` to `.in("review_state", ["confirmed", "pending"]).gte("match_confidence", 0.7)`.
+**c. Reset / clean slate** (destructive, with confirm dialog)
+- Server function `resetPricingPipeline()` that:
+  - `DELETE FROM kroger_sku_map`
+  - `DELETE FROM kroger_ingest_runs`
+  - `DELETE FROM kroger_bootstrap_progress`
+  - `DELETE FROM kroger_validation_anomalies`
+  - `DELETE FROM kroger_validation_runs`
+  - `DELETE FROM price_history`
+  - `UPDATE inventory_items SET average_cost_per_unit = 0, last_receipt_cost = 0`
+  - Returns counts.
+- Confirmation dialog requires typing `RESET` to enable the button.
 
-**3. UI clarity (`src/routes/admin/kroger-pricing.tsx`)**
+### 5. Retire old admin pages
 
-- Add a small caption under the Bootstrap button noting it iterates Kroger's catalog (a-z + 0-9), not the local inventory list, so admins understand what each button does.
+Delete these route files and remove their entries from `src/routes/admin.tsx` sidebar:
+- `kroger-pricing.tsx`
+- `kroger-sku-review.tsx`
+- `kroger-mapping-diagnostics.tsx`
+- `kroger-price-signals.tsx`
+- `kroger-validation.tsx`
+- `kroger-ingest-runs.tsx`
+- `ingest-diagnostics.tsx`
+- `receipt-kroger-diagnostics.tsx`
+- `pricing-pipeline.tsx`, `pricing-test.tsx`, `pricing-sandbox.tsx`, `pricing-lab.tsx`, `pricing-lab.preview.tsx` (legacy experiments)
 
-### Verification
+`recalc-quote-pricing` and the cron webhook stay — they consume the data, they aren't admin UI.
 
-After deploy, from the admin page:
-1. Click **Run Bootstrap** → check `kroger_ingest_runs` newest row → expect `sku_map_rows_touched > 0` and message of the form `bootstrap: requests=…, unique SKUs=…`.
-2. Click **Run Daily** → expect `price_rows_written > 0` (now that pending+confidence rows qualify).
-3. Check `kroger_sku_map` distribution — high-confidence rows should be `confirmed`, mid-band still `pending`.
+---
 
-### Files to edit
+## Technical details
 
-- `src/lib/server-fns/kroger-pricing.functions.ts` — rewire `runKrogerIngest` to delegate to `runKrogerIngestInternal`.
-- `src/lib/server/kroger-ingest-internal.ts` — auto-confirm at ≥0.85; relax daily_update filter.
-- `src/routes/admin/kroger-pricing.tsx` — small caption clarifying button behavior.
-- `src/lib/server/kroger-ingest-internal.test.ts` — add coverage for auto-confirm threshold and daily_update picking up pending rows.
+**Files created**
+- `src/routes/admin/pricing.tsx` — the new single page.
+- `src/lib/server-fns/pricing-admin.functions.ts` — `updateMarkupMultiplier`, `resetPricingPipeline`, `getPricingStatus` (last run + counts).
 
-No DB migrations required.
+**Files edited**
+- `src/lib/server/kroger-core.ts` — remove ZIP override paths, force 45202, add per-lb conversion in `normalizeKrogerPrice`.
+- `src/lib/server/kroger-ingest-internal.ts` — drop ZIP arg, write `canonical_unit` column.
+- `src/routes/api/public/hooks/kroger-daily-ingest.ts` — ignore `zip_code` payload.
+- `src/lib/server-fns/kroger-pricing.functions.ts` — keep `runKrogerIngest` thin wrapper used by new page; remove unused legacy exports.
+- `src/routes/admin.tsx` — sidebar cleanup.
+
+**Files deleted** (13 route files listed above).
+
+**DB migration**
+- `ALTER TABLE kroger_sku_map ADD COLUMN canonical_unit text;`
+- No data migration needed — old rows get wiped by the reset action.
+
+**What stays untouched**
+- `inventory_items` schema (still has `unit`, `average_cost_per_unit`).
+- Recipe costing logic in `src/lib/recipe-costing.ts` — already converts between units, will work with per-lb inventory transparently.
+- `app_settings.markup_multiplier` + `recalc-quote-pricing.functions.ts`.
+
+---
+
+## Workflow after this lands
+
+1. Open `/admin/pricing`.
+2. Click **Reset** → type `RESET` → confirm. (Wipes Kroger tables + zeroes inventory costs.)
+3. Adjust **Markup multiplier** if not 3.0.
+4. Click **Bootstrap catalog** → wait. SKUs populate `kroger_sku_map` with per-lb prices where size parses.
+5. Click **Refresh prices today** to hydrate `inventory_items.average_cost_per_unit` from confirmed SKUs.
+6. Quote pricing automatically uses the new costs × markup.

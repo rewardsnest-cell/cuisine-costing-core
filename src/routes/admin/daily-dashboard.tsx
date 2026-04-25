@@ -385,8 +385,8 @@ function DailyDashboardPage() {
               title="Pricing pipeline alerts"
               count={pricingAlerts}
               empty="Pricing pipeline is clean."
-              actionLabel="Open pricing pipeline"
-              actionTo="/admin/pricing-pipeline"
+              actionLabel="Open pricing"
+              actionTo="/admin/pricing"
             >
               {pricingAlerts > 0 && (
                 <li className="text-sm text-muted-foreground">
