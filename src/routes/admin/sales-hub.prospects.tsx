@@ -283,6 +283,55 @@ function ProspectsPage() {
         </CardContent>
       </Card>
 
+      {(() => {
+        const missingFiltered = filtered.filter(isMissingContact);
+        const selectedMissingCount = missingFiltered.filter((p) => selectedIds.has(p.id)).length;
+        const allMissingSelected = missingFiltered.length > 0 && selectedMissingCount === missingFiltered.length;
+        return (
+          <Card>
+            <CardContent className="p-3 flex flex-wrap items-center gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={allMissingSelected}
+                  onCheckedChange={(v) => {
+                    if (v) setSelectedIds(new Set(missingFiltered.map((p) => p.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                  disabled={missingFiltered.length === 0 || bulkRunning}
+                  aria-label="Select all prospects missing contact info"
+                />
+                <span className="text-muted-foreground">
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} selected`
+                    : `Select all missing contact info (${missingFiltered.length})`}
+                </span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {bulkProgress && (
+                  <span className="text-xs text-muted-foreground">
+                    {bulkProgress.done} / {bulkProgress.total}
+                  </span>
+                )}
+                {selectedIds.size > 0 && !bulkRunning && (
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+                    Clear
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={runBulkGenerateContact}
+                  disabled={bulkRunning || selectedIds.size === 0}
+                  className="gap-1.5"
+                >
+                  {bulkRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {bulkRunning ? "Generating…" : "Generate contact info for selected"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {loading ? (
         <p className="text-muted-foreground text-sm">Loading…</p>
       ) : Object.keys(grouped).length === 0 ? (
