@@ -17,14 +17,29 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch, Loader2, Sparkles, History, Send } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
+import { ProspectEmailHistoryDialog } from "@/components/sales-hub/ProspectEmailHistoryDialog";
 import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
 import { BulkContactReviewDialog, type BulkReviewItem } from "@/components/sales-hub/BulkContactReviewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
+
+function timeAgoShort(iso: string | null) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${Math.max(m, 1)}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(mo / 12)}y ago`;
+}
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
@@ -70,6 +85,8 @@ function ProspectsPage() {
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historyDialogProspect, setHistoryDialogProspect] = useState<Prospect | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
@@ -399,8 +416,9 @@ function ProspectsPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Phone / Email</TableHead>
+                    <TableHead>Address</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Last</TableHead>
+                    <TableHead>Last contact</TableHead>
                     <TableHead>Next</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -428,15 +446,25 @@ function ProspectsPage() {
                         {p.phone && <div>{p.phone}</div>}
                         {p.email && <div className="text-muted-foreground">{p.email}</div>}
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px]">
+                        {p.address ? (
+                          <span className="line-clamp-2" title={p.address}>{p.address}</span>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell><Badge>{p.status}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.last_contacted ? new Date(p.last_contacted).toLocaleDateString() : "—"}
+                      <TableCell className="text-xs text-muted-foreground" title={p.last_contacted ? new Date(p.last_contacted).toLocaleString() : undefined}>
+                        {p.last_contacted ? (
+                          <div>
+                            <div>{timeAgoShort(p.last_contacted)}</div>
+                            <div className="text-[10px] opacity-70">{new Date(p.last_contacted).toLocaleDateString()}</div>
+                          </div>
+                        ) : "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {p.next_follow_up ? new Date(p.next_follow_up).toLocaleDateString() : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button size="sm" variant="ghost" onClick={() => callProspect(p)} title={p.phone ? `Call ${p.phone}` : "No phone on file"} disabled={!p.phone}>
                             <Phone className="w-4 h-4" />
                           </Button>
@@ -462,6 +490,17 @@ function ProspectsPage() {
                               <MailIcon className="w-3.5 h-3.5" /> Generate email
                             </Button>
                           )}
+                          {p.email && p.last_contacted && !hasUnreadReply(p) && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 gap-1.5"
+                              onClick={() => openEmailDialog(p, true)}
+                              title={`Send a follow-up. Last contact: ${timeAgoShort(p.last_contacted)}`}
+                            >
+                              <Send className="w-3.5 h-3.5" /> Follow up
+                            </Button>
+                          )}
                           {hasUnreadReply(p) && (
                             <Button
                               size="sm"
@@ -473,6 +512,15 @@ function ProspectsPage() {
                               <Reply className="w-3.5 h-3.5" /> Respond
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setHistoryDialogProspect(p); setHistoryDialogOpen(true); }}
+                            title="View email history (sent & received)"
+                            disabled={!p.last_contacted && !p.last_inbound_at}
+                          >
+                            <History className="w-4 h-4" />
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => resetContacted(p)} title="Reset contacted" disabled={!p.last_contacted}>
                             <RotateCcw className="w-4 h-4" />
                           </Button>
@@ -528,6 +576,8 @@ function ProspectsPage() {
               <div><Label>Phone</Label><Input value={draft.phone || ""} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={draft.email || ""} onChange={(e) => setDraft({ ...draft, email: e.target.value })} /></div>
             </div>
+            <div><Label>Address</Label><Input value={draft.address || ""} onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Street, City, State ZIP" /></div>
+            <div><Label>Website</Label><Input value={draft.website || ""} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="https://…" /></div>
             <div>
               <Label>Next follow-up</Label>
               <Input type="date" value={draft.next_follow_up || ""} onChange={(e) => setDraft({ ...draft, next_follow_up: e.target.value || null })} />
@@ -563,6 +613,13 @@ function ProspectsPage() {
         items={bulkReviewItems}
         setItems={setBulkReviewItems}
         onSavedAll={load}
+      />
+
+      <ProspectEmailHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        prospect={historyDialogProspect}
+        onFollowUp={() => historyDialogProspect && openEmailDialog(historyDialogProspect, true)}
       />
     </div>
   );
