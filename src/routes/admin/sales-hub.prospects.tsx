@@ -344,6 +344,14 @@ function ProspectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProspectEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        prospect={emailDialogProspect}
+        isReply={emailDialogIsReply}
+        onSent={load}
+      />
     </div>
   );
 }
