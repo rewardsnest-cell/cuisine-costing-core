@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply } from "lucide-react";
+import { Plus, Trash2, Phone, Mail as MailIcon, RotateCcw, Reply, UserSearch } from "lucide-react";
 import { PROSPECT_CITIES, PROSPECT_TYPES, PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
 import { ProspectEmailDialog } from "@/components/sales-hub/ProspectEmailDialog";
+import { GenerateContactDialog } from "@/components/sales-hub/GenerateContactDialog";
 
 export const Route = createFileRoute("/admin/sales-hub/prospects")({
   component: ProspectsPage,
@@ -61,6 +62,8 @@ function ProspectsPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailDialogProspect, setEmailDialogProspect] = useState<Prospect | null>(null);
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
 
   const openEmailDialog = (p: Prospect, isReply: boolean) => {
     setEmailDialogProspect(p);
@@ -263,16 +266,28 @@ function ProspectsPage() {
                           <Button size="sm" variant="ghost" onClick={() => callProspect(p)} title={p.phone ? `Call ${p.phone}` : "No phone on file"} disabled={!p.phone}>
                             <Phone className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 gap-1.5"
-                            onClick={() => emailProspect(p)}
-                            title={p.email ? `Pick a template & preview email for ${p.email}` : "No email on file — add one in Edit prospect"}
-                            disabled={!p.email}
-                          >
-                            <MailIcon className="w-3.5 h-3.5" /> Generate email
-                          </Button>
+                          {!p.email && !p.phone ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5"
+                              onClick={() => { setContactDialogProspect(p); setContactDialogOpen(true); }}
+                              title="Use AI to research likely contact info for this prospect"
+                            >
+                              <UserSearch className="w-3.5 h-3.5" /> Generate contact
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1.5"
+                              onClick={() => emailProspect(p)}
+                              title={p.email ? `Pick a template & preview email for ${p.email}` : "No email on file — add one in Edit prospect"}
+                              disabled={!p.email}
+                            >
+                              <MailIcon className="w-3.5 h-3.5" /> Generate email
+                            </Button>
+                          )}
                           {hasUnreadReply(p) && (
                             <Button
                               size="sm"
@@ -358,6 +373,13 @@ function ProspectsPage() {
         prospect={emailDialogProspect}
         isReply={emailDialogIsReply}
         onSent={load}
+      />
+
+      <GenerateContactDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        prospect={contactDialogProspect}
+        onSaved={load}
       />
     </div>
   );
