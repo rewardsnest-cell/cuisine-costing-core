@@ -5,9 +5,10 @@ import { format, addDays } from "date-fns";
 import {
   ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowLeft,
   CalendarPlus, MapPin, Building2, X, CalendarIcon, Sparkles,
-  ShieldAlert, ShieldCheck, ShieldQuestion,
+  ShieldAlert, ShieldCheck, ShieldQuestion, Eye,
 } from "lucide-react";
 import { OutreachDraftDialog, type DraftLead } from "@/components/outreach/OutreachDraftDialog";
+import { TemplatePreviewDialog, type PreviewLead } from "@/components/outreach/TemplatePreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,6 +125,8 @@ function LocalCateringContactsPage() {
   const [scheduleNote, setScheduleNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [draftLead, setDraftLead] = useState<DraftLead | null>(null);
+  const [previewLead, setPreviewLead] = useState<PreviewLead | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [reviewLead, setReviewLead] = useState<Lead | null>(null);
   const [reviewEmail, setReviewEmail] = useState("");
   const [reviewPhone, setReviewPhone] = useState("");
@@ -308,6 +311,13 @@ function LocalCateringContactsPage() {
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setPreviewLead(null); setPreviewOpen(true); }}
+          >
+            <Eye className="h-4 w-4 mr-2" />Preview templates
           </Button>
           <Link to="/admin/outreach">
             <Button size="sm"><CalendarPlus className="h-4 w-4 mr-2" />Outreach Queue</Button>
@@ -534,6 +544,22 @@ function LocalCateringContactsPage() {
                                 >
                                   <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  title="Preview Day 0/5/14 emails for this contact"
+                                  onClick={() => {
+                                    setPreviewLead({
+                                      id: l.id,
+                                      contactName: l.name,
+                                      businessName: l.company,
+                                      email: l.email,
+                                    });
+                                    setPreviewOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />Preview
+                                </Button>
                                 <Button size="sm" onClick={() => quickSchedule(l, 3)}>
                                   <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
                                 </Button>
@@ -600,6 +626,12 @@ function LocalCateringContactsPage() {
         open={!!draftLead}
         onOpenChange={(o) => !o && setDraftLead(null)}
         lead={draftLead}
+      />
+
+      <TemplatePreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        lead={previewLead}
       />
 
       <Dialog open={!!reviewLead} onOpenChange={(o) => !o && setReviewLead(null)}>
