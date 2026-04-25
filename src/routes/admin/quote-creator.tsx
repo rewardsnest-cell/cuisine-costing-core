@@ -1239,21 +1239,41 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
   item: CqhShoppingListItem; list: CqhShoppingList; isApproved: boolean; onChanged: () => void;
   selected?: boolean; onToggleSelect?: () => void;
 }) {
+  // Always show the canonical unit + converted qty, even for legacy rows.
+  const initial = canonicalize(item.unit ?? null, Number(item.quantity) || 0);
   const [name, setName] = useState(item.ingredient_name);
-  const [qty, setQty] = useState(String(item.quantity));
-  const [unit, setUnit] = useState(item.unit ?? "");
+  const [qty, setQty] = useState(String(initial.quantity));
+  const [unit, setUnit] = useState(initial.unit ?? "");
+  const [dimension, setDimension] = useState<Dimension>(initial.dimension);
   const [price, setPrice] = useState(String(item.unit_price));
   const subtotal = (Number(qty) || 0) * (Number(price) || 0);
 
-  const save = async () => {
+  const save = async (overrideQty?: string, overrideUnit?: string) => {
     try {
+      const q = overrideQty ?? qty;
+      const u = overrideUnit ?? unit;
       await upsertShoppingItem({ data: {
         id: item.id, shopping_list_id: list.id,
-        ingredient_name: name, quantity: Number(qty) || 0, unit: unit || null,
+        ingredient_name: name, quantity: Number(q) || 0, unit: u || null,
         unit_price: Number(price) || 0,
       }});
       onChanged();
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  // When the user types a non-canonical unit (e.g. "lb"), auto-convert on blur.
+  const handleUnitBlur = () => {
+    const conv = canonicalize(unit, Number(qty) || 0);
+    setDimension(conv.dimension);
+    if (conv.converted && conv.unit !== unit) {
+      const newUnit = conv.unit ?? "";
+      const newQty = String(conv.quantity);
+      setUnit(newUnit);
+      setQty(newQty);
+      save(newQty, newUnit);
+    } else {
+      save();
+    }
   };
 
   const remove = async () => {
@@ -1275,16 +1295,30 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
         </td>
       )}
       <td className="py-1 pr-2">
-        <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={save} disabled={isApproved} className="h-8" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => save()} disabled={isApproved} className="h-8" />
       </td>
       <td className="py-1 pr-2">
-        <Input value={qty} onChange={(e) => setQty(e.target.value)} onBlur={save} disabled={isApproved} className="h-8" />
+        <Input value={qty} onChange={(e) => setQty(e.target.value)} onBlur={() => save()} disabled={isApproved} className="h-8 text-right tabular-nums" />
       </td>
       <td className="py-1 pr-2">
-        <Input value={unit} onChange={(e) => setUnit(e.target.value)} onBlur={save} disabled={isApproved} className="h-8" />
+        <div className="flex items-center gap-1">
+          <Input
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            onBlur={handleUnitBlur}
+            disabled={isApproved}
+            className="h-8 font-medium"
+            title={dimension !== "other" ? `Canonical ${dimension} unit` : undefined}
+          />
+          {dimensionLabel(dimension) && (
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
+              {dimensionLabel(dimension)}
+            </span>
+          )}
+        </div>
       </td>
       <td className="py-1 pr-2">
-        <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} onBlur={save} className="h-8" />
+        <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => save()} className="h-8" />
       </td>
       <td className="py-1 pr-2 text-right tabular-nums">${subtotal.toFixed(2)}</td>
       <td className="py-1">
