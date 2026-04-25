@@ -230,21 +230,63 @@ export function BulkContactReviewDialog({
               Review each AI suggestion. Edit fields, regenerate, skip, or save individually.
               Existing values on a prospect are preserved if you leave a field blank.
             </p>
+
+            <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => {
+                    if (v) setSelectedIds(new Set(items.map((it) => it.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                  disabled={regenAll || savingAll}
+                  aria-label="Select all for regenerate"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : `Select all (${items.length})`}
+                </span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {regenProgress && (
+                  <span className="text-xs text-muted-foreground">
+                    {regenProgress.done} / {regenProgress.total}
+                  </span>
+                )}
+                <Button
+                  size="sm" variant="secondary" className="gap-1.5"
+                  disabled={regenAll || savingAll || selectedIds.size === 0}
+                  onClick={regenerateSelected}
+                >
+                  {regenAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {regenAll ? "Regenerating…" : `Regenerate selected (${selectedIds.size})`}
+                </Button>
+              </div>
+            </div>
+
             {items.map((item) => {
-              const busy = busyId === item.id || savingAll;
+              const busy = busyId === item.id || savingAll || regenAll;
               return (
                 <div key={item.id} className="rounded-md border p-3 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-medium text-sm">{item.business_name}</div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {item.type && <Badge variant="outline" className="text-[10px]">{item.type}</Badge>}
-                        {item.city && <Badge variant="outline" className="text-[10px]">{item.city}</Badge>}
-                        {item.confidence && (
-                          <Badge variant={confColor(item.confidence) as any} className="text-[10px]">
-                            {item.confidence} confidence
-                          </Badge>
-                        )}
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        className="mt-1"
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={(v) => toggleSelect(item.id, !!v)}
+                        disabled={regenAll || savingAll}
+                        aria-label={`Select ${item.business_name}`}
+                      />
+                      <div>
+                        <div className="font-medium text-sm">{item.business_name}</div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.type && <Badge variant="outline" className="text-[10px]">{item.type}</Badge>}
+                          {item.city && <Badge variant="outline" className="text-[10px]">{item.city}</Badge>}
+                          {item.confidence && (
+                            <Badge variant={confColor(item.confidence) as any} className="text-[10px]">
+                              {item.confidence} confidence
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1">
