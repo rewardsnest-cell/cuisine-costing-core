@@ -264,7 +264,7 @@ function EmailThreadCard({ emails, attachmentsByEmail }: { emails: any[]; attach
         ) : (
           <div className="space-y-6">
             {threads.map((thread, idx) => (
-              <ThreadView key={thread[0].outlook_conversation_id || thread[0].id} thread={thread} defaultOpen={idx === 0} />
+              <ThreadView key={thread[0].outlook_conversation_id || thread[0].id} thread={thread} defaultOpen={idx === 0} attachmentsByEmail={attachmentsByEmail} />
             ))}
           </div>
         )}
