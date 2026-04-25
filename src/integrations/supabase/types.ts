@@ -3190,6 +3190,305 @@ export type Database = {
           },
         ]
       }
+      sales_contact_log: {
+        Row: {
+          channel: string
+          contacted_at: string
+          contacted_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          outcome: string | null
+          prospect_id: string | null
+        }
+        Insert: {
+          channel: string
+          contacted_at?: string
+          contacted_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          prospect_id?: string | null
+        }
+        Update: {
+          channel?: string
+          contacted_at?: string
+          contacted_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          prospect_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_contact_log_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "sales_prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_daily_checklist: {
+        Row: {
+          calls_done: boolean
+          created_at: string
+          day: string
+          emails_done: boolean
+          followups_scheduled: boolean
+          id: string
+          leads_logged: boolean
+          opportunity_moved: boolean
+          updated_at: string
+          user_id: string
+          walkins_done: boolean
+        }
+        Insert: {
+          calls_done?: boolean
+          created_at?: string
+          day?: string
+          emails_done?: boolean
+          followups_scheduled?: boolean
+          id?: string
+          leads_logged?: boolean
+          opportunity_moved?: boolean
+          updated_at?: string
+          user_id: string
+          walkins_done?: boolean
+        }
+        Update: {
+          calls_done?: boolean
+          created_at?: string
+          day?: string
+          emails_done?: boolean
+          followups_scheduled?: boolean
+          id?: string
+          leads_logged?: boolean
+          opportunity_moved?: boolean
+          updated_at?: string
+          user_id?: string
+          walkins_done?: boolean
+        }
+        Relationships: []
+      }
+      sales_event_checklist: {
+        Row: {
+          created_at: string
+          day_arrival: boolean
+          day_breakdown: boolean
+          day_checkin: boolean
+          day_setup: boolean
+          id: string
+          notes: string | null
+          post_invoice: boolean
+          post_review: boolean
+          post_thanks: boolean
+          pre_dietary: boolean
+          pre_equipment: boolean
+          pre_menu: boolean
+          pre_staffing: boolean
+          quote_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_arrival?: boolean
+          day_breakdown?: boolean
+          day_checkin?: boolean
+          day_setup?: boolean
+          id?: string
+          notes?: string | null
+          post_invoice?: boolean
+          post_review?: boolean
+          post_thanks?: boolean
+          pre_dietary?: boolean
+          pre_equipment?: boolean
+          pre_menu?: boolean
+          pre_staffing?: boolean
+          quote_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_arrival?: boolean
+          day_breakdown?: boolean
+          day_checkin?: boolean
+          day_setup?: boolean
+          id?: string
+          notes?: string | null
+          post_invoice?: boolean
+          post_review?: boolean
+          post_thanks?: boolean
+          pre_dietary?: boolean
+          pre_equipment?: boolean
+          pre_menu?: boolean
+          pre_staffing?: boolean
+          quote_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_prospects: {
+        Row: {
+          business_name: string
+          city: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contacted: string | null
+          next_follow_up: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          business_name: string
+          city: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contacted?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string
+          city?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contacted?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_referrals: {
+        Row: {
+          asked_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          referred_contact: string | null
+          referred_name: string | null
+          referrer_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asked_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          referred_contact?: string | null
+          referred_name?: string | null
+          referrer_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asked_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          referred_contact?: string | null
+          referred_name?: string | null
+          referrer_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales_review_asks: {
+        Row: {
+          asked_at: string
+          asked_by: string | null
+          channel: string
+          client_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          review_received: boolean
+        }
+        Insert: {
+          asked_at?: string
+          asked_by?: string | null
+          channel: string
+          client_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_received?: boolean
+        }
+        Update: {
+          asked_at?: string
+          asked_by?: string | null
+          channel?: string
+          client_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          review_received?: boolean
+        }
+        Relationships: []
+      }
+      sales_weekly_reviews: {
+        Row: {
+          best_review_text: string | null
+          bookings_added: number
+          completed: boolean
+          created_at: string
+          id: string
+          improvement_note: string | null
+          next_week_plan: string | null
+          reviews_gained: number
+          updated_at: string
+          user_id: string | null
+          week_start: string
+        }
+        Insert: {
+          best_review_text?: string | null
+          bookings_added?: number
+          completed?: boolean
+          created_at?: string
+          id?: string
+          improvement_note?: string | null
+          next_week_plan?: string | null
+          reviews_gained?: number
+          updated_at?: string
+          user_id?: string | null
+          week_start: string
+        }
+        Update: {
+          best_review_text?: string | null
+          bookings_added?: number
+          completed?: boolean
+          created_at?: string
+          id?: string
+          improvement_note?: string | null
+          next_week_plan?: string | null
+          reviews_gained?: number
+          updated_at?: string
+          user_id?: string | null
+          week_start?: string
+        }
+        Relationships: []
+      }
       shopping_list_items: {
         Row: {
           checked: boolean

@@ -76,6 +76,7 @@ import { Route as AdminServingsReviewRouteImport } from './routes/admin/servings
 import { Route as AdminScheduleRouteImport } from './routes/admin/schedule'
 import { Route as AdminScanFlyerRouteImport } from './routes/admin/scan-flyer'
 import { Route as AdminScanAssetsRouteImport } from './routes/admin/scan-assets'
+import { Route as AdminSalesHubRouteImport } from './routes/admin/sales-hub'
 import { Route as AdminSalesRouteImport } from './routes/admin/sales'
 import { Route as AdminReviewInboxRouteImport } from './routes/admin/review-inbox'
 import { Route as AdminRegisterRouteImport } from './routes/admin/register'
@@ -133,6 +134,14 @@ import { Route as AdminCompetitorQuotesIndexRouteImport } from './routes/admin/c
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as CookingLabCSlugRouteImport } from './routes/cooking-lab.c.$slug'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
+import { Route as AdminSalesHubWeeklyReviewRouteImport } from './routes/admin/sales-hub.weekly-review'
+import { Route as AdminSalesHubScriptsRouteImport } from './routes/admin/sales-hub.scripts'
+import { Route as AdminSalesHubReviewsRouteImport } from './routes/admin/sales-hub.reviews'
+import { Route as AdminSalesHubReferralsRouteImport } from './routes/admin/sales-hub.referrals'
+import { Route as AdminSalesHubProspectsRouteImport } from './routes/admin/sales-hub.prospects'
+import { Route as AdminSalesHubFollowUpsRouteImport } from './routes/admin/sales-hub.follow-ups'
+import { Route as AdminSalesHubEventsRouteImport } from './routes/admin/sales-hub.events'
+import { Route as AdminSalesHubDailyRouteImport } from './routes/admin/sales-hub.daily'
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
@@ -495,6 +504,11 @@ const AdminScanAssetsRoute = AdminScanAssetsRouteImport.update({
   path: '/scan-assets',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSalesHubRoute = AdminSalesHubRouteImport.update({
+  id: '/sales-hub',
+  path: '/sales-hub',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSalesRoute = AdminSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -786,6 +800,47 @@ const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminSuppliersRoute,
 } as any)
+const AdminSalesHubWeeklyReviewRoute =
+  AdminSalesHubWeeklyReviewRouteImport.update({
+    id: '/weekly-review',
+    path: '/weekly-review',
+    getParentRoute: () => AdminSalesHubRoute,
+  } as any)
+const AdminSalesHubScriptsRoute = AdminSalesHubScriptsRouteImport.update({
+  id: '/scripts',
+  path: '/scripts',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubReviewsRoute = AdminSalesHubReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubReferralsRoute = AdminSalesHubReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubProspectsRoute = AdminSalesHubProspectsRouteImport.update({
+  id: '/prospects',
+  path: '/prospects',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubFollowUpsRoute = AdminSalesHubFollowUpsRouteImport.update({
+  id: '/follow-ups',
+  path: '/follow-ups',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubEventsRoute = AdminSalesHubEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubDailyRoute = AdminSalesHubDailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
 const AdminSaleFlyersIdRoute = AdminSaleFlyersIdRouteImport.update({
   id: '/sale-flyers/$id',
   path: '/sale-flyers/$id',
@@ -974,6 +1029,7 @@ export interface FileRoutesByFullPath {
   '/admin/register': typeof AdminRegisterRoute
   '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/sales-hub': typeof AdminSalesHubRouteWithChildren
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
@@ -1026,6 +1082,14 @@ export interface FileRoutesByFullPath {
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
+  '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
+  '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
+  '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
+  '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
+  '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
+  '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -1118,6 +1182,7 @@ export interface FileRoutesByTo {
   '/admin/register': typeof AdminRegisterRoute
   '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/sales-hub': typeof AdminSalesHubRouteWithChildren
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
@@ -1170,6 +1235,14 @@ export interface FileRoutesByTo {
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
+  '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
+  '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
+  '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
+  '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
+  '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
+  '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -1265,6 +1338,7 @@ export interface FileRoutesById {
   '/admin/register': typeof AdminRegisterRoute
   '/admin/review-inbox': typeof AdminReviewInboxRoute
   '/admin/sales': typeof AdminSalesRoute
+  '/admin/sales-hub': typeof AdminSalesHubRouteWithChildren
   '/admin/scan-assets': typeof AdminScanAssetsRoute
   '/admin/scan-flyer': typeof AdminScanFlyerRoute
   '/admin/schedule': typeof AdminScheduleRoute
@@ -1317,6 +1391,14 @@ export interface FileRoutesById {
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
+  '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
+  '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
+  '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
+  '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
+  '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
+  '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -1413,6 +1495,7 @@ export interface FileRouteTypes {
     | '/admin/register'
     | '/admin/review-inbox'
     | '/admin/sales'
+    | '/admin/sales-hub'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
@@ -1465,6 +1548,14 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
+    | '/admin/sales-hub/daily'
+    | '/admin/sales-hub/events'
+    | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/prospects'
+    | '/admin/sales-hub/referrals'
+    | '/admin/sales-hub/reviews'
+    | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
@@ -1557,6 +1648,7 @@ export interface FileRouteTypes {
     | '/admin/register'
     | '/admin/review-inbox'
     | '/admin/sales'
+    | '/admin/sales-hub'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
@@ -1609,6 +1701,14 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
+    | '/admin/sales-hub/daily'
+    | '/admin/sales-hub/events'
+    | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/prospects'
+    | '/admin/sales-hub/referrals'
+    | '/admin/sales-hub/reviews'
+    | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
@@ -1703,6 +1803,7 @@ export interface FileRouteTypes {
     | '/admin/register'
     | '/admin/review-inbox'
     | '/admin/sales'
+    | '/admin/sales-hub'
     | '/admin/scan-assets'
     | '/admin/scan-flyer'
     | '/admin/schedule'
@@ -1755,6 +1856,14 @@ export interface FileRouteTypes {
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
+    | '/admin/sales-hub/daily'
+    | '/admin/sales-hub/events'
+    | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/prospects'
+    | '/admin/sales-hub/referrals'
+    | '/admin/sales-hub/reviews'
+    | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
     | '/lovable/email/suppression'
@@ -2299,6 +2408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScanAssetsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/sales-hub': {
+      id: '/admin/sales-hub'
+      path: '/sales-hub'
+      fullPath: '/admin/sales-hub'
+      preLoaderRoute: typeof AdminSalesHubRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sales': {
       id: '/admin/sales'
       path: '/sales'
@@ -2698,6 +2814,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSuppliersIdRouteImport
       parentRoute: typeof AdminSuppliersRoute
     }
+    '/admin/sales-hub/weekly-review': {
+      id: '/admin/sales-hub/weekly-review'
+      path: '/weekly-review'
+      fullPath: '/admin/sales-hub/weekly-review'
+      preLoaderRoute: typeof AdminSalesHubWeeklyReviewRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/scripts': {
+      id: '/admin/sales-hub/scripts'
+      path: '/scripts'
+      fullPath: '/admin/sales-hub/scripts'
+      preLoaderRoute: typeof AdminSalesHubScriptsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/reviews': {
+      id: '/admin/sales-hub/reviews'
+      path: '/reviews'
+      fullPath: '/admin/sales-hub/reviews'
+      preLoaderRoute: typeof AdminSalesHubReviewsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/referrals': {
+      id: '/admin/sales-hub/referrals'
+      path: '/referrals'
+      fullPath: '/admin/sales-hub/referrals'
+      preLoaderRoute: typeof AdminSalesHubReferralsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/prospects': {
+      id: '/admin/sales-hub/prospects'
+      path: '/prospects'
+      fullPath: '/admin/sales-hub/prospects'
+      preLoaderRoute: typeof AdminSalesHubProspectsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/follow-ups': {
+      id: '/admin/sales-hub/follow-ups'
+      path: '/follow-ups'
+      fullPath: '/admin/sales-hub/follow-ups'
+      preLoaderRoute: typeof AdminSalesHubFollowUpsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/events': {
+      id: '/admin/sales-hub/events'
+      path: '/events'
+      fullPath: '/admin/sales-hub/events'
+      preLoaderRoute: typeof AdminSalesHubEventsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/daily': {
+      id: '/admin/sales-hub/daily'
+      path: '/daily'
+      fullPath: '/admin/sales-hub/daily'
+      preLoaderRoute: typeof AdminSalesHubDailyRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
     '/admin/sale-flyers/$id': {
       id: '/admin/sale-flyers/$id'
       path: '/sale-flyers/$id'
@@ -2928,6 +3100,32 @@ const AdminRecipesRouteWithChildren = AdminRecipesRoute._addFileChildren(
   AdminRecipesRouteChildren,
 )
 
+interface AdminSalesHubRouteChildren {
+  AdminSalesHubDailyRoute: typeof AdminSalesHubDailyRoute
+  AdminSalesHubEventsRoute: typeof AdminSalesHubEventsRoute
+  AdminSalesHubFollowUpsRoute: typeof AdminSalesHubFollowUpsRoute
+  AdminSalesHubProspectsRoute: typeof AdminSalesHubProspectsRoute
+  AdminSalesHubReferralsRoute: typeof AdminSalesHubReferralsRoute
+  AdminSalesHubReviewsRoute: typeof AdminSalesHubReviewsRoute
+  AdminSalesHubScriptsRoute: typeof AdminSalesHubScriptsRoute
+  AdminSalesHubWeeklyReviewRoute: typeof AdminSalesHubWeeklyReviewRoute
+}
+
+const AdminSalesHubRouteChildren: AdminSalesHubRouteChildren = {
+  AdminSalesHubDailyRoute: AdminSalesHubDailyRoute,
+  AdminSalesHubEventsRoute: AdminSalesHubEventsRoute,
+  AdminSalesHubFollowUpsRoute: AdminSalesHubFollowUpsRoute,
+  AdminSalesHubProspectsRoute: AdminSalesHubProspectsRoute,
+  AdminSalesHubReferralsRoute: AdminSalesHubReferralsRoute,
+  AdminSalesHubReviewsRoute: AdminSalesHubReviewsRoute,
+  AdminSalesHubScriptsRoute: AdminSalesHubScriptsRoute,
+  AdminSalesHubWeeklyReviewRoute: AdminSalesHubWeeklyReviewRoute,
+}
+
+const AdminSalesHubRouteWithChildren = AdminSalesHubRoute._addFileChildren(
+  AdminSalesHubRouteChildren,
+)
+
 interface AdminSuppliersRouteChildren {
   AdminSuppliersIdRoute: typeof AdminSuppliersIdRoute
 }
@@ -2994,6 +3192,7 @@ interface AdminRouteChildren {
   AdminRegisterRoute: typeof AdminRegisterRoute
   AdminReviewInboxRoute: typeof AdminReviewInboxRoute
   AdminSalesRoute: typeof AdminSalesRoute
+  AdminSalesHubRoute: typeof AdminSalesHubRouteWithChildren
   AdminScanAssetsRoute: typeof AdminScanAssetsRoute
   AdminScanFlyerRoute: typeof AdminScanFlyerRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
@@ -3068,6 +3267,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRegisterRoute: AdminRegisterRoute,
   AdminReviewInboxRoute: AdminReviewInboxRoute,
   AdminSalesRoute: AdminSalesRoute,
+  AdminSalesHubRoute: AdminSalesHubRouteWithChildren,
   AdminScanAssetsRoute: AdminScanAssetsRoute,
   AdminScanFlyerRoute: AdminScanFlyerRoute,
   AdminScheduleRoute: AdminScheduleRoute,
