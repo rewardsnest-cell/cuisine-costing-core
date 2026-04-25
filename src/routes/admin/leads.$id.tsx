@@ -273,7 +273,7 @@ function EmailThreadCard({ emails, attachmentsByEmail }: { emails: any[]; attach
   )
 }
 
-function ThreadView({ thread, defaultOpen }: { thread: any[]; defaultOpen: boolean }) {
+function ThreadView({ thread, defaultOpen, attachmentsByEmail }: { thread: any[]; defaultOpen: boolean; attachmentsByEmail: Map<string, any[]> }) {
   const subject = thread[0].subject || '(no subject)'
   const inboundCount = thread.filter((m) => m.direction === 'inbound').length
   const outboundCount = thread.filter((m) => m.direction === 'outbound').length
