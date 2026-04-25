@@ -151,12 +151,7 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing Code Inventory (ZIP bundle)",
       });
-      if (result.persisted && result.publicUrl) {
-        openPublicUrl(result.publicUrl);
-        toast.success("Bundle saved — opened in a new tab");
-      } else {
-        toast.success("Bundle downloaded");
-      }
+      toast.success(result.persisted ? "Bundle saved to Downloads Hub" : "Bundle downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export bundle");
     } finally {
