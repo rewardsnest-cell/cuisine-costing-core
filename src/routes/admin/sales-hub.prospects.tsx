@@ -201,6 +201,8 @@ function ProspectsPage() {
     else toast.error(`Bulk generate failed for all ${failed} prospects`);
     load();
   };
+
+  const logContact = async (p: Prospect, channel: string) => {
     const now = new Date().toISOString();
     const { error: logErr } = await (supabase as any).from("sales_contact_log").insert({
       prospect_id: p.id, channel, outcome: "logged", contacted_at: now,
