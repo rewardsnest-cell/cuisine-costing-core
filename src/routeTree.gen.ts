@@ -152,6 +152,7 @@ import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/r
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminQuoteCreatorIdRouteImport } from './routes/admin/quote-creator.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminPricingV2ErrorsRouteImport } from './routes/admin/pricing-v2.errors'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminLeadsImportRouteImport } from './routes/admin/leads.import'
 import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
@@ -902,6 +903,11 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   path: '/national',
   getParentRoute: () => AdminPricingRoute,
 } as any)
+const AdminPricingV2ErrorsRoute = AdminPricingV2ErrorsRouteImport.update({
+  id: '/pricing-v2/errors',
+  path: '/pricing-v2/errors',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
@@ -1144,6 +1150,7 @@ export interface FileRoutesByFullPath {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1307,6 +1314,7 @@ export interface FileRoutesByTo {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1473,6 +1481,7 @@ export interface FileRoutesById {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1640,6 +1649,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1803,6 +1813,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1968,6 +1979,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/errors'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -3070,6 +3082,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminPricingRoute
     }
+    '/admin/pricing-v2/errors': {
+      id: '/admin/pricing-v2/errors'
+      path: '/pricing-v2/errors'
+      fullPath: '/admin/pricing-v2/errors'
+      preLoaderRoute: typeof AdminPricingV2ErrorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu-modules/preview': {
       id: '/admin/menu-modules/preview'
       path: '/preview'
@@ -3423,6 +3442,7 @@ interface AdminRouteChildren {
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
+  AdminPricingV2ErrorsRoute: typeof AdminPricingV2ErrorsRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
   AdminPricingV2IndexRoute: typeof AdminPricingV2IndexRoute
@@ -3502,6 +3522,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminLeadsImportRoute: AdminLeadsImportRoute,
+  AdminPricingV2ErrorsRoute: AdminPricingV2ErrorsRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
   AdminPricingV2IndexRoute: AdminPricingV2IndexRoute,
