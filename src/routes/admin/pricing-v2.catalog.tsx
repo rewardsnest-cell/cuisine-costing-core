@@ -19,9 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
+import { BootstrapRunDetailsDialog } from "@/components/admin/BootstrapRunDetailsDialog";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
   runCatalogBootstrap,
@@ -34,6 +35,7 @@ import {
   listCatalogTestErrors,
   getCatalogBootstrapState,
   resetCatalogBootstrap,
+  recoverStuckCatalogRuns,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
