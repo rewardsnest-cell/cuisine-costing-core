@@ -161,15 +161,39 @@ function ReviewsPage() {
           ) : (
             <ul className="divide-y">
               {asks.map((a) => (
-                <li key={a.id} className="py-2 flex items-center justify-between gap-3">
-                  <div className="text-sm">
+                <li key={a.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm min-w-0">
                     <p className="font-medium">{a.client_name}</p>
                     <p className="text-xs text-muted-foreground">{a.channel} · {new Date(a.asked_at).toLocaleDateString()}</p>
                   </div>
-                  <label className="text-xs flex items-center gap-2">
-                    <Checkbox checked={a.review_received} onCheckedChange={(v) => markReceived(a.id, !!v)} />
-                    <span className="flex items-center gap-1">{a.review_received && <Star className="w-3 h-3 text-warning" />}Received</span>
-                  </label>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <label className="text-xs flex items-center gap-1.5">
+                      <Checkbox checked={a.review_received} onCheckedChange={(v) => markReceived(a.id, !!v)} />
+                      <span>Received</span>
+                    </label>
+                    {a.review_received && (
+                      <div className="flex items-center gap-0.5" aria-label="Star rating">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setStars(a.id, n)}
+                            className="p-0.5"
+                            title={`${n} star${n > 1 ? "s" : ""}`}
+                          >
+                            <Star
+                              className={`w-4 h-4 ${a.star_rating && n <= a.star_rating ? "fill-warning text-warning" : "text-muted-foreground"}`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {a.star_rating === 5 && (
+                      <Button size="sm" variant="default" className="gap-1.5 h-8" onClick={() => triggerReferral(a)}>
+                        <Gift className="w-3.5 h-3.5" /> Ask for referral
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
