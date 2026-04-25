@@ -37,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/", label: "Home", icon: Home, exact: true },
       { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { to: "/admin/daily-dashboard", label: "Daily Dashboard", icon: Sun, featureKey: "admin_daily_dashboard" },
     ],
   },
   {
