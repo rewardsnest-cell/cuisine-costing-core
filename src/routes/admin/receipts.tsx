@@ -125,6 +125,7 @@ function ReceiptsPage() {
   // Per-row, per-field validation errors for the Review dialog
   const [lineItemErrors, setLineItemErrors] = useState<Record<number, LineItemErrors>>({});
   const [savingLineItems, setSavingLineItems] = useState(false);
+  const [applyingPrices, setApplyingPrices] = useState(false);
   // Idle / loading / success / error state for each pending receipt's
   // "Process & save" button so users see explicit feedback per row.
   type ProcessState =
@@ -397,6 +398,67 @@ function ReceiptsPage() {
     toast.success(stillFlagged ? "Saved · some items still flagged for review" : "Line items saved");
     load();
     setReviewReceipt(null);
+  };
+
+  const saveAndApplyPrices = async () => {
+    if (!reviewReceipt) return;
+    const { errors, firstMessage } = validateLineItems(editedLineItems);
+    setLineItemErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(firstMessage || "Fix highlighted fields before saving");
+      return;
+    }
+    const matchedCount = editedLineItems.filter(
+      (it) => it.matched_inventory_id && Number(it.unit_price) > 0,
+    ).length;
+    if (matchedCount === 0) {
+      toast.error("No matched line items with a unit price to apply");
+      return;
+    }
+
+    setApplyingPrices(true);
+    try {
+      // 1. Save edited line items first so server reads the latest prices
+      const newTotal = editedLineItems.reduce(
+        (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
+        0,
+      );
+      const { error: saveErr } = await supabase
+        .from("receipts")
+        .update({
+          extracted_line_items: editedLineItems as any,
+          total_amount: Math.round(newTotal * 100) / 100,
+        } as any)
+        .eq("id", reviewReceipt.id);
+      if (saveErr) throw saveErr;
+
+      // 2. Apply prices + recalc linked quote
+      const { applyReceiptCostsAndRecalc } = await import(
+        "@/lib/server-fns/apply-receipt-costs.functions"
+      );
+      const result = await applyReceiptCostsAndRecalc({
+        data: { receiptId: reviewReceipt.id },
+      });
+
+      const updatedCount = result.updated.length;
+      const skippedCount = result.skipped.length;
+      if (result.recalc) {
+        toast.success(
+          `Applied ${updatedCount} price${updatedCount === 1 ? "" : "s"} · quote re-costed (per guest $${result.recalc.perGuest}, total $${result.recalc.total.toFixed(2)})`,
+        );
+      } else {
+        toast.success(
+          `Applied ${updatedCount} price${updatedCount === 1 ? "" : "s"}${skippedCount ? ` · ${skippedCount} skipped` : ""} · no linked quote to re-cost`,
+        );
+      }
+      load();
+      setReviewReceipt(null);
+    } catch (err: any) {
+      console.error("Apply prices error:", err);
+      toast.error(err?.message || "Failed to apply prices");
+    } finally {
+      setApplyingPrices(false);
+    }
   };
 
   const handleProcessAndSave = async (receipt: ReceiptRow) => {
@@ -817,15 +879,25 @@ function ReceiptsPage() {
                       {Object.keys(lineItemErrors).length} row{Object.keys(lineItemErrors).length === 1 ? "" : "s"} need fixing before save
                     </p>
                   )}
-                  <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems}>Cancel</Button>
+                  <div className="flex flex-wrap justify-end gap-3">
+                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems || applyingPrices}>Cancel</Button>
                     <Button
                       onClick={saveLineItems}
-                      disabled={savingLineItems || Object.keys(lineItemErrors).length > 0}
-                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                      disabled={savingLineItems || applyingPrices || Object.keys(lineItemErrors).length > 0}
+                      variant="outline"
+                      className="gap-1.5"
                     >
                       {savingLineItems ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                       {savingLineItems ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button
+                      onClick={saveAndApplyPrices}
+                      disabled={savingLineItems || applyingPrices || Object.keys(lineItemErrors).length > 0}
+                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                      title="Save edits, push unit prices to matched inventory items, and re-cost the linked quote"
+                    >
+                      {applyingPrices ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      {applyingPrices ? "Applying..." : "Save, Apply Prices & Re-cost Quote"}
                     </Button>
                   </div>
                 </div>
