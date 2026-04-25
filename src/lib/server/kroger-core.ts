@@ -135,11 +135,17 @@ export async function resolveLocationFromZip(
 }
 
 /**
- * Resolve the locationId for a run, in this order:
- *   1. explicit override
- *   2. saved app_kv setting
- *   3. ZIP lookup (default 44202)
- * Returns null if all three fail. Callers MUST abort the run when null.
+ * Resolve the locationId for a run.
+ *
+ * PRICING INTENT: humans cannot pin a Kroger location. The previous saved
+ * `kroger_location_id` override has been removed. We always derive from the
+ * passed ZIP (default 44202) via the Locations API and rely on the 30-day
+ * ZIP-keyed cache. The `override` argument is kept only for cron payloads
+ * that pass an explicit ZIP-derived value through; it is NOT exposed to
+ * any admin UI surface.
+ *
+ * Returns null if the Locations API can't resolve the ZIP — callers MUST
+ * abort the run when null.
  */
 export async function resolveRunLocationId(
   override: string | null | undefined,
@@ -147,8 +153,6 @@ export async function resolveRunLocationId(
   kFetch: (url: string, init?: RequestInit) => Promise<Response>,
 ): Promise<string | null> {
   if (override && override.trim()) return override.trim();
-  const saved = await getSavedKrogerLocationId();
-  if (saved) return saved;
   return resolveLocationFromZip(zip, kFetch);
 }
 
