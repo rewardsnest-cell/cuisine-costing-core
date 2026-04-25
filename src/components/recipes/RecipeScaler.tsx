@@ -6,6 +6,7 @@ import { Minus, Plus, Printer, Heart, ShoppingCart, Loader2, FileDown, Users } f
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { saveAndLogDownload } from "@/lib/downloads/save-download";
 
 // Public scaling rule for home-cook recipes: 1 through 10 servings.
 // Anything beyond that funnels to /catering/quote.
