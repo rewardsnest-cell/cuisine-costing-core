@@ -74,11 +74,28 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
     return { run_id: id, mode, location_id: null, status: "failed", message: e?.message };
   }
 
-  // 2) locationId — fatal if unresolved
+  // 2) locationId — fatal if unresolved OR invalid format. Kroger's Product
+  //    API rejects anything that isn't exactly 8 alphanumeric chars with
+  //    PRODUCT-2011, so we validate up front and record the failure clearly.
+  const overrideRaw = (opts.location_id ?? "").trim();
+  if (overrideRaw && !isValidKrogerLocationId(overrideRaw)) {
+    const id = await recordFailure(
+      `Invalid locationId override "${overrideRaw}" — must be exactly 8 alphanumeric characters`,
+      mode,
+    );
+    return { run_id: id, mode, location_id: null, status: "failed", message: "invalid_location_format" };
+  }
   const locationId = await resolveRunLocationId(opts.location_id ?? null, zip, kFetch);
   if (!locationId) {
     const id = await recordFailure(`Could not resolve locationId for ZIP ${zip}`, mode);
     return { run_id: id, mode, location_id: null, status: "failed", message: "no_location" };
+  }
+  if (!isValidKrogerLocationId(locationId)) {
+    const id = await recordFailure(
+      `Resolved locationId "${locationId}" failed format check (must be 8 alphanumeric chars). ZIP=${zip}`,
+      mode,
+    );
+    return { run_id: id, mode, location_id: locationId, status: "failed", message: "invalid_location_format" };
   }
 
   // 3) create run row
