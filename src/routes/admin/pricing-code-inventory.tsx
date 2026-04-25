@@ -85,6 +85,7 @@ function PricingCodeInventoryPage() {
         kind: "admin_export",
         sourceLabel: "Pricing Code Inventory (JSON)",
       });
+      if (result.persisted && result.publicUrl) openPublicUrl(result.publicUrl);
       toast.success(result.persisted ? "JSON saved to Downloads Hub" : "JSON downloaded");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not export JSON");
