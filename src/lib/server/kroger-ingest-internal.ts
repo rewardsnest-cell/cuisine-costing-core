@@ -289,7 +289,7 @@ async function runBootstrap(
     price_rows_written: 0, // bootstrap NEVER writes prices
     sku_map_rows_touched: skuTouched,
     errors: errors.slice(0, 100),
-    message: `bootstrap: terms=${queried}, unique SKUs=${seenSkus.size}, sku rows=${skuTouched}`,
+    message: `bootstrap: requests=${queried}, pages=${pagesFetched}, unique SKUs=${seenSkus.size}, sku rows=${skuTouched}, cap=${productCap}`,
   }).eq("id", runId);
 
   await supabaseAdmin.from("access_audit_log").insert({
