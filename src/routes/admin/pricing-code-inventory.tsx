@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileCode2, FileJson, FileText, Search } from "lucide-react";
+import { Download, FileCode2, FileJson, FileText, GitBranch, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
+  PRICING_GRAPH_EDGES,
+  PRICING_GRAPH_NODES,
   PRICING_INVENTORY,
   PRICING_INVENTORY_GENERATED_AT,
   SQL_PRICING_APPENDIX,
   SQL_PRICING_REFERENCES,
+  buildPricingGraphMermaid,
   buildSqlAppendixText,
   summarizeInventory,
   type InventoryEntry,
@@ -67,6 +70,11 @@ function PricingCodeInventoryPage() {
         entries: PRICING_INVENTORY,
         sql_references: SQL_PRICING_REFERENCES,
         sql_appendix: SQL_PRICING_APPENDIX,
+        dependency_graph: {
+          nodes: PRICING_GRAPH_NODES,
+          edges: PRICING_GRAPH_EDGES,
+          mermaid: buildPricingGraphMermaid(),
+        },
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
@@ -130,6 +138,56 @@ function PricingCodeInventoryPage() {
         styles: { fontSize: 8, cellPadding: 4 },
         headStyles: { fillColor: [30, 30, 30] },
       });
+
+      // Dependency graph — node table, edge table, and Mermaid source.
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text("Pricing Dependency Graph", 40, 48);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        "Static map of which pricing modules import / call / mutate each other.",
+        40, 64,
+      );
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 80,
+        head: [["Module", "Layer", "Path"]],
+        body: PRICING_GRAPH_NODES.map((n) => [n.label, n.layer, n.path ?? "—"]),
+        styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+        headStyles: { fillColor: [30, 30, 30] },
+        columnStyles: {
+          0: { cellWidth: 160 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 290 },
+        },
+      });
+
+      const afterNodes = (doc as any).lastAutoTable?.finalY ?? 200;
+      doc.setFontSize(11);
+      doc.text("Edges", 40, afterNodes + 24);
+      autoTable(doc, {
+        startY: afterNodes + 32,
+        head: [["From", "Relationship", "To"]],
+        body: PRICING_GRAPH_EDGES.map((e) => {
+          const from = PRICING_GRAPH_NODES.find((n) => n.id === e.from)?.label ?? e.from;
+          const to = PRICING_GRAPH_NODES.find((n) => n.id === e.to)?.label ?? e.to;
+          return [from, e.kind, to];
+        }),
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [30, 30, 30] },
+      });
+
+      doc.addPage();
+      doc.setFontSize(12);
+      doc.text("Mermaid source (paste into mermaid.live to render)", 40, 48);
+      doc.setFont("courier", "normal");
+      doc.setFontSize(8);
+      const mermaid = buildPricingGraphMermaid();
+      const mermaidLines = doc.splitTextToSize(mermaid, 530);
+      doc.text(mermaidLines, 40, 70);
+      doc.setFont("helvetica", "normal");
 
       // SQL Appendix — full definitions, one section per entry.
       doc.addPage();
@@ -292,6 +350,56 @@ function PricingCodeInventoryPage() {
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <GitBranch className="w-4 h-4" /> Pricing dependency graph
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Static map of which pricing modules import / call / mutate each other.
+            Included in the JSON export and rendered in the PDF (with Mermaid source).
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-2 pr-3 font-medium">From</th>
+                  <th className="py-2 pr-3 font-medium">Relationship</th>
+                  <th className="py-2 pr-3 font-medium">To</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PRICING_GRAPH_EDGES.map((e, idx) => {
+                  const from = PRICING_GRAPH_NODES.find((n) => n.id === e.from);
+                  const to = PRICING_GRAPH_NODES.find((n) => n.id === e.to);
+                  return (
+                    <tr key={`${e.from}-${e.to}-${idx}`} className="border-b last:border-0">
+                      <td className="py-2 pr-3 font-mono text-xs">{from?.label ?? e.from}</td>
+                      <td className="py-2 pr-3">
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                          {e.kind}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-xs">{to?.label ?? e.to}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <details className="rounded-md border border-border bg-card/50 p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Mermaid source (paste into mermaid.live)
+            </summary>
+            <pre className="mt-3 max-h-96 overflow-auto rounded bg-muted/40 p-3 text-[11px] leading-relaxed font-mono whitespace-pre">
+              {buildPricingGraphMermaid()}
+            </pre>
+          </details>
         </CardContent>
       </Card>
 

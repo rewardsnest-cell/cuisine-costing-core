@@ -571,3 +571,130 @@ export function summarizeInventory(entries: InventoryEntry[] = PRICING_INVENTORY
   for (const e of entries) byRecommendation[e.recommendation]++;
   return { total: entries.length, byRecommendation };
 }
+
+// ---------------------------------------------------------------------------
+// Pricing dependency graph
+// ---------------------------------------------------------------------------
+// Static, hand-curated graph of which pricing modules import / call which.
+// Read-only — surfaced on /admin/pricing-code-inventory and bundled into
+// the JSON + PDF exports. Update alongside PRICING_INVENTORY.
+
+export type PricingModuleId =
+  | "recipe-costing"
+  | "kroger-core"
+  | "kroger-ingest"
+  | "kroger-pricing"
+  | "update-inventory-costs"
+  | "fred-pricing"
+  | "recalc-quote-pricing"
+  | "apply-national-floor"
+  | "cost-intelligence"
+  | "apply-po-to-inventory"
+  | "trg-recipe-sync-pricing-columns"
+  | "cost-update-queue"
+  | "ingredient-reference"
+  | "inventory-items"
+  | "recipes-table"
+  | "quotes-table";
+
+export type PricingModuleNode = {
+  id: PricingModuleId;
+  label: string;
+  layer:
+    | "ui"
+    | "server-fn"
+    | "lib"
+    | "sql-function"
+    | "sql-trigger"
+    | "table";
+  path?: string;
+};
+
+export type PricingModuleEdge = {
+  from: PricingModuleId;
+  to: PricingModuleId;
+  /** What `from` does to `to`: imports, calls, mutates, reads, triggers */
+  kind: "imports" | "calls" | "mutates" | "reads" | "triggers";
+};
+
+export const PRICING_GRAPH_NODES: PricingModuleNode[] = [
+  { id: "recipe-costing",                   label: "recipe-costing.ts",            layer: "lib",          path: "src/lib/recipe-costing.ts" },
+  { id: "kroger-core",                      label: "kroger-core.ts",               layer: "lib",          path: "src/lib/server/kroger-core.ts" },
+  { id: "kroger-ingest",                    label: "kroger-ingest-internal",       layer: "server-fn",    path: "src/lib/server-fns/kroger-ingest-internal.functions.ts" },
+  { id: "kroger-pricing",                   label: "kroger-pricing",               layer: "server-fn",    path: "src/lib/server-fns/kroger-pricing.functions.ts" },
+  { id: "update-inventory-costs",           label: "update-inventory-costs",       layer: "server-fn",    path: "src/lib/server-fns/update-inventory-costs.functions.ts" },
+  { id: "fred-pricing",                     label: "fred-pricing",                 layer: "server-fn",    path: "src/lib/server-fns/fred-pricing.functions.ts" },
+  { id: "recalc-quote-pricing",             label: "recalc-quote-pricing",         layer: "server-fn",    path: "src/lib/server-fns/recalc-quote-pricing.functions.ts" },
+  { id: "apply-national-floor",             label: "apply-national-floor",         layer: "server-fn",    path: "src/lib/server-fns/apply-national-floor.functions.ts" },
+  { id: "cost-intelligence",                label: "cost-intelligence",            layer: "server-fn",    path: "src/lib/server-fns/cost-intelligence.functions.ts" },
+  { id: "apply-po-to-inventory",            label: "apply_po_to_inventory()",      layer: "sql-function" },
+  { id: "trg-recipe-sync-pricing-columns",  label: "trg_recipe_sync_pricing_columns", layer: "sql-trigger" },
+  { id: "cost-update-queue",                label: "cost_update_queue",            layer: "table" },
+  { id: "ingredient-reference",             label: "ingredient_reference",         layer: "table" },
+  { id: "inventory-items",                  label: "inventory_items",              layer: "table" },
+  { id: "recipes-table",                    label: "recipes",                      layer: "table" },
+  { id: "quotes-table",                     label: "quotes",                       layer: "table" },
+];
+
+export const PRICING_GRAPH_EDGES: PricingModuleEdge[] = [
+  // Recipe costing pulls inventory averages and ingredient_reference.
+  { from: "recipe-costing",         to: "inventory-items",       kind: "reads" },
+  { from: "recipe-costing",         to: "ingredient-reference",  kind: "reads" },
+
+  // Kroger ingest -> normalized via kroger-core, routed through cost-intelligence.
+  { from: "kroger-ingest",          to: "kroger-core",           kind: "imports" },
+  { from: "kroger-pricing",         to: "kroger-core",           kind: "imports" },
+  { from: "kroger-ingest",          to: "cost-intelligence",     kind: "calls" },
+
+  // Cost intelligence is the mutation hub.
+  { from: "cost-intelligence",      to: "cost-update-queue",     kind: "mutates" },
+  { from: "cost-intelligence",      to: "ingredient-reference",  kind: "mutates" },
+
+  // Receipts path: update-inventory-costs writes inventory_items directly.
+  { from: "update-inventory-costs", to: "inventory-items",       kind: "mutates" },
+
+  // PO path: SQL function blends PO lines into inventory_items.
+  { from: "apply-po-to-inventory",  to: "inventory-items",       kind: "mutates" },
+
+  // FRED national feed recomputes recipes after national updates.
+  { from: "fred-pricing",           to: "ingredient-reference",  kind: "mutates" },
+  { from: "fred-pricing",           to: "recipes-table",         kind: "mutates" },
+
+  // Quote application reads recipes and writes quotes.
+  { from: "recalc-quote-pricing",   to: "recipes-table",         kind: "reads" },
+  { from: "recalc-quote-pricing",   to: "quotes-table",          kind: "mutates" },
+  { from: "apply-national-floor",   to: "recipes-table",         kind: "reads" },
+  { from: "apply-national-floor",   to: "quotes-table",          kind: "mutates" },
+
+  // Trigger: recipes write -> sync pricing columns (and downstream cost recompute).
+  { from: "trg-recipe-sync-pricing-columns", to: "recipes-table", kind: "triggers" },
+  { from: "recipe-costing",         to: "recipes-table",         kind: "reads" },
+];
+
+/** Mermaid `flowchart LR` representation of the dependency graph. */
+export function buildPricingGraphMermaid(): string {
+  const arrowFor = (kind: PricingModuleEdge["kind"]) => {
+    switch (kind) {
+      case "imports":  return "-->|imports|";
+      case "calls":    return "-->|calls|";
+      case "mutates":  return "==>|mutates|";
+      case "reads":    return "-.->|reads|";
+      case "triggers": return "==>|triggers|";
+    }
+  };
+  const sanitize = (s: string) => s.replace(/[`"]/g, "");
+  const lines: string[] = ["flowchart LR"];
+  for (const n of PRICING_GRAPH_NODES) {
+    const shape =
+      n.layer === "table"        ? `[("${sanitize(n.label)}")]` :
+      n.layer === "sql-function" ? `[/"${sanitize(n.label)}"/]` :
+      n.layer === "sql-trigger"  ? `{{"${sanitize(n.label)}"}}` :
+      n.layer === "lib"          ? `["${sanitize(n.label)}"]` :
+                                   `(["${sanitize(n.label)}"])`;
+    lines.push(`  ${n.id}${shape}`);
+  }
+  for (const e of PRICING_GRAPH_EDGES) {
+    lines.push(`  ${e.from} ${arrowFor(e.kind)} ${e.to}`);
+  }
+  return lines.join("\n");
+}
