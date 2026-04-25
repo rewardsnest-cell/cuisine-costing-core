@@ -96,6 +96,11 @@ function PricingV2CatalogPage() {
     onSuccess: () => errors.refetch(),
   });
 
+  const testMut = useMutation({
+    mutationFn: () => runCatalogTestHarness({ data: undefined as any }),
+    onSuccess: () => { errors.refetch(); runs.refetch(); },
+  });
+
   const exportCsv = () => {
     const rows = errors.data?.errors ?? [];
     const cols = ["created_at", "severity", "type", "entity_id", "entity_name", "message", "suggested_fix"];
