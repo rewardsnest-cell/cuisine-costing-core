@@ -294,6 +294,11 @@ function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
               {showLastOutreach && <TableCell>{c.last_outreach_date || "—"}</TableCell>}
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
+                  <Button asChild variant="ghost" size="icon" title="Open lead">
+                    <Link to="/admin/leads/$id" params={{ id: c.id }}>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                   {c.email && (
                     <Button asChild variant="ghost" size="icon">
                       <a href={`mailto:${c.email}`}><Mail className="h-4 w-4" /></a>
