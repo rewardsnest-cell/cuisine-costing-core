@@ -11,10 +11,16 @@
 // Stage value reused: "catalog" (no enum migration needed).
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchProductsByIds, searchProducts, type KrogerProduct } from "@/lib/server/pricing-v2/kroger";
 import { parseWeightToGrams } from "@/lib/server/pricing-v2/weight-parser";
+import {
+  dispatchStuckRecoveryAlerts,
+  loadAlertConfig,
+  type RecoveredRunBreach,
+} from "@/lib/server/pricing-v2/alerts";
 
 const STAGE = "catalog" as const;
 
