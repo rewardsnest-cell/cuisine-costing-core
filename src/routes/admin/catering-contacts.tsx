@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin, Activity } from "lucide-react";
+import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin, Activity, Send } from "lucide-react";
+import { LeadEmailDialog } from "@/components/leads/LeadEmailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -266,6 +267,7 @@ function LeadsPage() {
 }
 
 function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
+  const [composeLead, setComposeLead] = useState<Lead | null>(null);
   if (rows.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -326,7 +328,17 @@ function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
                     </Link>
                   </Button>
                   {c.email && (
-                    <Button asChild variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Compose from Outlook"
+                      onClick={() => setComposeLead(c)}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {c.email && (
+                    <Button asChild variant="ghost" size="icon" title="Open mailto">
                       <a href={`mailto:${c.email}`}><Mail className="h-4 w-4" /></a>
                     </Button>
                   )}
@@ -348,6 +360,12 @@ function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
           ))}
         </TableBody>
       </Table>
+
+      <LeadEmailDialog
+        open={!!composeLead}
+        onOpenChange={(o) => !o && setComposeLead(null)}
+        lead={composeLead}
+      />
     </div>
   );
 }

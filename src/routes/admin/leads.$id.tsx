@@ -1,7 +1,5 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
-import { z } from 'zod'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,60 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Mail, Send, Inbox, ArrowUpRight } from 'lucide-react'
 import { toast } from 'sonner'
+import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 
-// ---------- Server function: send email via Outlook ----------
-const sendLeadEmail = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      leadId: z.string().uuid(),
-      to: z.string().email(),
-      subject: z.string().min(1).max(998),
-      body: z.string().min(1).max(50000),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const { sendOutlookEmail } = await import('@/lib/outlook/send')
-    const { createClient } = await import('@supabase/supabase-js')
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !serviceKey) {
-      return { ok: false, error: 'Server config error' }
-    }
-    const sb = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
-    const result = await sendOutlookEmail({
-      to: data.to,
-      subject: data.subject,
-      text: data.body,
-    })
-
-    await sb.from('lead_emails').insert({
-      lead_id: data.leadId,
-      direction: 'outbound',
-      from_email: 'outlook@self',
-      to_emails: [data.to],
-      subject: data.subject,
-      body_text: data.body,
-      body_preview: data.body.slice(0, 250),
-      sent_at: new Date().toISOString(),
-      template_name: 'manual',
-    })
-
-    if (!result.ok) return { ok: false, error: result.error || `status ${result.status}` }
-
-    await sb
-      .from('leads')
-      .update({
-        last_outreach_date: new Date().toISOString().slice(0, 10),
-        last_channel: 'email',
-      })
-      .eq('id', data.leadId)
-
-    return { ok: true }
-  })
 
 // ---------- Route ----------
 export const Route = createFileRoute('/admin/leads/$id')({
