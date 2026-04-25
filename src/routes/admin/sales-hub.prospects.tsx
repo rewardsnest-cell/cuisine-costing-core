@@ -37,12 +37,15 @@ type Prospect = {
   status: string;
   last_contacted: string | null;
   next_follow_up: string | null;
+  last_inbound_at: string | null;
+  last_outbound_at: string | null;
 };
 
 const EMPTY: Omit<Prospect, "id"> = {
   business_name: "", city: PROSPECT_CITIES[0], type: PROSPECT_TYPES[0],
   contact_name: "", phone: "", email: "", notes: "", status: "New",
   last_contacted: null, next_follow_up: null,
+  last_inbound_at: null, last_outbound_at: null,
 };
 
 function ProspectsPage() {
