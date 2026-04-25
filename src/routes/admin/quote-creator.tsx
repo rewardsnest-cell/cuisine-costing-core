@@ -1063,6 +1063,63 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
   list: CqhShoppingList; items: CqhShoppingListItem[]; dishes: CqhDish[]; onChanged: () => void; isApproved: boolean;
 }) {
   const total = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
+  const confirm = useConfirm();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  const toggleOne = (id: string) =>
+    setSelected((p) => {
+      const n = new Set(p);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  const allChecked = items.length > 0 && selected.size === items.length;
+  const someChecked = selected.size > 0 && !allChecked;
+  const toggleAll = () =>
+    setSelected(allChecked ? new Set() : new Set(items.map((i) => i.id)));
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!(await confirm({
+      title: `Delete ${ids.length} item${ids.length === 1 ? "" : "s"}?`,
+      description: "This cannot be undone.",
+      destructive: true,
+    }))) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(ids.map((id) => deleteShoppingItem({ data: { id, shopping_list_id: list.id } })));
+      toast.success(`Deleted ${ids.length} item${ids.length === 1 ? "" : "s"}`);
+      setSelected(new Set());
+      onChanged();
+    } catch (e: any) {
+      toast.error("Bulk delete failed", { description: e.message });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const deleteAll = async () => {
+    if (items.length === 0) return;
+    if (!(await confirm({
+      title: `Delete all ${items.length} items?`,
+      description: "Clears the entire shopping list. This cannot be undone.",
+      destructive: true,
+      confirmText: "Delete all",
+    }))) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(items.map((i) => deleteShoppingItem({ data: { id: i.id, shopping_list_id: list.id } })));
+      toast.success("Cleared shopping list");
+      setSelected(new Set());
+      onChanged();
+    } catch (e: any) {
+      toast.error("Delete all failed", { description: e.message });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3 flex-row items-center justify-between">
@@ -1086,6 +1143,26 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
         )}
       </CardHeader>
       <CardContent>
+        {!isApproved && items.length > 0 && (
+          <div className="flex items-center justify-between gap-2 py-2 px-1 mb-2 border rounded-md bg-muted/30">
+            <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+              <Checkbox
+                checked={allChecked ? true : someChecked ? "indeterminate" : false}
+                onCheckedChange={toggleAll}
+                aria-label="Select all items"
+              />
+              {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+            </label>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="destructive" onClick={bulkDelete} disabled={selected.size === 0 || bulkBusy}>
+                <Trash2 className="w-4 h-4 mr-1" /> Delete {selected.size > 0 ? selected.size : "selected"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={deleteAll} disabled={bulkBusy} className="text-destructive hover:text-destructive">
+                <Trash2 className="w-4 h-4 mr-1" /> Delete all
+              </Button>
+            </div>
+          </div>
+        )}
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">No items.</p>
         ) : (
@@ -1093,6 +1170,7 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground border-b">
                 <tr>
+                  {!isApproved && <th className="py-2 pr-2 w-8"></th>}
                   <th className="py-2 pr-2">Ingredient</th>
                   <th className="py-2 pr-2 w-20">Qty</th>
                   <th className="py-2 pr-2 w-20">Unit</th>
@@ -1103,12 +1181,20 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
               </thead>
               <tbody className="divide-y">
                 {items.map((i) => (
-                  <ItemRow key={i.id} item={i} list={list} isApproved={isApproved} onChanged={onChanged} />
+                  <ItemRow
+                    key={i.id}
+                    item={i}
+                    list={list}
+                    isApproved={isApproved}
+                    onChanged={onChanged}
+                    selected={selected.has(i.id)}
+                    onToggleSelect={() => toggleOne(i.id)}
+                  />
                 ))}
               </tbody>
               <tfoot>
                 <tr className="border-t font-semibold">
-                  <td colSpan={4} className="py-2 text-right">Total food cost</td>
+                  <td colSpan={isApproved ? 4 : 5} className="py-2 text-right">Total food cost</td>
                   <td className="text-right">${total.toFixed(2)}</td>
                   <td></td>
                 </tr>
@@ -1122,8 +1208,9 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
   );
 }
 
-function ItemRow({ item, list, isApproved, onChanged }: {
+function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }: {
   item: CqhShoppingListItem; list: CqhShoppingList; isApproved: boolean; onChanged: () => void;
+  selected?: boolean; onToggleSelect?: () => void;
 }) {
   const [name, setName] = useState(item.ingredient_name);
   const [qty, setQty] = useState(String(item.quantity));
@@ -1150,7 +1237,16 @@ function ItemRow({ item, list, isApproved, onChanged }: {
   };
 
   return (
-    <tr>
+    <tr className={selected ? "bg-primary/5" : undefined}>
+      {!isApproved && (
+        <td className="py-1 pr-2">
+          <Checkbox
+            checked={!!selected}
+            onCheckedChange={() => onToggleSelect?.()}
+            aria-label={`Select ${name}`}
+          />
+        </td>
+      )}
       <td className="py-1 pr-2">
         <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={save} disabled={isApproved} className="h-8" />
       </td>
