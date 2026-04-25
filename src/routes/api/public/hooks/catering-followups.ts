@@ -178,8 +178,9 @@ async function processStage(
 ): Promise<{ stage: Stage; processed: number; sent: number; failed: number }> {
   const cfg = STAGE_CONFIG[stage]
   let query = supabase
-    .from('local_catering_contacts')
-    .select('id, organization_name, contact_name, email, status, first_outreach_date, last_outreach_date')
+    .from('leads')
+    .select('id, company, name, email, status, first_outreach_date, last_outreach_date')
+    .eq('lead_type', 'catering')
     .not('email', 'is', null)
     .neq('status', 'not-interested')
     .neq('status', 'booked')
@@ -201,11 +202,11 @@ async function processStage(
 
   let sent = 0
   let failed = 0
-  for (const c of (contacts ?? []) as Contact[]) {
+  for (const c of (contacts ?? []) as unknown as Contact[]) {
     const result = await enqueueEmail(supabase, c, stage)
 
-    await supabase.from('local_catering_outreach_log').insert({
-      contact_id: c.id,
+    await supabase.from('lead_outreach_log').insert({
+      lead_id: c.id,
       channel: 'email',
       template_name: cfg.template,
       recipient_email: c.email,
@@ -217,7 +218,7 @@ async function processStage(
 
     if (result.ok) {
       sent++
-      const update: Database['public']['Tables']['local_catering_contacts']['Update'] = {
+      const update: Database['public']['Tables']['leads']['Update'] = {
         status: cfg.nextStatus,
         last_outreach_date: daysAgo(0),
         last_channel: 'email',
@@ -226,7 +227,7 @@ async function processStage(
       update.next_follow_up_date = cfg.nextFollowUpDays !== null
         ? daysAhead(cfg.nextFollowUpDays)
         : null
-      await supabase.from('local_catering_contacts').update(update).eq('id', c.id)
+      await supabase.from('leads').update(update).eq('id', c.id)
     } else {
       failed++
     }
