@@ -19,9 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench, Bug } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
+import { BootstrapRunDetailsDialog } from "@/components/admin/BootstrapRunDetailsDialog";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
   runCatalogBootstrap,
@@ -66,6 +67,7 @@ function CatalogBootstrapPage() {
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
+  const [detailsRunId, setDetailsRunId] = useState<string | null>(null);
 
   // Guarded "Run Bootstrap" flow: dry-run first, then confirm full run.
   const [guardedPhase, setGuardedPhase] = useState<"idle" | "dry-running" | "awaiting-confirm" | "full-running">("idle");
@@ -455,7 +457,7 @@ function CatalogBootstrapPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="text-left text-muted-foreground">
-                  <tr><th className="py-1 pr-2">run_id</th><th>status</th><th>started</th><th>in</th><th>out</th><th>warn</th><th>err</th><th>notes</th></tr>
+                  <tr><th className="py-1 pr-2">run_id</th><th>status</th><th>started</th><th>in</th><th>out</th><th>warn</th><th>err</th><th>notes</th><th></th></tr>
                 </thead>
                 <tbody>
                   {(runs.data?.runs ?? []).map((r: any) => (
@@ -463,11 +465,35 @@ function CatalogBootstrapPage() {
                       <td className="py-1 pr-2 font-mono">
                         <button className="underline" onClick={() => setErrFilterRun(r.run_id)}>{r.run_id.slice(0, 8)}…</button>
                       </td>
-                      <td>{r.status}</td>
+                      <td>
+                        <Badge
+                          variant={
+                            r.status === "success"
+                              ? "default"
+                              : r.status === "running"
+                                ? "secondary"
+                                : r.status === "failed"
+                                  ? "destructive"
+                                  : "outline"
+                          }
+                        >
+                          {r.status}
+                        </Badge>
+                      </td>
                       <td>{new Date(r.started_at).toLocaleString()}</td>
                       <td>{r.counts_in}</td><td>{r.counts_out}</td>
                       <td>{r.warnings_count}</td><td>{r.errors_count}</td>
                       <td className="text-muted-foreground truncate max-w-[24ch]">{r.notes}</td>
+                      <td>
+                        <Button
+                          size="sm"
+                          variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
+                          className="h-6 px-2 gap-1 text-[11px]"
+                          onClick={() => setDetailsRunId(r.run_id)}
+                        >
+                          <Bug className="w-3 h-3" /> Details
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -563,6 +589,13 @@ function CatalogBootstrapPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bootstrap Run Details — surfaces exact Supabase update error / enum mismatch */}
+      <BootstrapRunDetailsDialog
+        runId={detailsRunId}
+        open={!!detailsRunId}
+        onOpenChange={(o) => { if (!o) setDetailsRunId(null); }}
+      />
     </div>
   );
 }

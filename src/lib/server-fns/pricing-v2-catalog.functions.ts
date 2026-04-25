@@ -483,9 +483,9 @@ export const resetCatalogBootstrap = createServerFn({ method: "POST" })
 
 /**
  * Auto-recover bootstrap runs stuck in `running` for longer than `older_than_minutes`
- * (default 15). Marks them `failed` with a timestamp and an error summary, and
- * flips bootstrap_state back to NOT_STARTED if its last_run_id matches a
- * recovered run, so the loop can be resumed.
+ * (default 15). Marks them `failed` with a timestamp + error summary, logs an
+ * uniform `pricing_v2_errors` row, and flips bootstrap_state back to NOT_STARTED
+ * if its last_run_id matches a recovered run, so the loop can be resumed.
  */
 export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -501,7 +501,6 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
     const cutoffIso = new Date(Date.now() - data.older_than_minutes * 60_000).toISOString();
     const nowIso = new Date().toISOString();
 
-    // Find stuck runs (catalog stage, status=running, started before cutoff)
     const { data: stuck, error: selErr } = await supabase
       .from("pricing_v2_runs")
       .select("run_id, started_at, stage")
@@ -522,26 +521,20 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
 
     const { error: updErr } = await supabase
       .from("pricing_v2_runs")
-      .update({
-        status: "failed",
-        ended_at: nowIso,
-        last_error: summary,
-      })
+      .update({ status: "failed", ended_at: nowIso, last_error: summary })
       .in("run_id", runIds);
     if (updErr) throw new Error(updErr.message);
 
-    // Log a uniform error row per recovered run for the errors page trail
     const errorRows = stuckRuns.map((r: any) => ({
       stage: r.stage,
       run_id: r.run_id,
       severity: "error",
       type: "stuck_run_recovered",
       message: summary,
-      context: { older_than_minutes: data.older_than_minutes, started_at: r.started_at },
+      debug_json: { older_than_minutes: data.older_than_minutes, started_at: r.started_at },
     }));
     await supabase.from("pricing_v2_errors").insert(errorRows);
 
-    // If bootstrap_state still points at a recovered run, flip back so it can resume.
     const { data: bsRows } = await supabase
       .from("pricing_v2_catalog_bootstrap_state")
       .select("store_id, last_run_id, status")
@@ -556,6 +549,113 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
     }
 
     return { ok: true, recovered: runIds.length, run_ids: runIds, cutoff: cutoffIso };
+  });
+
+/**
+ * Detailed diagnostics for a single run — used by the Bootstrap Run Details
+ * view. Surfaces the exact Supabase update error + enum/constraint hints so
+ * mismatches like writing 'succeeded' vs the enum's 'success' are obvious.
+ */
+export const getCatalogRunDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ run_id: z.string().uuid() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+
+    const { data: run, error: runErr } = await supabase
+      .from("pricing_v2_runs")
+      .select(
+        "run_id, stage, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, params, notes, last_error, triggered_by"
+      )
+      .eq("run_id", data.run_id)
+      .maybeSingle();
+    if (runErr) throw new Error(runErr.message);
+    if (!run) throw new Error(`Run ${data.run_id} not found`);
+
+    const { data: errors } = await supabase
+      .from("pricing_v2_errors")
+      .select("id, severity, type, message, suggested_fix, debug_json, entity_type, entity_id, entity_name, created_at")
+      .eq("run_id", data.run_id)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    // Allowed enum values — kept in sync with migrations and surfaced to the
+    // UI so writes like 'succeeded' vs 'success' are immediately diagnosable.
+    const allowedRunStatus = ["queued", "running", "success", "partial", "failed", "skipped"] as const;
+    const allowedSeverity = ["warning", "error", "critical"] as const;
+
+    // Heuristic diagnosis of the failure mode.
+    const lastError = (run.last_error ?? "").toString();
+    const errorList = errors ?? [];
+    const hasStuckRecovery = errorList.some((e: any) => e.type === "stuck_run_recovered");
+    const finalizationLikelyFailed =
+      run.status === "running" ||
+      (run.status === "failed" && /enum|invalid input value|violates|constraint|status|succeeded/i.test(lastError));
+
+    const diagnosis: {
+      kind:
+        | "ok"
+        | "stuck_no_finalize"
+        | "enum_mismatch"
+        | "constraint_violation"
+        | "auto_recovered"
+        | "unknown_failure";
+      title: string;
+      details: string;
+      suggested_fix?: string;
+      offending_value?: string;
+      allowed_values?: readonly string[];
+    } = { kind: "ok", title: "Run finalized normally", details: "No finalization issues detected." };
+
+    if (hasStuckRecovery) {
+      diagnosis.kind = "auto_recovered";
+      diagnosis.title = "Run was auto-recovered after being stuck";
+      diagnosis.details = lastError || "Run was marked failed by the stuck-run recovery sweep.";
+      diagnosis.suggested_fix =
+        "Re-run the bootstrap. If it stalls again, check Kroger API logs and server function timeouts.";
+    } else if (run.status === "running") {
+      diagnosis.kind = "stuck_no_finalize";
+      diagnosis.title = "Run never finalized (still 'running')";
+      diagnosis.details =
+        "The run row was created but never transitioned to success/failed. The handler likely crashed or its update silently failed.";
+      diagnosis.suggested_fix = "Click 'Recover Stuck Runs' to mark it failed, then re-run.";
+    } else if (run.status === "failed" && /invalid input value for enum|status/i.test(lastError)) {
+      diagnosis.kind = "enum_mismatch";
+      diagnosis.title = "Enum mismatch on run.status update";
+      diagnosis.details = lastError;
+      const m = lastError.match(/invalid input value for enum [^:]+:\s*"([^"]+)"/i);
+      if (m) diagnosis.offending_value = m[1];
+      diagnosis.allowed_values = allowedRunStatus;
+      diagnosis.suggested_fix =
+        `pricing_v2_runs.status only accepts ${allowedRunStatus.join(", ")}. ` +
+        `Update the server function to write one of those exact values.`;
+    } else if (run.status === "failed" && /violates|constraint|null value/i.test(lastError)) {
+      diagnosis.kind = "constraint_violation";
+      diagnosis.title = "Constraint violation while finalizing run";
+      diagnosis.details = lastError;
+      diagnosis.suggested_fix =
+        "Inspect the message above for the exact column / constraint and fix the write payload.";
+    } else if (run.status === "failed") {
+      diagnosis.kind = "unknown_failure";
+      diagnosis.title = "Run finalized as failed";
+      diagnosis.details = lastError || "No last_error captured — check server function logs.";
+    } else if (finalizationLikelyFailed) {
+      diagnosis.kind = "unknown_failure";
+      diagnosis.title = "Possible finalization issue";
+      diagnosis.details = lastError || "Run state looks inconsistent.";
+    }
+
+    return {
+      run,
+      errors: errorList,
+      diagnosis,
+      enums: {
+        run_status: allowedRunStatus,
+        severity: allowedSeverity,
+      },
+    };
   });
 
 // ---- Listing helpers ------------------------------------------------------
