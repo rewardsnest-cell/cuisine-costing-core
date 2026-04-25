@@ -2055,6 +2055,81 @@ export type Database = {
           },
         ]
       }
+      lead_email_audit: {
+        Row: {
+          actor_user_id: string | null
+          attempted_at: string
+          body_preview: string | null
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          http_status: number | null
+          id: string
+          lead_email_id: string | null
+          lead_id: string | null
+          metadata: Json
+          recipient: string
+          source: string
+          status: string
+          subject: string | null
+          template_name: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          attempted_at?: string
+          body_preview?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          lead_email_id?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          recipient: string
+          source?: string
+          status: string
+          subject?: string | null
+          template_name?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          attempted_at?: string
+          body_preview?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          lead_email_id?: string | null
+          lead_id?: string | null
+          metadata?: Json
+          recipient?: string
+          source?: string
+          status?: string
+          subject?: string | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_email_audit_lead_email_id_fkey"
+            columns: ["lead_email_id"]
+            isOneToOne: false
+            referencedRelation: "lead_emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_audit_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_emails: {
         Row: {
           body_html: string | null
