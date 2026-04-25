@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileJson, FileText, Search } from "lucide-react";
+import { Download, FileCode2, FileJson, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   PRICING_INVENTORY,
   PRICING_INVENTORY_GENERATED_AT,
+  SQL_PRICING_APPENDIX,
   SQL_PRICING_REFERENCES,
+  buildSqlAppendixText,
   summarizeInventory,
   type InventoryEntry,
   type InventoryRecommendation,
