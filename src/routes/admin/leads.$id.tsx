@@ -15,7 +15,7 @@ import { sendLeadEmail } from '@/lib/leads/send-lead-email.functions'
 export const Route = createFileRoute('/admin/leads/$id')({
   component: LeadDetailPage,
   loader: async ({ params }) => {
-    const [leadRes, emailsRes, auditRes] = await Promise.all([
+    const [leadRes, emailsRes, auditRes, attachmentsRes] = await Promise.all([
       supabase.from('leads').select('*').eq('id', params.id).maybeSingle(),
       supabase
         .from('lead_emails')
@@ -30,11 +30,18 @@ export const Route = createFileRoute('/admin/leads/$id')({
         .eq('lead_id', params.id)
         .order('attempted_at', { ascending: false })
         .limit(100),
+      supabase
+        .from('lead_email_attachments')
+        .select('*')
+        .eq('lead_id', params.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
     ])
     return {
       lead: leadRes.data,
       emails: emailsRes.data ?? [],
       audit: auditRes.data ?? [],
+      attachments: attachmentsRes.data ?? [],
     }
   },
 })
