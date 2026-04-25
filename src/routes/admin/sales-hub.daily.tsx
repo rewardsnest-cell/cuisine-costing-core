@@ -128,6 +128,8 @@ function DailyChecklistPage() {
     load();
   };
 
+  const completed = ITEMS.filter((i) => state[i.key]).length;
+
   return (
     <div className="space-y-4">
       <Card>
