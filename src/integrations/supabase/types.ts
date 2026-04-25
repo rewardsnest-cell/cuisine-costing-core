@@ -2055,6 +2055,56 @@ export type Database = {
           },
         ]
       }
+      lead_email_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          id: string
+          lead_email_id: string | null
+          lead_id: string | null
+          outlook_attachment_id: string | null
+          size_bytes: number | null
+          storage_bucket: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          id?: string
+          lead_email_id?: string | null
+          lead_id?: string | null
+          outlook_attachment_id?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          id?: string
+          lead_email_id?: string | null
+          lead_id?: string | null
+          outlook_attachment_id?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_email_attachments_lead_email_id_fkey"
+            columns: ["lead_email_id"]
+            isOneToOne: false
+            referencedRelation: "lead_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_email_audit: {
         Row: {
           actor_user_id: string | null
