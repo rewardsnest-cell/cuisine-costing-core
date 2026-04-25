@@ -10,6 +10,15 @@
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/microsoft_outlook'
 
+export interface OutlookAttachmentInput {
+  /** File name shown in the email (e.g. "menu.pdf"). */
+  name: string
+  /** MIME type, e.g. "application/pdf" or "image/png". */
+  contentType: string
+  /** Raw bytes encoded as base64 (NOT a data URL). */
+  contentBytesBase64: string
+}
+
 export interface SendOutlookEmailParams {
   to: string | string[]
   cc?: string[]
@@ -19,6 +28,8 @@ export interface SendOutlookEmailParams {
   text?: string
   /** When set, the sent message is saved to Sent Items (default true). */
   saveToSentItems?: boolean
+  /** Optional attachments uploaded with the message (each ≤ ~3 MB inline). */
+  attachments?: OutlookAttachmentInput[]
 }
 
 export interface SendOutlookEmailResult {
@@ -32,6 +43,8 @@ export interface SendOutlookEmailResult {
   outlookConversationId?: string
   /** Standard RFC 822 Message-ID header value. */
   internetMessageId?: string
+  /** Per-attachment Outlook IDs, in the same order as `attachments` input. */
+  attachmentIds?: Array<{ name: string; outlookAttachmentId: string | null }>
 }
 
 function getAuth(): { lovableKey: string; outlookKey: string } {
