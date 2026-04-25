@@ -188,23 +188,88 @@ export function GenerateContactDialog({
 
             <div className="grid gap-3">
               <div>
-                <Label className="text-xs">Contact name</Label>
+                <Label className="text-xs">Primary contact name</Label>
                 <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Jane Smith" />
               </div>
-              <div>
-                <Label className="text-xs">Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="events@business.com" />
-              </div>
-              <div>
-                <Label className="text-xs">Phone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
-              </div>
-              {(website || result) && (
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Website (saved to notes)</Label>
-                  <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://business.com" />
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="events@business.com" />
                 </div>
-              )}
+                <div>
+                  <Label className="text-xs">Phone</Label>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Address</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, ST 12345" />
+              </div>
+              <div>
+                <Label className="text-xs">Website</Label>
+                <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://business.com" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Additional contacts (saved to notes)</Label>
+                  <Button
+                    type="button" size="sm" variant="ghost" className="h-7 gap-1"
+                    onClick={() => setExtraContacts([...extraContacts, { name: "", role: "", email: "", phone: "" }])}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </Button>
+                </div>
+                {extraContacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground">None yet. AI may suggest specific people when you generate.</p>
+                )}
+                {extraContacts.map((c, idx) => (
+                  <div key={idx} className="rounded-md border p-2 space-y-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => setExtraContacts(extraContacts.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 text-muted-foreground hover:text-destructive"
+                      aria-label="Remove contact"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Name"
+                        value={c.name}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, name: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Role (e.g. Events Manager)"
+                        value={c.role}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, role: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Email"
+                        value={c.email}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, email: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                      <Input
+                        placeholder="Phone"
+                        value={c.phone}
+                        onChange={(e) => {
+                          const next = [...extraContacts]; next[idx] = { ...c, phone: e.target.value };
+                          setExtraContacts(next);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
