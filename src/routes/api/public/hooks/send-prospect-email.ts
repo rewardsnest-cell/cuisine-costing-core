@@ -22,6 +22,8 @@ const Body = z.object({
   html: z.string().min(1).max(50_000),
   text: z.string().min(1).max(50_000),
   isReply: z.boolean().optional(),
+  /** Optional override entered/confirmed in the review step. Falls back to prospect.email. */
+  recipientEmail: z.string().email().max(320).optional(),
 });
 
 export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
