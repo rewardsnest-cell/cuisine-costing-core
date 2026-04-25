@@ -31,6 +31,7 @@ import {
   Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
 import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
+import { downloadShoppingListXlsx } from "@/lib/cqh/shopping-list-xlsx";
 import { canonicalize, dimensionLabel, formatQty, type Dimension } from "@/lib/cqh/units";
 
 export const Route = createFileRoute("/admin/quote-creator")({
@@ -1086,6 +1087,29 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
       toast.error("PDF export failed", { description: e.message });
     }
   };
+  const exportXlsx = () => {
+    if (items.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      const slug = (event?.event_name ?? event?.name ?? "shopping-list")
+        .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      downloadShoppingListXlsx(
+        items,
+        {
+          eventName: event?.event_name ?? event?.name ?? null,
+          eventReference: event?.reference_number ?? null,
+          guestCount: event?.guest_count ?? null,
+          revisionNumber: list.revision_number,
+          status: list.status,
+        },
+        `${slug || "shopping-list"}-rev${list.revision_number}.xlsx`,
+      );
+    } catch (e: any) {
+      toast.error("Excel export failed", { description: e.message });
+    }
+  };
   const confirm = useConfirm();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -1157,6 +1181,9 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={exportPdf} disabled={items.length === 0}>
             <Download className="w-4 h-4 mr-1" /> Download PDF
+          </Button>
+          <Button size="sm" variant="outline" onClick={exportXlsx} disabled={items.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Download Excel
           </Button>
           {!isApproved && (
             <Button size="sm" onClick={async () => {
