@@ -62,6 +62,8 @@ function ProspectsPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailDialogProspect, setEmailDialogProspect] = useState<Prospect | null>(null);
   const [emailDialogIsReply, setEmailDialogIsReply] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactDialogProspect, setContactDialogProspect] = useState<Prospect | null>(null);
 
   const openEmailDialog = (p: Prospect, isReply: boolean) => {
     setEmailDialogProspect(p);
