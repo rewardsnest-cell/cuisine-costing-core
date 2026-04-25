@@ -118,6 +118,7 @@ import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminDownloadsRouteImport } from './routes/admin/downloads'
 import { Route as AdminDailyDashboardRouteImport } from './routes/admin/daily-dashboard'
+import { Route as AdminCronSecretsRouteImport } from './routes/admin/cron-secrets'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
@@ -721,6 +722,11 @@ const AdminDailyDashboardRoute = AdminDailyDashboardRouteImport.update({
   path: '/daily-dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCronSecretsRoute = AdminCronSecretsRouteImport.update({
+  id: '/cron-secrets',
+  path: '/cron-secrets',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
   id: '/cost-queue',
   path: '/cost-queue',
@@ -1009,6 +1015,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/cron-secrets': typeof AdminCronSecretsRoute
   '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
@@ -1165,6 +1172,7 @@ export interface FileRoutesByTo {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/cron-secrets': typeof AdminCronSecretsRoute
   '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
@@ -1324,6 +1332,7 @@ export interface FileRoutesById {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/cron-secrets': typeof AdminCronSecretsRoute
   '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
@@ -1484,6 +1493,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/cron-secrets'
     | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
@@ -1640,6 +1650,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/cron-secrets'
     | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
@@ -1798,6 +1809,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/cron-secrets'
     | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
@@ -2742,6 +2754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDailyDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cron-secrets': {
+      id: '/admin/cron-secrets'
+      path: '/cron-secrets'
+      fullPath: '/admin/cron-secrets'
+      preLoaderRoute: typeof AdminCronSecretsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cost-queue': {
       id: '/admin/cost-queue'
       path: '/cost-queue'
@@ -3213,6 +3232,7 @@ interface AdminRouteChildren {
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminCookingLabRoute: typeof AdminCookingLabRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
+  AdminCronSecretsRoute: typeof AdminCronSecretsRoute
   AdminDailyDashboardRoute: typeof AdminDailyDashboardRoute
   AdminDownloadsRoute: typeof AdminDownloadsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
@@ -3289,6 +3309,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminCookingLabRoute: AdminCookingLabRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
+  AdminCronSecretsRoute: AdminCronSecretsRoute,
   AdminDailyDashboardRoute: AdminDailyDashboardRoute,
   AdminDownloadsRoute: AdminDownloadsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
