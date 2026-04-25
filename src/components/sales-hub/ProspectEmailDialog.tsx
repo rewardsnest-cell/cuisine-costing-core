@@ -47,7 +47,9 @@ export function ProspectEmailDialog({
   const [templateKey, setTemplateKey] = useState<ProspectTemplateKey>("generic_followup");
   const [subject, setSubject] = useState("");
   const [bodyText, setBodyText] = useState("");
+  const [recipient, setRecipient] = useState("");
   const [sending, setSending] = useState(false);
+  const [step, setStep] = useState<"compose" | "review">("compose");
 
   // Reset & populate when dialog opens
   useEffect(() => {
@@ -59,6 +61,8 @@ export function ProspectEmailDialog({
     const rendered = renderProspectTemplate(initialKey, prospect);
     setSubject(isReply && !rendered.subject.startsWith("Re:") ? `Re: ${rendered.subject}` : rendered.subject);
     setBodyText(rendered.text);
+    setRecipient(prospect.email ?? "");
+    setStep("compose");
   }, [open, prospect, isReply]);
 
   const onPickTemplate = (key: string) => {
@@ -68,6 +72,30 @@ export function ProspectEmailDialog({
     const rendered = renderProspectTemplate(k, prospect);
     setSubject(isReply && !rendered.subject.startsWith("Re:") ? `Re: ${rendered.subject}` : rendered.subject);
     setBodyText(rendered.text);
+  };
+
+  // Build the HTML payload from the (possibly-edited) plain text body.
+  const builtHtml = useMemo(() => {
+    if (!prospect) return "";
+    const rendered = renderProspectTemplate(templateKey, prospect);
+    return rendered.html.replace(/<p[^>]*>[\s\S]*<\/p>/, "")
+      + bodyText
+          .split(/\n{2,}/)
+          .map((p) =>
+            `<p style="margin:0 0 14px;line-height:1.55;color:#222;font-size:15px;">${
+              p.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br/>")
+            }</p>`,
+          )
+          .join("");
+  }, [prospect, templateKey, bodyText]);
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+  const goToReview = () => {
+    if (!prospect) return;
+    if (!isValidEmail(recipient)) { toast.error("Enter a valid recipient email"); return; }
+    if (!subject.trim() || !bodyText.trim()) { toast.error("Subject and body are required"); return; }
+    setStep("review");
   };
 
   const send = async () => {
