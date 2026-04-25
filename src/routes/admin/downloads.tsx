@@ -349,7 +349,7 @@ function AdminDownloadsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
