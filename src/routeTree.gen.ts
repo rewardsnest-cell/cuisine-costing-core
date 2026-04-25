@@ -152,6 +152,7 @@ import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/r
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminQuoteCreatorIdRouteImport } from './routes/admin/quote-creator.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
+import { Route as AdminPricingV2UnitRulesRouteImport } from './routes/admin/pricing-v2.unit-rules'
 import { Route as AdminPricingV2SettingsRouteImport } from './routes/admin/pricing-v2.settings'
 import { Route as AdminPricingV2RecipesNormalizeRouteImport } from './routes/admin/pricing-v2.recipes-normalize'
 import { Route as AdminPricingV2ErrorsRouteImport } from './routes/admin/pricing-v2.errors'
@@ -906,6 +907,11 @@ const AdminPricingNationalRoute = AdminPricingNationalRouteImport.update({
   path: '/national',
   getParentRoute: () => AdminPricingRoute,
 } as any)
+const AdminPricingV2UnitRulesRoute = AdminPricingV2UnitRulesRouteImport.update({
+  id: '/pricing-v2/unit-rules',
+  path: '/pricing-v2/unit-rules',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPricingV2SettingsRoute = AdminPricingV2SettingsRouteImport.update({
   id: '/pricing-v2/settings',
   path: '/pricing-v2/settings',
@@ -1173,6 +1179,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
+  '/admin/pricing-v2/unit-rules': typeof AdminPricingV2UnitRulesRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1340,6 +1347,7 @@ export interface FileRoutesByTo {
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
+  '/admin/pricing-v2/unit-rules': typeof AdminPricingV2UnitRulesRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1510,6 +1518,7 @@ export interface FileRoutesById {
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
+  '/admin/pricing-v2/unit-rules': typeof AdminPricingV2UnitRulesRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
@@ -1681,6 +1690,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/settings'
+    | '/admin/pricing-v2/unit-rules'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -1848,6 +1858,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/settings'
+    | '/admin/pricing-v2/unit-rules'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -2017,6 +2028,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/settings'
+    | '/admin/pricing-v2/unit-rules'
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
@@ -3119,6 +3131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingNationalRouteImport
       parentRoute: typeof AdminPricingRoute
     }
+    '/admin/pricing-v2/unit-rules': {
+      id: '/admin/pricing-v2/unit-rules'
+      path: '/pricing-v2/unit-rules'
+      fullPath: '/admin/pricing-v2/unit-rules'
+      preLoaderRoute: typeof AdminPricingV2UnitRulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pricing-v2/settings': {
       id: '/admin/pricing-v2/settings'
       path: '/pricing-v2/settings'
@@ -3504,6 +3523,7 @@ interface AdminRouteChildren {
   AdminPricingV2ErrorsRoute: typeof AdminPricingV2ErrorsRoute
   AdminPricingV2RecipesNormalizeRoute: typeof AdminPricingV2RecipesNormalizeRoute
   AdminPricingV2SettingsRoute: typeof AdminPricingV2SettingsRoute
+  AdminPricingV2UnitRulesRoute: typeof AdminPricingV2UnitRulesRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
   AdminPricingV2IndexRoute: typeof AdminPricingV2IndexRoute
@@ -3587,6 +3607,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPricingV2ErrorsRoute: AdminPricingV2ErrorsRoute,
   AdminPricingV2RecipesNormalizeRoute: AdminPricingV2RecipesNormalizeRoute,
   AdminPricingV2SettingsRoute: AdminPricingV2SettingsRoute,
+  AdminPricingV2UnitRulesRoute: AdminPricingV2UnitRulesRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
   AdminPricingV2IndexRoute: AdminPricingV2IndexRoute,
