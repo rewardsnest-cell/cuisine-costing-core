@@ -86,8 +86,8 @@ function CronRunsPage() {
     queryKey: ["cron-runs", windowDays, jobFilter, statusFilter, pageSize],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_cron_runs", {
-        _job_name: jobFilter === "all" ? null : jobFilter,
-        _status: statusFilter === "all" ? null : statusFilter,
+        _job_name: jobFilter === "all" ? undefined : jobFilter,
+        _status: statusFilter === "all" ? undefined : statusFilter,
         _since: since,
         _limit: pageSize,
         _offset: 0,
