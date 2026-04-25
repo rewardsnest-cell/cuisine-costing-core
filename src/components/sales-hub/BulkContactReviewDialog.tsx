@@ -12,6 +12,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { generateProspectContact } from "@/lib/sales-hub/generate-prospect-contact.functions";
 import { supabase } from "@/integrations/supabase/client";
 
+export type BulkReviewContact = { name: string; role: string; email: string; phone: string };
+
 export type BulkReviewItem = {
   id: string;
   business_name: string;
@@ -21,12 +23,16 @@ export type BulkReviewItem = {
   original_contact_name: string | null;
   original_email: string | null;
   original_phone: string | null;
+  original_address: string | null;
+  original_website: string | null;
   original_notes: string | null;
   // Editable fields (prefilled from AI suggestion)
   contact_name: string;
   email: string;
   phone: string;
   website: string;
+  address: string;
+  contacts: BulkReviewContact[];
   ai_notes: string;
   confidence: "high" | "medium" | "low" | "none" | null;
   error?: string | null;
