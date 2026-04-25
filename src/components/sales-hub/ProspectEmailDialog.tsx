@@ -100,22 +100,10 @@ export function ProspectEmailDialog({
 
   const send = async () => {
     if (!prospect) return;
-    if (!prospect.email) { toast.error("Prospect has no email"); return; }
+    if (!isValidEmail(recipient)) { toast.error("Enter a valid recipient email"); return; }
     if (!subject.trim() || !bodyText.trim()) { toast.error("Subject and body are required"); return; }
     setSending(true);
     try {
-      const rendered = renderProspectTemplate(templateKey, prospect);
-      // Re-wrap the (possibly-edited) text into HTML by replacing the body of the rendered html.
-      const html = rendered.html.replace(/<p[^>]*>[\s\S]*<\/p>/, "")
-        + bodyText
-            .split(/\n{2,}/)
-            .map((p) =>
-              `<p style="margin:0 0 14px;line-height:1.55;color:#222;font-size:15px;">${
-                p.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br/>")
-              }</p>`,
-            )
-            .join("");
-
       const { data: sess } = await supabase.auth.getSession();
       const jwt = sess?.session?.access_token;
       if (!jwt) throw new Error("Not signed in");
@@ -130,9 +118,10 @@ export function ProspectEmailDialog({
           prospectId: prospect.id,
           templateKey,
           subject,
-          html,
+          html: builtHtml,
           text: bodyText,
           isReply: !!isReply,
+          recipientEmail: recipient.trim(),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -149,6 +138,9 @@ export function ProspectEmailDialog({
     }
   };
 
+  const templateLabel =
+    PROSPECT_TEMPLATE_LIST.find((t) => t.key === templateKey)?.label ?? templateKey;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -156,14 +148,19 @@ export function ProspectEmailDialog({
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
             {isReply ? "Reply to" : "Email"} {prospect?.business_name}
+            {step === "review" && (
+              <Badge variant="secondary" className="ml-1 gap-1">
+                <Eye className="w-3 h-3" /> Review
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
-        {prospect && (
+        {prospect && step === "compose" && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">{prospect.type ?? "—"}</Badge>
-              <span>To: {prospect.email ?? "no email"}</span>
-              {prospect.contact_name && <span>· {prospect.contact_name}</span>}
+              {prospect.contact_name && <span>{prospect.contact_name}</span>}
+              {prospect.city && <span>· {prospect.city}</span>}
             </div>
 
             <div>
@@ -198,6 +195,16 @@ export function ProspectEmailDialog({
             </div>
 
             <div>
+              <Label className="text-xs">To</Label>
+              <Input
+                type="email"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="name@example.com"
+              />
+            </div>
+
+            <div>
               <Label className="text-xs">Subject</Label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
             </div>
@@ -205,7 +212,7 @@ export function ProspectEmailDialog({
             <div>
               <Label className="text-xs">Body (edit before sending)</Label>
               <Textarea
-                rows={14}
+                rows={12}
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
                 className="font-mono text-sm"
@@ -213,14 +220,67 @@ export function ProspectEmailDialog({
             </div>
           </div>
         )}
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={sending}>
-            Cancel
-          </Button>
-          <Button onClick={send} disabled={sending || !prospect?.email} className="gap-1.5">
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            {sending ? "Sending…" : isReply ? "Send reply" : "Send email"}
-          </Button>
+
+        {prospect && step === "review" && (
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1.5 text-sm">
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-20 shrink-0 text-xs uppercase tracking-wide pt-0.5">To</span>
+                <span className="font-medium break-all">{recipient}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-20 shrink-0 text-xs uppercase tracking-wide pt-0.5">Prospect</span>
+                <span>{prospect.business_name}{prospect.contact_name ? ` · ${prospect.contact_name}` : ""}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-20 shrink-0 text-xs uppercase tracking-wide pt-0.5">Template</span>
+                <span>{templateLabel}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-muted-foreground w-20 shrink-0 text-xs uppercase tracking-wide pt-0.5">Subject</span>
+                <span className="font-medium">{subject}</span>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs flex items-center gap-1">
+                <Eye className="w-3 h-3" /> Email preview
+              </Label>
+              <div
+                className="mt-1 max-h-[340px] overflow-auto rounded-md border bg-white p-4 text-[14px] leading-relaxed text-foreground"
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: builtHtml }}
+              />
+            </div>
+
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Confirm the recipient and content above. Clicking <strong>Send</strong> will deliver this email immediately.</span>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {step === "compose" ? (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={sending}>
+                Cancel
+              </Button>
+              <Button onClick={goToReview} disabled={!recipient || !subject || !bodyText} className="gap-1.5">
+                <Eye className="w-4 h-4" /> Review & confirm
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => setStep("compose")} disabled={sending} className="gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to edit
+              </Button>
+              <Button onClick={send} disabled={sending} className="gap-1.5">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sending ? "Sending…" : isReply ? "Confirm & send reply" : "Confirm & send"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
