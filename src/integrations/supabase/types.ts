@@ -1900,6 +1900,9 @@ export type Database = {
           internal_estimated_unit_cost: number | null
           internal_estimated_unit_cost_updated_at: string | null
           inventory_item_id: string | null
+          kroger_signal_median: number | null
+          kroger_signal_updated_at: string | null
+          kroger_signal_volatility: number | null
           kroger_unit_cost: number | null
           kroger_unit_cost_updated_at: string | null
           manual_unit_cost: number | null
@@ -1925,6 +1928,9 @@ export type Database = {
           internal_estimated_unit_cost?: number | null
           internal_estimated_unit_cost_updated_at?: string | null
           inventory_item_id?: string | null
+          kroger_signal_median?: number | null
+          kroger_signal_updated_at?: string | null
+          kroger_signal_volatility?: number | null
           kroger_unit_cost?: number | null
           kroger_unit_cost_updated_at?: string | null
           manual_unit_cost?: number | null
@@ -1950,6 +1956,9 @@ export type Database = {
           internal_estimated_unit_cost?: number | null
           internal_estimated_unit_cost_updated_at?: string | null
           inventory_item_id?: string | null
+          kroger_signal_median?: number | null
+          kroger_signal_updated_at?: string | null
+          kroger_signal_volatility?: number | null
           kroger_unit_cost?: number | null
           kroger_unit_cost_updated_at?: string | null
           manual_unit_cost?: number | null
@@ -5198,6 +5207,10 @@ export type Database = {
       recompute_recipe_cost: {
         Args: { _recipe_id: string }
         Returns: undefined
+      }
+      refresh_kroger_signal_from_history: {
+        Args: { _reference_id: string }
+        Returns: Json
       }
       refresh_recipe_integrity_flag: {
         Args: { _recipe_id: string }
