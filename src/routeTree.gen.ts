@@ -95,6 +95,7 @@ import { Route as AdminPricingLabRouteImport } from './routes/admin/pricing-lab'
 import { Route as AdminPricingCodeInventoryRouteImport } from './routes/admin/pricing-code-inventory'
 import { Route as AdminPagesRouteImport } from './routes/admin/pages'
 import { Route as AdminPageInventoryRouteImport } from './routes/admin/page-inventory'
+import { Route as AdminOutreachRouteImport } from './routes/admin/outreach'
 import { Route as AdminNewsletterGuideRouteImport } from './routes/admin/newsletter-guide'
 import { Route as AdminNationalPricesRouteImport } from './routes/admin/national-prices'
 import { Route as AdminMenuModulesRouteImport } from './routes/admin/menu-modules'
@@ -609,6 +610,11 @@ const AdminPageInventoryRoute = AdminPageInventoryRouteImport.update({
   path: '/page-inventory',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOutreachRoute = AdminOutreachRouteImport.update({
+  id: '/outreach',
+  path: '/outreach',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNewsletterGuideRoute = AdminNewsletterGuideRouteImport.update({
   id: '/newsletter-guide',
   path: '/newsletter-guide',
@@ -1065,6 +1071,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
@@ -1226,6 +1233,7 @@ export interface FileRoutesByTo {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
@@ -1390,6 +1398,7 @@ export interface FileRoutesById {
   '/admin/menu-modules': typeof AdminMenuModulesRouteWithChildren
   '/admin/national-prices': typeof AdminNationalPricesRoute
   '/admin/newsletter-guide': typeof AdminNewsletterGuideRoute
+  '/admin/outreach': typeof AdminOutreachRoute
   '/admin/page-inventory': typeof AdminPageInventoryRoute
   '/admin/pages': typeof AdminPagesRoute
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
@@ -1555,6 +1564,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
     | '/admin/pricing-code-inventory'
@@ -1716,6 +1726,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
     | '/admin/pricing-code-inventory'
@@ -1879,6 +1890,7 @@ export interface FileRouteTypes {
     | '/admin/menu-modules'
     | '/admin/national-prices'
     | '/admin/newsletter-guide'
+    | '/admin/outreach'
     | '/admin/page-inventory'
     | '/admin/pages'
     | '/admin/pricing-code-inventory'
@@ -2643,6 +2655,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPageInventoryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/outreach': {
+      id: '/admin/outreach'
+      path: '/outreach'
+      fullPath: '/admin/outreach'
+      preLoaderRoute: typeof AdminOutreachRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/newsletter-guide': {
       id: '/admin/newsletter-guide'
       path: '/newsletter-guide'
@@ -3335,6 +3354,7 @@ interface AdminRouteChildren {
   AdminMenuModulesRoute: typeof AdminMenuModulesRouteWithChildren
   AdminNationalPricesRoute: typeof AdminNationalPricesRoute
   AdminNewsletterGuideRoute: typeof AdminNewsletterGuideRoute
+  AdminOutreachRoute: typeof AdminOutreachRoute
   AdminPageInventoryRoute: typeof AdminPageInventoryRoute
   AdminPagesRoute: typeof AdminPagesRoute
   AdminPricingCodeInventoryRoute: typeof AdminPricingCodeInventoryRoute
@@ -3415,6 +3435,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuModulesRoute: AdminMenuModulesRouteWithChildren,
   AdminNationalPricesRoute: AdminNationalPricesRoute,
   AdminNewsletterGuideRoute: AdminNewsletterGuideRoute,
+  AdminOutreachRoute: AdminOutreachRoute,
   AdminPageInventoryRoute: AdminPageInventoryRoute,
   AdminPagesRoute: AdminPagesRoute,
   AdminPricingCodeInventoryRoute: AdminPricingCodeInventoryRoute,

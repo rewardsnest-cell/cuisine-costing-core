@@ -101,7 +101,7 @@ function OutreachPage() {
         p_lead_id: logTask.lead_id,
         p_channel: channel,
         p_outcome: outcome,
-        p_notes: notes || null,
+        p_notes: notes || undefined,
         p_task_id: logTask.id,
       });
       if (error) throw error;
