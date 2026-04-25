@@ -76,6 +76,22 @@ function DailyChecklistPage() {
     load();
   };
 
+  const setStage = async (prospectId: string, newStage: string) => {
+    const { error } = await (supabase as any)
+      .from("sales_prospects")
+      .update({ status: newStage })
+      .eq("id", prospectId);
+    if (error) return toast.error(error.message);
+    toast.success(`Moved to ${newStage}`);
+    load();
+  };
+
+  const nextStage = (current: string) => {
+    const idx = (PROSPECT_STATUSES as readonly string[]).indexOf(current);
+    if (idx < 0 || idx >= PROSPECT_STATUSES.length - 1) return null;
+    return PROSPECT_STATUSES[idx + 1];
+  };
+
   const completed = ITEMS.filter((i) => state[i.key]).length;
 
   return (
