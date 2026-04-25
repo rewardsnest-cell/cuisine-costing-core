@@ -112,6 +112,7 @@ import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
+import { Route as AdminDownloadsRouteImport } from './routes/admin/downloads'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
@@ -674,6 +675,11 @@ const AdminEmployeesRoute = AdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDownloadsRoute = AdminDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
   id: '/cost-queue',
   path: '/cost-queue',
@@ -909,6 +915,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1049,6 +1056,7 @@ export interface FileRoutesByTo {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1192,6 +1200,7 @@ export interface FileRoutesById {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -1336,6 +1345,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1476,6 +1486,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -1618,6 +1629,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
     | '/admin/exports'
@@ -2502,6 +2514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEmployeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/downloads': {
+      id: '/admin/downloads'
+      path: '/downloads'
+      fullPath: '/admin/downloads'
+      preLoaderRoute: typeof AdminDownloadsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cost-queue': {
       id: '/admin/cost-queue'
       path: '/cost-queue'
@@ -2877,6 +2896,7 @@ interface AdminRouteChildren {
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminCookingLabRoute: typeof AdminCookingLabRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
+  AdminDownloadsRoute: typeof AdminDownloadsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
@@ -2947,6 +2967,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminCookingLabRoute: AdminCookingLabRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
+  AdminDownloadsRoute: AdminDownloadsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,

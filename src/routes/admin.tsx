@@ -85,6 +85,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/page-inventory",   label: "Page Inventory",         icon: FileSearch,  featureKey: "admin_page_inventory" },
       { to: "/admin/audit",            label: "Audit Log",              icon: Shield,      featureKey: "admin_audit_log" },
       { to: "/admin/exports",          label: "Exports & Reports",      icon: FileText,    featureKey: "admin_exports" },
+      { to: "/admin/downloads",        label: "Downloads Hub",          icon: FileText,    featureKey: "admin_downloads" },
       { to: "/admin/change-log",       label: "Change Log",             icon: NotebookPen, featureKey: "admin_change_log" },
       { to: "/admin/intelligence",     label: "Project Intelligence",   icon: ShieldCheck, featureKey: "admin_project_intelligence" },
       { to: "/admin/access",           label: "Access Control",         icon: ShieldCheck, featureKey: "admin_access_control" },
