@@ -131,22 +131,58 @@ export async function resolveLocationFromZip(
     } catch { /* refresh */ }
   }
 
+  // Fetch several nearby locations and pick the FIRST one that actually
+  // returns products. Some `locationId`s belong to distribution sheds /
+  // back-office facilities (e.g. "Cleveland Shed") which validate against
+  // the format check but return `{"data":[]}` for every product search.
+  // Probing once up front avoids thousands of doomed Product API calls.
   const url = new URL("https://api.kroger.com/v1/locations");
   url.searchParams.set("filter.zipCode.near", cleanZip);
-  url.searchParams.set("filter.limit", "1");
+  url.searchParams.set("filter.limit", "10");
   const res = await kFetch(url.toString());
   if (!res.ok) return null;
-  const body = (await res.json().catch(() => null)) as { data?: Array<{ locationId?: string }> } | null;
-  const id = body?.data?.[0]?.locationId ?? null;
-  // Reject anything that doesn't match Kroger's documented format. Better
-  // to fail the run cleanly than issue thousands of doomed Product calls.
-  if (!isValidKrogerLocationId(id)) return null;
+  const body = (await res.json().catch(() => null)) as {
+    data?: Array<{ locationId?: string; name?: string; chain?: string }>;
+  } | null;
+  const candidates = (body?.data ?? []).filter((l) => isValidKrogerLocationId(l.locationId));
+  if (candidates.length === 0) return null;
+
+  // De-prioritize obvious non-retail facilities by name. We still PROBE them
+  // last so a misnamed retail store isn't excluded.
+  const NON_RETAIL_RE = /\b(shed|warehouse|distribution|fulfillment|depot|office|corporate)\b/i;
+  candidates.sort((a, b) => {
+    const aBad = NON_RETAIL_RE.test(a.name ?? "") ? 1 : 0;
+    const bBad = NON_RETAIL_RE.test(b.name ?? "") ? 1 : 0;
+    return aBad - bBad;
+  });
+
+  let chosen: string | null = null;
+  for (const cand of candidates) {
+    const id = cand.locationId!;
+    const probe = new URL("https://api.kroger.com/v1/products");
+    probe.searchParams.set("filter.term", "milk");
+    probe.searchParams.set("filter.locationId", id);
+    probe.searchParams.set("filter.limit", "1");
+    try {
+      const pRes = await kFetch(probe.toString());
+      if (!pRes.ok) continue;
+      const pBody = (await pRes.json().catch(() => null)) as { data?: any[] } | null;
+      if ((pBody?.data?.length ?? 0) > 0) {
+        chosen = id;
+        break;
+      }
+    } catch {
+      continue;
+    }
+  }
+  if (!chosen) return null;
+
   await supabaseAdmin.from("app_kv").upsert({
     key: cacheKey,
-    value: JSON.stringify({ locationId: id, cachedAt: new Date().toISOString() }),
+    value: JSON.stringify({ locationId: chosen, cachedAt: new Date().toISOString() }),
     updated_at: new Date().toISOString(),
   });
-  return id;
+  return chosen;
 }
 
 /**
