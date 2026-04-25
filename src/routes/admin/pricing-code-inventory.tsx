@@ -310,6 +310,37 @@ function PricingCodeInventoryPage() {
           </ul>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileCode2 className="w-4 h-4" /> SQL Appendix — pricing & costing
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Verbatim definitions of functions, triggers, and views referenced by
+            pricing/costing. Read-only — included in the JSON, PDF, and .sql exports above.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {SQL_PRICING_APPENDIX.map((entry) => (
+            <details
+              key={entry.name}
+              className="rounded-md border border-border bg-card/50 p-3"
+            >
+              <summary className="cursor-pointer text-sm flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                  {entry.kind}
+                </Badge>
+                <span className="font-mono text-xs">{entry.name}</span>
+                <span className="text-muted-foreground text-xs">— {entry.purpose}</span>
+              </summary>
+              <pre className="mt-3 max-h-80 overflow-auto rounded bg-muted/40 p-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all">
+                {entry.definition}
+              </pre>
+            </details>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
