@@ -614,6 +614,13 @@ function ProspectsPage() {
         setItems={setBulkReviewItems}
         onSavedAll={load}
       />
+
+      <ProspectEmailHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        prospect={historyDialogProspect}
+        onFollowUp={() => historyDialogProspect && openEmailDialog(historyDialogProspect, true)}
+      />
     </div>
   );
 }
