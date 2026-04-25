@@ -133,6 +133,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/admin/pricing",  label: "Pricing (v2 stub)",    icon: Tag },
       { to: "/admin/receipts", label: "Receipt Diagnostics",  icon: Receipt, featureKey: "admin_receipt_diagnostics" },
+      { to: "/admin/receipts/queue", label: "Receipt Queue",  icon: ClipboardList, featureKey: "admin_receipt_diagnostics" },
     ],
   },
   {
