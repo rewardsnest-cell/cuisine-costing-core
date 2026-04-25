@@ -36,15 +36,13 @@ function browserDownload(blob: Blob, filename: string) {
   a.href = url;
   a.download = filename;
   a.rel = "noopener";
-  // Some mobile browsers ignore the download attribute unless target=_blank
-  a.target = "_blank";
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/** Mobile-safe fallback: open the persisted public URL in a new tab. */
+/** Mobile fallback: open the persisted public URL in a new tab. */
 export function openPublicUrl(url: string) {
   if (typeof window === "undefined" || !url) return;
   window.open(url, "_blank", "noopener,noreferrer");
