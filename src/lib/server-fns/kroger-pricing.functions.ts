@@ -45,11 +45,8 @@ async function isKrogerEnabled(): Promise<boolean> {
   return String(v ?? "false").toLowerCase() === "true";
 }
 
-async function getKrogerLocationId(): Promise<string | null> {
-  const v = await getKv("kroger_location_id");
-  return v && v.trim().length > 0 ? v.trim() : null;
-}
-
+// NOTE: Per pricing intent, there is no admin-pinned locationId. Location is
+// always derived from ZIP server-side and cached for 30 days.
 const DEFAULT_ZIP = "44202";
 
 /**
