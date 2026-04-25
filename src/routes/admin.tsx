@@ -238,7 +238,12 @@ function AdminLayout() {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(label)) next.delete(label); else next.add(label);
-      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))); } catch {}
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          collapsed: Array.from(next),
+          known: NAV_GROUPS.map((g) => g.label),
+        }));
+      } catch {}
       return next;
     });
   };
