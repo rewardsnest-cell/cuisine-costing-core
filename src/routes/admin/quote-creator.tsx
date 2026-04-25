@@ -28,8 +28,9 @@ import {
 import {
   Upload, FileText, Trash2, Sparkles, Lock, RefreshCw, ChefHat,
   CheckCircle2, FilePlus, ArrowRight, ListChecks, ScrollText, History,
-  Files, DollarSign, ClipboardList, Plus,
+  Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
+import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
 
 export const Route = createFileRoute("/admin/quote-creator")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -804,7 +805,7 @@ function QuoteCreatorHub() {
               </Card>
 
               {list && (
-                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} onChanged={reload} isApproved={isApproved} />
+                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} event={data.event} onChanged={reload} isApproved={isApproved} />
               )}
 
               {isApproved && (
@@ -901,7 +902,7 @@ function QuoteCreatorHub() {
 
             <TabsContent value="shopping">
               {list ? (
-                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} onChanged={reload} isApproved={isApproved} />
+                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} event={data.event} onChanged={reload} isApproved={isApproved} />
               ) : (
                 <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Generate a shopping list first.</CardContent></Card>
               )}
@@ -1059,10 +1060,31 @@ function QuoteRow({ q, onChanged }: { q: any; onChanged: () => void }) {
   );
 }
 
-function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
-  list: CqhShoppingList; items: CqhShoppingListItem[]; dishes: CqhDish[]; onChanged: () => void; isApproved: boolean;
+function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved }: {
+  list: CqhShoppingList; items: CqhShoppingListItem[]; dishes: CqhDish[];
+  event?: any; onChanged: () => void; isApproved: boolean;
 }) {
   const total = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
+  const exportPdf = () => {
+    if (items.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      const doc = generateShoppingListPdf(items, {
+        eventName: event?.event_name ?? event?.name ?? null,
+        eventReference: event?.reference_number ?? null,
+        guestCount: event?.guest_count ?? null,
+        revisionNumber: list.revision_number,
+        status: list.status,
+      });
+      const slug = (event?.event_name ?? event?.name ?? "shopping-list")
+        .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      doc.save(`${slug || "shopping-list"}-rev${list.revision_number}.pdf`);
+    } catch (e: any) {
+      toast.error("PDF export failed", { description: e.message });
+    }
+  };
   const confirm = useConfirm();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -1131,16 +1153,21 @@ function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
             <Badge variant="outline">Draft</Badge>
           )}
         </CardTitle>
-        {!isApproved && (
-          <Button size="sm" onClick={async () => {
-            try {
-              await approveShoppingList({ data: { shopping_list_id: list.id } });
-              toast.success("Approved"); onChanged();
-            } catch (e: any) { toast.error(e.message); }
-          }}>
-            <CheckCircle2 className="w-4 h-4 mr-1" /> Approve Shopping List
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportPdf} disabled={items.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Download PDF
           </Button>
-        )}
+          {!isApproved && (
+            <Button size="sm" onClick={async () => {
+              try {
+                await approveShoppingList({ data: { shopping_list_id: list.id } });
+                toast.success("Approved"); onChanged();
+              } catch (e: any) { toast.error(e.message); }
+            }}>
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Approve Shopping List
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {!isApproved && items.length > 0 && (
