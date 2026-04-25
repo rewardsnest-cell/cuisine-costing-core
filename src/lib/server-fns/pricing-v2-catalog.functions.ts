@@ -481,6 +481,83 @@ export const resetCatalogBootstrap = createServerFn({ method: "POST" })
     return { ok: true, store_id: storeId };
   });
 
+/**
+ * Auto-recover bootstrap runs stuck in `running` for longer than `older_than_minutes`
+ * (default 15). Marks them `failed` with a timestamp and an error summary, and
+ * flips bootstrap_state back to NOT_STARTED if its last_run_id matches a
+ * recovered run, so the loop can be resumed.
+ */
+export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        older_than_minutes: z.number().int().min(1).max(720).default(15),
+      })
+      .parse(input ?? {})
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const cutoffIso = new Date(Date.now() - data.older_than_minutes * 60_000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    // Find stuck runs (catalog stage, status=running, started before cutoff)
+    const { data: stuck, error: selErr } = await supabase
+      .from("pricing_v2_runs")
+      .select("run_id, started_at, stage")
+      .in("stage", ["catalog", "catalog_bootstrap_test"])
+      .eq("status", "running")
+      .lt("started_at", cutoffIso);
+    if (selErr) throw new Error(selErr.message);
+
+    const stuckRuns = stuck ?? [];
+    if (stuckRuns.length === 0) {
+      return { ok: true, recovered: 0, run_ids: [] as string[], cutoff: cutoffIso };
+    }
+
+    const runIds = stuckRuns.map((r: any) => r.run_id as string);
+    const summary =
+      `Auto-recovered: run was stuck in 'running' for >${data.older_than_minutes}m ` +
+      `(no completion signal). Marked failed at ${nowIso}.`;
+
+    const { error: updErr } = await supabase
+      .from("pricing_v2_runs")
+      .update({
+        status: "failed",
+        ended_at: nowIso,
+        last_error: summary,
+      })
+      .in("run_id", runIds);
+    if (updErr) throw new Error(updErr.message);
+
+    // Log a uniform error row per recovered run for the errors page trail
+    const errorRows = stuckRuns.map((r: any) => ({
+      stage: r.stage,
+      run_id: r.run_id,
+      severity: "error",
+      type: "stuck_run_recovered",
+      message: summary,
+      context: { older_than_minutes: data.older_than_minutes, started_at: r.started_at },
+    }));
+    await supabase.from("pricing_v2_errors").insert(errorRows);
+
+    // If bootstrap_state still points at a recovered run, flip back so it can resume.
+    const { data: bsRows } = await supabase
+      .from("pricing_v2_catalog_bootstrap_state")
+      .select("store_id, last_run_id, status")
+      .in("last_run_id", runIds);
+    if (bsRows && bsRows.length > 0) {
+      const storeIds = bsRows.map((b: any) => b.store_id);
+      await supabase
+        .from("pricing_v2_catalog_bootstrap_state")
+        .update({ status: "NOT_STARTED" })
+        .in("store_id", storeIds)
+        .eq("status", "IN_PROGRESS");
+    }
+
+    return { ok: true, recovered: runIds.length, run_ids: runIds, cutoff: cutoffIso };
+  });
+
 // ---- Listing helpers ------------------------------------------------------
 
 export const listCatalogRunErrors = createServerFn({ method: "POST" })

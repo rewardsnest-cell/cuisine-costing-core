@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { BootstrapLiveProgress } from "@/components/admin/BootstrapLiveProgress";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
@@ -34,6 +34,7 @@ import {
   listCatalogTestErrors,
   getCatalogBootstrapState,
   resetCatalogBootstrap,
+  recoverStuckCatalogRuns,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -155,6 +156,17 @@ function CatalogBootstrapPage() {
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Reset failed"),
+  });
+
+  const recoverMut = useMutation({
+    mutationFn: () => recoverStuckCatalogRuns({ data: { older_than_minutes: 15 } }),
+    onSuccess: (res: any) => {
+      if (res.recovered === 0) toast.info("No stuck runs found (>15m old)");
+      else toast.success(`Recovered ${res.recovered} stuck run${res.recovered === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "live-status"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Recovery failed"),
   });
 
   const testMut = useMutation({
@@ -279,6 +291,30 @@ function CatalogBootstrapPage() {
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Recover stuck runs */}
+          <div className="pt-3 border-t border-border space-y-2">
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Recover stuck runs
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-muted-foreground flex-1 min-w-[260px]">
+                Marks any catalog run stuck in <span className="font-mono">running</span> for
+                more than 15 minutes as <span className="font-mono">failed</span> with a
+                timestamp + error summary, and resets bootstrap_state if needed so you can resume.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => recoverMut.mutate()}
+                disabled={recoverMut.isPending}
+                className="gap-1.5"
+              >
+                {recoverMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+                Recover Stuck Runs ({">"}15m)
+              </Button>
+            </div>
+          </div>
 
           {/* Reset (dangerous) */}
           <div className="pt-3 border-t border-destructive/30 space-y-2">
