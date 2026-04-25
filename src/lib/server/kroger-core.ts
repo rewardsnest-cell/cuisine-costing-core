@@ -314,7 +314,39 @@ export function normalizeForScoring(s: string): string {
  * set on a single character, and dedup by SKU keeps duplicates out of
  * kroger_sku_map.
  */
+// Kroger /products requires filter.term to be >= 3 characters; single chars
+// return HTTP 400. Use broad grocery category keywords to maximize SKU
+// discovery during bootstrap. Order is roughly highest-volume first so early
+// runs hit the most common ingredients before any item cap.
 export const BOOTSTRAP_SEARCH_TERMS: string[] = [
-  ..."abcdefghijklmnopqrstuvwxyz".split(""),
-  ..."0123456789".split(""),
+  // Proteins
+  "chicken", "beef", "pork", "turkey", "bacon", "sausage", "ham", "steak",
+  "ground beef", "salmon", "tuna", "shrimp", "fish", "eggs", "tofu",
+  // Dairy
+  "milk", "cheese", "butter", "yogurt", "cream", "sour cream", "cream cheese",
+  "mozzarella", "cheddar", "parmesan", "half and half",
+  // Produce
+  "apple", "banana", "orange", "grape", "berry", "strawberry", "blueberry",
+  "lemon", "lime", "avocado", "tomato", "potato", "onion", "garlic", "carrot",
+  "celery", "lettuce", "spinach", "broccoli", "pepper", "cucumber", "mushroom",
+  "corn", "kale", "cabbage", "zucchini", "squash", "ginger",
+  // Pantry / dry goods
+  "rice", "pasta", "bread", "flour", "sugar", "salt", "olive oil", "vegetable oil",
+  "vinegar", "soy sauce", "honey", "syrup", "oats", "cereal", "beans", "lentils",
+  "tortilla", "crackers", "peanut butter", "jelly", "jam",
+  // Canned & jarred
+  "soup", "broth", "tomato sauce", "salsa", "ketchup", "mustard", "mayo",
+  "pickles", "olives", "tuna can", "canned beans", "canned tomatoes",
+  // Beverages
+  "coffee", "tea", "juice", "soda", "water", "sparkling water", "energy drink",
+  "almond milk", "oat milk",
+  // Frozen
+  "frozen pizza", "frozen vegetables", "ice cream", "frozen chicken",
+  "frozen fruit", "frozen meal",
+  // Bakery / snacks / sweets
+  "chips", "cookies", "candy", "chocolate", "nuts", "popcorn", "granola",
+  "bagel", "muffin", "donut",
+  // Spices / baking
+  "spice", "pepper black", "cinnamon", "vanilla", "baking soda", "baking powder",
+  "yeast", "cocoa",
 ];
