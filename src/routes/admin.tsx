@@ -135,6 +135,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/kroger-sku-review",    label: "Kroger SKU Review",      icon: ClipboardCheck,  featureKey: "admin_kroger_sku_review" },
       { to: "/admin/kroger-ingest-runs",   label: "Kroger Ingest Runs",     icon: ServerCrash,     featureKey: "admin_kroger_ingest_runs" },
       { to: "/admin/kroger-mapping-diagnostics", label: "Kroger Mapping Diagnostics", icon: ListChecks, featureKey: "admin_kroger_mapping_diagnostics" },
+      { to: "/admin/ingest-diagnostics",   label: "Ingest Diagnostics",     icon: ListChecks,      featureKey: "admin_ingest_diagnostics" },
       { to: "/admin/cost-queue",           label: "Cost Update Queue",      icon: ClipboardCheck,  featureKey: "admin_cost_queue" },
       { to: "/admin/receipts",             label: "Receipt Diagnostics",    icon: Receipt,         featureKey: "admin_receipt_diagnostics" },
       { to: "/admin/pricing-code-inventory", label: "Pricing Code Inventory", icon: FileSearch,    featureKey: "admin_pricing_code_inventory" },
