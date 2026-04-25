@@ -271,7 +271,7 @@ function ProspectsPage() {
                             title={p.email ? `Pick a template & preview email for ${p.email}` : "No email on file — add one in Edit prospect"}
                             disabled={!p.email}
                           >
-                            <MailIcon className="w-3.5 h-3.5" /> Send email
+                            <MailIcon className="w-3.5 h-3.5" /> Generate email
                           </Button>
                           {hasUnreadReply(p) && (
                             <Button

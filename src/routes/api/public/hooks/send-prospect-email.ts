@@ -22,8 +22,6 @@ const Body = z.object({
   html: z.string().min(1).max(50_000),
   text: z.string().min(1).max(50_000),
   isReply: z.boolean().optional(),
-  /** Optional override entered/confirmed in the review step. Falls back to prospect.email. */
-  recipientEmail: z.string().email().max(320).optional(),
 });
 
 export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
@@ -78,15 +76,14 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         if (pErr || !prospect) {
           return Response.json({ error: "Prospect not found" }, { status: 404 });
         }
-        if (!prospect.email && !body.recipientEmail) {
+        if (!prospect.email) {
           return Response.json({ error: "Prospect has no email" }, { status: 400 });
         }
-        const toEmail = (body.recipientEmail ?? prospect.email)!.trim();
 
         const attemptedAt = new Date();
         const t0 = Date.now();
         const sendResult = await sendOutlookEmail({
-          to: toEmail,
+          to: prospect.email,
           subject: body.subject,
           html: body.html,
           text: body.text,
@@ -97,7 +94,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         // Granular audit row for every Outlook attempt (lead_id null for prospects).
         await (supabase as any).from("lead_email_audit").insert({
           lead_id: null,
-          recipient: toEmail,
+          recipient: prospect.email,
           subject: body.subject,
           body_preview: body.text.slice(0, 240),
           source: "prospect",
@@ -113,7 +110,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         });
 
         if (!sendResult.ok) {
-          // Log the failed attempt with whatever IDs we managed to capture.
+          // Log the failed attempt for visibility
           await (supabase as any).from("sales_contact_log").insert({
             prospect_id: prospect.id,
             channel: "email",
@@ -121,14 +118,9 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
             direction: "outbound",
             subject: body.subject,
             body_html: body.html,
-            body_text: body.text,
             body_preview: body.text.slice(0, 240),
             template_key: body.templateKey,
-            from_email: null,
-            to_email: toEmail,
-            outlook_message_id: sendResult.outlookMessageId ?? null,
-            outlook_conversation_id: sendResult.outlookConversationId ?? null,
-            internet_message_id: sendResult.internetMessageId ?? null,
+            to_email: prospect.email,
             notes: sendResult.error ?? `HTTP ${sendResult.status}`,
             contacted_by: userId,
           });
@@ -146,14 +138,9 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
           direction: "outbound",
           subject: body.subject,
           body_html: body.html,
-          body_text: body.text,
           body_preview: body.text.slice(0, 240),
           template_key: body.templateKey,
-          from_email: null,
-          to_email: toEmail,
-          outlook_message_id: sendResult.outlookMessageId ?? null,
-          outlook_conversation_id: sendResult.outlookConversationId ?? null,
-          internet_message_id: sendResult.internetMessageId ?? null,
+          to_email: prospect.email,
           contacted_by: userId,
           contacted_at: now,
         });
