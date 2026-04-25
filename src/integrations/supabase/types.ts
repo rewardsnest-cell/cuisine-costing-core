@@ -2716,11 +2716,15 @@ export type Database = {
       }
       pricing_v2_errors: {
         Row: {
+          counts_in: number
+          counts_out: number
           created_at: string
           debug_json: Json
           entity_id: string | null
           entity_name: string | null
           entity_type: string | null
+          errors_count: number
+          executed_sql: string | null
           id: string
           message: string
           resolved_at: string | null
@@ -2729,13 +2733,18 @@ export type Database = {
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
           suggested_fix: string | null
           type: string
+          warnings_count: number
         }
         Insert: {
+          counts_in?: number
+          counts_out?: number
           created_at?: string
           debug_json?: Json
           entity_id?: string | null
           entity_name?: string | null
           entity_type?: string | null
+          errors_count?: number
+          executed_sql?: string | null
           id?: string
           message: string
           resolved_at?: string | null
@@ -2744,13 +2753,18 @@ export type Database = {
           stage: Database["public"]["Enums"]["pricing_v2_stage"]
           suggested_fix?: string | null
           type: string
+          warnings_count?: number
         }
         Update: {
+          counts_in?: number
+          counts_out?: number
           created_at?: string
           debug_json?: Json
           entity_id?: string | null
           entity_name?: string | null
           entity_type?: string | null
+          errors_count?: number
+          executed_sql?: string | null
           id?: string
           message?: string
           resolved_at?: string | null
@@ -2759,6 +2773,7 @@ export type Database = {
           stage?: Database["public"]["Enums"]["pricing_v2_stage"]
           suggested_fix?: string | null
           type?: string
+          warnings_count?: number
         }
         Relationships: [
           {
