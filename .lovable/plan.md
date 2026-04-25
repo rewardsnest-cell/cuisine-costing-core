@@ -1,78 +1,61 @@
-# Pricing Intent Alignment Plan
+## Problem
 
-## Current state (already aligned)
+The admin **Kroger Pricing** page (`/admin/kroger-pricing`) shows two buttons — "Run Daily" and "Run Bootstrap" — but clicking either inserts **zero** SKUs into `kroger_sku_map`. Meanwhile, hitting the cron webhook directly (`/api/public/hooks/kroger-daily-ingest` with `mode: "catalog_bootstrap"`) successfully populates 50 SKUs.
 
-- Daily Kroger cron is live (`kroger-daily-ingest` at 04:30 UTC).
-- ZIP → `locationId` resolved server-side (`resolveRunLocationId`), cached 30 days.
-- `price_history` is **append-only INSERT**, with `source`, `unit_price`, `raw_package_price`, `promo`, `ingest_run_id`, `location_id`.
-- Promo + regular both captured; `normalizeKrogerPrice` produces canonical `$/lb`, `$/oz`, `$/fl_oz`, `$/each` and quarantines unparseable sizes.
-- SKU governance: `kroger_sku_map.review_state` gates daily writes — only `confirmed` SKUs produce price rows. Auto-suggested matches go to `pending`.
-- `/admin/kroger-price-signals` is read-only by design.
-- Receipts feed `price_history` (source=`receipt`) via `update-inventory-costs`.
-- Weighted estimate already exists: `compute_internal_estimated_cost` (Kroger 40 / Manual 40 / Historical 20) with `propose_internal_cost_update` requiring approval on >±5% deltas.
+## Root cause
 
-## Gaps to close
+The admin page and the cron webhook call **two completely different code paths**:
 
-### 1. Remove manual location control surface
-The server fn `setKrogerLocationId` exists and lets an admin pin a `locationId` in `app_kv`. The pricing intent says **no manual location control**. Action:
-- Delete `setKrogerLocationId` from `src/lib/server-fns/kroger-pricing.functions.ts`.
-- Make `resolveRunLocationId` ignore the saved `kroger_location_id` KV row (keep ZIP-derived cache only).
-- Drop the saved `kroger_location_id` value (one-time migration: `delete from app_kv where key='kroger_location_id'`).
+| Trigger | Server fn | Worker | Behavior |
+|---|---|---|---|
+| Cron webhook | route handler | `runKrogerIngestInternal` (`src/lib/server/kroger-ingest-internal.ts`) | Honors `mode`. Bootstrap iterates `BOOTSTRAP_SEARCH_TERMS` (a-z, 0-9), discovers products, upserts to `kroger_sku_map` with confidence scoring + `review_state`. **Works.** |
+| Admin button | `runKrogerIngest` (`src/lib/server-fns/kroger-pricing.functions.ts:853`) | local `performIngest` (same file, line 234) | **Ignores `mode` entirely.** Iterates `inventory_items` (689 internal ingredient names), searches Kroger by item name, only writes to `kroger_sku_map` when a price is also found. |
 
-### 2. Kroger must never directly set cost — only contribute observations
-Today `propose_internal_cost_update(_source='kroger', _new_kroger=...)` directly updates `ingredient_reference.kroger_unit_cost` and recomputes the weighted estimate. Per the intent, Kroger should be a **smoothed market signal**, not the latest single observation. Action:
-- Add a server fn `refresh_kroger_signal_from_history(reference_id)` that computes the **30-day median per-unit Kroger price** from `price_history` (ignoring promos for the level signal, using promos only for volatility).
-- After each daily run, recompute Kroger signal for every confirmed-mapped reference using that median (not the day's spot price), then call `propose_internal_cost_update` with the smoothed value.
-- Result: a single Kroger sale or one bad SKU cannot move the weighted estimate by itself.
+The admin path fails because:
+1. `mode` is read at line 867 then never used inside `performIngest` — bootstrap and daily do the exact same thing.
+2. Inventory item names ("EVOO", "AP flour", etc.) rarely match Kroger product search terms cleanly, so most yield zero hits.
+3. Even successful hits write `kroger_sku_map` rows without `review_state`, `reference_id`, or confidence scoring, so SKU Review can't surface them.
 
-### 3. Reject single-source price moves (gradual change rule)
-Even with smoothing, a sustained Kroger drift could move estimates without a corroborating receipt. Action:
-- Extend `propose_internal_cost_update` so when `_source='kroger'` and **no receipt observation exists in the last 60 days**, the proposed delta is **damped to ≤2%**. Larger moves go to the approval queue regardless of the existing 5% rule.
-- Record the damping decision in `access_audit_log` so it shows up in explainability.
+That's why prior runs from the admin page logged "Queried 500, wrote 0 price rows, touched 0 SKUs."
 
-### 4. Promo separation in weighted model
-Promos already get `promo=true` on `price_history`. Action:
-- In the new `refresh_kroger_signal_from_history`, compute two stats: `regular_median_30d` (used for the level signal) and `promo_volatility_30d` (stddev of promo% off regular). Store both on `ingredient_reference` as `kroger_signal_median` and `kroger_signal_volatility` (new nullable numeric columns).
-- Volatility is surfaced in the UI (Step 6) but does not feed the weighted cost.
+## Fix
 
-### 5. FRED / national index as bound
-Today FRED feeds `national_price_staging` and is applied via floor logic, but it's not part of the weighted estimate. Action (small, additive):
-- When the FRED-derived national price for an ingredient is available, use it as a **bound**: clamp the weighted `internal_estimated_unit_cost` to `[national * 0.5, national * 2.0]`. Outside that band, queue for review instead of auto-applying.
-- Implemented inside `propose_internal_cost_update` (or its caller) — no new tables.
+**Route the admin page through the same internal worker the cron uses.** Replace the legacy `performIngest` body in `runKrogerIngest` with a call to `runKrogerIngestInternal`, so both buttons (and cron) share one implementation.
 
-### 6. Explainability surfaces (read-only)
-The system must answer "Why did this price change?". Action:
-- Add a "Why this price?" panel on `/admin/kroger-price-signals` per ingredient showing:
-  - Current internal estimate + weights actually applied
-  - Last 90d sparkline overlay: receipt vs. Kroger regular median vs. Kroger promo vs. FRED bound
-  - Most recent `cost_update_queue` decisions (auto-applied, approved, rejected, damped)
-  - Volatility flag (from `kroger_signal_volatility`)
-- Pure read; no edit affordances.
+### Changes
 
-### 7. Lock down "no price edits in admin UI"
-Audit + remove any admin surface that mutates `ingredient_reference.manual_unit_cost` / `kroger_unit_cost` outside the approval queue path. (Manual cost entry should remain only inside the approval-queue **override** action, which already calls `override_cost_update` — keep that; remove any other direct edit forms if found during implementation.)
+**1. `src/lib/server-fns/kroger-pricing.functions.ts`**
 
-## Files
+- In `runKrogerIngest` handler (lines 853–908):
+  - Remove the legacy `void performIngest(runRow.id, ...)` call.
+  - Instead, call `runKrogerIngestInternal({ mode, zip_code: zip, limit, location_id: locationId })` from `@/lib/server/kroger-ingest-internal`.
+  - Return the run result. Keep the existing flag/key/zip checks since they short-circuit faster with a friendly message before creating a run row.
+  - Remove the pre-created `kroger_ingest_runs` row insert here — `runKrogerIngestInternal` creates its own run row. (Otherwise we'd get duplicate rows per click.)
+- Leave `performIngest`, `runKrogerIngestSandbox`, and other consumers untouched (sandbox still uses the legacy path intentionally, or we mark it deprecated separately).
 
-- `src/lib/server-fns/kroger-pricing.functions.ts` — remove `setKrogerLocationId`.
-- `src/lib/server/kroger-core.ts` — change `resolveRunLocationId` to ignore saved KV.
-- `src/lib/server/kroger-ingest-internal.ts` — after daily run, call new signal recompute fn for confirmed references.
-- `src/lib/server-fns/cost-intelligence.functions.ts` — add `refreshKrogerSignalFromHistory` server fn + "why this price" data fetcher for the explainability panel.
-- New migration:
-  - `delete from app_kv where key='kroger_location_id'`
-  - Add columns `ingredient_reference.kroger_signal_median numeric`, `kroger_signal_volatility numeric`, `kroger_signal_updated_at timestamptz`
-  - Update `propose_internal_cost_update` to apply (a) damping when source='kroger' without recent receipts, (b) FRED-bound clamping, and to log both decisions to `access_audit_log`.
-- `src/routes/admin/kroger-price-signals.tsx` — add the "Why this price?" expandable row (read-only).
+**2. Daily-update gating (carried over from prior plan)**
 
-## Out of scope
+Once the admin button correctly runs `mode=catalog_bootstrap`, SKUs land as `pending`/`unmatched`. Daily updates still write 0 prices because `runDailyUpdate` filters on `review_state = 'confirmed'` and nothing promotes rows. Same two-line fix as before in `src/lib/server/kroger-ingest-internal.ts`:
 
-- Walmart / Costco ingestion (the architecture already supports it; not part of this change).
-- Pricing-model changes for quotes (`recompute_quote_totals`) beyond what flows through `internal_estimated_unit_cost`.
-- UI for receipts / FRED (already exist).
+- In bootstrap upsert (line ~293): when `bestScore >= 0.85`, set `review_state: "confirmed"` instead of `"pending"`.
+- In daily_update query (line ~377): change `.eq("review_state", "confirmed")` to `.in("review_state", ["confirmed", "pending"]).gte("match_confidence", 0.7)`.
 
-## Final outcome (verifiable)
+**3. UI clarity (`src/routes/admin/kroger-pricing.tsx`)**
 
-- A single Kroger spot price cannot move `internal_estimated_unit_cost`.
-- Removing `setKrogerLocationId` leaves no admin path to override location.
-- `price_history` remains pure INSERT; replay is possible by re-running signal recompute over any time window.
-- The "Why this price?" panel can answer the four questions in the intent: market vs. cost movement, volatility, and above/below market positioning.
+- Add a small caption under the Bootstrap button noting it iterates Kroger's catalog (a-z + 0-9), not the local inventory list, so admins understand what each button does.
+
+### Verification
+
+After deploy, from the admin page:
+1. Click **Run Bootstrap** → check `kroger_ingest_runs` newest row → expect `sku_map_rows_touched > 0` and message of the form `bootstrap: requests=…, unique SKUs=…`.
+2. Click **Run Daily** → expect `price_rows_written > 0` (now that pending+confidence rows qualify).
+3. Check `kroger_sku_map` distribution — high-confidence rows should be `confirmed`, mid-band still `pending`.
+
+### Files to edit
+
+- `src/lib/server-fns/kroger-pricing.functions.ts` — rewire `runKrogerIngest` to delegate to `runKrogerIngestInternal`.
+- `src/lib/server/kroger-ingest-internal.ts` — auto-confirm at ≥0.85; relax daily_update filter.
+- `src/routes/admin/kroger-pricing.tsx` — small caption clarifying button behavior.
+- `src/lib/server/kroger-ingest-internal.test.ts` — add coverage for auto-confirm threshold and daily_update picking up pending rows.
+
+No DB migrations required.
