@@ -80,6 +80,7 @@ function resolvedPrice(r: Pick<MenuRecipe, "menu_price" | "cost_per_serving" | "
 }
 
 function PublicMenuPage() {
+  const gate = useFeatureGate("menu", { label: "The menu" });
   const { showPricing } = usePricingVisibility();
   const { add, setQty, qtyOf, has } = useMenuSelections();
   const [recipes, setRecipes] = useState<MenuRecipe[]>([]);
