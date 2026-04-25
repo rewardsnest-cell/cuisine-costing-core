@@ -124,6 +124,8 @@ function QuoteCreatorHub() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("workflow");
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventStatusFilter, setEventStatusFilter] = useState<string>("all");
 
   const loadEvents = useCallback(async () => {
     setEventsLoading(true);
