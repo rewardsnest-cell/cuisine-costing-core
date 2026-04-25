@@ -301,11 +301,30 @@ export function normalizeKrogerPrice(input: {
   }
 
   const token = m[2].replace(/\s+/g, "");
-  const canonicalUnit: CanonicalUnit = CANONICAL_UNIT_BY_TOKEN[token] ?? "each";
+  const parsedUnit: CanonicalUnit = CANONICAL_UNIT_BY_TOKEN[token] ?? "each";
+
+  // CANONICAL: weight units always normalize to per-lb. This is the project's
+  // standard pricing unit. Volume + each are kept native.
+  const WEIGHT_TO_LB: Partial<Record<CanonicalUnit, number>> = {
+    lb: 1,
+    oz: 1 / 16,
+    g: 1 / 453.592,
+    kg: 2.20462,
+  };
+  const lbFactor = WEIGHT_TO_LB[parsedUnit];
+  if (lbFactor != null) {
+    const qtyLb = qty * lbFactor;
+    return {
+      unitPrice: Number((observed / qtyLb).toFixed(4)),
+      canonicalUnit: "lb",
+      rawPackagePrice: observed,
+      isPromo,
+    };
+  }
 
   return {
     unitPrice: Number((observed / qty).toFixed(4)),
-    canonicalUnit,
+    canonicalUnit: parsedUnit,
     rawPackagePrice: observed,
     isPromo,
   };
