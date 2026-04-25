@@ -149,6 +149,7 @@ import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyer
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
 import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/receipts.review-matches'
+import { Route as AdminReceiptsQueueRouteImport } from './routes/admin/receipts.queue'
 import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminQuoteCreatorIdRouteImport } from './routes/admin/quote-creator.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
@@ -892,6 +893,11 @@ const AdminReceiptsReviewMatchesRoute =
     path: '/review-matches',
     getParentRoute: () => AdminReceiptsRoute,
   } as any)
+const AdminReceiptsQueueRoute = AdminReceiptsQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => AdminReceiptsRoute,
+} as any)
 const AdminQuotesIdRoute = AdminQuotesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1183,6 +1189,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -1351,6 +1358,7 @@ export interface FileRoutesByTo {
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -1522,6 +1530,7 @@ export interface FileRoutesById {
   '/admin/pricing/national': typeof AdminPricingNationalRoute
   '/admin/quote-creator/$id': typeof AdminQuoteCreatorIdRoute
   '/admin/quotes/$id': typeof AdminQuotesIdRoute
+  '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
@@ -1694,6 +1703,7 @@ export interface FileRouteTypes {
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
+    | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
@@ -1862,6 +1872,7 @@ export interface FileRouteTypes {
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
+    | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
@@ -2032,6 +2043,7 @@ export interface FileRouteTypes {
     | '/admin/pricing/national'
     | '/admin/quote-creator/$id'
     | '/admin/quotes/$id'
+    | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
     | '/admin/recipes/new'
@@ -3110,6 +3122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminReceiptsReviewMatchesRouteImport
       parentRoute: typeof AdminReceiptsRoute
     }
+    '/admin/receipts/queue': {
+      id: '/admin/receipts/queue'
+      path: '/queue'
+      fullPath: '/admin/receipts/queue'
+      preLoaderRoute: typeof AdminReceiptsQueueRouteImport
+      parentRoute: typeof AdminReceiptsRoute
+    }
     '/admin/quotes/$id': {
       id: '/admin/quotes/$id'
       path: '/$id'
@@ -3370,10 +3389,12 @@ const AdminQuotesRouteWithChildren = AdminQuotesRoute._addFileChildren(
 )
 
 interface AdminReceiptsRouteChildren {
+  AdminReceiptsQueueRoute: typeof AdminReceiptsQueueRoute
   AdminReceiptsReviewMatchesRoute: typeof AdminReceiptsReviewMatchesRoute
 }
 
 const AdminReceiptsRouteChildren: AdminReceiptsRouteChildren = {
+  AdminReceiptsQueueRoute: AdminReceiptsQueueRoute,
   AdminReceiptsReviewMatchesRoute: AdminReceiptsReviewMatchesRoute,
 }
 
