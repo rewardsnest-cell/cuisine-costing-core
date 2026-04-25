@@ -378,6 +378,92 @@ function AdminDownloadsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={!!detailsRow} onOpenChange={(o) => !o && setDetailsRow(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          {detailsRow && (() => {
+            const r = detailsRow;
+            const modKey = moduleOf(r);
+            const modLabel = MODULES.find((m) => m.key === modKey)?.label ?? "Other";
+            const userLabel = r.generated_by_email || emails[r.user_id || ""] || r.user_id || "—";
+            const Field = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
+              <div className="grid gap-0.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                <div className={mono ? "text-xs font-mono break-all" : "text-sm"}>{value || "—"}</div>
+              </div>
+            );
+            return (
+              <>
+                <SheetHeader className="pb-2">
+                  <SheetTitle className="break-all">{r.source_label || r.filename}</SheetTitle>
+                  <SheetDescription>
+                    Generated {new Date(r.created_at).toLocaleString()}
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">{r.kind}</Badge>
+                  <Badge variant="outline" className="uppercase tracking-wide text-[10px]">{modLabel}</Badge>
+                  {r.mime_type && <Badge variant="outline" className="text-[10px]">{r.mime_type}</Badge>}
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="grid gap-4">
+                  <Field label="Filename" value={
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-mono break-all">{r.filename}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyText(r.filename, "Filename")}>
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  } />
+                  <Field label="Source label" value={r.source_label} />
+                  <Field label="Module" value={modLabel} />
+                  <Field label="Kind" value={r.kind} />
+                  <Field label="Size" value={fmtBytes(r.size_bytes)} />
+                  <Field label="Records" value={r.record_count != null ? r.record_count.toLocaleString() : null} />
+                  <Field label="User" value={userLabel} mono={!r.generated_by_email && !emails[r.user_id || ""]} />
+                  {r.source_id && <Field label="Source ID" value={r.source_id} mono />}
+
+                  {hasParams(r.parameters) && (
+                    <div className="grid gap-1">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Parameters</p>
+                      <pre className="bg-muted/40 border rounded p-2 overflow-x-auto text-[11px] leading-snug">
+{JSON.stringify(r.parameters, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="grid gap-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Download</p>
+                  {r.public_url ? (
+                    <div className="flex flex-wrap gap-2">
+                      <a href={r.public_url} download={r.filename} target="_blank" rel="noopener">
+                        <Button size="sm"><Download className="w-4 h-4" /> Download</Button>
+                      </a>
+                      <a href={r.public_url} target="_blank" rel="noopener">
+                        <Button size="sm" variant="outline"><ExternalLink className="w-4 h-4" /> Open in new tab</Button>
+                      </a>
+                      <Button size="sm" variant="ghost" onClick={() => copyText(r.public_url!, "Link")}>
+                        <Copy className="w-4 h-4" /> Copy link
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No persisted file (local-only download).</p>
+                  )}
+                  {r.storage_path && (
+                    <p className="text-[11px] font-mono text-muted-foreground break-all">{r.storage_path}</p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
