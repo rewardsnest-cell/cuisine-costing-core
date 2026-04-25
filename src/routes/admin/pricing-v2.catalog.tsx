@@ -1,188 +1,164 @@
+// Pricing v2 — Stage 0: Catalog Bootstrap + Weight Parsing.
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Play, FlaskConical, RefreshCw, Search, CheckCircle2, AlertTriangle, XCircle, Download,
-} from "lucide-react";
-import {
-  runCatalogStage,
-  getCatalogSummary,
+  runCatalogBootstrap,
+  listCatalogRunErrors,
   listCatalogRuns,
-  traceCatalogEntity,
-  resolveCatalogErrors,
+  setManualWeight,
+  reparseCatalogItem,
+  traceCatalogProduct,
+  runCatalogTestHarness,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
-import { listPricingV2Errors } from "@/lib/server-fns/pricing-v2.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
-  head: () => ({ meta: [{ title: "Pricing v2 — Catalog (Stage 0)" }] }),
-  component: PricingV2CatalogPage,
+  head: () => ({ meta: [{ title: "Pricing v2 — Stage 0 Catalog Bootstrap" }] }),
+  component: CatalogBootstrapPage,
 });
 
-function currentMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
+type RunResult = Awaited<ReturnType<typeof runCatalogBootstrap>>;
 
-function fmt(iso?: string | null) {
-  return iso ? new Date(iso).toLocaleString() : "—";
-}
-
-function statusVariant(s?: string | null) {
-  switch (s) {
-    case "success": return "default" as const;
-    case "running":
-    case "queued": return "secondary" as const;
-    case "partial": return "outline" as const;
-    case "failed": return "destructive" as const;
-    default: return "outline" as const;
-  }
-}
-
-function PricingV2CatalogPage() {
-  const [month, setMonth] = useState(currentMonth());
-  const [limit, setLimit] = useState<string>("");
-  const [filter, setFilter] = useState<string>("");
-  const [traceId, setTraceId] = useState<string>("");
-  const [activeRunId, setActiveRunId] = useState<string | null>(null);
-
-  const summary = useQuery({
-    queryKey: ["pricing-v2", "catalog", "summary"],
-    queryFn: () => getCatalogSummary(),
+function CatalogBootstrapPage() {
+  const qc = useQueryClient();
+  const settings = useQuery({
+    queryKey: ["pricing-v2", "settings"],
+    queryFn: () => getPricingV2Settings(),
   });
   const runs = useQuery({
     queryKey: ["pricing-v2", "catalog", "runs"],
     queryFn: () => listCatalogRuns(),
   });
+
+  const [limit, setLimit] = useState<string>("");
+  const [keyword, setKeyword] = useState<string>("");
+  const [lastResult, setLastResult] = useState<RunResult | null>(null);
+
+  const [errFilterRun, setErrFilterRun] = useState<string | "">("");
+  const [errFilterSeverity, setErrFilterSeverity] = useState<"" | "warning" | "error">("");
   const errors = useQuery({
-    queryKey: ["pricing-v2", "catalog", "errors", activeRunId],
-    queryFn: () => listPricingV2Errors({ data: { stage: "catalog", limit: 200 } }),
+    queryKey: ["pricing-v2", "catalog", "errors", errFilterRun, errFilterSeverity],
+    queryFn: () =>
+      listCatalogRunErrors({
+        data: {
+          run_id: errFilterRun || undefined,
+          severity: errFilterSeverity || undefined,
+          limit: 200,
+        },
+      }),
   });
 
   const runMut = useMutation({
-    mutationFn: (params: { dry_run: boolean }) =>
-      runCatalogStage({
-        data: {
-          dry_run: params.dry_run,
-          month,
-          limit: limit ? Number(limit) : undefined,
-          filter: filter || undefined,
-        },
-      }),
+    mutationFn: (vars: { dry_run: boolean; limit?: number; keyword?: string }) =>
+      runCatalogBootstrap({ data: vars }),
     onSuccess: (res) => {
-      setActiveRunId(res.run_id);
-      summary.refetch();
-      runs.refetch();
-      errors.refetch();
+      setLastResult(res);
+      setErrFilterRun(res.run_id);
+      toast.success(
+        `${res.dry_run ? "Dry run" : "Bootstrap"} done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`
+      );
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
     },
+    onError: (e: any) => toast.error(e?.message ?? "Run failed"),
   });
 
-  const trace = useQuery({
-    queryKey: ["pricing-v2", "catalog", "trace", traceId],
-    queryFn: () => traceCatalogEntity({ data: { entity_id: traceId } }),
-    enabled: !!traceId && /^[0-9a-f-]{36}$/.test(traceId),
+  const testMut = useMutation({
+    mutationFn: () => runCatalogTestHarness(),
+    onSuccess: (res) => {
+      toast.success(`Test harness: ${res.passed}/${res.total} passed`);
+      setErrFilterRun(res.run_id);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Test harness failed"),
   });
 
-  const resolveMut = useMutation({
-    mutationFn: (entity_id: string) => resolveCatalogErrors({ data: { entity_id } }),
-    onSuccess: () => errors.refetch(),
-  });
-
-  const exportCsv = () => {
-    const rows = errors.data?.errors ?? [];
-    const cols = ["created_at", "severity", "type", "entity_id", "entity_name", "message", "suggested_fix"];
-    const lines = [cols.join(",")];
-    for (const r of rows) lines.push(cols.map((c) => JSON.stringify((r as any)[c] ?? "")).join(","));
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "catalog-errors.csv"; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const t = summary.data?.tiles;
-  const lastRunData = runMut.data;
+  const limitNum = limit ? Number(limit) : undefined;
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="space-y-6">
+      <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">
-            Pricing v2 — Stage 0: Catalog (bootstrap)
+            Stage 0 — Kroger Catalog Bootstrap
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Validates that every inventory item has a Kroger product mapping,
-            a positive pack weight in grams, and a unit. Required before any
-            other pricing stage can run.
+            Pulls Kroger products for the configured store, persists raw payloads, and parses
+            net weight to grams. Uniform errors land in{" "}
+            <Link to="/admin/pricing-v2/errors" className="underline">Pricing v2 Errors</Link>.
           </p>
         </div>
-      </div>
-
-      {/* Summary tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Tile label="Total inventory items" value={t?.total} />
-        <Tile label="With Kroger mapping" value={t?.mapped} hint={t ? `${pct(t.mapped, t.total)}%` : ""} />
-        <Tile label="With pack weight" value={t?.weighted} hint={t ? `${pct(t.weighted, t.total)}%` : ""} />
-        <Tile label="Catalog ready" value={t?.ready} hint={t ? `${pct(t.ready, t.total)}%` : ""} />
-      </div>
+        <div className="text-xs text-muted-foreground text-right">
+          <div>Store ID: <span className="font-mono">{settings.data?.settings?.kroger_store_id ?? "—"}</span></div>
+          <div>ZIP: <span className="font-mono">{settings.data?.settings?.kroger_zip ?? "—"}</span></div>
+        </div>
+      </header>
 
       {/* Run controls */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Run controls</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Run Controls</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label className="text-xs">Month</Label>
-              <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+              <Label htmlFor="limit">Limit</Label>
+              <Input id="limit" inputMode="numeric" placeholder="e.g. 200" value={limit} onChange={(e) => setLimit(e.target.value.replace(/\D/g, ""))} />
             </div>
-            <div>
-              <Label className="text-xs">Limit (subset)</Label>
-              <Input type="number" placeholder="e.g. 25" value={limit}
-                     onChange={(e) => setLimit(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Filter (name contains)</Label>
-              <Input placeholder="e.g. butter" value={filter}
-                     onChange={(e) => setFilter(e.target.value)} />
+            <div className="md:col-span-2">
+              <Label htmlFor="kw">Keyword (optional search filter)</Label>
+              <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => runMut.mutate({ dry_run: true })} disabled={runMut.isPending} className="gap-2">
-              <FlaskConical className="w-4 h-4" /> Dry Run
+            <Button onClick={() => runMut.mutate({ dry_run: false, limit: limitNum, keyword: keyword || undefined })} disabled={runMut.isPending}>
+              Run Bootstrap
             </Button>
-            <Button onClick={() => runMut.mutate({ dry_run: false })} disabled={runMut.isPending} variant="default" className="gap-2">
-              <Play className="w-4 h-4" /> Run
+            <Button variant="secondary" onClick={() => runMut.mutate({ dry_run: true, limit: 50, keyword: keyword || undefined })} disabled={runMut.isPending}>
+              Dry Run (50 items)
             </Button>
-            <Button onClick={() => runMut.mutate({ dry_run: false })} disabled={runMut.isPending || !(limit || filter)} variant="outline" className="gap-2">
-              <Search className="w-4 h-4" /> Run Subset
+            <Button variant="outline" onClick={() => runMut.mutate({ dry_run: false, limit: limitNum ?? 25, keyword: keyword || undefined })} disabled={runMut.isPending || !limitNum}>
+              Run Subset
+            </Button>
+            <Button variant="ghost" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+              Run Test Cases
             </Button>
           </div>
-          {runMut.isError && (
-            <p className="text-sm text-destructive">{(runMut.error as Error).message}</p>
-          )}
         </CardContent>
       </Card>
 
-      {/* Last run result */}
-      {lastRunData && (
-        <Card className="border-primary/30">
-          <CardHeader><CardTitle className="text-base">Last run result</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
-              <Stat label="run_id" value={<code className="text-[10px] break-all">{lastRunData.run_id}</code>} />
-              <Stat label="status" value={<Badge variant={statusVariant(lastRunData.status)}>{lastRunData.status}</Badge>} />
-              <Stat label="dry_run" value={lastRunData.dry_run ? "yes" : "no"} />
-              <Stat label="in → out" value={`${lastRunData.counts_in} → ${lastRunData.counts_out}`} />
-              <Stat label="warnings" value={String(lastRunData.warnings)} />
-              <Stat label="errors" value={String(lastRunData.errors)} />
+      {/* Results */}
+      {lastResult && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Last Run
+              <Badge variant={lastResult.errors_count > 0 ? "destructive" : "default"}>
+                {lastResult.errors_count > 0 ? "FAIL" : "PASS"}
+              </Badge>
+              {lastResult.dry_run && <Badge variant="outline">dry_run</Badge>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <Stat label="run_id" value={<span className="font-mono text-xs break-all">{lastResult.run_id}</span>} />
+              <Stat label="store_id" value={lastResult.store_id} />
+              <Stat label="counts_in" value={lastResult.counts_in} />
+              <Stat label="counts_out" value={lastResult.counts_out} />
+              <Stat label="warnings / errors" value={`${lastResult.warnings_count} / ${lastResult.errors_count}`} />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => downloadJson(`pv2-catalog-${lastResult.run_id}.json`, lastResult)}>
+                Download Run Summary JSON
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => exportErrorsCsv(lastResult.run_id)}>
+                Download Error Report (CSV)
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -190,178 +166,209 @@ function PricingV2CatalogPage() {
 
       {/* Recent runs */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Recent runs</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Started</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>In → Out</TableHead>
-                <TableHead>Warn / Err</TableHead>
-                <TableHead>Params</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(runs.data?.runs ?? []).map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell className="text-xs">{fmt(r.started_at)}</TableCell>
-                  <TableCell><Badge variant={statusVariant(r.status)}>{r.status}</Badge></TableCell>
-                  <TableCell>{r.counts_in} → {r.counts_out}</TableCell>
-                  <TableCell>{r.warnings_count} / {r.errors_count}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {r.params?.dry_run ? "dry · " : ""}{r.params?.filter ? `"${r.params.filter}"` : ""}
-                    {r.params?.limit ? ` lim ${r.params.limit}` : ""}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(runs.data?.runs ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No runs yet</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Errors table */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between gap-2">
-          <CardTitle className="text-base">Catalog errors</CardTitle>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => errors.refetch()}><RefreshCw className="w-3.5 h-3.5 mr-1.5" />Refresh</Button>
-            <Button size="sm" variant="outline" onClick={exportCsv}><Download className="w-3.5 h-3.5 mr-1.5" />CSV</Button>
-            <Link to="/admin/pricing-v2/errors"><Button size="sm" variant="ghost">View all →</Button></Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(errors.data?.errors ?? []).map((e: any) => (
-                <TableRow key={e.id}>
-                  <TableCell className="text-xs whitespace-nowrap">{fmt(e.created_at)}</TableCell>
-                  <TableCell><SeverityBadge s={e.severity} /></TableCell>
-                  <TableCell className="text-xs"><code>{e.type}</code></TableCell>
-                  <TableCell className="text-xs">
-                    <div className="font-medium">{e.entity_name ?? "—"}</div>
-                    <button
-                      className="text-[10px] text-muted-foreground hover:text-foreground underline"
-                      onClick={() => setTraceId(e.entity_id)}
-                    >{e.entity_id}</button>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <div>{e.message}</div>
-                    {e.suggested_fix && (
-                      <div className="text-muted-foreground mt-0.5">Fix: {e.suggested_fix}</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="ghost" onClick={() =>
-                        runCatalogStage({ data: { dry_run: false, entity_id: e.entity_id } })
-                          .then(() => { errors.refetch(); summary.refetch(); })
-                      }>Retry</Button>
-                      <Button size="sm" variant="ghost" disabled={!!e.resolved_at}
-                              onClick={() => resolveMut.mutate(e.entity_id)}>
-                        {e.resolved_at ? "Resolved" : "Resolve"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(errors.data?.errors ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No errors logged</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Trace preview */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Trace preview</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input placeholder="Inventory item UUID" value={traceId}
-                   onChange={(e) => setTraceId(e.target.value.trim())} />
-            <Button variant="outline" onClick={() => trace.refetch()} disabled={!traceId}>Trace</Button>
-          </div>
-          {trace.data?.item ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="text-xs uppercase text-muted-foreground">Inputs</div>
-                <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
-{JSON.stringify(trace.data.item, null, 2)}
-                </pre>
-              </div>
-              <div className="space-y-2">
-                <div className="text-xs uppercase text-muted-foreground">Computed</div>
-                <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
-{JSON.stringify(trace.data.computed, null, 2)}
-                </pre>
-                <div className="text-xs uppercase text-muted-foreground mt-2">Issues</div>
-                {trace.data.issues.length === 0
-                  ? <div className="text-sm text-green-600 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> No issues — ready</div>
-                  : (
-                    <ul className="text-xs space-y-1">
-                      {trace.data.issues.map((i: any, idx: number) => (
-                        <li key={idx} className="flex gap-2">
-                          <SeverityBadge s={i.severity} />
-                          <span>{i.message} <span className="text-muted-foreground">({i.suggested_fix})</span></span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-              </div>
+        <CardHeader><CardTitle>Recent Runs</CardTitle></CardHeader>
+        <CardContent className="text-sm">
+          {runs.isLoading ? <p>Loading…</p> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr><th className="py-1 pr-2">run_id</th><th>status</th><th>started</th><th>in</th><th>out</th><th>warn</th><th>err</th><th>notes</th></tr>
+                </thead>
+                <tbody>
+                  {(runs.data?.runs ?? []).map((r: any) => (
+                    <tr key={r.run_id} className="border-t">
+                      <td className="py-1 pr-2 font-mono">
+                        <button className="underline" onClick={() => setErrFilterRun(r.run_id)}>{r.run_id.slice(0, 8)}…</button>
+                      </td>
+                      <td>{r.status}</td>
+                      <td>{new Date(r.started_at).toLocaleString()}</td>
+                      <td>{r.counts_in}</td><td>{r.counts_out}</td>
+                      <td>{r.warnings_count}</td><td>{r.errors_count}</td>
+                      <td className="text-muted-foreground truncate max-w-[24ch]">{r.notes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            traceId && trace.isFetched && <p className="text-sm text-muted-foreground">No item found.</p>
           )}
         </CardContent>
       </Card>
+
+      {/* Errors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between gap-3 flex-wrap">
+            <span>Errors (stage = catalog)</span>
+            <div className="flex items-center gap-2 text-sm font-normal">
+              <Input className="h-8 w-[26ch] font-mono text-xs" placeholder="filter by run_id" value={errFilterRun} onChange={(e) => setErrFilterRun(e.target.value.trim())} />
+              <select className="h-8 rounded-md border border-input bg-background px-2 text-sm" value={errFilterSeverity} onChange={(e) => setErrFilterSeverity(e.target.value as any)}>
+                <option value="">all severities</option>
+                <option value="warning">warning</option>
+                <option value="error">error</option>
+              </select>
+              <Button size="sm" variant="ghost" onClick={() => { setErrFilterRun(""); setErrFilterSeverity(""); }}>Clear</Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ErrorsTable rows={errors.data?.errors ?? []} loading={errors.isLoading} />
+        </CardContent>
+      </Card>
+
+      {/* Fix weight + Trace */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FixWeightCard onSaved={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
+        <TraceCard />
+      </div>
     </div>
-  );
-}
-
-function pct(part?: number, total?: number) {
-  if (!total || !part) return 0;
-  return Math.round((part / total) * 100);
-}
-
-function Tile({ label, value, hint }: { label: string; value?: number; hint?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className="mt-1 font-display text-2xl font-bold text-foreground">{value ?? "—"}</div>
-        {hint && <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>}
-      </CardContent>
-    </Card>
   );
 }
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
+    <div className="rounded-md border p-2">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
+      <div className="text-sm font-medium">{value}</div>
     </div>
   );
 }
 
-function SeverityBadge({ s }: { s?: string }) {
-  if (s === "error" || s === "critical")
-    return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />{s}</Badge>;
-  if (s === "warning")
-    return <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-700"><AlertTriangle className="w-3 h-3" />{s}</Badge>;
-  return <Badge variant="secondary">{s ?? "info"}</Badge>;
+function ErrorsTable({ rows, loading }: { rows: any[]; loading: boolean }) {
+  if (loading) return <p className="text-sm">Loading…</p>;
+  if (!rows.length) return <p className="text-sm text-muted-foreground">No errors for this filter.</p>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="text-left text-muted-foreground">
+          <tr><th className="py-1 pr-2">severity</th><th>type</th><th>entity_id</th><th>message</th><th>suggested_fix</th><th>debug</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((e) => (
+            <tr key={e.id} className="border-t align-top">
+              <td className="py-1 pr-2"><Badge variant={e.severity === "error" ? "destructive" : "secondary"}>{e.severity}</Badge></td>
+              <td className="font-mono">{e.type}</td>
+              <td className="font-mono break-all max-w-[28ch]">{e.entity_id ?? "—"}</td>
+              <td className="max-w-[40ch]">{e.message}</td>
+              <td className="max-w-[30ch] text-muted-foreground">{e.suggested_fix}</td>
+              <td>
+                <details>
+                  <summary className="cursor-pointer text-muted-foreground">view</summary>
+                  <pre className="text-[10px] whitespace-pre-wrap break-all max-w-[40ch]">{JSON.stringify(e.debug_json, null, 2)}</pre>
+                </details>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FixWeightCard({ onSaved }: { onSaved: () => void }) {
+  const [productKey, setProductKey] = useState("");
+  const [grams, setGrams] = useState("");
+  const [reason, setReason] = useState("");
+  const save = useMutation({
+    mutationFn: () => setManualWeight({ data: { product_key: productKey, grams: Number(grams), reason } }),
+    onSuccess: () => { toast.success("Manual weight saved"); onSaved(); },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+  const reparse = useMutation({
+    mutationFn: () => reparseCatalogItem({ data: { product_key: productKey } }),
+    onSuccess: (r: any) => {
+      if (r.ok) toast.success(`Re-parsed: ${Math.round(r.net_weight_grams)} g (${r.source})`);
+      else toast.error(`Re-parse failed: ${r.failure} — ${r.reason}`);
+      onSaved();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Re-parse failed"),
+  });
+  return (
+    <Card>
+      <CardHeader><CardTitle>Fix Weight (manual override)</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <Label>product_key</Label>
+          <Input value={productKey} onChange={(e) => setProductKey(e.target.value)} placeholder="store_id:kroger_product_id:upc_or_NOUPC" className="font-mono text-xs" />
+        </div>
+        <div>
+          <Label>net weight (grams)</Label>
+          <Input value={grams} onChange={(e) => setGrams(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" />
+        </div>
+        <div>
+          <Label>reason</Label>
+          <Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => save.mutate()} disabled={!productKey || !grams || !reason || save.isPending}>Save Manual Weight</Button>
+          <Button variant="outline" onClick={() => reparse.mutate()} disabled={!productKey || reparse.isPending}>Re-run parsing</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TraceCard() {
+  const [productKey, setProductKey] = useState("");
+  const [trace, setTrace] = useState<any>(null);
+  const traceMut = useMutation({
+    mutationFn: () => traceCatalogProduct({ data: { product_key: productKey } }),
+    onSuccess: (r) => setTrace(r),
+    onError: (e: any) => toast.error(e?.message ?? "Trace failed"),
+  });
+  return (
+    <Card>
+      <CardHeader><CardTitle>Trace Preview</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <Input value={productKey} onChange={(e) => setProductKey(e.target.value)} placeholder="product_key" className="font-mono text-xs" />
+          <Button onClick={() => traceMut.mutate()} disabled={!productKey || traceMut.isPending}>Trace</Button>
+        </div>
+        {trace && (
+          <div className="space-y-2 text-xs">
+            <div>
+              <div className="font-medium">Item</div>
+              <pre className="bg-muted p-2 rounded max-h-48 overflow-auto">{JSON.stringify(trace.item, null, 2)}</pre>
+            </div>
+            <div>
+              <div className="font-medium">Parse</div>
+              <pre className="bg-muted p-2 rounded max-h-48 overflow-auto">{JSON.stringify(trace.parse, null, 2)}</pre>
+            </div>
+            <div>
+              <div className="font-medium">Latest raw payload</div>
+              <pre className="bg-muted p-2 rounded max-h-64 overflow-auto">{JSON.stringify(trace.raws?.[0] ?? null, null, 2)}</pre>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---- helpers --------------------------------------------------------------
+
+function downloadJson(name: string, payload: any) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportErrorsCsv(runId: string) {
+  const res = await listCatalogRunErrors({ data: { run_id: runId, limit: 1000 } });
+  const rows = res.errors;
+  const headers = ["created_at", "severity", "type", "entity_id", "message", "suggested_fix"];
+  const csv = [
+    headers.join(","),
+    ...rows.map((r: any) => headers.map((h) => JSON.stringify(r[h] ?? "")).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `pv2-catalog-errors-${runId}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
