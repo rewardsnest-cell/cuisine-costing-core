@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PROSPECT_STATUSES } from "@/lib/sales-hub/scripts";
@@ -38,6 +38,9 @@ function DailyChecklistPage() {
   const [logOutcome, setLogOutcome] = useState("");
   const [logNotes, setLogNotes] = useState("");
   const [recent, setRecent] = useState<Array<any>>([]);
+  const [bulkDays, setBulkDays] = useState("3");
+  const [bulkChannels, setBulkChannels] = useState<Record<string, boolean>>({ call: true, email: true, "walk-in": true });
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -90,6 +93,39 @@ function DailyChecklistPage() {
     const idx = (PROSPECT_STATUSES as readonly string[]).indexOf(current);
     if (idx < 0 || idx >= PROSPECT_STATUSES.length - 1) return null;
     return PROSPECT_STATUSES[idx + 1];
+  };
+
+  const eligibleProspectIds = (() => {
+    const ids = new Set<string>();
+    for (const r of recent) {
+      if (!bulkChannels[r.channel]) continue;
+      const pid = r.sales_prospects?.id || r.prospect_id;
+      if (pid) ids.add(pid);
+    }
+    return Array.from(ids);
+  })();
+
+  const scheduleBulkFollowUps = async () => {
+    const ids = eligibleProspectIds;
+    if (ids.length === 0) { toast.error("No eligible contacts today"); return; }
+    const days = Math.max(1, parseInt(bulkDays, 10) || 3);
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const targetISO = target.toISOString().slice(0, 10);
+    setBulkBusy(true);
+    const { error } = await (supabase as any)
+      .from("sales_prospects")
+      .update({ next_follow_up: targetISO })
+      .in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Scheduled follow-ups for ${ids.length} prospect${ids.length === 1 ? "" : "s"} on ${targetISO}`);
+    if (user) {
+      await (supabase as any)
+        .from("sales_daily_checklist")
+        .upsert({ user_id: user.id, day: today, followups_scheduled: true }, { onConflict: "user_id,day" });
+    }
+    load();
   };
 
   const completed = ITEMS.filter((i) => state[i.key]).length;
@@ -148,6 +184,62 @@ function DailyChecklistPage() {
           <div><Label>Outcome (optional)</Label><Input value={logOutcome} onChange={(e) => setLogOutcome(e.target.value)} placeholder="e.g. Left voicemail, sent menu, booked tasting" /></div>
           <div><Label>Notes (optional)</Label><Textarea rows={2} value={logNotes} onChange={(e) => setLogNotes(e.target.value)} /></div>
           <Button onClick={logContact}>Log contact</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div>
+              <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                <CalendarPlus className="h-5 w-5 text-primary" /> Bulk schedule follow-ups
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Set a next-follow-up date on every prospect contacted today through the selected channels.
+              </p>
+            </div>
+            <Badge variant={eligibleProspectIds.length > 0 ? "default" : "secondary"}>
+              {eligibleProspectIds.length} eligible
+            </Badge>
+          </div>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <Label className="text-xs">Channels</Label>
+              <div className="flex gap-3 mt-2">
+                {(["call", "email", "walk-in"] as const).map((ch) => (
+                  <label key={ch} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={!!bulkChannels[ch]}
+                      onCheckedChange={(v) => setBulkChannels((s) => ({ ...s, [ch]: !!v }))}
+                    />
+                    <span className="capitalize">{ch}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Follow up in</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={bulkDays}
+                  onChange={(e) => setBulkDays(e.target.value)}
+                  className="w-20"
+                />
+                <span className="text-sm text-muted-foreground">days</span>
+              </div>
+            </div>
+            <Button
+              onClick={scheduleBulkFollowUps}
+              disabled={bulkBusy || eligibleProspectIds.length === 0}
+              className="gap-1.5"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              {bulkBusy ? "Scheduling…" : `Schedule ${eligibleProspectIds.length} follow-up${eligibleProspectIds.length === 1 ? "" : "s"}`}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
