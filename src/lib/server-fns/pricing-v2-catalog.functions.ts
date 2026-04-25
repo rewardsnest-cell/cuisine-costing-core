@@ -315,3 +315,164 @@ export const resolveCatalogErrors = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
+// ---- Test Harness ---------------------------------------------------------
+// Deterministic in-memory tests for the catalog validator.
+// - 3 PASS cases: rows that should produce zero issues.
+// - 3 FAIL cases: rows that should produce specific (type, severity) issues.
+// All FAIL issues are persisted to pricing_v2_errors with stage=catalog so
+// they show up on /admin/pricing-v2/errors and the module's Errors table.
+
+type TestCase = {
+  name: string;
+  expect: "pass" | "fail";
+  row: any;
+  // For "fail" cases, the exact issue types we expect (order-independent).
+  expectedTypes?: string[];
+};
+
+const TEST_CASES: TestCase[] = [
+  // PASS
+  {
+    name: "PASS · fully mapped item (butter, 454g, lb)",
+    expect: "pass",
+    row: { id: "00000000-0000-0000-0000-000000000001", name: "TEST · Butter", kroger_product_id: "0001111041700", pack_weight_grams: 454, unit: "lb" },
+  },
+  {
+    name: "PASS · small unit item (vanilla extract, 59g, oz)",
+    expect: "pass",
+    row: { id: "00000000-0000-0000-0000-000000000002", name: "TEST · Vanilla Extract", kroger_product_id: "0007225001234", pack_weight_grams: 59, unit: "oz" },
+  },
+  {
+    name: "PASS · bulk item (flour, 2268g, lb)",
+    expect: "pass",
+    row: { id: "00000000-0000-0000-0000-000000000003", name: "TEST · AP Flour", kroger_product_id: "0001600027528", pack_weight_grams: 2268, unit: "lb" },
+  },
+  // FAIL
+  {
+    name: "FAIL · no Kroger mapping",
+    expect: "fail",
+    row: { id: "00000000-0000-0000-0000-000000000010", name: "TEST · Unmapped Sugar", kroger_product_id: null, pack_weight_grams: 907, unit: "lb" },
+    expectedTypes: ["missing_kroger_mapping"],
+  },
+  {
+    name: "FAIL · no pack weight",
+    expect: "fail",
+    row: { id: "00000000-0000-0000-0000-000000000011", name: "TEST · Weightless Salt", kroger_product_id: "0001111000123", pack_weight_grams: 0, unit: "oz" },
+    expectedTypes: ["missing_pack_weight"],
+  },
+  {
+    name: "FAIL · multi-issue (no mapping AND no weight AND no unit)",
+    expect: "fail",
+    row: { id: "00000000-0000-0000-0000-000000000012", name: "TEST · Empty Row", kroger_product_id: null, pack_weight_grams: null, unit: "" },
+    expectedTypes: ["missing_kroger_mapping", "missing_pack_weight", "missing_unit"],
+  },
+];
+
+export const runCatalogTestHarness = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+
+    // 1) Create a run record (stage=catalog so it shows up alongside real runs)
+    const { data: run, error: runErr } = await supabase
+      .from("pricing_v2_runs")
+      .insert({
+        stage: STAGE,
+        status: "running",
+        triggered_by: userId ?? null,
+        params: { test_harness: true },
+        notes: "Stage 0 Catalog test harness",
+      })
+      .select("run_id")
+      .single();
+    if (runErr) throw new Error(runErr.message);
+
+    type Result = {
+      name: string;
+      expect: "pass" | "fail";
+      passed: boolean;
+      actualIssues: { type: string; severity: string; message: string }[];
+      details: string;
+    };
+    const results: Result[] = [];
+    const errorRowsToInsert: any[] = [];
+
+    for (const tc of TEST_CASES) {
+      const issues = validateRow(tc.row);
+      const actualTypes = issues.map((i) => i.type).sort();
+
+      let passed = false;
+      let details = "";
+      if (tc.expect === "pass") {
+        passed = issues.length === 0;
+        details = passed ? "No issues, as expected." : `Expected 0 issues, got ${issues.length}.`;
+      } else {
+        const expected = (tc.expectedTypes ?? []).slice().sort();
+        passed =
+          actualTypes.length === expected.length &&
+          actualTypes.every((t, i) => t === expected[i]);
+        details = passed
+          ? `Produced expected issue types: ${expected.join(", ")}`
+          : `Expected types [${expected.join(", ")}], got [${actualTypes.join(", ")}].`;
+      }
+
+      results.push({
+        name: tc.name,
+        expect: tc.expect,
+        passed,
+        actualIssues: issues.map((i) => ({ type: i.type, severity: i.severity, message: i.message })),
+        details,
+      });
+
+      // Persist FAIL-case issues to pricing_v2_errors (so they appear in the
+      // errors page with the right stage/type/severity). PASS-case rows
+      // produce no issues by definition, so nothing to insert for them.
+      for (const i of issues) {
+        errorRowsToInsert.push({
+          run_id: run.run_id,
+          stage: STAGE,
+          severity: i.severity,
+          type: i.type,
+          entity_type: "test_case",
+          entity_id: i.entity_id,
+          entity_name: `[TEST] ${i.entity_name}`,
+          message: `[Test Harness] ${i.message}`,
+          suggested_fix: i.suggested_fix,
+          debug_json: { ...i.debug_json, test_case: tc.name },
+        });
+      }
+    }
+
+    if (errorRowsToInsert.length > 0) {
+      const { error: insErr } = await supabase
+        .from("pricing_v2_errors")
+        .insert(errorRowsToInsert);
+      if (insErr) throw new Error(insErr.message);
+    }
+
+    const passed = results.filter((r) => r.passed).length;
+    const failed = results.length - passed;
+    const warnings = errorRowsToInsert.filter((r) => r.severity === "warning").length;
+    const errors = errorRowsToInsert.filter((r) => r.severity === "error").length;
+    const overall = failed === 0 ? "success" : "partial";
+
+    await supabase
+      .from("pricing_v2_runs")
+      .update({
+        status: overall,
+        ended_at: new Date().toISOString(),
+        counts_in: results.length,
+        counts_out: passed,
+        warnings_count: warnings,
+        errors_count: errors,
+      })
+      .eq("run_id", run.run_id);
+
+    return {
+      run_id: run.run_id,
+      overall_pass: failed === 0,
+      summary: { total: results.length, passed, failed, errors_logged: errorRowsToInsert.length },
+      results,
+    };
+  });
