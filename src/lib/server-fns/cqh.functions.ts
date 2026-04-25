@@ -143,7 +143,7 @@ export const updateCqhEvent = createServerFn({ method: "POST" })
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.event_date !== undefined) patch.event_date = data.event_date || null;
     if (data.guest_count !== undefined) patch.guest_count = data.guest_count ?? null;
-    const { error } = await context.supabase.from("cqh_events").update(patch).eq("id", data.id);
+    const { error } = await (context.supabase.from("cqh_events") as any).update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -229,7 +229,7 @@ export const updateCqhDish = createServerFn({ method: "POST" })
     const patch: Record<string, any> = {};
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.is_main !== undefined) patch.is_main = data.is_main;
-    const { error } = await context.supabase.from("cqh_dishes").update(patch).eq("id", data.id);
+    const { error } = await (context.supabase.from("cqh_dishes") as any).update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     await context.supabase.from("cqh_audit_log").insert({
       action: "dish_updated", payload: { id: data.id, ...patch }, actor_id: context.userId,
