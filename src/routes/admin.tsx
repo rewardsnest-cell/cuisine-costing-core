@@ -99,6 +99,7 @@ export const NAV_GROUPS: NavGroup[] = [
     featureKey: "admin_pricing_intelligence",
     phaseNote: "Phase Three · hidden until enabled",
     items: [
+      { to: "/admin/pricing-pipeline",     label: "Pricing Pipeline",       icon: ShieldCheck,     featureKey: "admin_pricing_pipeline" },
       { to: "/admin/pricing-lab",          label: "Pricing Lab",            icon: FlaskConical,    featureKey: "admin_pricing_lab" },
       { to: "/admin/pricing-lab/preview",  label: "Pricing Lab Preview",    icon: FlaskConical,    featureKey: "admin_pricing_lab_preview" },
       { to: "/admin/pricing-test",         label: "Pricing Test",           icon: FlaskConical,    featureKey: "admin_pricing_test" },
