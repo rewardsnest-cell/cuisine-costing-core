@@ -129,8 +129,8 @@ function ItemsPage() {
             </Select>
             {/* Kroger ingestion is managed via Admin → Pricing Intelligence → Kroger only.
                 Do NOT add manual fetch / locationId controls here. */}
-            <Link to="/admin/kroger-pricing">
-              <Button variant="outline" className="gap-2"><Tag className="w-4 h-4" />View Kroger Pricing</Button>
+            <Link to="/admin/pricing">
+              <Button variant="outline" className="gap-2"><Tag className="w-4 h-4" />View Pricing</Button>
             </Link>
             <div className="ml-auto text-xs text-muted-foreground">
               Showing {filtered.length} of {items.length}
