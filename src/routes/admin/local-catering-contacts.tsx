@@ -594,6 +594,66 @@ function LocalCateringContactsPage() {
         onOpenChange={(o) => !o && setDraftLead(null)}
         lead={draftLead}
       />
+
+      <Dialog open={!!reviewLead} onOpenChange={(o) => !o && setReviewLead(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+              Verify contact before outreach
+            </DialogTitle>
+          </DialogHeader>
+          {reviewLead && (
+            <div className="space-y-4">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+                <div className="font-medium">Issues detected</div>
+                <ul className="list-disc pl-5 text-muted-foreground">
+                  {(reviewLead.verification_issues ?? []).map((iss) => (
+                    <li key={iss}>{ISSUE_LABELS[iss] ?? iss}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Name</Label>
+                  <Input value={reviewName} onChange={(e) => setReviewName(e.target.value)} maxLength={120} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Company</Label>
+                  <Input value={reviewCompany} onChange={(e) => setReviewCompany(e.target.value)} maxLength={200} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={reviewEmail} onChange={(e) => setReviewEmail(e.target.value)} maxLength={255} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input type="tel" value={reviewPhone} onChange={(e) => setReviewPhone(e.target.value)} maxLength={40} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Review notes (optional)</Label>
+                <Textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="e.g. Confirmed via website contact page"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Saving recomputes verification automatically. Outreach unlocks once email or phone is valid.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewLead(null)} disabled={reviewSaving}>Cancel</Button>
+            <Button onClick={saveReview} disabled={reviewSaving}>
+              {reviewSaving ? "Saving…" : "Save & re-verify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
