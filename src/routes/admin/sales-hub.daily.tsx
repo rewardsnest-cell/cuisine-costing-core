@@ -32,7 +32,7 @@ function DailyChecklistPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [state, setState] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const [prospects, setProspects] = useState<Array<{ id: string; business_name: string; city: string }>>([]);
+  const [prospects, setProspects] = useState<Array<{ id: string; business_name: string; city: string; status: string }>>([]);
   const [logProspect, setLogProspect] = useState("");
   const [logChannel, setLogChannel] = useState("call");
   const [logOutcome, setLogOutcome] = useState("");
