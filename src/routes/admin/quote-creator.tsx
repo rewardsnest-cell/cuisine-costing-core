@@ -742,6 +742,16 @@ function QuoteCreatorHub() {
                       </Button>
                     )}
                   </div>
+
+                  {genProgress && (
+                    <div className="mt-3 space-y-1.5 rounded-md border border-border/50 bg-muted/30 px-3 py-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-muted-foreground">{genProgress.label}</span>
+                        <span className="font-mono text-muted-foreground">{genProgress.value}%</span>
+                      </div>
+                      <Progress value={genProgress.value} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
