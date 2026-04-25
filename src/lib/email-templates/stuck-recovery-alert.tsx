@@ -17,7 +17,7 @@ interface Props {
 const StuckRecoveryAlert = (p: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Pricing v2 bootstrap auto-recovery — run stuck {p.stuck_for_minutes ?? '?'}m</Preview>
+    <Preview>{`Pricing v2 bootstrap auto-recovery — run stuck ${p.stuck_for_minutes ?? '?'}m`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Pricing v2: stuck-run auto-recovery</Heading>
