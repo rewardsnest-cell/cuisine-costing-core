@@ -124,14 +124,8 @@ function DailyDashboardPage() {
       setPendingReviews((quotes || []).filter((q: any) => !askedIds.has(q.id)).slice(0, 5));
     } catch { /* ignore */ }
 
-    // Pricing pipeline alerts — pending cost updates
-    try {
-      const { count } = await (supabase as any)
-        .from("cost_update_queue")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending");
-      setPricingAlerts(count || 0);
-    } catch { /* ignore */ }
+    // ARCHIVED — Pricing v1 cost_update_queue is in archive schema.
+    setPricingAlerts(0);
 
     // Upcoming events (next 7 days)
     try {

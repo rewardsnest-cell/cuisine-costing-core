@@ -98,7 +98,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Competitor Quote Hub",
     items: [
       { to: "/admin/quote-creator",   label: "Quote Creator",   icon: ClipboardList },
-      { to: "/admin/pricing-sandbox", label: "Pricing Sandbox", icon: FlaskConical },
     ],
   },
   {
@@ -121,12 +120,8 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Pricing",
     items: [
-      { to: "/admin/pricing",              label: "Pricing",              icon: Tag },
-      { to: "/admin/margin-volatility",    label: "Margin & Volatility",  icon: TrendingUp,   featureKey: "admin_margin_volatility" },
-      { to: "/admin/national-prices",      label: "National Prices",      icon: Globe2,       featureKey: "admin_national_prices" },
-      { to: "/admin/trends",               label: "Price Trends",         icon: TrendingUp,   featureKey: "admin_price_trends" },
-      { to: "/admin/cost-queue",           label: "Cost Update Queue",    icon: ClipboardCheck, featureKey: "admin_cost_queue" },
-      { to: "/admin/receipts",             label: "Receipt Diagnostics",  icon: Receipt,      featureKey: "admin_receipt_diagnostics" },
+      { to: "/admin/pricing",  label: "Pricing (v2)",         icon: Tag },
+      { to: "/admin/receipts", label: "Receipt Diagnostics",  icon: Receipt, featureKey: "admin_receipt_diagnostics" },
     ],
   },
 ];

@@ -113,7 +113,7 @@ function HubEdit() {
 
         <TabsContent value="recipe">
           <div className="space-y-4">
-            <PricingHealthPanel recipeId={id} />
+            <PricingHealthPanel />
             {recipeInitial ? (
               <RecipeForm mode="edit" initial={recipeInitial} recipeId={id} />
             ) : (

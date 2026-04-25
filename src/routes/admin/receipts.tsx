@@ -409,11 +409,10 @@ function ReceiptsPage() {
         return;
       }
       // Auto-apply costs when nothing needs review
-      const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
-      const applied = await updateInventoryCosts({ data: { receiptId: receipt.id } });
-      const updates = applied.updates || [];
-      const msg = `Saved ${total} items · updated ${updates.length} costs`;
-      toast.success(`Saved ${total} items and updated costs for ${updates.length} inventory items`);
+      // ARCHIVED — Pricing v1 cost auto-apply is no longer wired up.
+      const updates: any[] = [];
+      const msg = `Saved ${total} items (auto-cost-apply archived)`;
+      toast.success(`Saved ${total} items`);
       setRowState(receipt.id, { status: "success", message: msg });
       load();
     } catch (err: any) {
@@ -429,10 +428,8 @@ function ReceiptsPage() {
   const handleApplyCosts = async (receiptId: string) => {
     setApplyingCosts(true);
     try {
-      const { updateInventoryCosts } = await import("@/lib/server-fns/update-inventory-costs.functions");
-      const data = await updateInventoryCosts({ data: { receiptId } });
-      const updates = data.updates || [];
-      toast.success(`Updated costs for ${updates.length} inventory items`);
+      // ARCHIVED — Pricing v1 inventory cost apply is disabled.
+      toast.info("Cost apply is archived (Pricing v1).");
       load();
     } catch (err: any) {
       console.error("Apply costs error:", err);
