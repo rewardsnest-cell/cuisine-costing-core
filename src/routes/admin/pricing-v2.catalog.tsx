@@ -229,12 +229,34 @@ function CatalogBootstrapPage() {
                 <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
                 <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
               </div>
-              <Button onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })} disabled={runMut.isPending} className="gap-1.5">
-                <Play className="w-4 h-4" />
-                {status === "IN_PROGRESS" ? "Resume Bootstrap" : "Run Bootstrap"}
+              <Button
+                onClick={runGuarded}
+                disabled={runMut.isPending || guardedPhase === "dry-running" || guardedPhase === "full-running"}
+                className="gap-1.5"
+              >
+                {guardedPhase === "dry-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                 guardedPhase === "full-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                 <ShieldCheck className="w-4 h-4" />}
+                {guardedPhase === "dry-running" ? "Dry running…" :
+                 guardedPhase === "full-running" ? (status === "IN_PROGRESS" ? "Resuming…" : "Running…") :
+                 status === "IN_PROGRESS" ? "Resume Bootstrap (safe)" : "Run Bootstrap (safe)"}
               </Button>
-              <Button variant="secondary" onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })} disabled={runMut.isPending}>
-                Dry Run (50)
+              <Button
+                variant="secondary"
+                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
+                disabled={runMut.isPending || guardedPhase !== "idle"}
+                className="gap-1.5"
+                title="Skip the dry-run preflight and run immediately"
+              >
+                <Play className="w-4 h-4" />
+                Run Now (skip dry-run)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })}
+                disabled={runMut.isPending || guardedPhase !== "idle"}
+              >
+                Dry Run Only (50)
               </Button>
               <Button variant="ghost" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
                 Run Test Cases
