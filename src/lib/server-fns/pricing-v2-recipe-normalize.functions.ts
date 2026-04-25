@@ -733,3 +733,60 @@ export const runRecipeNormalizeTestHarness = createServerFn({ method: "POST" })
       throw e;
     }
   });
+
+// ---- Unit Conversion Rules CRUD ------------------------------------------
+
+export const listUnitConversionRules = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase
+      .from("pricing_v2_unit_conversion_rules")
+      .select("unit, grams_per_unit, requires_density, notes, updated_at")
+      .order("unit", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { rules: data ?? [] };
+  });
+
+const upsertRuleSchema = z.object({
+  unit: z.string().trim().min(1).max(64).transform((s) => s.toLowerCase()),
+  grams_per_unit: z.number().positive().nullable().optional(),
+  requires_density: z.boolean().default(false),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+export const upsertUnitConversionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => upsertRuleSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    if (!data.requires_density && (data.grams_per_unit == null || data.grams_per_unit <= 0)) {
+      throw new Error("grams_per_unit is required (and > 0) when requires_density is false.");
+    }
+    const payload = {
+      unit: data.unit,
+      grams_per_unit: data.requires_density ? null : data.grams_per_unit ?? null,
+      requires_density: data.requires_density,
+      notes: data.notes ?? null,
+    };
+    const { error } = await supabase
+      .from("pricing_v2_unit_conversion_rules")
+      .upsert(payload, { onConflict: "unit" });
+    if (error) throw new Error(error.message);
+    return { ok: true, unit: data.unit };
+  });
+
+export const deleteUnitConversionRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ unit: z.string().trim().min(1).transform((s) => s.toLowerCase()) }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { error } = await supabase
+      .from("pricing_v2_unit_conversion_rules")
+      .delete()
+      .eq("unit", data.unit);
+    if (error) throw new Error(error.message);
+    return { ok: true, unit: data.unit };
+  });
