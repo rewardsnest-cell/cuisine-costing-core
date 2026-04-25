@@ -17,6 +17,7 @@ import { template as recipeCatering } from './recipe-catering'
 import { template as prospectFollowUpDay0 } from './prospect-followup-day0'
 import { template as prospectFollowUpDay5 } from './prospect-followup-day5'
 import { template as prospectFollowUpDay14 } from './prospect-followup-day14'
+import { template as stuckRecoveryAlert } from './stuck-recovery-alert'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-form-notification': contactFormNotification,
@@ -27,4 +28,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'prospect-followup-day0': prospectFollowUpDay0,
   'prospect-followup-day5': prospectFollowUpDay5,
   'prospect-followup-day14': prospectFollowUpDay14,
+  'stuck-recovery-alert': stuckRecoveryAlert,
 }
