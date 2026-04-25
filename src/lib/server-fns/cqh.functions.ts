@@ -582,7 +582,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
     const normalizeUnit = (raw: string | null | undefined): string | null => {
       if (!raw) return null;
       const k = String(raw).toLowerCase().trim().replace(/\.$/, "");
-      return UNIT_ALIASES[k] ?? k || null;
+      return (UNIT_ALIASES[k] ?? k) || null;
     };
 
     // Aggregate items by normalized (ingredient_name, unit). Sums quantities,
