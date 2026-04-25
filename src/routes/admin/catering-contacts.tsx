@@ -328,7 +328,17 @@ function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
                     </Link>
                   </Button>
                   {c.email && (
-                    <Button asChild variant="ghost" size="icon">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Compose from Outlook"
+                      onClick={() => setComposeLead(c)}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {c.email && (
+                    <Button asChild variant="ghost" size="icon" title="Open mailto">
                       <a href={`mailto:${c.email}`}><Mail className="h-4 w-4" /></a>
                     </Button>
                   )}
@@ -350,6 +360,12 @@ function LeadsTable({ rows, viewId }: { rows: Lead[]; viewId: string }) {
           ))}
         </TableBody>
       </Table>
+
+      <LeadEmailDialog
+        open={!!composeLead}
+        onOpenChange={(o) => !o && setComposeLead(null)}
+        lead={composeLead}
+      />
     </div>
   );
 }
