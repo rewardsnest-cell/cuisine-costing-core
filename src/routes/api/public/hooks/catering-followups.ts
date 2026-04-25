@@ -44,8 +44,8 @@ function daysAhead(n: number): string {
 
 interface Contact {
   id: string
-  organization_name: string
-  contact_name: string | null
+  company: string | null
+  name: string | null
   email: string | null
   status: string
   first_outreach_date: string | null
@@ -123,8 +123,8 @@ async function enqueueEmail(
   // Render
   const { render } = await import('@react-email/components')
   const templateData = {
-    contactName: contact.contact_name ?? undefined,
-    businessName: contact.organization_name,
+    contactName: contact.name ?? undefined,
+    businessName: contact.company ?? '',
   }
   const element = React.createElement(template.component, templateData)
   const html = await render(element)
@@ -175,18 +175,12 @@ async function enqueueEmail(
 async function processStage(
   supabase: DB,
   stage: Stage,
-  opts: { dryRun: boolean; limit: number },
-): Promise<{
-  stage: Stage
-  processed: number
-  sent: number
-  failed: number
-  preview?: Array<{ id: string; organization_name: string; email: string | null }>
-}> {
+): Promise<{ stage: Stage; processed: number; sent: number; failed: number }> {
   const cfg = STAGE_CONFIG[stage]
   let query = supabase
-    .from('local_catering_contacts')
-    .select('id, organization_name, contact_name, email, status, first_outreach_date, last_outreach_date')
+    .from('leads')
+    .select('id, company, name, email, status, first_outreach_date, last_outreach_date')
+    .eq('lead_type', 'catering')
     .not('email', 'is', null)
     .neq('status', 'not-interested')
     .neq('status', 'booked')
@@ -200,35 +194,19 @@ async function processStage(
     query = query.eq('status', 'follow-up').eq('last_outreach_date', daysAgo(14))
   }
 
-  const { data: contacts, error } = await query.limit(opts.limit)
+  const { data: contacts, error } = await query.limit(100)
   if (error) {
     console.error(`[catering-followups] stage ${stage} fetch failed:`, error)
     return { stage, processed: 0, sent: 0, failed: 0 }
   }
 
-  const list = (contacts ?? []) as Contact[]
-
-  if (opts.dryRun) {
-    return {
-      stage,
-      processed: list.length,
-      sent: 0,
-      failed: 0,
-      preview: list.map((c) => ({
-        id: c.id,
-        organization_name: c.organization_name,
-        email: c.email,
-      })),
-    }
-  }
-
   let sent = 0
   let failed = 0
-  for (const c of list) {
+  for (const c of (contacts ?? []) as unknown as Contact[]) {
     const result = await enqueueEmail(supabase, c, stage)
 
-    await supabase.from('local_catering_outreach_log').insert({
-      contact_id: c.id,
+    await supabase.from('lead_outreach_log').insert({
+      lead_id: c.id,
       channel: 'email',
       template_name: cfg.template,
       recipient_email: c.email,
@@ -240,7 +218,7 @@ async function processStage(
 
     if (result.ok) {
       sent++
-      const update: Database['public']['Tables']['local_catering_contacts']['Update'] = {
+      const update: Database['public']['Tables']['leads']['Update'] = {
         status: cfg.nextStatus,
         last_outreach_date: daysAgo(0),
         last_channel: 'email',
@@ -249,13 +227,13 @@ async function processStage(
       update.next_follow_up_date = cfg.nextFollowUpDays !== null
         ? daysAhead(cfg.nextFollowUpDays)
         : null
-      await supabase.from('local_catering_contacts').update(update).eq('id', c.id)
+      await supabase.from('leads').update(update).eq('id', c.id)
     } else {
       failed++
     }
   }
 
-  return { stage, processed: list.length, sent, failed }
+  return { stage, processed: contacts?.length ?? 0, sent, failed }
 }
 
 export const Route = createFileRoute('/api/public/hooks/catering-followups')({
@@ -266,26 +244,6 @@ export const Route = createFileRoute('/api/public/hooks/catering-followups')({
         const provided = request.headers.get('x-cron-secret')
         if (!expected || provided !== expected) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Optional body: { dryRun?: boolean, limit?: number, stages?: Stage[] }
-        let dryRun = false
-        let limit = 100
-        let stages: Stage[] = [0, 5, 14]
-        try {
-          const text = await request.text()
-          if (text) {
-            const body = JSON.parse(text) as { dryRun?: boolean; limit?: number; stages?: number[] }
-            if (typeof body.dryRun === 'boolean') dryRun = body.dryRun
-            if (typeof body.limit === 'number' && body.limit > 0) {
-              limit = Math.min(Math.floor(body.limit), 500)
-            }
-            if (Array.isArray(body.stages) && body.stages.length > 0) {
-              stages = body.stages.filter((s): s is Stage => s === 0 || s === 5 || s === 14)
-            }
-          }
-        } catch {
-          // ignore body parse errors; use defaults
         }
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -299,15 +257,14 @@ export const Route = createFileRoute('/api/public/hooks/catering-followups')({
         })
 
         try {
-          const results = await Promise.all(
-            stages.map((s) => processStage(supabase, s, { dryRun, limit })),
-          )
+          const results = await Promise.all([
+            processStage(supabase, 0),
+            processStage(supabase, 5),
+            processStage(supabase, 14),
+          ])
 
           return Response.json({
             success: true,
-            dry_run: dryRun,
-            limit,
-            stages,
             ran_at: new Date().toISOString(),
             results,
           })

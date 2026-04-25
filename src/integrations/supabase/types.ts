@@ -1086,6 +1086,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          lead_id: string | null
           message_id: string | null
           metadata: Json | null
           recipient_email: string
@@ -1096,6 +1097,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          lead_id?: string | null
           message_id?: string | null
           metadata?: Json | null
           recipient_email: string
@@ -1106,13 +1108,22 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          lead_id?: string | null
           message_id?: string | null
           metadata?: Json | null
           recipient_email?: string
           status?: string
           template_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_send_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_state: {
         Row: {
@@ -1997,14 +2008,14 @@ export type Database = {
           },
         ]
       }
-      local_catering_contact_activity: {
+      lead_activity: {
         Row: {
           action: string
           actor_user_id: string | null
-          contact_id: string
           created_at: string
           field_name: string | null
           id: string
+          lead_id: string
           metadata: Json
           new_value: string | null
           old_value: string | null
@@ -2013,10 +2024,10 @@ export type Database = {
         Insert: {
           action?: string
           actor_user_id?: string | null
-          contact_id: string
           created_at?: string
           field_name?: string | null
           id?: string
+          lead_id: string
           metadata?: Json
           new_value?: string | null
           old_value?: string | null
@@ -2025,10 +2036,10 @@ export type Database = {
         Update: {
           action?: string
           actor_user_id?: string | null
-          contact_id?: string
           created_at?: string
           field_name?: string | null
           id?: string
+          lead_id?: string
           metadata?: Json
           new_value?: string | null
           old_value?: string | null
@@ -2036,144 +2047,60 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "local_catering_contact_activity_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "lead_activity_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: "local_catering_contacts"
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
       }
-      local_catering_contact_notes: {
+      lead_notes: {
         Row: {
           body: string
-          contact_id: string
           created_at: string
           created_by: string | null
           id: string
+          lead_id: string
           pinned: boolean
           updated_at: string
         }
         Insert: {
           body: string
-          contact_id: string
           created_at?: string
           created_by?: string | null
           id?: string
+          lead_id: string
           pinned?: boolean
           updated_at?: string
         }
         Update: {
           body?: string
-          contact_id?: string
           created_at?: string
           created_by?: string | null
           id?: string
+          lead_id?: string
           pinned?: boolean
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "local_catering_contact_notes_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: "local_catering_contacts"
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
       }
-      local_catering_contacts: {
-        Row: {
-          address_city: string | null
-          address_state: string | null
-          address_street: string | null
-          address_zip: string | null
-          catering_use_cases: string[]
-          contact_name: string | null
-          created_at: string
-          created_by: string | null
-          distance_miles: number | null
-          email: string | null
-          first_outreach_date: string | null
-          id: string
-          last_channel: string | null
-          last_outreach_date: string | null
-          next_follow_up_date: string | null
-          notes: string | null
-          organization_name: string
-          organization_type: string | null
-          phone: string | null
-          priority: string
-          role_department: string | null
-          source: string | null
-          status: string
-          updated_at: string
-          website: string | null
-        }
-        Insert: {
-          address_city?: string | null
-          address_state?: string | null
-          address_street?: string | null
-          address_zip?: string | null
-          catering_use_cases?: string[]
-          contact_name?: string | null
-          created_at?: string
-          created_by?: string | null
-          distance_miles?: number | null
-          email?: string | null
-          first_outreach_date?: string | null
-          id?: string
-          last_channel?: string | null
-          last_outreach_date?: string | null
-          next_follow_up_date?: string | null
-          notes?: string | null
-          organization_name: string
-          organization_type?: string | null
-          phone?: string | null
-          priority?: string
-          role_department?: string | null
-          source?: string | null
-          status?: string
-          updated_at?: string
-          website?: string | null
-        }
-        Update: {
-          address_city?: string | null
-          address_state?: string | null
-          address_street?: string | null
-          address_zip?: string | null
-          catering_use_cases?: string[]
-          contact_name?: string | null
-          created_at?: string
-          created_by?: string | null
-          distance_miles?: number | null
-          email?: string | null
-          first_outreach_date?: string | null
-          id?: string
-          last_channel?: string | null
-          last_outreach_date?: string | null
-          next_follow_up_date?: string | null
-          notes?: string | null
-          organization_name?: string
-          organization_type?: string | null
-          phone?: string | null
-          priority?: string
-          role_department?: string | null
-          source?: string | null
-          status?: string
-          updated_at?: string
-          website?: string | null
-        }
-        Relationships: []
-      }
-      local_catering_outreach_log: {
+      lead_outreach_log: {
         Row: {
           channel: string
-          contact_id: string
           created_at: string
           created_by: string | null
           error_message: string | null
           id: string
+          lead_id: string
           message_id: string | null
           notes: string | null
           recipient_email: string | null
@@ -2184,11 +2111,11 @@ export type Database = {
         }
         Insert: {
           channel?: string
-          contact_id: string
           created_at?: string
           created_by?: string | null
           error_message?: string | null
           id?: string
+          lead_id: string
           message_id?: string | null
           notes?: string | null
           recipient_email?: string | null
@@ -2199,11 +2126,11 @@ export type Database = {
         }
         Update: {
           channel?: string
-          contact_id?: string
           created_at?: string
           created_by?: string | null
           error_message?: string | null
           id?: string
+          lead_id?: string
           message_id?: string | null
           notes?: string | null
           recipient_email?: string | null
@@ -2214,13 +2141,127 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "local_catering_outreach_log_contact_id_fkey"
-            columns: ["contact_id"]
+            foreignKeyName: "lead_outreach_log_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: "local_catering_contacts"
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
+      }
+      leads: {
+        Row: {
+          address_city: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          assigned_to: string | null
+          catering_use_cases: string[]
+          company: string | null
+          created_at: string
+          created_by: string | null
+          distance_miles: number | null
+          email: string | null
+          est_budget: number | null
+          event_date: string | null
+          event_type: string | null
+          first_outreach_date: string | null
+          guest_count: number | null
+          id: string
+          last_channel: string | null
+          last_contact_date: string | null
+          last_outreach_date: string | null
+          lead_type: string
+          metadata: Json
+          name: string | null
+          next_follow_up_date: string | null
+          notes: string | null
+          organization_type: string | null
+          phone: string | null
+          priority: string
+          role_department: string | null
+          source: string | null
+          status: string
+          tags: string[]
+          updated_at: string
+          venue: string | null
+          website: string | null
+        }
+        Insert: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          assigned_to?: string | null
+          catering_use_cases?: string[]
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_miles?: number | null
+          email?: string | null
+          est_budget?: number | null
+          event_date?: string | null
+          event_type?: string | null
+          first_outreach_date?: string | null
+          guest_count?: number | null
+          id?: string
+          last_channel?: string | null
+          last_contact_date?: string | null
+          last_outreach_date?: string | null
+          lead_type?: string
+          metadata?: Json
+          name?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_type?: string | null
+          phone?: string | null
+          priority?: string
+          role_department?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          venue?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          assigned_to?: string | null
+          catering_use_cases?: string[]
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_miles?: number | null
+          email?: string | null
+          est_budget?: number | null
+          event_date?: string | null
+          event_type?: string | null
+          first_outreach_date?: string | null
+          guest_count?: number | null
+          id?: string
+          last_channel?: string | null
+          last_contact_date?: string | null
+          last_outreach_date?: string | null
+          lead_type?: string
+          metadata?: Json
+          name?: string | null
+          next_follow_up_date?: string | null
+          notes?: string | null
+          organization_type?: string | null
+          phone?: string | null
+          priority?: string
+          role_department?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          venue?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
       menu_module_items: {
         Row: {
