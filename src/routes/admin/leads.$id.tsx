@@ -230,7 +230,7 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
 }
 
 // ---------- Email thread ----------
-function EmailThreadCard({ emails }: { emails: any[] }) {
+function EmailThreadCard({ emails, attachmentsByEmail }: { emails: any[]; attachmentsByEmail: Map<string, any[]> }) {
   // Sort chronologically (ascending) for thread reading order
   const sorted = [...emails].sort((a, b) => {
     const ta = new Date(a.received_at || a.sent_at || a.created_at || 0).getTime()
