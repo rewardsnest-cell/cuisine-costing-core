@@ -93,6 +93,77 @@ function PricingCodeInventoryPage() {
     }
   }
 
+  async function buildPdfBlob(): Promise<Blob> {
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    doc.setFontSize(16);
+    doc.text("Pricing Code Inventory", 40, 48);
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(`Generated ${PRICING_INVENTORY_GENERATED_AT} · ${summary.total} files`, 40, 64);
+    doc.setTextColor(0);
+    autoTable(doc, {
+      startY: 84,
+      head: [["Path", "Layer", "Purpose", "Notes", "Rec."]],
+      body: PRICING_INVENTORY.map((e) => [e.path, e.layer, e.purpose, e.notes, e.recommendation]),
+      styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+      headStyles: { fillColor: [30, 30, 30] },
+      columnStyles: { 0: { cellWidth: 150 }, 1: { cellWidth: 90 }, 2: { cellWidth: 140 }, 3: { cellWidth: 130 }, 4: { cellWidth: 50 } },
+    });
+    const after = (doc as any).lastAutoTable?.finalY ?? 84;
+    doc.setFontSize(12);
+    doc.text("SQL pricing references", 40, after + 28);
+    autoTable(doc, {
+      startY: after + 36,
+      head: [["Object", "Purpose"]],
+      body: SQL_PRICING_REFERENCES.map((r) => [r.name, r.purpose]),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [30, 30, 30] },
+    });
+    return doc.output("blob");
+  }
+
+  async function handleZipExport() {
+    try {
+      setDownloading("zip");
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const stamp = PRICING_INVENTORY_GENERATED_AT;
+      const payload = {
+        generated_at: stamp,
+        summary,
+        entries: PRICING_INVENTORY,
+        sql_references: SQL_PRICING_REFERENCES,
+        sql_appendix: SQL_PRICING_APPENDIX,
+        dependency_graph: { nodes: PRICING_GRAPH_NODES, edges: PRICING_GRAPH_EDGES, mermaid: buildPricingGraphMermaid() },
+      };
+      zip.file(`pricing-code-inventory-${stamp}.json`, JSON.stringify(payload, null, 2));
+      zip.file(`pricing-sql-appendix-${stamp}.sql`, buildSqlAppendixText());
+      zip.file(`pricing-dependency-graph-${stamp}.mmd`, buildPricingGraphMermaid());
+      const pdfBlob = await buildPdfBlob();
+      zip.file(`pricing-code-inventory-${stamp}.pdf`, pdfBlob);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const filename = `pricing-code-inventory-bundle-${stamp}.zip`;
+      const result = await saveAndLogDownload({
+        blob,
+        filename,
+        kind: "admin_export",
+        sourceLabel: "Pricing Code Inventory (ZIP bundle)",
+      });
+      if (result.persisted && result.publicUrl) {
+        openPublicUrl(result.publicUrl);
+        toast.success("Bundle saved — opened in a new tab");
+      } else {
+        toast.success("Bundle downloaded");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not export bundle");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
   async function handlePdfExport() {
     try {
       setDownloading("pdf");
