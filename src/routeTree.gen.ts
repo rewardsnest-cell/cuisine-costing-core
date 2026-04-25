@@ -174,6 +174,7 @@ import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.
 import { Route as ApiPublicHooksSendProspectEmailRouteImport } from './routes/api/public/hooks/send-prospect-email'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
 import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
+import { Route as ApiPublicHooksKrogerValidationRouteImport } from './routes/api/public/hooks/kroger-validation'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
 import { Route as ApiPublicHooksCateringFollowupsRouteImport } from './routes/api/public/hooks/catering-followups'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
@@ -1025,6 +1026,12 @@ const ApiPublicHooksOutlookPollInboxRoute =
     path: '/api/public/hooks/outlook-poll-inbox',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksKrogerValidationRoute =
+  ApiPublicHooksKrogerValidationRouteImport.update({
+    id: '/api/public/hooks/kroger-validation',
+    path: '/api/public/hooks/kroger-validation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksKrogerDailyIngestRoute =
   ApiPublicHooksKrogerDailyIngestRouteImport.update({
     id: '/api/public/hooks/kroger-daily-ingest',
@@ -1203,6 +1210,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1371,6 +1379,7 @@ export interface FileRoutesByTo {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1542,6 +1551,7 @@ export interface FileRoutesById {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1714,6 +1724,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -1882,6 +1893,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2052,6 +2064,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2115,6 +2128,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksCateringFollowupsRoute: typeof ApiPublicHooksCateringFollowupsRoute
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
+  ApiPublicHooksKrogerValidationRoute: typeof ApiPublicHooksKrogerValidationRoute
   ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiPublicHooksSendProspectEmailRoute: typeof ApiPublicHooksSendProspectEmailRoute
@@ -3283,6 +3297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksOutlookPollInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/kroger-validation': {
+      id: '/api/public/hooks/kroger-validation'
+      path: '/api/public/hooks/kroger-validation'
+      fullPath: '/api/public/hooks/kroger-validation'
+      preLoaderRoute: typeof ApiPublicHooksKrogerValidationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/kroger-daily-ingest': {
       id: '/api/public/hooks/kroger-daily-ingest'
       path: '/api/public/hooks/kroger-daily-ingest'
@@ -3709,6 +3730,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksCateringFollowupsRoute: ApiPublicHooksCateringFollowupsRoute,
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
+  ApiPublicHooksKrogerValidationRoute: ApiPublicHooksKrogerValidationRoute,
   ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiPublicHooksSendProspectEmailRoute: ApiPublicHooksSendProspectEmailRoute,
