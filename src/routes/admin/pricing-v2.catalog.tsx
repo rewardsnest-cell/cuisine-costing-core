@@ -259,6 +259,42 @@ function CatalogBootstrapPage() {
         </div>
       </header>
 
+      {/* Stuck-recovery alert banner */}
+      {(activeAlerts.data?.alerts ?? []).length > 0 && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>
+            {activeAlerts.data!.alerts.length} stuck-run alert{activeAlerts.data!.alerts.length === 1 ? "" : "s"} (auto-recovered)
+          </AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1 text-xs">
+              {activeAlerts.data!.alerts.map((a: any) => (
+                <li key={a.id} className="flex items-center justify-between gap-2 border-t border-destructive/30 pt-1">
+                  <span className="truncate">
+                    <span className="font-mono">{String(a.run_id ?? "").slice(0, 8)}…</span>
+                    {" "}stuck ~{a.stuck_for_minutes}m (threshold {a.threshold_minutes}m) · {a.stage}
+                  </span>
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]"
+                    onClick={() => ackAlertMut.mutate(a.id)} disabled={ackAlertMut.isPending}>
+                    Acknowledge
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Alert config */}
+      {alertConfig.data && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Stuck-run alert config</CardTitle></CardHeader>
+          <CardContent>
+            <AlertConfigForm initial={alertConfig.data} onSave={(v) => saveAlertCfgMut.mutate(v)} saving={saveAlertCfgMut.isPending} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Live progress panel — always visible, polls while a run is active */}
       <BootstrapLiveProgress guardedPhase={guardedPhase} />
 
