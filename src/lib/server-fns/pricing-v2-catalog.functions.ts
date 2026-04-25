@@ -429,6 +429,58 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
     }
   });
 
+// ---- Bootstrap state (status panel + reset) -------------------------------
+
+export const getCatalogBootstrapState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const storeId = await getStoreId(supabase);
+    const state = await getOrCreateBootstrapState(supabase, storeId);
+    const allIds = await listAllInventoryProductIds(supabase);
+    let processed = 0;
+    if (state.last_page_token) {
+      const idx = allIds.findIndex((id) => id > state.last_page_token);
+      processed = idx === -1 ? allIds.length : idx;
+    } else if (state.status === "COMPLETED") {
+      processed = allIds.length;
+    }
+    return {
+      state,
+      inventory_ids_total: allIds.length,
+      inventory_ids_processed: processed,
+      inventory_ids_remaining: Math.max(0, allIds.length - processed),
+    };
+  });
+
+/**
+ * Hard-reset Stage 0 bootstrap state. Does NOT delete catalog or raw rows —
+ * only flips status back to NOT_STARTED so the loop will restart from the
+ * first inventory id.
+ */
+export const resetCatalogBootstrap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ confirmation: z.literal("RESET CATALOG") }).parse(input)
+  )
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const storeId = await getStoreId(supabase);
+    const { error } = await supabase
+      .from("pricing_v2_catalog_bootstrap_state")
+      .update({
+        status: "NOT_STARTED",
+        last_page_token: null,
+        total_items_fetched: 0,
+        started_at: null,
+        completed_at: null,
+        last_run_id: null,
+      })
+      .eq("store_id", storeId);
+    if (error) throw new Error(error.message);
+    return { ok: true, store_id: storeId };
+  });
+
 // ---- Listing helpers ------------------------------------------------------
 
 export const listCatalogRunErrors = createServerFn({ method: "POST" })
