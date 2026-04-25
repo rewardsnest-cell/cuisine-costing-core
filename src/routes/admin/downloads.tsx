@@ -197,11 +197,41 @@ function AdminDownloadsPage() {
               <Input className="pl-8" placeholder="Search filename, label, email…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <Select value={kind} onValueChange={setKind}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[160px]" aria-label="Filter by kind"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {KINDS.map((k) => <SelectItem key={k} value={k}>{k === "all" ? "All kinds" : k}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={moduleKey} onValueChange={setModuleKey}>
+              <SelectTrigger className="w-[160px]" aria-label="Filter by module"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All modules</SelectItem>
+                {MODULES.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                aria-label="From date"
+              />
+              <span className="text-xs text-muted-foreground">→</span>
+              <Input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                aria-label="To date"
+              />
+            </div>
+            {(kind !== "all" || moduleKey !== "all" || dateFrom || dateTo || q) && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>Clear</Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
