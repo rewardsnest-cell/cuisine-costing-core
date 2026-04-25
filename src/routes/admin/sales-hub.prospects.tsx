@@ -71,6 +71,8 @@ function ProspectsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [bulkReviewOpen, setBulkReviewOpen] = useState(false);
+  const [bulkReviewItems, setBulkReviewItems] = useState<BulkReviewItem[]>([]);
   const generateContact = useServerFn(generateProspectContact);
 
   const isMissingContact = (p: Prospect) => !p.email && !p.phone;
