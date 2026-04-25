@@ -489,53 +489,93 @@ function CatalogBootstrapPage() {
         </Card>
       )}
 
-      {/* Recent runs */}
+      {/* Bootstrap Audit Trail — who triggered each attempt, when, and how many products were fetched */}
       <Card>
-        <CardHeader><CardTitle>Recent Runs</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Bootstrap Audit Trail</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Every bootstrap attempt — initiator, source, started/ended, duration, and products fetched.
+          </p>
+        </CardHeader>
         <CardContent className="text-sm">
-          {runs.isLoading ? <p>Loading…</p> : (
+          {runs.isLoading ? <p>Loading…</p> : (runs.data?.runs ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-xs">No bootstrap attempts recorded yet.</p>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="text-left text-muted-foreground">
-                  <tr><th className="py-1 pr-2">run_id</th><th>status</th><th>started</th><th>in</th><th>out</th><th>warn</th><th>err</th><th>notes</th><th></th></tr>
+                  <tr>
+                    <th className="py-1 pr-2">run_id</th>
+                    <th className="pr-2">status</th>
+                    <th className="pr-2">initiated by</th>
+                    <th className="pr-2">source</th>
+                    <th className="pr-2">started</th>
+                    <th className="pr-2">ended</th>
+                    <th className="pr-2">duration</th>
+                    <th className="pr-2 text-right">products fetched</th>
+                    <th className="pr-2 text-right">warn</th>
+                    <th className="pr-2 text-right">err</th>
+                    <th className="pr-2">notes</th>
+                    <th></th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {(runs.data?.runs ?? []).map((r: any) => (
-                    <tr key={r.run_id} className="border-t">
-                      <td className="py-1 pr-2 font-mono">
-                        <button className="underline" onClick={() => setErrFilterRun(r.run_id)}>{r.run_id.slice(0, 8)}…</button>
-                      </td>
-                      <td>
-                        <Badge
-                          variant={
-                            r.status === "success"
-                              ? "default"
-                              : r.status === "running"
-                                ? "secondary"
-                                : r.status === "failed"
-                                  ? "destructive"
-                                  : "outline"
-                          }
-                        >
-                          {r.status}
-                        </Badge>
-                      </td>
-                      <td>{new Date(r.started_at).toLocaleString()}</td>
-                      <td>{r.counts_in}</td><td>{r.counts_out}</td>
-                      <td>{r.warnings_count}</td><td>{r.errors_count}</td>
-                      <td className="text-muted-foreground truncate max-w-[24ch]">{r.notes}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
-                          className="h-6 px-2 gap-1 text-[11px]"
-                          onClick={() => setDetailsRunId(r.run_id)}
-                        >
-                          <Bug className="w-3 h-3" /> Details
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(runs.data?.runs ?? []).map((r: any) => {
+                    const initiator =
+                      r.initiator?.email ??
+                      r.initiator?.full_name ??
+                      (r.initiator?.user_id ? `${String(r.initiator.user_id).slice(0, 8)}…` : "system");
+                    const durLabel = r.duration_ms == null
+                      ? "—"
+                      : r.duration_ms < 1000
+                        ? `${r.duration_ms}ms`
+                        : r.duration_ms < 60_000
+                          ? `${(r.duration_ms / 1000).toFixed(1)}s`
+                          : `${Math.floor(r.duration_ms / 60_000)}m ${Math.round((r.duration_ms % 60_000) / 1000)}s`;
+                    return (
+                      <tr key={r.run_id} className="border-t">
+                        <td className="py-1 pr-2 font-mono">
+                          <button className="underline" onClick={() => setErrFilterRun(r.run_id)}>{r.run_id.slice(0, 8)}…</button>
+                        </td>
+                        <td className="pr-2">
+                          <Badge
+                            variant={
+                              r.status === "success"
+                                ? "default"
+                                : r.status === "running"
+                                  ? "secondary"
+                                  : r.status === "failed"
+                                    ? "destructive"
+                                    : "outline"
+                            }
+                          >
+                            {r.status}
+                          </Badge>
+                        </td>
+                        <td className="pr-2 truncate max-w-[20ch]" title={r.initiator?.user_id ?? ""}>{initiator}</td>
+                        <td className="pr-2">
+                          <Badge variant="outline" className="font-mono text-[10px]">{r.triggered_by ?? "—"}</Badge>
+                        </td>
+                        <td className="pr-2 whitespace-nowrap">{r.started_at ? new Date(r.started_at).toLocaleString() : "—"}</td>
+                        <td className="pr-2 whitespace-nowrap">{r.ended_at ? new Date(r.ended_at).toLocaleString() : "—"}</td>
+                        <td className="pr-2 whitespace-nowrap">{durLabel}</td>
+                        <td className="pr-2 text-right font-mono">{r.products_fetched ?? r.counts_out ?? 0}</td>
+                        <td className="pr-2 text-right">{r.warnings_count}</td>
+                        <td className="pr-2 text-right">{r.errors_count}</td>
+                        <td className="text-muted-foreground truncate max-w-[24ch]" title={r.notes ?? ""}>{r.notes}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
+                            className="h-6 px-2 gap-1 text-[11px]"
+                            onClick={() => setDetailsRunId(r.run_id)}
+                          >
+                            <Bug className="w-3 h-3" /> Details
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
