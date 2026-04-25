@@ -2265,6 +2265,11 @@ export type Database = {
           tags: string[]
           updated_at: string
           venue: string | null
+          verification_issues: string[]
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
           website: string | null
         }
         Insert: {
@@ -2302,6 +2307,11 @@ export type Database = {
           tags?: string[]
           updated_at?: string
           venue?: string | null
+          verification_issues?: string[]
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
         }
         Update: {
@@ -2339,6 +2349,11 @@ export type Database = {
           tags?: string[]
           updated_at?: string
           venue?: string | null
+          verification_issues?: string[]
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
         }
         Relationships: []
