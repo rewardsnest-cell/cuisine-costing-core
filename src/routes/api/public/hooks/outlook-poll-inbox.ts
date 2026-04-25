@@ -73,6 +73,39 @@ async function processMessages(
     .in('outlook_message_id', messageIds)
   const seen = new Set((existing ?? []).map((r) => (r as any).outlook_message_id as string))
 
+  // Build a conversation_id → lead_id map from past lead emails so we can match
+  // replies that come from a different sender address than the original lead.
+  const conversationIds = Array.from(
+    new Set(messages.map((m) => m.conversationId).filter((c): c is string => !!c)),
+  )
+  const conversationToLead = new Map<string, string>()
+  if (conversationIds.length > 0) {
+    const { data: convoRows } = await supabase
+      .from('lead_emails')
+      .select('outlook_conversation_id, lead_id')
+      .in('outlook_conversation_id', conversationIds)
+      .not('lead_id', 'is', null)
+    for (const row of convoRows ?? []) {
+      const cid = (row as any).outlook_conversation_id as string | null
+      const lid = (row as any).lead_id as string | null
+      if (cid && lid && !conversationToLead.has(cid)) conversationToLead.set(cid, lid)
+    }
+  }
+  // Same idea for prospects.
+  const conversationToProspect = new Map<string, string>()
+  if (conversationIds.length > 0) {
+    const { data: convoRows } = await (supabase as any)
+      .from('sales_contact_log')
+      .select('outlook_conversation_id, prospect_id')
+      .in('outlook_conversation_id', conversationIds)
+      .not('prospect_id', 'is', null)
+    for (const row of convoRows ?? []) {
+      const cid = row.outlook_conversation_id as string | null
+      const pid = row.prospect_id as string | null
+      if (cid && pid && !conversationToProspect.has(cid)) conversationToProspect.set(cid, pid)
+    }
+  }
+
   let latestReceived: string | undefined
 
   for (const msg of messages) {
@@ -83,7 +116,37 @@ async function processMessages(
 
     const fromEmail = msg.from?.emailAddress?.address?.toLowerCase() ?? ''
     const fromName = msg.from?.emailAddress?.name ?? null
-    const leadId = fromEmail ? leadByEmail.get(fromEmail) ?? null : null
+
+    // Match strategy (in order):
+    //   1. Sender email matches a lead's email
+    //   2. Conversation ID matches a previous lead_email thread
+    //   3. Any recipient (To/Cc) email matches a lead — covers cases where the
+    //      lead replied-all and we appear in To/Cc alongside their colleagues.
+    let leadId: string | null = fromEmail ? leadByEmail.get(fromEmail) ?? null : null
+    let matchReason: 'sender' | 'thread' | 'recipient' | null = leadId ? 'sender' : null
+    if (!leadId && msg.conversationId) {
+      const fromThread = conversationToLead.get(msg.conversationId)
+      if (fromThread) { leadId = fromThread; matchReason = 'thread' }
+    }
+    if (!leadId) {
+      const recipients = [
+        ...(msg.toRecipients ?? []),
+        ...(msg.ccRecipients ?? []),
+      ]
+        .map((r) => r.emailAddress?.address?.toLowerCase())
+        .filter((e): e is string => !!e)
+      if (recipients.length > 0) {
+        const { data: byRcpt } = await supabase
+          .from('leads')
+          .select('id, email')
+          .in('email', recipients)
+          .limit(1)
+        if (byRcpt && byRcpt.length > 0) {
+          leadId = (byRcpt[0] as any).id as string
+          matchReason = 'recipient'
+        }
+      }
+    }
 
     const bodyContent = msg.body?.content ?? ''
     const isHtml = (msg.body?.contentType ?? '').toLowerCase() === 'html'
