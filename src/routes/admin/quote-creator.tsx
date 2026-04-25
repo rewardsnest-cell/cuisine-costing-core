@@ -271,7 +271,33 @@ function QuoteCreatorHub() {
     await updateCqhDish({ data: { id: d.id, name: next } }); reload();
   };
 
-  const duplicateGroups = useMemo(() => {
+  const [selectedDishIds, setSelectedDishIds] = useState<Set<string>>(new Set());
+  const toggleDishSelected = (id: string) => {
+    setSelectedDishIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAllDishes = () => {
+    if (!data) return;
+    setSelectedDishIds((prev) =>
+      prev.size === data.dishes.length ? new Set() : new Set(data.dishes.map((d) => d.id)),
+    );
+  };
+  const bulkDeleteDishes = async () => {
+    const ids = Array.from(selectedDishIds);
+    if (ids.length === 0) return;
+    if (!(await confirm({ title: `Delete ${ids.length} dish${ids.length === 1 ? "" : "es"}?`, description: "This cannot be undone." }))) return;
+    try {
+      await Promise.all(ids.map((id) => deleteCqhDish({ data: { id } })));
+      toast.success(`Deleted ${ids.length} dish${ids.length === 1 ? "" : "es"}`);
+      setSelectedDishIds(new Set());
+      reload();
+    } catch (e: any) {
+      toast.error("Bulk delete failed", { description: e.message });
+    }
+  };
     if (!data) return [] as CqhDish[][];
     const map = new Map<string, CqhDish[]>();
     for (const d of data.dishes) {
