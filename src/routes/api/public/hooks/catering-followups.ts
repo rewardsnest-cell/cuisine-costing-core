@@ -13,9 +13,12 @@
  * Auth: simple shared-secret header `x-cron-secret` (env CATERING_CRON_SECRET).
  */
 import { createFileRoute } from '@tanstack/react-router'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as React from 'react'
+import type { Database } from '@/integrations/supabase/types'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+
+type DB = SupabaseClient<Database>
 
 const SITE_NAME = 'VPS Finest'
 const SENDER_DOMAIN = 'notify.vpfinest.com'
