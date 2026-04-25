@@ -748,6 +748,28 @@ export const generateShoppingList = createServerFn({ method: "POST" })
 
 
 
+    // Build a "unit conversion applied" hint for any line that aggregated 2+
+    // sources OR a single source whose unit differs from the canonical (e.g.
+    // "1 lb → 16 oz"). Stored as a `[conv: ...]` prefix in `notes` so the
+    // shopping list editor can parse and surface it.
+    const fmtSourceQty = (q: number): string => {
+      if (!Number.isFinite(q)) return "0";
+      const abs = Math.abs(q);
+      const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 3;
+      return Number(q.toFixed(decimals)).toString();
+    };
+    for (const a of aggregated.values()) {
+      const srcs = a.sources;
+      if (!srcs.length) continue;
+      const differsFromCanonical = srcs.some((s) => (s.unit ?? null) !== (a.unit ?? null));
+      if (srcs.length < 2 && !differsFromCanonical) continue;
+      const lhs = srcs
+        .map((s) => `${fmtSourceQty(s.qty)}${s.unit ? " " + s.unit : ""}`)
+        .join(" + ");
+      const rhs = `${fmtSourceQty(a.quantity)}${a.unit ? " " + a.unit : ""}`;
+      const hint = `[conv: ${lhs} → ${rhs}]`;
+      a.notes = a.notes ? `${hint} ${a.notes}` : hint;
+    }
 
     const itemRows = Array.from(aggregated.values()).map((a) => ({
       shopping_list_id: list.id,
