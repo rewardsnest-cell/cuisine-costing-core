@@ -52,6 +52,9 @@ export const sendLeadEmail = createServerFn({ method: 'POST' })
         body_preview: data.body.slice(0, 250),
         sent_at: sentAt,
         template_name: 'manual',
+        outlook_message_id: result.outlookMessageId ?? null,
+        outlook_conversation_id: result.outlookConversationId ?? null,
+        internet_message_id: result.internetMessageId ?? null,
       })
       .select('id')
       .maybeSingle()
@@ -71,7 +74,12 @@ export const sendLeadEmail = createServerFn({ method: 'POST' })
       attempted_at: attemptedAt.toISOString(),
       completed_at: completedAt.toISOString(),
       duration_ms: durationMs,
-      metadata: { channel: 'outlook' } as any,
+      metadata: {
+        channel: 'outlook',
+        outlook_message_id: result.outlookMessageId,
+        outlook_conversation_id: result.outlookConversationId,
+        internet_message_id: result.internetMessageId,
+      } as any,
     })
 
     if (!result.ok) {

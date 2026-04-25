@@ -3869,6 +3869,7 @@ export type Database = {
         Row: {
           body_html: string | null
           body_preview: string | null
+          body_text: string | null
           channel: string
           contacted_at: string
           contacted_by: string | null
@@ -3876,6 +3877,7 @@ export type Database = {
           direction: string
           from_email: string | null
           id: string
+          internet_message_id: string | null
           notes: string | null
           outcome: string | null
           outlook_conversation_id: string | null
@@ -3888,6 +3890,7 @@ export type Database = {
         Insert: {
           body_html?: string | null
           body_preview?: string | null
+          body_text?: string | null
           channel: string
           contacted_at?: string
           contacted_by?: string | null
@@ -3895,6 +3898,7 @@ export type Database = {
           direction?: string
           from_email?: string | null
           id?: string
+          internet_message_id?: string | null
           notes?: string | null
           outcome?: string | null
           outlook_conversation_id?: string | null
@@ -3907,6 +3911,7 @@ export type Database = {
         Update: {
           body_html?: string | null
           body_preview?: string | null
+          body_text?: string | null
           channel?: string
           contacted_at?: string
           contacted_by?: string | null
@@ -3914,6 +3919,7 @@ export type Database = {
           direction?: string
           from_email?: string | null
           id?: string
+          internet_message_id?: string | null
           notes?: string | null
           outcome?: string | null
           outlook_conversation_id?: string | null
