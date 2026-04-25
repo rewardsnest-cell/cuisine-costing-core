@@ -42,6 +42,25 @@ const KINDS = [
   "shopping_list", "audit_export", "admin_export", "other",
 ];
 
+/** Best-effort module classification from filename + label. */
+const MODULES: { key: string; label: string; match: RegExp }[] = [
+  { key: "pricing",    label: "Pricing",     match: /pricing|cost|sql.appendix/i },
+  { key: "quote",      label: "Quotes",      match: /quote/i },
+  { key: "recipe",     label: "Recipes",     match: /recipe/i },
+  { key: "audit",      label: "Audit",       match: /audit|inventory|inspection/i },
+  { key: "newsletter", label: "Newsletter",  match: /newsletter|guide/i },
+  { key: "shopping",   label: "Shopping",    match: /shopping/i },
+  { key: "kroger",     label: "Kroger",      match: /kroger/i },
+  { key: "menu",       label: "Menu",        match: /menu/i },
+  { key: "brand",      label: "Brand",       match: /brand|logo/i },
+];
+
+function moduleOf(r: { filename: string; source_label: string | null }): string {
+  const hay = `${r.source_label ?? ""} ${r.filename}`;
+  for (const m of MODULES) if (m.match.test(hay)) return m.key;
+  return "other";
+}
+
 function fmtBytes(n: number | null) {
   if (!n) return "—";
   if (n < 1024) return `${n} B`;
@@ -49,11 +68,23 @@ function fmtBytes(n: number | null) {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
+/** YYYY-MM-DD in local time for <input type="date"> value comparisons. */
+function localDay(iso: string) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function AdminDownloadsPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [kind, setKind] = useState("all");
+  const [moduleKey, setModuleKey] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [q, setQ] = useState("");
 
   const load = async () => {
@@ -85,6 +116,12 @@ function AdminDownloadsPage() {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (kind !== "all" && r.kind !== kind) return false;
+      if (moduleKey !== "all" && moduleOf(r) !== moduleKey) return false;
+      if (dateFrom || dateTo) {
+        const day = localDay(r.created_at);
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
+      }
       if (!needle) return true;
       return (
         r.filename.toLowerCase().includes(needle) ||
@@ -92,7 +129,11 @@ function AdminDownloadsPage() {
         (emails[r.user_id || ""] || "").toLowerCase().includes(needle)
       );
     });
-  }, [rows, kind, q, emails]);
+  }, [rows, kind, moduleKey, dateFrom, dateTo, q, emails]);
+
+  const resetFilters = () => {
+    setKind("all"); setModuleKey("all"); setDateFrom(""); setDateTo(""); setQ("");
+  };
 
   const onDelete = async (id: string) => {
     if (!confirm("Permanently remove this download record?")) return;
@@ -156,11 +197,41 @@ function AdminDownloadsPage() {
               <Input className="pl-8" placeholder="Search filename, label, email…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <Select value={kind} onValueChange={setKind}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[160px]" aria-label="Filter by kind"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {KINDS.map((k) => <SelectItem key={k} value={k}>{k === "all" ? "All kinds" : k}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={moduleKey} onValueChange={setModuleKey}>
+              <SelectTrigger className="w-[160px]" aria-label="Filter by module"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All modules</SelectItem>
+                {MODULES.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1">
+              <Input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                aria-label="From date"
+              />
+              <span className="text-xs text-muted-foreground">→</span>
+              <Input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                aria-label="To date"
+              />
+            </div>
+            {(kind !== "all" || moduleKey !== "all" || dateFrom || dateTo || q) && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>Clear</Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -187,7 +258,14 @@ function AdminDownloadsPage() {
                       <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
                         {new Date(r.created_at).toLocaleString()}
                       </td>
-                      <td className="py-2 pr-4"><Badge variant="secondary">{r.kind}</Badge></td>
+                      <td className="py-2 pr-4">
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary">{r.kind}</Badge>
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                            {MODULES.find((m) => m.key === moduleOf(r))?.label ?? "Other"}
+                          </Badge>
+                        </div>
+                      </td>
                       <td className="py-2 pr-4">
                         <p className="font-medium">{r.source_label || r.filename}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[280px]">{r.filename}</p>
