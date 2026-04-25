@@ -1182,6 +1182,9 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
           <Button size="sm" variant="outline" onClick={exportPdf} disabled={items.length === 0}>
             <Download className="w-4 h-4 mr-1" /> Download PDF
           </Button>
+          <Button size="sm" variant="outline" onClick={exportXlsx} disabled={items.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Download Excel
+          </Button>
           {!isApproved && (
             <Button size="sm" onClick={async () => {
               try {
