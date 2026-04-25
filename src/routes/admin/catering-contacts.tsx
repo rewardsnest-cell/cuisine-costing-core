@@ -146,7 +146,7 @@ function CateringContactsPage() {
     return map;
   }, [data, today]);
 
-  if (isLoading) return <LoadingState message="Loading catering contacts…" />;
+  if (isLoading) return <LoadingState label="Loading catering contacts…" />;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
