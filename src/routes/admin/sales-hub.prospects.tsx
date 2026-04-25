@@ -254,9 +254,18 @@ function ProspectsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => logContact(p, "call")} title="Log call"><Phone className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => logContact(p, "email")} title="Log email"><MailIcon className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => remove(p.id)} title="Delete"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => callProspect(p)} title={p.phone ? `Call ${p.phone}` : "No phone on file"} disabled={!p.phone}>
+                            <Phone className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => emailProspect(p)} title={p.email ? `Email ${p.email}` : "No email on file"} disabled={!p.email}>
+                            <MailIcon className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => resetContacted(p)} title="Reset contacted" disabled={!p.last_contacted}>
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => remove(p.id)} title="Delete">
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
