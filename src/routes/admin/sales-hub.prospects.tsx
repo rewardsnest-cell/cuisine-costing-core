@@ -446,15 +446,25 @@ function ProspectsPage() {
                         {p.phone && <div>{p.phone}</div>}
                         {p.email && <div className="text-muted-foreground">{p.email}</div>}
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px]">
+                        {p.address ? (
+                          <span className="line-clamp-2" title={p.address}>{p.address}</span>
+                        ) : "—"}
+                      </TableCell>
                       <TableCell><Badge>{p.status}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.last_contacted ? new Date(p.last_contacted).toLocaleDateString() : "—"}
+                      <TableCell className="text-xs text-muted-foreground" title={p.last_contacted ? new Date(p.last_contacted).toLocaleString() : undefined}>
+                        {p.last_contacted ? (
+                          <div>
+                            <div>{timeAgoShort(p.last_contacted)}</div>
+                            <div className="text-[10px] opacity-70">{new Date(p.last_contacted).toLocaleDateString()}</div>
+                          </div>
+                        ) : "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {p.next_follow_up ? new Date(p.next_follow_up).toLocaleDateString() : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button size="sm" variant="ghost" onClick={() => callProspect(p)} title={p.phone ? `Call ${p.phone}` : "No phone on file"} disabled={!p.phone}>
                             <Phone className="w-4 h-4" />
                           </Button>
@@ -480,6 +490,17 @@ function ProspectsPage() {
                               <MailIcon className="w-3.5 h-3.5" /> Generate email
                             </Button>
                           )}
+                          {p.email && p.last_contacted && !hasUnreadReply(p) && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8 gap-1.5"
+                              onClick={() => openEmailDialog(p, true)}
+                              title={`Send a follow-up. Last contact: ${timeAgoShort(p.last_contacted)}`}
+                            >
+                              <Send className="w-3.5 h-3.5" /> Follow up
+                            </Button>
+                          )}
                           {hasUnreadReply(p) && (
                             <Button
                               size="sm"
@@ -491,6 +512,15 @@ function ProspectsPage() {
                               <Reply className="w-3.5 h-3.5" /> Respond
                             </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setHistoryDialogProspect(p); setHistoryDialogOpen(true); }}
+                            title="View email history (sent & received)"
+                            disabled={!p.last_contacted && !p.last_inbound_at}
+                          >
+                            <History className="w-4 h-4" />
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => resetContacted(p)} title="Reset contacted" disabled={!p.last_contacted}>
                             <RotateCcw className="w-4 h-4" />
                           </Button>
