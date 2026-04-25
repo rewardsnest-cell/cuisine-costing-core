@@ -217,6 +217,29 @@ function CatalogBootstrapPage() {
       {/* Live progress panel — always visible, polls while a run is active */}
       <BootstrapLiveProgress guardedPhase={guardedPhase} />
 
+      {/* Mapped-inventory preflight banner */}
+      {preflight.data && !preflight.data.ok && (
+        <Alert variant="destructive">
+          <ShieldAlert className="w-4 h-4" />
+          <AlertTitle>Bootstrap blocked — not enough mapped inventory</AlertTitle>
+          <AlertDescription>
+            <div className="mb-2">
+              <span className="font-mono">{preflight.data.mapped_count}</span> inventory items are mapped to a Kroger product
+              (minimum <span className="font-mono">{preflight.data.threshold}</span>).
+            </div>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {preflight.data.guidance.map((g, i) => <li key={i}>{g}</li>)}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      {preflight.data?.ok && (
+        <div className="text-xs text-muted-foreground">
+          Preflight OK — <span className="font-mono">{preflight.data.mapped_count}</span> mapped inventory items
+          (≥ <span className="font-mono">{preflight.data.threshold}</span> required).
+        </div>
+      )}
+
       {/* Bootstrap Status panel */}
 
       <Card className={isCompleted ? "border-success/50" : status === "IN_PROGRESS" ? "border-amber-500/60" : ""}>
