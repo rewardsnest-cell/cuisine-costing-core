@@ -589,6 +589,13 @@ function CatalogBootstrapPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bootstrap Run Details — surfaces exact Supabase update error / enum mismatch */}
+      <BootstrapRunDetailsDialog
+        runId={detailsRunId}
+        open={!!detailsRunId}
+        onOpenChange={(o) => { if (!o) setDetailsRunId(null); }}
+      />
     </div>
   );
 }
