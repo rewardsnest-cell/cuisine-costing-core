@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { format, addDays } from "date-fns";
 import {
   ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowLeft,
-  CalendarPlus, MapPin, Building2, X, CalendarIcon,
+  CalendarPlus, MapPin, Building2, X, CalendarIcon, Sparkles,
 } from "lucide-react";
+import { OutreachDraftDialog, type DraftLead } from "@/components/outreach/OutreachDraftDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,6 +98,7 @@ function LocalCateringContactsPage() {
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>(addDays(new Date(), 3));
   const [scheduleNote, setScheduleNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftLead, setDraftLead] = useState<DraftLead | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["local-catering-contacts"],
@@ -385,6 +387,18 @@ function LocalCateringContactsPage() {
                             <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 1)}>+1d</Button>
                             <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 3)}>+3d</Button>
                             <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 7)}>+1w</Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setDraftLead({
+                                id: l.id, name: l.name, company: l.company,
+                                organization_type: l.organization_type,
+                                catering_use_cases: l.catering_use_cases,
+                                email: l.email,
+                              })}
+                            >
+                              <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
+                            </Button>
                             <Button size="sm" onClick={() => quickSchedule(l, 3)}>
                               <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
                             </Button>
@@ -444,6 +458,12 @@ function LocalCateringContactsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OutreachDraftDialog
+        open={!!draftLead}
+        onOpenChange={(o) => !o && setDraftLead(null)}
+        lead={draftLead}
+      />
     </div>
   );
 }
