@@ -98,8 +98,14 @@ function NewsletterGuidePage() {
       }));
       const doc = generateNewsletterGuidePDF({ title, subtitle, recipes: guideRecipes });
       const filename = `weeknight-recipe-guide-${new Date().toISOString().slice(0, 10)}.pdf`;
-      doc.save(filename);
-      toast.success("PDF downloaded.");
+      const { saveAndLogDownload } = await import("@/lib/downloads/save-download");
+      const res = await saveAndLogDownload({
+        blob: doc.output("blob"),
+        filename,
+        kind: "newsletter_guide",
+        sourceLabel: title,
+      });
+      toast.success(res.persisted ? "PDF downloaded & saved to your account." : "PDF downloaded.");
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || "Could not generate PDF.");
