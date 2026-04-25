@@ -1,16 +1,26 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Copy, Check, Store } from "lucide-react";
+import { Loader2, Search, Copy, Check, Store, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   searchKrogerProducts,
+  listInventoryForMapping,
+  mapUpcToInventoryItem,
   type KrogerSearchHit,
+  type InventoryItemLite,
 } from "@/lib/server-fns/pricing-v2-search.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/search")({
@@ -29,6 +39,7 @@ function KrogerSearchPage() {
   const [limit, setLimit] = useState(25);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
+  const [mapTarget, setMapTarget] = useState<KrogerSearchHit | null>(null);
 
   const search = useMutation({
     mutationFn: (vars: { term: string; limit: number; storeId?: string }) =>
@@ -84,7 +95,12 @@ function KrogerSearchPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Search the live Kroger Products API by ingredient name. Pick matches
-          to grab UPCs, sizes, and prices for your catalog.
+          to grab UPCs, sizes, and prices — or map a UPC directly onto an
+          inventory item so the next{" "}
+          <Link to="/admin/pricing-v2/catalog" className="underline">
+            catalog bootstrap
+          </Link>{" "}
+          fetches it.
         </p>
       </div>
 
@@ -178,7 +194,9 @@ function KrogerSearchPage() {
                     selected={selected.has(h.productId)}
                     onToggle={() => toggle(h.productId)}
                     onCopyUpc={copyUpc}
+                    onMap={() => setMapTarget(h)}
                     copiedUpc={copied}
+                    defaultPrefill={term}
                   />
                 ))}
               </div>
@@ -194,6 +212,8 @@ function KrogerSearchPage() {
           </CardContent>
         </Card>
       )}
+
+      <MapDialog hit={mapTarget} onClose={() => setMapTarget(null)} defaultPrefill={term} />
     </div>
   );
 }
@@ -203,34 +223,42 @@ function ResultRow({
   selected,
   onToggle,
   onCopyUpc,
+  onMap,
   copiedUpc,
 }: {
   hit: KrogerSearchHit;
   selected: boolean;
   onToggle: () => void;
   onCopyUpc: (upc: string) => void;
+  onMap: () => void;
   copiedUpc: string | null;
+  defaultPrefill: string;
 }) {
   const upc = hit.upc || hit.productId;
   const onSale = hit.promoPrice != null && hit.regularPrice != null && hit.promoPrice < hit.regularPrice;
   return (
-    <button
-      type="button"
-      onClick={onToggle}
+    <div
       className={`w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
         selected
           ? "border-primary bg-primary/5"
           : "border-border/60 hover:bg-muted/40"
       }`}
     >
-      <div
+      <button
+        type="button"
+        onClick={onToggle}
         className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
           selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"
         }`}
+        aria-label="Select"
       >
         {selected && <Check className="w-3 h-3" />}
-      </div>
-      <div className="flex-1 min-w-0">
+      </button>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex-1 min-w-0 text-left"
+      >
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-medium text-sm truncate">
             {hit.description || "(no description)"}
@@ -246,7 +274,7 @@ function ResultRow({
           {hit.size && <span>{hit.size}</span>}
           {hit.soldBy && <span className="uppercase">{hit.soldBy}</span>}
         </div>
-      </div>
+      </button>
       <div className="text-right shrink-0">
         {onSale ? (
           <>
@@ -261,10 +289,15 @@ function ResultRow({
       </div>
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onCopyUpc(upc);
-        }}
+        onClick={onMap}
+        className="shrink-0 p-1.5 rounded hover:bg-muted text-muted-foreground"
+        title="Map to inventory item"
+      >
+        <Link2 className="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onCopyUpc(upc)}
         className="shrink-0 p-1.5 rounded hover:bg-muted text-muted-foreground"
         title="Copy UPC"
       >
@@ -274,6 +307,140 @@ function ResultRow({
           <Copy className="w-3.5 h-3.5" />
         )}
       </button>
-    </button>
+    </div>
+  );
+}
+
+function MapDialog({
+  hit,
+  onClose,
+  defaultPrefill,
+}: {
+  hit: KrogerSearchHit | null;
+  onClose: () => void;
+  defaultPrefill: string;
+}) {
+  const qc = useQueryClient();
+  const [search, setSearch] = useState(defaultPrefill);
+  const [onlyUnmapped, setOnlyUnmapped] = useState(true);
+  const [pickedId, setPickedId] = useState<string | null>(null);
+
+  const list = useQuery({
+    queryKey: ["pricing-v2", "inv-for-mapping", search, onlyUnmapped],
+    queryFn: () =>
+      listInventoryForMapping({
+        data: { search: search.trim() || undefined, onlyUnmapped, limit: 100 },
+      }),
+    enabled: !!hit,
+  });
+
+  const upc = hit?.upc || hit?.productId || "";
+
+  const mapMut = useMutation({
+    mutationFn: (vars: { inventoryItemId: string; upc: string }) =>
+      mapUpcToInventoryItem({ data: vars }),
+    onSuccess: (res: any) => {
+      toast.success(`Mapped UPC to "${res.item.name}"`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "inv-for-mapping"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog-data"] });
+      onClose();
+      setPickedId(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!hit} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Map UPC to inventory item</DialogTitle>
+        </DialogHeader>
+        {hit && (
+          <div className="space-y-4">
+            <div className="text-sm border rounded-md p-3 bg-muted/30">
+              <div className="font-medium">{hit.description}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 flex gap-3 flex-wrap">
+                <span className="font-mono">{upc}</span>
+                {hit.brand && <span>{hit.brand}</span>}
+                {hit.size && <span>{hit.size}</span>}
+              </div>
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Filter inventory items…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+              <label className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={onlyUnmapped}
+                  onChange={(e) => setOnlyUnmapped(e.target.checked)}
+                />
+                Unmapped only
+              </label>
+            </div>
+
+            <div className="border rounded-md max-h-72 overflow-y-auto divide-y divide-border/40">
+              {list.isLoading ? (
+                <p className="p-3 text-sm text-muted-foreground">Loading…</p>
+              ) : (list.data?.items.length ?? 0) === 0 ? (
+                <p className="p-3 text-sm text-muted-foreground">
+                  No matching inventory items.
+                </p>
+              ) : (
+                list.data!.items.map((it: InventoryItemLite) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={() => setPickedId(it.id)}
+                    className={`w-full text-left px-3 py-2 hover:bg-muted/40 flex items-center gap-3 ${
+                      pickedId === it.id ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <div
+                      className={`w-3.5 h-3.5 rounded-full border ${
+                        pickedId === it.id ? "bg-primary border-primary" : "border-muted-foreground/40"
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{it.name}</div>
+                      <div className="text-xs text-muted-foreground flex gap-2 flex-wrap">
+                        {it.category && <span>{it.category}</span>}
+                        {it.unit && <span>· {it.unit}</span>}
+                        {it.kroger_product_id && (
+                          <span className="font-mono text-amber-600">
+                            already → {it.kroger_product_id}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button
+                disabled={!pickedId || mapMut.isPending}
+                onClick={() =>
+                  pickedId && mapMut.mutate({ inventoryItemId: pickedId, upc })
+                }
+              >
+                {mapMut.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="w-4 h-4 mr-2" />
+                )}
+                Map UPC
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
