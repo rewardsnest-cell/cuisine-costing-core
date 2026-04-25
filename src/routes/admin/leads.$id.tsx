@@ -171,6 +171,62 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
   const [subject, setSubject] = useState<string>('')
   const [body, setBody] = useState<string>('')
   const [sending, setSending] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  type StagedAttachment = {
+    storagePath: string
+    fileName: string
+    contentType: string
+    sizeBytes: number
+  }
+  const [attachments, setAttachments] = useState<StagedAttachment[]>([])
+
+  const MAX_BYTES = 3 * 1024 * 1024 // Outlook inline attachment limit
+  const MAX_COUNT = 10
+
+  const onFilesPicked = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    if (attachments.length + files.length > MAX_COUNT) {
+      toast.error(`Max ${MAX_COUNT} attachments per email`)
+      return
+    }
+    setUploading(true)
+    try {
+      const next: StagedAttachment[] = []
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_BYTES) {
+          toast.error(`"${file.name}" exceeds 3 MB Outlook limit`)
+          continue
+        }
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_')
+        const path = `${lead.id}/${Date.now()}-${crypto.randomUUID()}-${safe}`
+        const { error } = await supabase.storage
+          .from('lead-email-attachments')
+          .upload(path, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: false,
+          })
+        if (error) {
+          toast.error(`Upload failed for "${file.name}": ${error.message}`)
+          continue
+        }
+        next.push({
+          storagePath: path,
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
+        })
+      }
+      if (next.length > 0) setAttachments((prev) => [...prev, ...next])
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeAttachment = async (path: string) => {
+    setAttachments((prev) => prev.filter((a) => a.storagePath !== path))
+    // Best-effort cleanup; ignore errors so the user isn't blocked.
+    await supabase.storage.from('lead-email-attachments').remove([path]).catch(() => {})
+  }
 
   const send = async () => {
     if (!to || !subject || !body) {
@@ -179,11 +235,20 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
     }
     setSending(true)
     try {
-      const res = await sendLeadEmail({ data: { leadId: lead.id, to, subject, body } })
+      const res = await sendLeadEmail({
+        data: {
+          leadId: lead.id,
+          to,
+          subject,
+          body,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        },
+      })
       if (res.ok) {
-        toast.success('Email sent via Outlook')
+        toast.success(`Email sent via Outlook${attachments.length ? ` with ${attachments.length} attachment${attachments.length === 1 ? '' : 's'}` : ''}`)
         setSubject('')
         setBody('')
+        setAttachments([])
         onSent()
       } else {
         toast.error(res.error || 'Send failed')
@@ -219,8 +284,56 @@ function ComposeCard({ lead, onSent }: { lead: any; onSent: () => void }) {
           onChange={(e) => setBody(e.target.value)}
           rows={8}
         />
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
+              <Paperclip className="h-3.5 w-3.5" /> Attachments (PDFs, images — max 3 MB each)
+            </label>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                multiple
+                accept="application/pdf,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  void onFilesPicked(e.target.files)
+                  e.target.value = ''
+                }}
+                disabled={uploading || sending}
+              />
+              <span className="inline-flex items-center gap-1 rounded-md border bg-background px-2.5 py-1 text-xs hover:bg-muted">
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                {uploading ? 'Uploading…' : 'Add files'}
+              </span>
+            </label>
+          </div>
+          {attachments.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {attachments.map((a) => (
+                <li
+                  key={a.storagePath}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span className="font-medium">{a.fileName}</span>
+                  <span className="text-muted-foreground">· {formatBytes(a.sizeBytes)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(a.storagePath)}
+                    className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-background hover:text-destructive"
+                    aria-label={`Remove ${a.fileName}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="flex justify-end">
-          <Button onClick={send} disabled={sending}>
+          <Button onClick={send} disabled={sending || uploading}>
             {sending ? 'Sending…' : 'Send via Outlook'}
           </Button>
         </div>
