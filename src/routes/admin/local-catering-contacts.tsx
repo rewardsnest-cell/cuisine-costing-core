@@ -5,6 +5,7 @@ import { format, addDays } from "date-fns";
 import {
   ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowLeft,
   CalendarPlus, MapPin, Building2, X, CalendarIcon, Sparkles,
+  ShieldAlert, ShieldCheck, ShieldQuestion,
 } from "lucide-react";
 import { OutreachDraftDialog, type DraftLead } from "@/components/outreach/OutreachDraftDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +60,29 @@ type Lead = {
   catering_use_cases: string[];
   notes: string | null;
   created_at: string;
+  verification_status: "verified" | "needs_review" | "unverified";
+  verification_issues: string[];
+  verification_notes: string | null;
 };
+
+const ISSUE_LABELS: Record<string, string> = {
+  missing_email_and_phone: "No email or phone",
+  missing_email: "Missing email",
+  missing_phone: "Missing phone",
+  invalid_email: "Invalid email format",
+  invalid_phone: "Phone < 10 digits",
+  missing_name_and_company: "No name or company",
+};
+
+function verificationBadge(status: string) {
+  if (status === "verified") {
+    return { variant: "default" as const, icon: ShieldCheck, label: "Verified" };
+  }
+  if (status === "needs_review") {
+    return { variant: "destructive" as const, icon: ShieldAlert, label: "Needs review" };
+  }
+  return { variant: "secondary" as const, icon: ShieldQuestion, label: "Unverified" };
+}
 
 const STATUSES = ["new", "contacted", "follow-up", "qualified", "booked", "repeat", "won", "lost", "not-interested", "archived"];
 const PRIORITIES = ["high", "medium", "low"];
@@ -94,11 +117,20 @@ function LocalCateringContactsPage() {
   const [followUpFrom, setFollowUpFrom] = useState<Date | undefined>();
   const [followUpTo, setFollowUpTo] = useState<Date | undefined>();
 
+  const [verification, setVerification] = useState<string>("all");
+
   const [scheduleLead, setScheduleLead] = useState<Lead | null>(null);
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>(addDays(new Date(), 3));
   const [scheduleNote, setScheduleNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [draftLead, setDraftLead] = useState<DraftLead | null>(null);
+  const [reviewLead, setReviewLead] = useState<Lead | null>(null);
+  const [reviewEmail, setReviewEmail] = useState("");
+  const [reviewPhone, setReviewPhone] = useState("");
+  const [reviewName, setReviewName] = useState("");
+  const [reviewCompany, setReviewCompany] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["local-catering-contacts"],
@@ -106,7 +138,7 @@ function LocalCateringContactsPage() {
       const { data, error } = await supabase
         .from("leads")
         .select(
-          "id,name,email,phone,company,organization_type,website,address_city,address_state,distance_miles,priority,status,first_outreach_date,last_outreach_date,next_follow_up_date,last_contact_date,catering_use_cases,notes,created_at"
+          "id,name,email,phone,company,organization_type,website,address_city,address_state,distance_miles,priority,status,first_outreach_date,last_outreach_date,next_follow_up_date,last_contact_date,catering_use_cases,notes,created_at,verification_status,verification_issues,verification_notes"
         )
         .eq("lead_type", "catering")
         .order("priority", { ascending: true })
@@ -142,6 +174,7 @@ function LocalCateringContactsPage() {
       }
       if (priority !== "all" && l.priority !== priority) return false;
       if (status !== "all" && l.status !== status) return false;
+      if (verification !== "all" && l.verification_status !== verification) return false;
 
       const created = (l.created_at ?? "").slice(0, 10);
       if (cf && created < cf) return false;
@@ -155,17 +188,59 @@ function LocalCateringContactsPage() {
       }
       return true;
     });
-  }, [data, search, maxDistance, category, priority, status, createdFrom, createdTo, followUpFrom, followUpTo]);
+  }, [data, search, maxDistance, category, priority, status, verification, createdFrom, createdTo, followUpFrom, followUpTo]);
 
   const clearFilters = () => {
     setSearch(""); setMaxDistance(""); setCategory("all"); setPriority("all"); setStatus("all");
+    setVerification("all");
     setCreatedFrom(undefined); setCreatedTo(undefined); setFollowUpFrom(undefined); setFollowUpTo(undefined);
   };
 
+  const openReview = (lead: Lead) => {
+    setReviewLead(lead);
+    setReviewEmail(lead.email ?? "");
+    setReviewPhone(lead.phone ?? "");
+    setReviewName(lead.name ?? "");
+    setReviewCompany(lead.company ?? "");
+    setReviewNotes(lead.verification_notes ?? "");
+  };
+
   const quickSchedule = (lead: Lead, days: number) => {
+    if (lead.verification_status === "needs_review") {
+      const issues = (lead.verification_issues ?? []).map((i) => ISSUE_LABELS[i] ?? i).join(", ");
+      toast.error(`Verify contact first: ${issues || "missing contact info"}`);
+      openReview(lead);
+      return;
+    }
     setScheduleLead(lead);
     setScheduleDate(addDays(new Date(), days));
     setScheduleNote("");
+  };
+
+  const saveReview = async () => {
+    if (!reviewLead) return;
+    setReviewSaving(true);
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          email: reviewEmail.trim() || null,
+          phone: reviewPhone.trim() || null,
+          name: reviewName.trim() || null,
+          company: reviewCompany.trim() || null,
+          verification_notes: reviewNotes.trim() || null,
+        })
+        .eq("id", reviewLead.id);
+      if (error) throw error;
+      toast.success("Contact updated. Verification recomputed.");
+      setReviewLead(null);
+      refetch();
+      router.invalidate();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to update contact");
+    } finally {
+      setReviewSaving(false);
+    }
   };
 
   const saveFollowUp = async () => {
@@ -195,7 +270,14 @@ function LocalCateringContactsPage() {
       refetch();
       router.invalidate();
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to schedule follow-up");
+      const msg = e?.message ?? "Failed to schedule follow-up";
+      if (msg.includes("manual verification")) {
+        toast.error("Verification required before scheduling outreach.");
+        if (scheduleLead) openReview(scheduleLead);
+        setScheduleLead(null);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -206,6 +288,7 @@ function LocalCateringContactsPage() {
     (l) => l.next_follow_up_date && l.next_follow_up_date < today
   ).length;
   const dueTodayCount = filtered.filter((l) => l.next_follow_up_date === today).length;
+  const needsReviewCount = (data ?? []).filter((l) => l.verification_status === "needs_review").length;
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
@@ -218,7 +301,7 @@ function LocalCateringContactsPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight mt-1">Local Catering Contacts</h1>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} of {data?.length ?? 0} contacts • {overdueCount} overdue • {dueTodayCount} due today
+            {filtered.length} of {data?.length ?? 0} contacts • {overdueCount} overdue • {dueTodayCount} due today • {needsReviewCount} need review
           </p>
         </div>
         <div className="flex gap-2">
@@ -231,6 +314,19 @@ function LocalCateringContactsPage() {
           </Link>
         </div>
       </header>
+
+      {needsReviewCount > 0 && verification !== "needs_review" && (
+        <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <ShieldAlert className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+          <div className="flex-1">
+            <div className="font-medium text-destructive">{needsReviewCount} contact{needsReviewCount === 1 ? "" : "s"} need manual review</div>
+            <div className="text-muted-foreground">Outreach scheduling is blocked until missing email/phone or invalid formats are fixed.</div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setVerification("needs_review")}>
+            Show flagged
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -296,6 +392,18 @@ function LocalCateringContactsPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Verification</Label>
+            <Select value={verification} onValueChange={setVerification}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="verified">Verified</SelectItem>
+                <SelectItem value="needs_review">Needs review</SelectItem>
+                <SelectItem value="unverified">Unverified</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <DateRangePicker label="Created" from={createdFrom} to={createdTo} setFrom={setCreatedFrom} setTo={setCreatedTo} />
           <DateRangePicker label="Next follow-up" from={followUpFrom} to={followUpTo} setFrom={setFollowUpFrom} setTo={setFollowUpTo} />
         </CardContent>
@@ -315,6 +423,7 @@ function LocalCateringContactsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Contact</TableHead>
+                    <TableHead>Verification</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Priority / Status</TableHead>
                     <TableHead>Next follow-up</TableHead>
@@ -348,6 +457,26 @@ function LocalCateringContactsPage() {
                               </a>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          {(() => {
+                            const v = verificationBadge(l.verification_status);
+                            const Icon = v.icon;
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={v.variant} className="w-fit gap-1">
+                                  <Icon className="h-3 w-3" />{v.label}
+                                </Badge>
+                                {l.verification_status === "needs_review" && (
+                                  <ul className="text-xs text-muted-foreground list-disc pl-4">
+                                    {(l.verification_issues ?? []).map((iss) => (
+                                      <li key={iss}>{ISSUE_LABELS[iss] ?? iss}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="text-sm inline-flex items-center gap-1">
@@ -384,24 +513,32 @@ function LocalCateringContactsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex flex-wrap justify-end gap-1">
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 1)}>+1d</Button>
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 3)}>+3d</Button>
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 7)}>+1w</Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setDraftLead({
-                                id: l.id, name: l.name, company: l.company,
-                                organization_type: l.organization_type,
-                                catering_use_cases: l.catering_use_cases,
-                                email: l.email,
-                              })}
-                            >
-                              <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
-                            </Button>
-                            <Button size="sm" onClick={() => quickSchedule(l, 3)}>
-                              <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
-                            </Button>
+                            {l.verification_status === "needs_review" ? (
+                              <Button size="sm" variant="destructive" onClick={() => openReview(l)}>
+                                <ShieldAlert className="h-3.5 w-3.5 mr-1" />Review
+                              </Button>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 1)}>+1d</Button>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 3)}>+3d</Button>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 7)}>+1w</Button>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => setDraftLead({
+                                    id: l.id, name: l.name, company: l.company,
+                                    organization_type: l.organization_type,
+                                    catering_use_cases: l.catering_use_cases,
+                                    email: l.email,
+                                  })}
+                                >
+                                  <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
+                                </Button>
+                                <Button size="sm" onClick={() => quickSchedule(l, 3)}>
+                                  <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -464,6 +601,66 @@ function LocalCateringContactsPage() {
         onOpenChange={(o) => !o && setDraftLead(null)}
         lead={draftLead}
       />
+
+      <Dialog open={!!reviewLead} onOpenChange={(o) => !o && setReviewLead(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+              Verify contact before outreach
+            </DialogTitle>
+          </DialogHeader>
+          {reviewLead && (
+            <div className="space-y-4">
+              <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+                <div className="font-medium">Issues detected</div>
+                <ul className="list-disc pl-5 text-muted-foreground">
+                  {(reviewLead.verification_issues ?? []).map((iss) => (
+                    <li key={iss}>{ISSUE_LABELS[iss] ?? iss}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Name</Label>
+                  <Input value={reviewName} onChange={(e) => setReviewName(e.target.value)} maxLength={120} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Company</Label>
+                  <Input value={reviewCompany} onChange={(e) => setReviewCompany(e.target.value)} maxLength={200} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={reviewEmail} onChange={(e) => setReviewEmail(e.target.value)} maxLength={255} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input type="tel" value={reviewPhone} onChange={(e) => setReviewPhone(e.target.value)} maxLength={40} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Review notes (optional)</Label>
+                <Textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="e.g. Confirmed via website contact page"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Saving recomputes verification automatically. Outreach unlocks once email or phone is valid.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewLead(null)} disabled={reviewSaving}>Cancel</Button>
+            <Button onClick={saveReview} disabled={reviewSaving}>
+              {reviewSaving ? "Saving…" : "Save & re-verify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
