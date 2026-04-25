@@ -82,6 +82,9 @@ function AdminDownloadsPage() {
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [kind, setKind] = useState("all");
+  const [moduleKey, setModuleKey] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [q, setQ] = useState("");
 
   const load = async () => {
