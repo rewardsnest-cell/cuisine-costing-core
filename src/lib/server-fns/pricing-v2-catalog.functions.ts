@@ -811,12 +811,48 @@ export const listCatalogRuns = createServerFn({ method: "GET" })
     const { supabase } = context as any;
     const { data, error } = await supabase
       .from("pricing_v2_runs")
-      .select("run_id, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, params, notes, last_error, stage")
+      .select(
+        "run_id, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, params, notes, last_error, stage, initiated_by, triggered_by"
+      )
       .in("stage", ["catalog", "catalog_bootstrap_test"])
       .order("started_at", { ascending: false })
       .limit(20);
     if (error) throw new Error(error.message);
-    return { runs: data ?? [] };
+    const runs = data ?? [];
+
+    // Enrich with initiator email/full_name (best-effort; don't fail the list).
+    const userIds = Array.from(
+      new Set(runs.map((r: any) => r.initiated_by).filter(Boolean) as string[])
+    );
+    let profilesById: Record<string, { email: string | null; full_name: string | null }> = {};
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .in("user_id", userIds);
+      for (const p of profs ?? []) {
+        profilesById[p.user_id] = { email: p.email ?? null, full_name: p.full_name ?? null };
+      }
+    }
+
+    const enriched = runs.map((r: any) => {
+      const startedMs = r.started_at ? new Date(r.started_at).getTime() : null;
+      const endedMs = r.ended_at ? new Date(r.ended_at).getTime() : null;
+      const durationMs = startedMs && endedMs ? endedMs - startedMs : null;
+      const prof = r.initiated_by ? profilesById[r.initiated_by] : null;
+      return {
+        ...r,
+        duration_ms: durationMs,
+        initiator: {
+          user_id: r.initiated_by ?? null,
+          email: prof?.email ?? null,
+          full_name: prof?.full_name ?? null,
+        },
+        products_fetched: r.counts_out ?? 0,
+      };
+    });
+
+    return { runs: enriched };
   });
 
 // ---- Manual weight override ----------------------------------------------
