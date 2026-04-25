@@ -50,7 +50,7 @@ function matches(entry: InventoryEntry, q: string) {
 
 function PricingCodeInventoryPage() {
   const [query, setQuery] = useState("");
-  const [downloading, setDownloading] = useState<null | "pdf" | "json">(null);
+  const [downloading, setDownloading] = useState<null | "pdf" | "json" | "sql">(null);
 
   const filtered = useMemo(
     () => PRICING_INVENTORY.filter((e) => matches(e, query)),
