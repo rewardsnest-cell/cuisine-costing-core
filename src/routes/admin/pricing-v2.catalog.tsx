@@ -65,6 +65,59 @@ function CatalogBootstrapPage() {
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
 
+  // Guarded "Run Bootstrap" flow: dry-run first, then confirm full run.
+  const [guardedPhase, setGuardedPhase] = useState<"idle" | "dry-running" | "awaiting-confirm" | "full-running">("idle");
+  const [guardedDryResult, setGuardedDryResult] = useState<RunResult | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const runGuarded = async () => {
+    try {
+      setGuardedPhase("dry-running");
+      setGuardedDryResult(null);
+      const dry = await runCatalogBootstrap({
+        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined },
+      }) as RunResult;
+      setLastResult(dry);
+      setGuardedDryResult(dry);
+      if (dry.run_id) setErrFilterRun(dry.run_id);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+
+      if ((dry.errors_count ?? 0) > 0) {
+        toast.error(`Dry run found ${dry.errors_count} errors — review before running full bootstrap`);
+        setGuardedPhase("awaiting-confirm");
+        setConfirmOpen(true);
+        return;
+      }
+      toast.success(`Dry run OK — in:${dry.counts_in} out:${dry.counts_out} warn:${dry.warnings_count}`);
+      setGuardedPhase("awaiting-confirm");
+      setConfirmOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Dry run failed");
+      setGuardedPhase("idle");
+    }
+  };
+
+  const confirmFullRun = async () => {
+    setConfirmOpen(false);
+    try {
+      setGuardedPhase("full-running");
+      const res = await runCatalogBootstrap({
+        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined },
+      }) as RunResult;
+      setLastResult(res);
+      if (res.run_id) setErrFilterRun(res.run_id);
+      if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
+      else if (res.bootstrap_completed) toast.success(`Bootstrap COMPLETED — fetched ${res.counts_out} this batch`);
+      else toast.success(`Batch done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Run failed");
+    } finally {
+      setGuardedPhase("idle");
+      setGuardedDryResult(null);
+    }
+  };
+
   const [errFilterRun, setErrFilterRun] = useState<string>("");
   const [errFilterSeverity, setErrFilterSeverity] = useState<"" | "warning" | "error">("");
   const errors = useQuery({
