@@ -9,7 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CheckCircle2, AlertTriangle, Loader2, Play, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { getPricingV2Settings } from "@/lib/server-fns/pricing-v2.functions";
 import {
@@ -54,6 +64,59 @@ function CatalogBootstrapPage() {
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
+
+  // Guarded "Run Bootstrap" flow: dry-run first, then confirm full run.
+  const [guardedPhase, setGuardedPhase] = useState<"idle" | "dry-running" | "awaiting-confirm" | "full-running">("idle");
+  const [guardedDryResult, setGuardedDryResult] = useState<RunResult | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const runGuarded = async () => {
+    try {
+      setGuardedPhase("dry-running");
+      setGuardedDryResult(null);
+      const dry = await runCatalogBootstrap({
+        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined },
+      }) as RunResult;
+      setLastResult(dry);
+      setGuardedDryResult(dry);
+      if (dry.run_id) setErrFilterRun(dry.run_id);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+
+      if ((dry.errors_count ?? 0) > 0) {
+        toast.error(`Dry run found ${dry.errors_count} errors — review before running full bootstrap`);
+        setGuardedPhase("awaiting-confirm");
+        setConfirmOpen(true);
+        return;
+      }
+      toast.success(`Dry run OK — in:${dry.counts_in} out:${dry.counts_out} warn:${dry.warnings_count}`);
+      setGuardedPhase("awaiting-confirm");
+      setConfirmOpen(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Dry run failed");
+      setGuardedPhase("idle");
+    }
+  };
+
+  const confirmFullRun = async () => {
+    setConfirmOpen(false);
+    try {
+      setGuardedPhase("full-running");
+      const res = await runCatalogBootstrap({
+        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined },
+      }) as RunResult;
+      setLastResult(res);
+      if (res.run_id) setErrFilterRun(res.run_id);
+      if (res.skipped) toast.info(res.message ?? "Bootstrap already completed");
+      else if (res.bootstrap_completed) toast.success(`Bootstrap COMPLETED — fetched ${res.counts_out} this batch`);
+      else toast.success(`Batch done — in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Run failed");
+    } finally {
+      setGuardedPhase("idle");
+      setGuardedDryResult(null);
+    }
+  };
 
   const [errFilterRun, setErrFilterRun] = useState<string>("");
   const [errFilterSeverity, setErrFilterSeverity] = useState<"" | "warning" | "error">("");
@@ -166,12 +229,34 @@ function CatalogBootstrapPage() {
                 <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
                 <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
               </div>
-              <Button onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })} disabled={runMut.isPending} className="gap-1.5">
-                <Play className="w-4 h-4" />
-                {status === "IN_PROGRESS" ? "Resume Bootstrap" : "Run Bootstrap"}
+              <Button
+                onClick={runGuarded}
+                disabled={runMut.isPending || guardedPhase === "dry-running" || guardedPhase === "full-running"}
+                className="gap-1.5"
+              >
+                {guardedPhase === "dry-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                 guardedPhase === "full-running" ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                 <ShieldCheck className="w-4 h-4" />}
+                {guardedPhase === "dry-running" ? "Dry running…" :
+                 guardedPhase === "full-running" ? (status === "IN_PROGRESS" ? "Resuming…" : "Running…") :
+                 status === "IN_PROGRESS" ? "Resume Bootstrap (safe)" : "Run Bootstrap (safe)"}
               </Button>
-              <Button variant="secondary" onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })} disabled={runMut.isPending}>
-                Dry Run (50)
+              <Button
+                variant="secondary"
+                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
+                disabled={runMut.isPending || guardedPhase !== "idle"}
+                className="gap-1.5"
+                title="Skip the dry-run preflight and run immediately"
+              >
+                <Play className="w-4 h-4" />
+                Run Now (skip dry-run)
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })}
+                disabled={runMut.isPending || guardedPhase !== "idle"}
+              >
+                Dry Run Only (50)
               </Button>
               <Button variant="ghost" onClick={() => testMut.mutate()} disabled={testMut.isPending}>
                 Run Test Cases
@@ -377,6 +462,66 @@ function CatalogBootstrapPage() {
         <FixWeightCard onSaved={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
         <TraceCard />
       </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open && guardedPhase === "awaiting-confirm") {
+            setGuardedPhase("idle");
+            setGuardedDryResult(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {guardedDryResult && (guardedDryResult.errors_count ?? 0) > 0 ? (
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              )}
+              Dry run complete — proceed with full bootstrap?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  Preflight executed against the Kroger API without writing to the catalog.
+                  Review the counts before committing.
+                </div>
+                {guardedDryResult && (
+                  <div className="grid grid-cols-2 gap-2 rounded-md border p-3 font-mono text-xs">
+                    <div>run_id: <span className="break-all">{guardedDryResult.run_id}</span></div>
+                    <div>store_id: {guardedDryResult.store_id}</div>
+                    <div>counts_in: {guardedDryResult.counts_in}</div>
+                    <div>counts_out: {guardedDryResult.counts_out}</div>
+                    <div>warnings: {guardedDryResult.warnings_count}</div>
+                    <div className={(guardedDryResult.errors_count ?? 0) > 0 ? "text-destructive" : ""}>
+                      errors: {guardedDryResult.errors_count}
+                    </div>
+                  </div>
+                )}
+                {guardedDryResult && (guardedDryResult.errors_count ?? 0) > 0 && (
+                  <div className="text-destructive text-xs">
+                    Dry run reported errors. You can still proceed, but consider reviewing the
+                    Errors panel below first.
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  The full run will write rows to <span className="font-mono">pricing_v2_kroger_catalog_raw</span>{" "}
+                  and <span className="font-mono">pricing_v2_item_catalog</span>.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFullRun}>
+              Run full bootstrap
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
