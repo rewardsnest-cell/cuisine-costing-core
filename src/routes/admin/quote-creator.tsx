@@ -127,31 +127,60 @@ function QuoteCreatorHub() {
 
   const loadEvents = useCallback(async () => {
     setEventsLoading(true);
+    log("Fetching events list…");
     try {
       const { events } = await listCqhEvents();
+      log(`Loaded ${events.length} event(s).`);
       setEvents(events);
       // Auto-select latest if nothing selected
       setSelectedId((cur) => cur ?? (events[0]?.id ?? null));
     } catch (e: any) {
+      log(`listCqhEvents failed: ${e?.message ?? e}`, "error");
       toast.error("Couldn't load events", { description: e.message });
     } finally {
       setEventsLoading(false);
     }
-  }, []);
+  }, [log]);
 
   const loadEvent = useCallback(async (id: string) => {
     setLoading(true);
+    log(`Fetching event ${id}…`);
     try {
       const res = await getCqhEvent({ data: { id } });
+      log(`Event loaded: ${(res as any)?.event?.name ?? "(unnamed)"}`);
       setData(res as any);
     } catch (e: any) {
+      log(`getCqhEvent failed: ${e?.message ?? e}`, "error");
       toast.error("Couldn't load event", { description: e.message });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [log]);
+
+  // Auth + permission diagnostics
+  useEffect(() => {
+    if (authLoading) { log("Auth: loading session…"); return; }
+    if (!user) { log("Auth: no user signed in.", "warn"); return; }
+    log(`Auth: signed in as ${user.email} (admin=${isAdmin})`);
+  }, [authLoading, user, isAdmin, log]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  // Sync ?event=<id> -> selectedId (deep link support)
+  useEffect(() => {
+    if (search.event && search.event !== selectedId) {
+      log(`Deep link: selecting event ${search.event} from URL`);
+      setSelectedId(search.event);
+    }
+  }, [search.event, selectedId, log]);
+
+  // Sync selectedId -> ?event=<id> so the URL is shareable
+  useEffect(() => {
+    if (selectedId && selectedId !== search.event) {
+      navigate({ to: "/admin/quote-creator", search: { event: selectedId }, replace: true });
+    }
+  }, [selectedId, search.event, navigate]);
+
   useEffect(() => { if (selectedId) loadEvent(selectedId); else setData(null); }, [selectedId, loadEvent]);
 
   const reload = useCallback(() => {
