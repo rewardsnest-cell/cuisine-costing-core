@@ -11,6 +11,7 @@ import {
   ensurePricingV2Initialized,
 } from "@/lib/server-fns/pricing-v2.functions";
 import { getRecipeNormalizationGate } from "@/lib/server-fns/pricing-v2-recipe-normalize.functions";
+import { PipelineLiveStatus } from "@/components/admin/PipelineLiveStatus";
 
 export const Route = createFileRoute("/admin/pricing-v2/")({
   head: () => ({ meta: [{ title: "Pricing v2 — Control Center" }] }),
