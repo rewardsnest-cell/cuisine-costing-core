@@ -3505,6 +3505,7 @@ export type Database = {
           id: string
           notes: string | null
           review_received: boolean
+          star_rating: number | null
         }
         Insert: {
           asked_at?: string
@@ -3515,6 +3516,7 @@ export type Database = {
           id?: string
           notes?: string | null
           review_received?: boolean
+          star_rating?: number | null
         }
         Update: {
           asked_at?: string
@@ -3525,6 +3527,7 @@ export type Database = {
           id?: string
           notes?: string | null
           review_received?: boolean
+          star_rating?: number | null
         }
         Relationships: []
       }
