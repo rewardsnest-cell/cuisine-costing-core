@@ -36,12 +36,19 @@ type Group = {
   estCost: number;
 };
 
+const rowKey = (r: Row, supplierId: string | null) =>
+  `${supplierId || "none"}::${r.name.toLowerCase()}::${r.unit}`;
+
 export function ShoppingList({ quoteId }: { quoteId: string }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingPOs, setCreatingPOs] = useState(false);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { byItemId: activeSales } = useActiveSales();
+  const confirm = useConfirm();
+
 
   const createPurchaseOrders = async () => {
     const eligible = groups.filter((g) => g.supplierId && g.rows.some((r) => r.toBuy > 0 && r.inventoryItemId));
