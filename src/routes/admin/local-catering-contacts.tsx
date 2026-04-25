@@ -506,24 +506,32 @@ function LocalCateringContactsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex flex-wrap justify-end gap-1">
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 1)}>+1d</Button>
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 3)}>+3d</Button>
-                            <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 7)}>+1w</Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setDraftLead({
-                                id: l.id, name: l.name, company: l.company,
-                                organization_type: l.organization_type,
-                                catering_use_cases: l.catering_use_cases,
-                                email: l.email,
-                              })}
-                            >
-                              <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
-                            </Button>
-                            <Button size="sm" onClick={() => quickSchedule(l, 3)}>
-                              <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
-                            </Button>
+                            {l.verification_status === "needs_review" ? (
+                              <Button size="sm" variant="destructive" onClick={() => openReview(l)}>
+                                <ShieldAlert className="h-3.5 w-3.5 mr-1" />Review
+                              </Button>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 1)}>+1d</Button>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 3)}>+3d</Button>
+                                <Button size="sm" variant="outline" onClick={() => quickSchedule(l, 7)}>+1w</Button>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => setDraftLead({
+                                    id: l.id, name: l.name, company: l.company,
+                                    organization_type: l.organization_type,
+                                    catering_use_cases: l.catering_use_cases,
+                                    email: l.email,
+                                  })}
+                                >
+                                  <Sparkles className="h-3.5 w-3.5 mr-1" />Draft
+                                </Button>
+                                <Button size="sm" onClick={() => quickSchedule(l, 3)}>
+                                  <CalendarPlus className="h-3.5 w-3.5 mr-1" />Schedule
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
