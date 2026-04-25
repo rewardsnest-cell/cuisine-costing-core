@@ -1237,7 +1237,16 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
   };
 
   return (
-    <tr>
+    <tr className={selected ? "bg-primary/5" : undefined}>
+      {!isApproved && (
+        <td className="py-1 pr-2">
+          <Checkbox
+            checked={!!selected}
+            onCheckedChange={() => onToggleSelect?.()}
+            aria-label={`Select ${name}`}
+          />
+        </td>
+      )}
       <td className="py-1 pr-2">
         <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={save} disabled={isApproved} className="h-8" />
       </td>
