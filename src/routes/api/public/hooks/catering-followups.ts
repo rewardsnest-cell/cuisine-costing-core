@@ -17,18 +17,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as React from 'react'
 import type { Database } from '@/integrations/supabase/types'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { sendOutlookEmail } from '@/lib/outlook/send'
 
 type DB = SupabaseClient<Database>
-
-const SITE_NAME = 'VPS Finest'
-const SENDER_DOMAIN = 'notify.vpfinest.com'
-const FROM_DOMAIN = 'notify.vpfinest.com'
-
-function generateToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 function daysAgo(n: number): string {
   const d = new Date()
