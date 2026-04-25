@@ -271,7 +271,7 @@ function DailyDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); loadTrend(); }}>
+          <Button variant="outline" size="sm" onClick={() => { loadCore(); loadReminders(); loadTrend(); loadActivity(); }}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={carryUnfinished}>
