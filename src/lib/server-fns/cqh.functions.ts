@@ -279,16 +279,76 @@ export const mergeCqhDishes = createServerFn({ method: "POST" })
 
 // ---------- AI: extract dishes from documents ----------
 
-const DISHES_SYSTEM = `You extract a clean list of dish/menu item names from a competitor catering proposal or menu document.
+const DISHES_SYSTEM = `You extract dish/menu items from a competitor catering proposal, menu, or pricing spreadsheet.
 
 Return ONLY valid JSON of this shape:
-{ "dishes": [{ "name": string, "is_main": boolean }] }
+{
+  "dishes": [{
+    "name": string,
+    "is_main": boolean,
+    "qty": number | null,
+    "unit": string | null,
+    "unit_price": number | null,
+    "line_total": number | null,
+    "category": string | null,
+    "notes": string | null,
+    "raw": string | null
+  }]
+}
 
 Rules:
-- Each "name" should be a concise dish name a chef would recognize (e.g. "Grilled Salmon", "Caesar Salad").
-- Skip pricing, headers, dates, intros, and non-food items (linens, service, gratuity).
-- Mark is_main=true ONLY for clear entrée/main items (proteins, signature mains). Sides/salads/apps/desserts are false.
-- Deduplicate within the document.`;
+- "name" should be a concise dish name a chef would recognize (e.g. "Grilled Salmon", "Caesar Salad").
+- Skip pricing-only summary rows, headers, dates, intros, and non-food rows (linens, service charges, gratuity, taxes, delivery).
+- Mark is_main=true ONLY for clear entrée/main items. Sides/salads/apps/desserts are false.
+- Spreadsheets often have columns for qty, unit (ea/lb/tray/dozen), unit price, and line total — capture those numerically into "qty", "unit", "unit_price", "line_total". Strip currency symbols, keep numbers as numbers.
+- "category" = the section header the row sits under (Appetizers, Mains, Sides, Desserts, Beverages, etc.) when detectable.
+- "notes" = any short modifier on the row (e.g. "GF", "vegan option", "served family-style").
+- "raw" = the original row/line as it appears in the source, trimmed.
+- If a field is unknown, use null. Do NOT invent prices or quantities.
+- Deduplicate within a document by name.`;
+
+type ExtractedDish = {
+  name: string;
+  is_main: boolean;
+  qty: number | null;
+  unit: string | null;
+  unit_price: number | null;
+  line_total: number | null;
+  category: string | null;
+  notes: string | null;
+  raw: string | null;
+  source_documents: string[];
+};
+
+function richness(d: ExtractedDish): number {
+  let n = 0;
+  if (d.qty != null) n++;
+  if (d.unit) n++;
+  if (d.unit_price != null) n++;
+  if (d.line_total != null) n++;
+  if (d.category) n++;
+  if (d.notes) n++;
+  if (d.raw) n++;
+  return n;
+}
+
+function toNum(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const cleaned = v.replace(/[^0-9.\-]/g, "");
+    if (!cleaned) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function toStr(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s ? s : null;
+}
 
 export const extractDishesFromDocs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -300,7 +360,7 @@ export const extractDishesFromDocs = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!docs || docs.length === 0) return { added: 0, dishes: [] };
 
-    const allFound: { name: string; is_main: boolean; source_documents: string[] }[] = [];
+    const allFound: ExtractedDish[] = [];
     for (const doc of docs) {
       const text = (doc.extracted_text ?? "").trim();
       if (!text) continue;
@@ -321,6 +381,13 @@ export const extractDishesFromDocs = createServerFn({ method: "POST" })
             allFound.push({
               name: d.name.trim(),
               is_main: !!d.is_main,
+              qty: toNum(d.qty),
+              unit: toStr(d.unit),
+              unit_price: toNum(d.unit_price),
+              line_total: toNum(d.line_total),
+              category: toStr(d.category),
+              notes: toStr(d.notes),
+              raw: toStr(d.raw),
               source_documents: [doc.id],
             });
           }
@@ -333,17 +400,27 @@ export const extractDishesFromDocs = createServerFn({ method: "POST" })
       }
     }
 
-    // Deduplicate by lowercased name across docs.
-    const byKey = new Map<string, { name: string; is_main: boolean; source_documents: string[] }>();
+    // Deduplicate by lowercased name across docs — keep the richest record.
+    const byKey = new Map<string, ExtractedDish>();
     for (const d of allFound) {
       const k = d.name.toLowerCase();
       const existing = byKey.get(k);
-      if (existing) {
-        existing.is_main = existing.is_main || d.is_main;
-        existing.source_documents = Array.from(new Set([...existing.source_documents, ...d.source_documents]));
-      } else {
+      if (!existing) {
         byKey.set(k, { ...d });
+        continue;
       }
+      const merged: ExtractedDish = richness(d) > richness(existing) ? { ...d } : { ...existing };
+      merged.is_main = existing.is_main || d.is_main;
+      merged.source_documents = Array.from(new Set([...existing.source_documents, ...d.source_documents]));
+      // Fill any missing field from the other record.
+      merged.qty ??= existing.qty ?? d.qty;
+      merged.unit ??= existing.unit ?? d.unit;
+      merged.unit_price ??= existing.unit_price ?? d.unit_price;
+      merged.line_total ??= existing.line_total ?? d.line_total;
+      merged.category ??= existing.category ?? d.category;
+      merged.notes ??= existing.notes ?? d.notes;
+      merged.raw ??= existing.raw ?? d.raw;
+      byKey.set(k, merged);
     }
 
     // Avoid re-adding dishes that already exist (case-insensitive name match).
@@ -358,6 +435,13 @@ export const extractDishesFromDocs = createServerFn({ method: "POST" })
         name: d.name,
         is_main: d.is_main,
         source_documents: d.source_documents,
+        source_qty: d.qty,
+        source_unit: d.unit,
+        source_unit_price: d.unit_price,
+        source_line_total: d.line_total,
+        source_category: d.category,
+        source_notes: d.notes,
+        source_raw: d.raw,
       }));
 
     if (toInsert.length) {
