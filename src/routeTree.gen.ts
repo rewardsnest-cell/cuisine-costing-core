@@ -124,6 +124,7 @@ import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
 import { Route as AdminCompetitorTrendsRouteImport } from './routes/admin/competitor-trends'
 import { Route as AdminChangeLogRouteImport } from './routes/admin/change-log'
+import { Route as AdminCateringContactsRouteImport } from './routes/admin/catering-contacts'
 import { Route as AdminBrandConfigRouteImport } from './routes/admin/brand-config'
 import { Route as AdminBrandColorsRouteImport } from './routes/admin/brand-colors'
 import { Route as AdminBrandAssetsRouteImport } from './routes/admin/brand-assets'
@@ -752,6 +753,11 @@ const AdminChangeLogRoute = AdminChangeLogRouteImport.update({
   path: '/change-log',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCateringContactsRoute = AdminCateringContactsRouteImport.update({
+  id: '/catering-contacts',
+  path: '/catering-contacts',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBrandConfigRoute = AdminBrandConfigRouteImport.update({
   id: '/brand-config',
   path: '/brand-config',
@@ -1010,6 +1016,7 @@ export interface FileRoutesByFullPath {
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/catering-contacts': typeof AdminCateringContactsRoute
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -1167,6 +1174,7 @@ export interface FileRoutesByTo {
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/catering-contacts': typeof AdminCateringContactsRoute
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -1327,6 +1335,7 @@ export interface FileRoutesById {
   '/admin/brand-assets': typeof AdminBrandAssetsRoute
   '/admin/brand-colors': typeof AdminBrandColorsRoute
   '/admin/brand-config': typeof AdminBrandConfigRoute
+  '/admin/catering-contacts': typeof AdminCateringContactsRoute
   '/admin/change-log': typeof AdminChangeLogRoute
   '/admin/competitor-trends': typeof AdminCompetitorTrendsRoute
   '/admin/competitors': typeof AdminCompetitorsRoute
@@ -1488,6 +1497,7 @@ export interface FileRouteTypes {
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/catering-contacts'
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -1645,6 +1655,7 @@ export interface FileRouteTypes {
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/catering-contacts'
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -1804,6 +1815,7 @@ export interface FileRouteTypes {
     | '/admin/brand-assets'
     | '/admin/brand-colors'
     | '/admin/brand-config'
+    | '/admin/catering-contacts'
     | '/admin/change-log'
     | '/admin/competitor-trends'
     | '/admin/competitors'
@@ -2796,6 +2808,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminChangeLogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/catering-contacts': {
+      id: '/admin/catering-contacts'
+      path: '/catering-contacts'
+      fullPath: '/admin/catering-contacts'
+      preLoaderRoute: typeof AdminCateringContactsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/brand-config': {
       id: '/admin/brand-config'
       path: '/brand-config'
@@ -3227,6 +3246,7 @@ interface AdminRouteChildren {
   AdminBrandAssetsRoute: typeof AdminBrandAssetsRoute
   AdminBrandColorsRoute: typeof AdminBrandColorsRoute
   AdminBrandConfigRoute: typeof AdminBrandConfigRoute
+  AdminCateringContactsRoute: typeof AdminCateringContactsRoute
   AdminChangeLogRoute: typeof AdminChangeLogRoute
   AdminCompetitorTrendsRoute: typeof AdminCompetitorTrendsRoute
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
@@ -3304,6 +3324,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBrandAssetsRoute: AdminBrandAssetsRoute,
   AdminBrandColorsRoute: AdminBrandColorsRoute,
   AdminBrandConfigRoute: AdminBrandConfigRoute,
+  AdminCateringContactsRoute: AdminCateringContactsRoute,
   AdminChangeLogRoute: AdminChangeLogRoute,
   AdminCompetitorTrendsRoute: AdminCompetitorTrendsRoute,
   AdminCompetitorsRoute: AdminCompetitorsRoute,
