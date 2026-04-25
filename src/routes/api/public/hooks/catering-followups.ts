@@ -161,23 +161,66 @@ async function processStage(
     return { stage, processed: 0, sent: 0, failed: 0 }
   }
 
+  const MAX_ATTEMPTS = 3
+  // Backoff: 500ms, 2s. Total worst-case ~2.5s extra per failing contact.
+  const BACKOFF_MS = [500, 2000]
+
+  // Errors we should NOT retry — they will never succeed on a re-attempt.
+  const PERMANENT_PATTERNS = [
+    'already-sent-today',     // idempotency win — duplicate detected
+    'Template ',              // template not registered
+    'invalid recipient',      // bad email address
+    '550 ',                   // Outlook permanent reject
+    '5.1.1',                  // mailbox does not exist
+    '5.7.1',                  // message refused
+  ]
+  const isTransient = (err: string | undefined): boolean => {
+    if (!err) return false
+    return !PERMANENT_PATTERNS.some((p) => err.includes(p))
+  }
+
   let sent = 0
   let failed = 0
   for (const c of (contacts ?? []) as unknown as Contact[]) {
-    const result = await enqueueEmail(supabase, c, stage)
+    let lastResult: { ok: boolean; messageId: string; error?: string } = {
+      ok: false,
+      messageId: '',
+    }
 
-    await supabase.from('lead_outreach_log').insert({
-      lead_id: c.id,
-      channel: 'email',
-      template_name: cfg.template,
-      recipient_email: c.email,
-      status: result.ok ? 'queued' : 'failed',
-      message_id: result.messageId,
-      error_message: result.error,
-      notes: `Auto: ${cfg.label}`,
-    })
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      lastResult = await enqueueEmail(supabase, c, stage)
 
-    if (result.ok) {
+      const isFinal = lastResult.ok
+        || attempt === MAX_ATTEMPTS
+        || !isTransient(lastResult.error)
+
+      // Log every attempt — failed retries get status='retrying',
+      // the final outcome gets 'sent' / 'failed' / 'skipped'.
+      const logStatus = lastResult.ok
+        ? 'sent'
+        : isFinal
+          ? (lastResult.error === 'already-sent-today' ? 'skipped' : 'failed')
+          : 'retrying'
+
+      await supabase.from('lead_outreach_log').insert({
+        lead_id: c.id,
+        channel: 'email',
+        template_name: cfg.template,
+        recipient_email: c.email,
+        status: logStatus,
+        message_id: lastResult.messageId,
+        error_message: lastResult.error,
+        attempt,
+        max_attempts: MAX_ATTEMPTS,
+        notes: `Auto: ${cfg.label}${attempt > 1 ? ` (retry ${attempt - 1})` : ''}`,
+      })
+
+      if (isFinal) break
+      // Wait before next attempt — backoff array is 0-indexed by retry number.
+      await new Promise((r) => setTimeout(r, BACKOFF_MS[attempt - 1] ?? 2000))
+    }
+
+    if (lastResult.ok) {
       sent++
       const update: Database['public']['Tables']['leads']['Update'] = {
         status: cfg.nextStatus,
