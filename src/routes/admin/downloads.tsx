@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -277,8 +277,8 @@ function AdminDownloadsPage() {
                     const isOpen = expanded.has(r.id);
                     const showDetails = isOpen && (hasParams(r.parameters) || r.generated_by_email || r.record_count != null);
                     return (
-                      <>
-                        <tr key={r.id}>
+                      <Fragment key={r.id}>
+                        <tr>
                           <td className="py-2 pr-2 align-top">
                             <Button
                               variant="ghost"
