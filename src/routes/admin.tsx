@@ -216,19 +216,34 @@ function AdminLayout() {
     return location.pathname.startsWith(path);
   };
 
-  const STORAGE_KEY = "admin:collapsedNavGroups";
+  const STORAGE_KEY = "admin:navGroupState:v1";
+  // Default: every group starts collapsed. Persist user toggles after that.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
+    const allLabels = NAV_GROUPS.map((g) => g.label);
+    if (typeof window === "undefined") return new Set(allLabels);
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch { return new Set(); }
+      if (!raw) return new Set(allLabels);
+      const saved = JSON.parse(raw) as { collapsed: string[]; known: string[] };
+      const knownSet = new Set(saved.known ?? []);
+      const collapsedSet = new Set(saved.collapsed ?? []);
+      // Any group we haven't seen before defaults to collapsed.
+      for (const label of allLabels) {
+        if (!knownSet.has(label)) collapsedSet.add(label);
+      }
+      return collapsedSet;
+    } catch { return new Set(allLabels); }
   });
   const toggleGroup = (label: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(label)) next.delete(label); else next.add(label);
-      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))); } catch {}
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          collapsed: Array.from(next),
+          known: NAV_GROUPS.map((g) => g.label),
+        }));
+      } catch {}
       return next;
     });
   };
