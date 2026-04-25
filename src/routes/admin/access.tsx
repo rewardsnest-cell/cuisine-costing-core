@@ -85,6 +85,27 @@ function AccessControlPage() {
     setRoles(rls.data ?? []);
     setInvites(invs.data ?? []);
     setAudit(log.data ?? []);
+
+    // Auto-seed any missing (role × section) combos as disabled (admin is always on, skipped).
+    const missing: { role: RoleKey; section: SectionKey }[] = [];
+    for (const role of ROLE_KEYS) {
+      if (role === "admin") continue;
+      for (const section of SECTION_KEYS) {
+        if (!(`${role}:${section}` in m)) missing.push({ role, section });
+      }
+    }
+    if (missing.length > 0) {
+      await Promise.all(
+        missing.map((mc) =>
+          permFn({ data: { role: mc.role, section: mc.section, enabled: false } }).catch(() => null),
+        ),
+      );
+      setPermMatrix((cur) => {
+        const next = { ...cur };
+        for (const mc of missing) next[`${mc.role}:${mc.section}`] = false;
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
