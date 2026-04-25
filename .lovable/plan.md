@@ -1,107 +1,54 @@
-## Sales Hub — Daily Operations Admin Area
+# Preserve full dish info during extraction
 
-A new top-level admin nav group called **Sales Hub** containing 9 focused pages. Scripts are read-only/locked content. Prospects, contact log, checklist runs, reviews, referrals, and weekly reviews are stored in the database so the owner (and later staff) have one source of truth.
+Right now when the Quote Hub extracts dishes from uploaded files (spreadsheets, PDFs, docs), it only keeps the dish **name** and an `is_main` flag. Everything else on the source spreadsheet — prices, quantities, units, categories, notes — is thrown away. We will keep all of it so admins can see what the competitor actually charged and how much they served.
 
-### New admin pages (under `/admin/sales-hub/...`)
+## What changes for the user
 
-1. **`/admin/sales-hub`** — Dashboard Overview
-   - Today's priorities (auto-pulled from outstanding follow-ups + today's checklist progress)
-   - Weekly goals snapshot (calls/emails/walk-ins this week vs target)
-   - Quick-action tiles: Make calls · Send follow-ups · Ask for reviews · Log activity
-   - "Pinned" Daily Checklist preview at the top
+In the dish list inside `/admin/quote-creator`, every extracted dish will now show (when present on the source):
+- Source quantity + unit (e.g. "50 ea", "2 trays", "10 lb")
+- Source unit price and line total (e.g. "$12.50/ea · $625 total")
+- Category / section header it came from (Appetizers, Mains, Sides, …)
+- Free-form notes (e.g. "GF option", "served family-style")
+- The original source row text, so we can verify the AI didn't misread it
 
-2. **`/admin/sales-hub/prospects`** — Local Prospect Lists
-   - Editable table grouped by **City** (Aurora · Solon · Hudson) and **Type** (Venue · Corporate · Medical)
-   - Columns: Business Name, City, Type, Contact Name, Phone, Email, Notes, Last Contacted, Next Follow-Up, Status
-   - Inline add/edit/delete, filter by city/type/status, search by name
-   - "Log contact" button per row → writes to contact log + bumps `last_contacted`
+These appear as small muted text under the dish name and are editable inline. Bulk delete and merge keep working unchanged.
 
-3. **`/admin/sales-hub/scripts`** — Sales Scripts (locked content)
-   - 6 collapsible script blocks (read-only, copy button on each):
-     A) Phone — First Contact · B) Phone — Follow-Up · C) Walk-In
-     D) Corporate Email · E) Medical Office Email · F) Venue Partnership Email
-   - Locked text rendered from a constant file so it can't be accidentally edited
+## Technical changes
 
-4. **`/admin/sales-hub/daily`** — Daily Sales Checklist
-   - Checkbox list (5 calls / 5 emails / 2 walk-ins / leads logged / follow-ups scheduled / one opportunity moved forward)
-   - Persists per-day per-user; resets each day; shows current streak
-   - "Log a contact" quick form (prospect dropdown + outcome) feeds the contact log
+### 1. Database — extend `cqh_dishes`
+Migration adds nullable columns (all optional, no breaking changes):
+- `source_qty numeric`
+- `source_unit text`
+- `source_unit_price numeric`
+- `source_line_total numeric`
+- `source_category text` (e.g. "Appetizers")
+- `source_notes text`
+- `source_raw text` (the original row/line as seen in the document)
 
-5. **`/admin/sales-hub/events`** — Event Execution Checklist
-   - Three sections: Pre-Event · Day-Of · Post-Event with the listed items
-   - Linked to an existing quote/event (dropdown of upcoming events)
-   - Saves completion state per event
+### 2. AI extractor — `extractDishesFromDocs` in `src/lib/server-fns/cqh.functions.ts`
+Update `DISHES_SYSTEM` prompt + JSON schema to return these fields per dish, instructing the model to:
+- Pull `qty`, `unit`, `unit_price`, `line_total`, `category`, `notes` whenever the source row contains them (very common in spreadsheets).
+- Preserve the original row text in `raw`.
+- Still skip true non-food rows (linens, gratuity, taxes).
 
-6. **`/admin/sales-hub/reviews`** — Google Reviews System
-   - Editable Google review link field (`{{GOOGLE REVIEW LINK}}`) saved in `app_kv`
-   - 3 locked ask scripts (in-person, text, email) with copy + auto-insert link
-   - Rules card (ask only happy clients · within 24h · respond to every review)
-   - Review-ask log: who was asked, when, channel, did they leave a review
+Insert path maps the new fields into the new columns. Dedup logic stays name-based, but when merging duplicates across documents we keep the richest record (prefer the one with price/qty filled in).
 
-7. **`/admin/sales-hub/follow-ups`** — Follow-Up System
-   - Auto-generated follow-up queue (Day 1 / Day 5 / Day 14) based on prospect `last_contacted`
-   - Status pipeline: New · Contacted · Interested · Booked · Repeat · Archived
-   - Locked follow-up email template with copy button
+### 3. Spreadsheet-aware extraction (quality boost)
+In `src/lib/cqh/extract-text.ts`, when the file is `.xlsx/.xls/.csv/.tsv`, prepend a short header line (`# Source: spreadsheet — columns appear tabular, preserve qty/price columns when present`) so the model treats columns as structured data rather than prose. Text already comes through `XLSX.utils.sheet_to_csv`, so no parser change needed.
 
-8. **`/admin/sales-hub/referrals`** — Referral System
-   - Trigger panel: pulls recent 5-star review-ask wins
-   - Locked referral ask script
-   - Referral log: referrer, referred contact, date, status, follow-up notes
+### 4. UI — `src/routes/admin/quote-creator.tsx`
+In the dish list row, render a second muted line when any source_* field is present:
+```
+Grilled Salmon                                    [main]
+  50 ea · $12.50/ea · $625 total · Mains · "GF option"
+```
+Inline edit dialog (existing) gets fields for qty/unit/unit_price/category/notes. `updateCqhDish` already takes a generic patch, so it accepts the new columns automatically once they exist.
 
-9. **`/admin/sales-hub/weekly-review`** — Weekly Review
-   - Weekly checklist (25+ outreach actions, new bookings, reviews gained, best review, one improvement, next week planned)
-   - Auto-counts from contact log + reviews/bookings tables for the current ISO week
-   - Saves a weekly review record with the owner's notes
+### 5. Counter-quote builder
+The downstream counter-quote/shopping-list flow currently only reads `name` + `is_main`, so it keeps working. The new fields are available for a future "match competitor pricing" feature but are not required for anything to keep functioning today.
 
-### Data model (one migration)
-
-New tables (all admin-only via `has_role(auth.uid(), 'admin')`):
-
-- `sales_prospects` — id, business_name, city, type, contact_name, phone, email, notes, status, last_contacted, next_follow_up, created_at, updated_at
-- `sales_contact_log` — id, prospect_id (fk), channel (call/email/walk-in/text), outcome, notes, contacted_at, contacted_by
-- `sales_daily_checklist` — id, user_id, day (date), calls_done bool, emails_done bool, walkins_done bool, leads_logged bool, followups_scheduled bool, opportunity_moved bool, unique(user_id, day)
-- `sales_event_checklist` — id, quote_id (fk), pre_menu, pre_dietary, pre_staffing, pre_equipment, day_arrival, day_setup, day_checkin, day_breakdown, post_thanks, post_invoice, post_review (all bool)
-- `sales_review_asks` — id, client_name, channel, asked_at, asked_by, review_received bool, notes
-- `sales_referrals` — id, referrer_name, referred_name, referred_contact, asked_at, status, notes
-- `sales_weekly_reviews` — id, week_start (date), outreach_count_target, bookings_added, reviews_gained, best_review_text, improvement_note, next_week_plan, completed bool, user_id
-
-`app_kv` reused for `google_review_link`.
-
-### Sidebar registration
-
-Add a new **Sales Hub** group in `NAV_GROUPS` (in `src/routes/admin.tsx`) with the 9 items, each gated by a new `feature_visibility` key (`admin_sales_hub`, `admin_sales_prospects`, `admin_sales_scripts`, `admin_sales_daily`, `admin_sales_events_checklist`, `admin_sales_reviews`, `admin_sales_followups`, `admin_sales_referrals`, `admin_sales_weekly_review`). Migration seeds them all as `phase=public, nav_enabled=true`.
-
-### Files to create
-
-- `src/lib/sales-hub/scripts.ts` — locked script constants (single source of truth)
-- `src/routes/admin/sales-hub.tsx` — layout + dashboard
-- `src/routes/admin/sales-hub.prospects.tsx`
-- `src/routes/admin/sales-hub.scripts.tsx`
-- `src/routes/admin/sales-hub.daily.tsx`
-- `src/routes/admin/sales-hub.events.tsx`
-- `src/routes/admin/sales-hub.reviews.tsx`
-- `src/routes/admin/sales-hub.follow-ups.tsx`
-- `src/routes/admin/sales-hub.referrals.tsx`
-- `src/routes/admin/sales-hub.weekly-review.tsx`
-- `supabase/migrations/<ts>_sales_hub.sql` — tables + RLS + feature_visibility seeds
-
-### Files to edit
-
-- `src/routes/admin.tsx` — add Sales Hub nav group
-
-### Style / tone
-
-- Calm, minimal, structured. Cards + tables only. No marketing fluff.
-- Scripts displayed in monospaced/serif blocks with a single Copy button — no inline edit controls (locked).
-- Prospect tables and logs are fully editable inline.
-
-### What you'll get
-
-- A pinned Daily Checklist + Dashboard accessible from one nav group
-- Editable prospect lists grouped by Aurora / Solon / Hudson and by Venue / Corporate / Medical
-- Six copy-paste-ready scripts that staff can't accidentally overwrite
-- A working follow-up queue derived from your prospect data
-- Review and referral logs with locked ask scripts
-- A weekly review page that auto-tallies outreach from your contact log
-
-Approve to proceed and I'll build it.
+## Files touched
+- New migration: add the 7 columns to `cqh_dishes`.
+- `src/lib/server-fns/cqh.functions.ts` — prompt + insert mapping + merge-prefer-richest.
+- `src/lib/cqh/extract-text.ts` — prepend spreadsheet hint.
+- `src/routes/admin/quote-creator.tsx` — render + edit new fields.

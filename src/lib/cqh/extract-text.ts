@@ -17,11 +17,13 @@ export async function extractTextFromFile(file: File): Promise<string> {
 
   if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv") || name.endsWith(".tsv")) {
     const wb = XLSX.read(buf, { type: "array" });
-    const parts: string[] = [];
+    const parts: string[] = [
+      "# Source: spreadsheet — rows are tabular. Preserve quantity, unit, unit price, line total, category/section, and notes columns whenever present on a dish row.",
+    ];
     for (const sheetName of wb.SheetNames) {
       const sheet = wb.Sheets[sheetName];
       const csv = XLSX.utils.sheet_to_csv(sheet);
-      parts.push(`# ${sheetName}\n${csv}`);
+      parts.push(`## Sheet: ${sheetName}\n${csv}`);
     }
     return parts.join("\n\n");
   }

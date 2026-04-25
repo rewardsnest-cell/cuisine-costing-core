@@ -1030,7 +1030,14 @@ export type Database = {
           is_main: boolean
           merged_from: string[] | null
           name: string
+          source_category: string | null
           source_documents: string[] | null
+          source_line_total: number | null
+          source_notes: string | null
+          source_qty: number | null
+          source_raw: string | null
+          source_unit: string | null
+          source_unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -1040,7 +1047,14 @@ export type Database = {
           is_main?: boolean
           merged_from?: string[] | null
           name: string
+          source_category?: string | null
           source_documents?: string[] | null
+          source_line_total?: number | null
+          source_notes?: string | null
+          source_qty?: number | null
+          source_raw?: string | null
+          source_unit?: string | null
+          source_unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -1050,7 +1064,14 @@ export type Database = {
           is_main?: boolean
           merged_from?: string[] | null
           name?: string
+          source_category?: string | null
           source_documents?: string[] | null
+          source_line_total?: number | null
+          source_notes?: string | null
+          source_qty?: number | null
+          source_raw?: string | null
+          source_unit?: string | null
+          source_unit_price?: number | null
           updated_at?: string
         }
         Relationships: [

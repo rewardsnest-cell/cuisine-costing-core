@@ -703,24 +703,46 @@ function QuoteCreatorHub() {
                         )}
                       </div>
                       <ul className="divide-y">
-                        {data.dishes.map((d) => (
-                          <li key={d.id} className="flex items-center justify-between py-2 gap-2">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <Checkbox
-                                checked={selectedDishIds.has(d.id)}
-                                onCheckedChange={() => toggleDishSelected(d.id)}
-                                aria-label={`Select ${d.name}`}
-                              />
-                              <Switch checked={d.is_main} onCheckedChange={() => toggleMain(d)} aria-label="Main dish" />
-                              <span className="text-sm font-medium truncate">{d.name}</span>
-                              {d.is_main && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">MAIN</Badge>}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" onClick={() => renameDish(d)}>Rename</Button>
-                              <Button size="sm" variant="ghost" onClick={() => removeDish(d)}><Trash2 className="w-4 h-4" /></Button>
-                            </div>
-                          </li>
-                        ))}
+                        {data.dishes.map((d) => {
+                          const fmtMoney = (n: number | null | undefined) =>
+                            n == null ? null : `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          const qtyPart = d.source_qty != null
+                            ? `${d.source_qty}${d.source_unit ? ` ${d.source_unit}` : ""}`
+                            : null;
+                          const pricePart = d.source_unit_price != null
+                            ? `${fmtMoney(d.source_unit_price)}${d.source_unit ? `/${d.source_unit}` : ""}`
+                            : null;
+                          const totalPart = d.source_line_total != null ? `${fmtMoney(d.source_line_total)} total` : null;
+                          const meta = [qtyPart, pricePart, totalPart, d.source_category, d.source_notes ? `“${d.source_notes}”` : null].filter(Boolean);
+                          return (
+                            <li key={d.id} className="flex items-start justify-between py-2 gap-2">
+                              <div className="flex items-start gap-3 min-w-0 flex-1">
+                                <Checkbox
+                                  className="mt-1"
+                                  checked={selectedDishIds.has(d.id)}
+                                  onCheckedChange={() => toggleDishSelected(d.id)}
+                                  aria-label={`Select ${d.name}`}
+                                />
+                                <Switch className="mt-0.5" checked={d.is_main} onCheckedChange={() => toggleMain(d)} aria-label="Main dish" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium truncate">{d.name}</span>
+                                    {d.is_main && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">MAIN</Badge>}
+                                  </div>
+                                  {meta.length > 0 && (
+                                    <div className="text-xs text-muted-foreground mt-0.5 truncate" title={d.source_raw ?? undefined}>
+                                      {meta.join(" · ")}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button size="sm" variant="ghost" onClick={() => renameDish(d)}>Rename</Button>
+                                <Button size="sm" variant="ghost" onClick={() => removeDish(d)}><Trash2 className="w-4 h-4" /></Button>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </>
                   )}
