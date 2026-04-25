@@ -369,9 +369,10 @@ function QuotesPage() {
   const handleApplyFloor = async (q: Quote) => {
     setFloorId(q.id);
     try {
+      // ARCHIVED — Pricing v1 national floor is no longer available.
       const { applyNationalFloorPricing } = await import("@/lib/server-fns/apply-national-floor.functions");
-      const res = await applyNationalFloorPricing({ data: { quoteId: q.id } }) as { updatedItems: number; total: number; nationalSnapshotsApplied: number; month: string };
-      toast.success(`Margin floor applied (${res.nationalSnapshotsApplied} national prices, month ${res.month}) · total $${res.total.toFixed(2)}`);
+      await applyNationalFloorPricing();
+      toast.info("National floor pricing is archived (Pricing v1).");
       loadQuotes();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to apply national floor");

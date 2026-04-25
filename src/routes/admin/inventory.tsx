@@ -397,7 +397,7 @@ function InventoryPage() {
   return (
     <div className="space-y-6">
       <PageHelpCard route="/admin/inventory" />
-      <FredPullPanel onApplied={loadItems} />
+      <FredPullPanel />
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

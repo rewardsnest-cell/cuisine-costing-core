@@ -213,12 +213,9 @@ function AdminMenuPage() {
     if (!confirm(`Refresh costs from FRED for ${ids.length} active recipe${ids.length === 1 ? "" : "s"}? This pulls the latest prices and recomputes recipe costs.`)) return;
     setRefreshingFred(true);
     try {
-      const res = await bulkFred({ data: { recipe_ids: ids } });
-      const parts: string[] = [];
-      if (res.items_refreshed) parts.push(`${res.items_refreshed} ingredient${res.items_refreshed === 1 ? "" : "s"} updated`);
-      if (res.recipes_recomputed) parts.push(`${res.recipes_recomputed} recipe${res.recipes_recomputed === 1 ? "" : "s"} recosted`);
-      toast.success(parts.length ? `FRED refresh complete — ${parts.join(", ")}` : "FRED refresh complete");
-      if (res.errors.length) toast.warning(`${res.errors.length} item${res.errors.length === 1 ? "" : "s"} failed`);
+      // ARCHIVED — Pricing v1 FRED refresh is no longer available.
+      await bulkFred();
+      toast.info("FRED refresh is archived (Pricing v1).");
       load();
     } catch (e: any) {
       toast.error(e?.message || "Bulk refresh failed");
