@@ -50,7 +50,7 @@ type Prospect = {
 
 const EMPTY: Omit<Prospect, "id"> = {
   business_name: "", city: PROSPECT_CITIES[0], type: PROSPECT_TYPES[0],
-  contact_name: "", phone: "", email: "", notes: "", status: "New",
+  contact_name: "", phone: "", email: "", address: "", website: "", notes: "", status: "New",
   last_contacted: null, next_follow_up: null,
   last_inbound_at: null, last_outbound_at: null,
 };
