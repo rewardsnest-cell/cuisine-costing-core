@@ -630,6 +630,9 @@ export const generateShoppingList = createServerFn({ method: "POST" })
       quantity: number;
       per_dish_allocation: Record<string, number>;
       notes: string | null;
+      // Track raw source quantities (in their ORIGINAL unit) so we can render
+      // a "1 lb + 8 oz → 24 oz" hint for merged lines after canonicalization.
+      sources: Array<{ qty: number; unit: string | null }>;
     }>();
 
     // Levenshtein distance + similarity ratio for fuzzy ingredient matching.
@@ -686,7 +689,9 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         const normName = normalizeName(rawName);
         if (!normName) continue;
         const { unit, factor } = normalizeUnit(ing.unit);
-        const qty = (Number(ing.quantity) || 0) * factor;
+        const rawQtyNum = Number(ing.quantity) || 0;
+        const rawUnit = ing.unit ? String(ing.unit).toLowerCase().trim().replace(/\.$/, "") : null;
+        const qty = rawQtyNum * factor;
         const exactKey = `${normName}::${unit ?? ""}`;
         // Try exact match first, then fuzzy within the same unit bucket.
         const matchedKey = aggregated.has(exactKey)
@@ -695,6 +700,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         const existing = matchedKey ? aggregated.get(matchedKey) : undefined;
         if (existing && matchedKey) {
           existing.quantity += qty;
+          if (rawQtyNum > 0) existing.sources.push({ qty: rawQtyNum, unit: rawUnit });
           if (dishId) existing.per_dish_allocation[dishId] = (existing.per_dish_allocation[dishId] ?? 0) + qty;
           // Prefer the longer / more descriptive display name.
           if (rawName.length > existing.ingredient_name.length) existing.ingredient_name = rawName;
@@ -712,6 +718,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
             quantity: qty,
             per_dish_allocation: dishId ? { [dishId]: qty } : {},
             notes: ing.notes ?? null,
+            sources: rawQtyNum > 0 ? [{ qty: rawQtyNum, unit: rawUnit }] : [],
           });
           const bucket = keysByUnit.get(unit ?? "") ?? [];
           bucket.push(exactKey);
@@ -741,6 +748,28 @@ export const generateShoppingList = createServerFn({ method: "POST" })
 
 
 
+    // Build a "unit conversion applied" hint for any line that aggregated 2+
+    // sources OR a single source whose unit differs from the canonical (e.g.
+    // "1 lb → 16 oz"). Stored as a `[conv: ...]` prefix in `notes` so the
+    // shopping list editor can parse and surface it.
+    const fmtSourceQty = (q: number): string => {
+      if (!Number.isFinite(q)) return "0";
+      const abs = Math.abs(q);
+      const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 3;
+      return Number(q.toFixed(decimals)).toString();
+    };
+    for (const a of aggregated.values()) {
+      const srcs = a.sources;
+      if (!srcs.length) continue;
+      const differsFromCanonical = srcs.some((s) => (s.unit ?? null) !== (a.unit ?? null));
+      if (srcs.length < 2 && !differsFromCanonical) continue;
+      const lhs = srcs
+        .map((s) => `${fmtSourceQty(s.qty)}${s.unit ? " " + s.unit : ""}`)
+        .join(" + ");
+      const rhs = `${fmtSourceQty(a.quantity)}${a.unit ? " " + a.unit : ""}`;
+      const hint = `[conv: ${lhs} → ${rhs}]`;
+      a.notes = a.notes ? `${hint} ${a.notes}` : hint;
+    }
 
     const itemRows = Array.from(aggregated.values()).map((a) => ({
       shopping_list_id: list.id,

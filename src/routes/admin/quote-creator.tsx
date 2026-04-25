@@ -1324,6 +1324,18 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
       )}
       <td className="py-1 pr-2">
         <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => save()} disabled={isApproved} className="h-8" />
+        {(() => {
+          const m = (item.notes ?? "").match(/^\[conv:\s*([^\]]+)\]/);
+          if (!m) return null;
+          return (
+            <p
+              className="mt-0.5 text-[10px] leading-tight text-muted-foreground italic"
+              title="Unit conversion applied while merging this line"
+            >
+              ↳ {m[1].trim()}
+            </p>
+          );
+        })()}
       </td>
       <td className="py-1 pr-2">
         <Input value={qty} onChange={(e) => setQty(e.target.value)} onBlur={() => save()} disabled={isApproved} className="h-8 text-right tabular-nums" />
