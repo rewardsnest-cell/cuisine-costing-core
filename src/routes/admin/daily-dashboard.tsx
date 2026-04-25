@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sun, Target, Bell, ArrowRight, Phone, Star,
-  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight, TrendingUp,
+  CalendarCheck, AlertTriangle, RefreshCw, ChevronRight, TrendingUp, History,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
