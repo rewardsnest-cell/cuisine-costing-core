@@ -266,6 +266,17 @@ function ProspectsPage() {
                           <Button size="sm" variant="ghost" onClick={() => emailProspect(p)} title={p.email ? `Email ${p.email}` : "No email on file"} disabled={!p.email}>
                             <MailIcon className="w-4 h-4" />
                           </Button>
+                          {hasUnreadReply(p) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-8 gap-1.5"
+                              onClick={() => openEmailDialog(p, true)}
+                              title={`New reply received ${new Date(p.last_inbound_at!).toLocaleString()}`}
+                            >
+                              <Reply className="w-3.5 h-3.5" /> Respond
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" onClick={() => resetContacted(p)} title="Reset contacted" disabled={!p.last_contacted}>
                             <RotateCcw className="w-4 h-4" />
                           </Button>
