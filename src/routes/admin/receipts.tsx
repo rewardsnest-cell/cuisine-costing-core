@@ -125,6 +125,7 @@ function ReceiptsPage() {
   // Per-row, per-field validation errors for the Review dialog
   const [lineItemErrors, setLineItemErrors] = useState<Record<number, LineItemErrors>>({});
   const [savingLineItems, setSavingLineItems] = useState(false);
+  const [applyingPrices, setApplyingPrices] = useState(false);
   // Idle / loading / success / error state for each pending receipt's
   // "Process & save" button so users see explicit feedback per row.
   type ProcessState =
