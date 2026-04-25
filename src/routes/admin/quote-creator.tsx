@@ -1087,6 +1087,29 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
       toast.error("PDF export failed", { description: e.message });
     }
   };
+  const exportXlsx = () => {
+    if (items.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      const slug = (event?.event_name ?? event?.name ?? "shopping-list")
+        .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      downloadShoppingListXlsx(
+        items,
+        {
+          eventName: event?.event_name ?? event?.name ?? null,
+          eventReference: event?.reference_number ?? null,
+          guestCount: event?.guest_count ?? null,
+          revisionNumber: list.revision_number,
+          status: list.status,
+        },
+        `${slug || "shopping-list"}-rev${list.revision_number}.xlsx`,
+      );
+    } catch (e: any) {
+      toast.error("Excel export failed", { description: e.message });
+    }
+  };
   const confirm = useConfirm();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
