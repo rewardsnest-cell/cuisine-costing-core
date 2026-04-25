@@ -60,7 +60,29 @@ type Lead = {
   catering_use_cases: string[];
   notes: string | null;
   created_at: string;
+  verification_status: "verified" | "needs_review" | "unverified";
+  verification_issues: string[];
+  verification_notes: string | null;
 };
+
+const ISSUE_LABELS: Record<string, string> = {
+  missing_email_and_phone: "No email or phone",
+  missing_email: "Missing email",
+  missing_phone: "Missing phone",
+  invalid_email: "Invalid email format",
+  invalid_phone: "Phone < 10 digits",
+  missing_name_and_company: "No name or company",
+};
+
+function verificationBadge(status: string) {
+  if (status === "verified") {
+    return { variant: "default" as const, icon: ShieldCheck, label: "Verified" };
+  }
+  if (status === "needs_review") {
+    return { variant: "destructive" as const, icon: ShieldAlert, label: "Needs review" };
+  }
+  return { variant: "secondary" as const, icon: ShieldQuestion, label: "Unverified" };
+}
 
 const STATUSES = ["new", "contacted", "follow-up", "qualified", "booked", "repeat", "won", "lost", "not-interested", "archived"];
 const PRIORITIES = ["high", "medium", "low"];
