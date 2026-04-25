@@ -31,7 +31,7 @@ import {
   Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
 import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
-import { canonicalize, dimensionLabel, type Dimension } from "@/lib/cqh/units";
+import { canonicalize, dimensionLabel, formatQty, type Dimension } from "@/lib/cqh/units";
 
 export const Route = createFileRoute("/admin/quote-creator")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -1243,7 +1243,7 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
   // Always show the canonical unit + converted qty, even for legacy rows.
   const initial = canonicalize(item.unit ?? null, Number(item.quantity) || 0);
   const [name, setName] = useState(item.ingredient_name);
-  const [qty, setQty] = useState(String(initial.quantity));
+  const [qty, setQty] = useState(formatQty(initial.quantity, initial.unit, initial.dimension));
   const [unit, setUnit] = useState(initial.unit ?? "");
   const [dimension, setDimension] = useState<Dimension>(initial.dimension);
   const [price, setPrice] = useState(String(item.unit_price));
@@ -1268,7 +1268,7 @@ function ItemRow({ item, list, isApproved, onChanged, selected, onToggleSelect }
     setDimension(conv.dimension);
     if (conv.converted && conv.unit !== unit) {
       const newUnit = conv.unit ?? "";
-      const newQty = String(conv.quantity);
+      const newQty = formatQty(conv.quantity, conv.unit, conv.dimension);
       setUnit(newUnit);
       setQty(newQty);
       save(newQty, newUnit);

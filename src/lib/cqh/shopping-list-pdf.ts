@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BRAND, drawBrandedHeader, drawBrandedFooter } from "@/lib/pdf-brand";
+import { canonicalize, formatQty } from "@/lib/cqh/units";
 
 export type ShoppingListPdfItem = {
   ingredient_name: string;
@@ -57,13 +58,13 @@ export function generateShoppingListPdf(
     margin: { left: 36, right: 36, bottom: 60 },
     head: [["Ingredient", "Qty", "Unit", "$ / unit", "Subtotal"]],
     body: items.map((i) => {
-      const qty = Number(i.quantity || 0);
+      const conv = canonicalize(i.unit ?? null, Number(i.quantity || 0));
       const price = Number(i.unit_price || 0);
-      const sub = qty * price;
+      const sub = conv.quantity * price;
       return [
         i.ingredient_name,
-        formatQty(qty),
-        i.unit ?? "",
+        formatQty(conv.quantity, conv.unit, conv.dimension),
+        conv.unit ?? "",
         price ? `$${price.toFixed(2)}` : "—",
         sub ? `$${sub.toFixed(2)}` : "—",
       ];
@@ -84,7 +85,3 @@ export function generateShoppingListPdf(
   return doc;
 }
 
-function formatQty(n: number): string {
-  if (!Number.isFinite(n) || n === 0) return "0";
-  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
-}

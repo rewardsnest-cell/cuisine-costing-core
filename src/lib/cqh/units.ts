@@ -72,7 +72,7 @@ export function canonicalize(rawUnit: string | null | undefined, qty: number): {
   const converted = conv.canonical !== k || conv.factor !== 1;
   return {
     unit: conv.canonical,
-    quantity: Math.round(qty * conv.factor * 100) / 100,
+    quantity: roundQty(qty * conv.factor, conv.canonical, conv.dimension),
     dimension: conv.dimension,
     converted,
   };
@@ -86,3 +86,36 @@ export function dimensionLabel(d: Dimension): string {
     default:       return "";
   }
 }
+
+/**
+ * Round a converted quantity to friendly precision so we never display long
+ * floating-point tails like `24.000000003` or `0.0676280000` after lb→oz or
+ * ml→tbsp conversions. Tiered by magnitude:
+ *   ≥ 100  → whole number
+ *   ≥ 10   → 1 decimal
+ *   ≥ 1    → 2 decimals
+ *   < 1    → 3 decimals (so 1 tsp ≈ 0.333 tbsp stays useful)
+ *   exactly 0 → 0
+ * For "count" / "ea" units we always round to whole numbers.
+ */
+export function roundQty(qty: number, unit?: string | null, dimension?: Dimension): number {
+  if (!Number.isFinite(qty) || qty === 0) return 0;
+  if (dimension === "count" || unit === "ea") return Math.round(qty);
+  const abs = Math.abs(qty);
+  let decimals: number;
+  if (abs >= 100) decimals = 0;
+  else if (abs >= 10) decimals = 1;
+  else if (abs >= 1) decimals = 2;
+  else decimals = 3;
+  const f = 10 ** decimals;
+  return Math.round(qty * f) / f;
+}
+
+/** Format a quantity for display: rounded + trailing zeros stripped. */
+export function formatQty(qty: number, unit?: string | null, dimension?: Dimension): string {
+  const rounded = roundQty(qty, unit, dimension);
+  if (rounded === 0) return "0";
+  // Strip trailing zeros (e.g. 24.00 → "24", 1.50 → "1.5").
+  return String(rounded).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+}
+

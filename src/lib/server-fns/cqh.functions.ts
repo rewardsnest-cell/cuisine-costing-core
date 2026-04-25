@@ -720,13 +720,25 @@ export const generateShoppingList = createServerFn({ method: "POST" })
       }
     }
 
-    // Round summed quantities to 2 decimals to avoid floating-point noise from conversions.
+    // Round summed quantities with magnitude-aware precision so persisted
+    // values don't carry floating-point noise from unit conversions
+    // (e.g. lb→oz, ml→tbsp). Tier matches the client formatter in
+    // src/lib/cqh/units.ts → roundQty().
+    const roundForDisplay = (q: number, unit: string | null): number => {
+      if (!Number.isFinite(q) || q === 0) return 0;
+      if (unit === "ea") return Math.round(q);
+      const abs = Math.abs(q);
+      const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 3;
+      const f = 10 ** decimals;
+      return Math.round(q * f) / f;
+    };
     for (const a of aggregated.values()) {
-      a.quantity = Math.round(a.quantity * 100) / 100;
+      a.quantity = roundForDisplay(a.quantity, a.unit);
       for (const k of Object.keys(a.per_dish_allocation)) {
-        a.per_dish_allocation[k] = Math.round(a.per_dish_allocation[k] * 100) / 100;
+        a.per_dish_allocation[k] = roundForDisplay(a.per_dish_allocation[k], a.unit);
       }
     }
+
 
 
 
