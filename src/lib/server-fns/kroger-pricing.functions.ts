@@ -865,44 +865,37 @@ export const runKrogerIngest = createServerFn({ method: "POST" })
     }
 
     const mode: "catalog_bootstrap" | "daily_update" = data.mode ?? "daily_update";
-    const limit = Math.max(1, Math.min(5000, data.limit ?? (mode === "catalog_bootstrap" ? 500 : 100)));
-
-    let token: string;
-    try {
-      token = await getKrogerAccessToken();
-    } catch (e: any) {
-      return { ran: false, reason: "oauth_failed", message: e?.message ?? "OAuth failed" } as const;
-    }
-
-    // Always derive from ZIP — admins cannot pin a locationId.
     const zip = (data.zip_code ?? DEFAULT_ZIP).trim();
-    const locationId = await resolveLocationIdFromZip(zip, token);
-    if (!locationId) {
-      return { ran: false, reason: "no_location", message: `Could not resolve a Kroger locationId for ZIP ${zip}.` } as const;
+
+    // Delegate to the shared internal worker so admin clicks and the cron
+    // webhook follow identical logic. The worker creates its own run row,
+    // resolves the locationId, and honors `mode` (bootstrap walks the
+    // Kroger catalog by search term; daily_update prices confirmed/pending
+    // mappings).
+    const { runKrogerIngestInternal } = await import("@/lib/server/kroger-ingest-internal");
+    try {
+      const result = await runKrogerIngestInternal({
+        mode,
+        zip_code: zip,
+        limit: data.limit,
+      });
+      return {
+        ran: result.status !== "failed" && result.status !== "skipped",
+        queued: false,
+        run_id: result.run_id,
+        mode,
+        location_id: result.location_id,
+        message:
+          result.message ??
+          (mode === "catalog_bootstrap"
+            ? "Bootstrap completed."
+            : "Daily update completed."),
+      } as const;
+    } catch (e: any) {
+      return {
+        ran: false,
+        reason: "worker_error",
+        message: e?.message ?? "Ingest worker failed",
+      } as const;
     }
-
-    const { data: runRow, error: insErr } = await supabaseAdmin
-      .from("kroger_ingest_runs")
-      .insert({
-        status: "queued",
-        triggered_by: context.userId,
-        location_id: locationId,
-        item_limit: limit,
-        message: `mode=${mode}`,
-      })
-      .select("id")
-      .single();
-    if (insErr || !runRow) throw new Error(insErr?.message ?? "Failed to enqueue run");
-
-    void performIngest(runRow.id, { limit, locationId });
-
-    return {
-      ran: true,
-      queued: true,
-      run_id: runRow.id,
-      mode,
-      location_id: locationId,
-      limit,
-      message: `${mode} ingest queued at locationId ${locationId}.`,
-    } as const;
   });
