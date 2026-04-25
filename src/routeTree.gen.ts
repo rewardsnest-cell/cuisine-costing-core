@@ -116,6 +116,7 @@ import { Route as AdminIntelligenceRouteImport } from './routes/admin/intelligen
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminInspiredPreviewRouteImport } from './routes/admin/inspired-preview'
 import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ingredient-reference'
+import { Route as AdminIngestDiagnosticsRouteImport } from './routes/admin/ingest-diagnostics'
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGuidesRouteImport } from './routes/admin/guides'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
@@ -728,6 +729,11 @@ const AdminIngredientReferenceRoute =
     path: '/ingredient-reference',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminIngestDiagnosticsRoute = AdminIngestDiagnosticsRouteImport.update({
+  id: '/ingest-diagnostics',
+  path: '/ingest-diagnostics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminImportRecipesRoute = AdminImportRecipesRouteImport.update({
   id: '/import-recipes',
   path: '/import-recipes',
@@ -1122,6 +1128,7 @@ export interface FileRoutesByFullPath {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
+  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -1294,6 +1301,7 @@ export interface FileRoutesByTo {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
+  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -1469,6 +1477,7 @@ export interface FileRoutesById {
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
+  '/admin/ingest-diagnostics': typeof AdminIngestDiagnosticsRoute
   '/admin/ingredient-reference': typeof AdminIngredientReferenceRoute
   '/admin/inspired-preview': typeof AdminInspiredPreviewRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
@@ -1645,6 +1654,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
+    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
@@ -1817,6 +1827,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
+    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
@@ -1991,6 +2002,7 @@ export interface FileRouteTypes {
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
+    | '/admin/ingest-diagnostics'
     | '/admin/ingredient-reference'
     | '/admin/inspired-preview'
     | '/admin/integrations'
@@ -2928,6 +2940,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIngredientReferenceRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/ingest-diagnostics': {
+      id: '/admin/ingest-diagnostics'
+      path: '/ingest-diagnostics'
+      fullPath: '/admin/ingest-diagnostics'
+      preLoaderRoute: typeof AdminIngestDiagnosticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/import-recipes': {
       id: '/admin/import-recipes'
       path: '/import-recipes'
@@ -3548,6 +3567,7 @@ interface AdminRouteChildren {
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminGuidesRoute: typeof AdminGuidesRouteWithChildren
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
+  AdminIngestDiagnosticsRoute: typeof AdminIngestDiagnosticsRoute
   AdminIngredientReferenceRoute: typeof AdminIngredientReferenceRoute
   AdminInspiredPreviewRoute: typeof AdminInspiredPreviewRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
@@ -3636,6 +3656,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminGuidesRoute: AdminGuidesRouteWithChildren,
   AdminImportRecipesRoute: AdminImportRecipesRoute,
+  AdminIngestDiagnosticsRoute: AdminIngestDiagnosticsRoute,
   AdminIngredientReferenceRoute: AdminIngredientReferenceRoute,
   AdminInspiredPreviewRoute: AdminInspiredPreviewRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,

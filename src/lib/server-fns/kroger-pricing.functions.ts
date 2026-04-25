@@ -835,6 +835,125 @@ export const listChartableItems = createServerFn({ method: "POST" })
   });
 
 /**
+ * Per-SKU ingest diagnostics: explains why each ingredient row is in its
+ * current matching state. Joins kroger_sku_map → ingredient_reference →
+ * inventory_items so the admin can see, for every row, the product name we
+ * scored against, the normalized term we compared, the resulting confidence,
+ * the mapped reference, and the downstream inventory item (if any).
+ */
+export const listIngestDiagnostics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      review_state?: "confirmed" | "pending" | "unmatched" | "rejected" | "all";
+      search?: string;
+      limit?: number;
+    } | undefined) => d ?? {},
+  )
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context.supabase, context.userId);
+
+    const limit = Math.max(1, Math.min(2000, data.limit ?? 500));
+
+    let q = supabaseAdmin
+      .from("kroger_sku_map")
+      .select(
+        "id,sku,product_name,product_name_normalized,review_state,match_confidence,reference_id,last_seen_at,price_unit_size",
+      )
+      .order("match_confidence", { ascending: false, nullsFirst: false })
+      .order("last_seen_at", { ascending: false })
+      .limit(limit);
+
+    if (data.review_state && data.review_state !== "all") {
+      q = q.eq("review_state", data.review_state);
+    }
+    if (data.search && data.search.trim().length > 0) {
+      const s = data.search.trim();
+      q = q.or(`product_name.ilike.%${s}%,sku.ilike.%${s}%`);
+    }
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const refIds = Array.from(
+      new Set((rows ?? []).map((r) => r.reference_id).filter(Boolean)),
+    ) as string[];
+
+    let refMap: Record<string, { canonical_name: string; canonical_normalized: string; inventory_item_id: string | null }> = {};
+    if (refIds.length > 0) {
+      const { data: refs } = await supabaseAdmin
+        .from("ingredient_reference")
+        .select("id,canonical_name,canonical_normalized,inventory_item_id")
+        .in("id", refIds);
+      refMap = Object.fromEntries(
+        (refs ?? []).map((r: any) => [
+          r.id,
+          {
+            canonical_name: r.canonical_name,
+            canonical_normalized: r.canonical_normalized,
+            inventory_item_id: r.inventory_item_id ?? null,
+          },
+        ]),
+      );
+    }
+
+    const invIds = Array.from(
+      new Set(Object.values(refMap).map((r) => r.inventory_item_id).filter(Boolean)),
+    ) as string[];
+    let invMap: Record<string, { name: string; unit: string | null }> = {};
+    if (invIds.length > 0) {
+      const { data: invs } = await supabaseAdmin
+        .from("inventory_items")
+        .select("id,name,unit")
+        .in("id", invIds);
+      invMap = Object.fromEntries(
+        (invs ?? []).map((i: any) => [i.id, { name: i.name, unit: i.unit ?? null }]),
+      );
+    }
+
+    return (rows ?? []).map((r) => {
+      const ref = r.reference_id ? refMap[r.reference_id] : null;
+      const inv = ref?.inventory_item_id ? invMap[ref.inventory_item_id] : null;
+      const conf = typeof r.match_confidence === "number" ? r.match_confidence : null;
+
+      let reason: string;
+      if (r.review_state === "confirmed") {
+        reason = inv
+          ? `Confirmed match → ${inv.name}`
+          : ref
+            ? `Confirmed reference (no inventory item linked yet)`
+            : `Confirmed but missing reference`;
+      } else if (r.review_state === "pending") {
+        reason = ref
+          ? `Pending review — best candidate "${ref.canonical_name}" at ${(conf ?? 0).toFixed(2)} confidence`
+          : `Pending without a candidate (data inconsistency)`;
+      } else if (r.review_state === "rejected") {
+        reason = "Manually rejected";
+      } else {
+        reason = conf != null
+          ? `No candidate scored ≥ 0.60 (best was ${conf.toFixed(2)})`
+          : "No matching candidate found in ingredient_reference";
+      }
+
+      return {
+        id: r.id,
+        sku: r.sku,
+        product_name: r.product_name,
+        searched_term: r.product_name_normalized,
+        review_state: r.review_state,
+        match_confidence: conf,
+        reference_name: ref?.canonical_name ?? null,
+        inventory_item_id: ref?.inventory_item_id ?? null,
+        inventory_item_name: inv?.name ?? null,
+        inventory_item_unit: inv?.unit ?? null,
+        last_seen_at: r.last_seen_at,
+        price_unit_size: r.price_unit_size,
+        reason,
+      };
+    });
+  });
+
+/**
  * Unified ingest entry point with explicit mode + ZIP fallback.
  *
  * - mode "catalog_bootstrap": pulls a wider slice of inventory_items (default 500),
