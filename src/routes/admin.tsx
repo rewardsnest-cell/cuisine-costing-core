@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { lovable } from "@/integrations/lovable/index";
 import {
-  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck,
+  LayoutDashboard, ChefHat, Package, Truck, Receipt, FileText, ShoppingCart, Menu, X, LogOut, Users, Shield, KeyRound, UserCog, CalendarDays, Calendar, ShieldCheck, Clock, Tag, TrendingUp, ScanLine, FileSearch, Building2, BookOpen, Globe2, Palette, UtensilsCrossed, Home, Sparkles, Plug, Mail, EyeOff, FlaskConical, ClipboardCheck, NotebookPen, Lock, Phone, Star, ListChecks, MessageSquareQuote, Repeat, ClipboardList, BookOpenCheck, CalendarCheck, Sun,
 } from "lucide-react";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
@@ -37,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/", label: "Home", icon: Home, exact: true },
       { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { to: "/admin/daily-dashboard", label: "Daily Dashboard", icon: Sun, featureKey: "admin_daily_dashboard" },
     ],
   },
   {

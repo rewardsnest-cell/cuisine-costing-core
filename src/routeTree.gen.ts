@@ -117,6 +117,7 @@ import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminDownloadsRouteImport } from './routes/admin/downloads'
+import { Route as AdminDailyDashboardRouteImport } from './routes/admin/daily-dashboard'
 import { Route as AdminCostQueueRouteImport } from './routes/admin/cost-queue'
 import { Route as AdminCookingLabRouteImport } from './routes/admin/cooking-lab'
 import { Route as AdminCompetitorsRouteImport } from './routes/admin/competitors'
@@ -713,6 +714,11 @@ const AdminDownloadsRoute = AdminDownloadsRouteImport.update({
   path: '/downloads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDailyDashboardRoute = AdminDailyDashboardRouteImport.update({
+  id: '/daily-dashboard',
+  path: '/daily-dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCostQueueRoute = AdminCostQueueRouteImport.update({
   id: '/cost-queue',
   path: '/cost-queue',
@@ -989,6 +995,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1142,6 +1149,7 @@ export interface FileRoutesByTo {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1298,6 +1306,7 @@ export interface FileRoutesById {
   '/admin/competitors': typeof AdminCompetitorsRoute
   '/admin/cooking-lab': typeof AdminCookingLabRoute
   '/admin/cost-queue': typeof AdminCostQueueRoute
+  '/admin/daily-dashboard': typeof AdminDailyDashboardRoute
   '/admin/downloads': typeof AdminDownloadsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/events': typeof AdminEventsRoute
@@ -1455,6 +1464,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
@@ -1608,6 +1618,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
@@ -1763,6 +1774,7 @@ export interface FileRouteTypes {
     | '/admin/competitors'
     | '/admin/cooking-lab'
     | '/admin/cost-queue'
+    | '/admin/daily-dashboard'
     | '/admin/downloads'
     | '/admin/employees'
     | '/admin/events'
@@ -2695,6 +2707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDownloadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/daily-dashboard': {
+      id: '/admin/daily-dashboard'
+      path: '/daily-dashboard'
+      fullPath: '/admin/daily-dashboard'
+      preLoaderRoute: typeof AdminDailyDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cost-queue': {
       id: '/admin/cost-queue'
       path: '/cost-queue'
@@ -3152,6 +3171,7 @@ interface AdminRouteChildren {
   AdminCompetitorsRoute: typeof AdminCompetitorsRoute
   AdminCookingLabRoute: typeof AdminCookingLabRoute
   AdminCostQueueRoute: typeof AdminCostQueueRoute
+  AdminDailyDashboardRoute: typeof AdminDailyDashboardRoute
   AdminDownloadsRoute: typeof AdminDownloadsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminEventsRoute: typeof AdminEventsRoute
@@ -3227,6 +3247,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitorsRoute: AdminCompetitorsRoute,
   AdminCookingLabRoute: AdminCookingLabRoute,
   AdminCostQueueRoute: AdminCostQueueRoute,
+  AdminDailyDashboardRoute: AdminDailyDashboardRoute,
   AdminDownloadsRoute: AdminDownloadsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminEventsRoute: AdminEventsRoute,

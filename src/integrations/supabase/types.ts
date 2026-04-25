@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_daily_priorities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done: boolean
+          due_date: string
+          id: string
+          notes: string | null
+          position: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          due_date?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          due_date?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_requests: {
         Row: {
           created_at: string
@@ -80,6 +116,51 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      admin_weekly_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done: boolean
+          id: string
+          notes: string | null
+          position: number
+          progress_value: number
+          target_value: number | null
+          title: string
+          unit: string | null
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          id?: string
+          notes?: string | null
+          position?: number
+          progress_value?: number
+          target_value?: number | null
+          title: string
+          unit?: string | null
+          updated_at?: string
+          week_start?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          id?: string
+          notes?: string | null
+          position?: number
+          progress_value?: number
+          target_value?: number | null
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          week_start?: string
         }
         Relationships: []
       }
