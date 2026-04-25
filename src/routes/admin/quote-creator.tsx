@@ -300,6 +300,24 @@ function QuoteCreatorHub() {
       toast.error("Bulk delete failed", { description: e.message });
     }
   };
+  const bulkSetMain = async (value: boolean) => {
+    if (!data) return;
+    const ids = Array.from(selectedDishIds);
+    if (ids.length === 0) return;
+    const targets = data.dishes.filter((d) => ids.includes(d.id) && d.is_main !== value);
+    if (targets.length === 0) {
+      toast.info(value ? "All selected are already main" : "None of the selected are main");
+      return;
+    }
+    try {
+      await Promise.all(targets.map((d) => updateCqhDish({ data: { id: d.id, is_main: value } })));
+      toast.success(`${value ? "Marked" : "Unmarked"} ${targets.length} as main`);
+      reload();
+    } catch (e: any) {
+      toast.error("Bulk toggle failed", { description: e.message });
+    }
+  };
+
 
   const duplicateGroups = useMemo(() => {
     if (!data) return [] as CqhDish[][];
