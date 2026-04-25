@@ -107,6 +107,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/intelligence",     label: "Project Intelligence",   icon: ShieldCheck, featureKey: "admin_project_intelligence" },
       { to: "/admin/access",           label: "Access Control",         icon: ShieldCheck, featureKey: "admin_access_control" },
       { to: "/admin/integrations",     label: "Integrations",           icon: Plug,        featureKey: "admin_integrations" },
+      { to: "/admin/cron-secrets",     label: "Cron Secrets",           icon: KeyRound,    featureKey: "admin_cron_secrets" },
       { to: "/admin/brand-config",     label: "Brand Management",       icon: Palette,     featureKey: "admin_brand_management" },
     ],
   },
