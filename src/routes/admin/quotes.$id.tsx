@@ -45,12 +45,15 @@ export const Route = createFileRoute("/admin/quotes/$id")({
 });
 
 type Variance = Awaited<ReturnType<typeof getQuoteMarginVariance>>;
+type IngredientVariance = Awaited<ReturnType<typeof getQuoteIngredientVariance>>;
 
 function QuoteDetailPage() {
   const { id } = Route.useParams();
   const varianceFn = useServerFn(getQuoteMarginVariance);
+  const ingredientVarianceFn = useServerFn(getQuoteIngredientVariance);
   const [quote, setQuote] = useState<any | null>(null);
   const [variance, setVariance] = useState<Variance | null>(null);
+  const [ingredientVariance, setIngredientVariance] = useState<IngredientVariance | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -69,8 +72,14 @@ function QuoteDetailPage() {
         if (cancelled) return;
         setQuote(q);
         try {
-          const v = await varianceFn({ data: { quote_id: id } });
-          if (!cancelled) setVariance(v);
+          const [v, iv] = await Promise.all([
+            varianceFn({ data: { quote_id: id } }),
+            ingredientVarianceFn({ data: { quote_id: id } }),
+          ]);
+          if (!cancelled) {
+            setVariance(v);
+            setIngredientVariance(iv);
+          }
         } catch (e: any) {
           if (!cancelled) setErr(e?.message || "Failed to load margin variance");
         }
@@ -83,7 +92,7 @@ function QuoteDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, varianceFn]);
+  }, [id, varianceFn, ingredientVarianceFn]);
 
   if (loading) return <LoadingState label="Loading quote…" />;
   if (!quote)
