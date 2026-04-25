@@ -5,9 +5,10 @@ import { format, addDays } from "date-fns";
 import {
   ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowLeft,
   CalendarPlus, MapPin, Building2, X, CalendarIcon, Sparkles,
-  ShieldAlert, ShieldCheck, ShieldQuestion,
+  ShieldAlert, ShieldCheck, ShieldQuestion, Eye,
 } from "lucide-react";
 import { OutreachDraftDialog, type DraftLead } from "@/components/outreach/OutreachDraftDialog";
+import { TemplatePreviewDialog, type PreviewLead } from "@/components/outreach/TemplatePreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
