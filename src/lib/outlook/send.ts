@@ -122,6 +122,42 @@ export async function sendOutlookEmail(params: SendOutlookEmailParams): Promise<
     return { ok: false, status: createRes.status, error: 'Outlook did not return a draft id' }
   }
 
+  // Attach files to the draft before sending.
+  // Microsoft Graph supports file attachments up to ~3 MB inline via this endpoint;
+  // for larger files an upload session would be required (out of scope here).
+  const attachmentIds: Array<{ name: string; outlookAttachmentId: string | null }> = []
+  if (params.attachments && params.attachments.length > 0) {
+    for (const att of params.attachments) {
+      const attRes = await fetch(
+        `${GATEWAY_URL}/me/messages/${encodeURIComponent(draftId)}/attachments`,
+        {
+          method: 'POST',
+          headers: gatewayHeaders(),
+          body: JSON.stringify({
+            '@odata.type': '#microsoft.graph.fileAttachment',
+            name: att.name,
+            contentType: att.contentType,
+            contentBytes: att.contentBytesBase64,
+          }),
+        },
+      )
+      if (!attRes.ok) {
+        const errBody = await attRes.text().catch(() => '')
+        return {
+          ok: false,
+          status: attRes.status,
+          error: `Outlook attach failed for "${att.name}" [${attRes.status}]: ${errBody.slice(0, 400)}`,
+          outlookMessageId: draftId,
+          outlookConversationId: draft.conversationId,
+          internetMessageId: draft.internetMessageId,
+          attachmentIds,
+        }
+      }
+      const attJson = (await attRes.json().catch(() => ({}))) as { id?: string }
+      attachmentIds.push({ name: att.name, outlookAttachmentId: attJson.id ?? null })
+    }
+  }
+
   const sendRes = await fetch(`${GATEWAY_URL}/me/messages/${encodeURIComponent(draftId)}/send`, {
     method: 'POST',
     headers: gatewayHeaders(),
@@ -136,6 +172,7 @@ export async function sendOutlookEmail(params: SendOutlookEmailParams): Promise<
       outlookMessageId: draftId,
       outlookConversationId: draft.conversationId,
       internetMessageId: draft.internetMessageId,
+      attachmentIds,
     }
   }
 
@@ -145,6 +182,7 @@ export async function sendOutlookEmail(params: SendOutlookEmailParams): Promise<
     outlookMessageId: draftId,
     outlookConversationId: draft.conversationId,
     internetMessageId: draft.internetMessageId,
+    attachmentIds,
   }
 }
 
