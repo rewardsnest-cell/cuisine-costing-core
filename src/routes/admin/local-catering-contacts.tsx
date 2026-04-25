@@ -174,6 +174,7 @@ function LocalCateringContactsPage() {
       }
       if (priority !== "all" && l.priority !== priority) return false;
       if (status !== "all" && l.status !== status) return false;
+      if (verification !== "all" && l.verification_status !== verification) return false;
 
       const created = (l.created_at ?? "").slice(0, 10);
       if (cf && created < cf) return false;
@@ -187,17 +188,59 @@ function LocalCateringContactsPage() {
       }
       return true;
     });
-  }, [data, search, maxDistance, category, priority, status, createdFrom, createdTo, followUpFrom, followUpTo]);
+  }, [data, search, maxDistance, category, priority, status, verification, createdFrom, createdTo, followUpFrom, followUpTo]);
 
   const clearFilters = () => {
     setSearch(""); setMaxDistance(""); setCategory("all"); setPriority("all"); setStatus("all");
+    setVerification("all");
     setCreatedFrom(undefined); setCreatedTo(undefined); setFollowUpFrom(undefined); setFollowUpTo(undefined);
   };
 
+  const openReview = (lead: Lead) => {
+    setReviewLead(lead);
+    setReviewEmail(lead.email ?? "");
+    setReviewPhone(lead.phone ?? "");
+    setReviewName(lead.name ?? "");
+    setReviewCompany(lead.company ?? "");
+    setReviewNotes(lead.verification_notes ?? "");
+  };
+
   const quickSchedule = (lead: Lead, days: number) => {
+    if (lead.verification_status === "needs_review") {
+      const issues = (lead.verification_issues ?? []).map((i) => ISSUE_LABELS[i] ?? i).join(", ");
+      toast.error(`Verify contact first: ${issues || "missing contact info"}`);
+      openReview(lead);
+      return;
+    }
     setScheduleLead(lead);
     setScheduleDate(addDays(new Date(), days));
     setScheduleNote("");
+  };
+
+  const saveReview = async () => {
+    if (!reviewLead) return;
+    setReviewSaving(true);
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({
+          email: reviewEmail.trim() || null,
+          phone: reviewPhone.trim() || null,
+          name: reviewName.trim() || null,
+          company: reviewCompany.trim() || null,
+          verification_notes: reviewNotes.trim() || null,
+        })
+        .eq("id", reviewLead.id);
+      if (error) throw error;
+      toast.success("Contact updated. Verification recomputed.");
+      setReviewLead(null);
+      refetch();
+      router.invalidate();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to update contact");
+    } finally {
+      setReviewSaving(false);
+    }
   };
 
   const saveFollowUp = async () => {
