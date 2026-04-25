@@ -70,6 +70,7 @@ function DailyDashboardPage() {
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const [pricingAlerts, setPricingAlerts] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [trend, setTrend] = useState<Array<{ week: string; target: number; completed: number; pct: number }>>([]);
 
   const today = todayISO();
   const wkStart = weekStartISO();
