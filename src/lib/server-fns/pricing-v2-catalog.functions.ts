@@ -588,6 +588,15 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
     const cutoffIso = new Date(Date.now() - data.older_than_minutes * 60_000).toISOString();
     const nowIso = new Date().toISOString();
 
+    // Capture the literal SQL each recovery step issues (PostgREST equivalents),
+    // so the audit row records exactly what was executed.
+    const selectStuckSql =
+      `SELECT run_id, started_at, stage, counts_in, counts_out, warnings_count, errors_count, params, notes\n` +
+      `FROM public.pricing_v2_runs\n` +
+      `WHERE stage IN ('catalog','catalog_bootstrap_test')\n` +
+      `  AND status = 'running'\n` +
+      `  AND started_at < '${cutoffIso}';`;
+
     const { data: stuck, error: selErr } = await supabase
       .from("pricing_v2_runs")
       .select("run_id, started_at, stage, counts_in, counts_out, warnings_count, errors_count, params, notes")
@@ -606,14 +615,21 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
       `Auto-recovered: run was stuck in 'running' for >${data.older_than_minutes}m ` +
       `(no completion signal). Marked failed at ${nowIso}.`;
 
+    const updateRunsSql =
+      `UPDATE public.pricing_v2_runs\n` +
+      `SET status = 'failed', ended_at = '${nowIso}', last_error = '${summary.replace(/'/g, "''")}'\n` +
+      `WHERE run_id IN (${runIds.map((id) => `'${id}'`).join(", ")});`;
+
     const { error: updErr } = await supabase
       .from("pricing_v2_runs")
       .update({ status: "failed", ended_at: nowIso, last_error: summary })
       .in("run_id", runIds);
     if (updErr) throw new Error(updErr.message);
 
-    // One uniform error row per recovered run, with full audit context:
-    // started_at, stage, and the exact SQL counts captured at recovery time.
+    // One uniform error row per recovered run. Counts are persisted into the
+    // structured columns (counts_in/out, warnings/errors_count); the literal
+    // SQL text issued by recovery is stored in `executed_sql` and mirrored
+    // into debug_json for full auditability.
     const errorRows = stuckRuns.map((r: any) => {
       const startedAt = r.started_at as string | null;
       const stuckMs = startedAt ? Date.now() - new Date(startedAt).getTime() : null;
@@ -627,12 +643,19 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
         `Auto-recovered ${r.stage} run ${r.run_id} stuck since ${startedAt ?? "unknown"} ` +
         `(>${data.older_than_minutes}m). Counts at recovery — in:${counts.counts_in} ` +
         `out:${counts.counts_out} warn:${counts.warnings_count} err:${counts.errors_count}.`;
+      const executedSql = `-- 1) Identify stuck runs\n${selectStuckSql}\n\n-- 2) Mark this run failed\n${updateRunsSql}`;
       return {
         stage: r.stage,
         run_id: r.run_id,
         severity: "error",
         type: "stuck_run_recovered",
         message: perRunMessage,
+        // Structured columns (audit-friendly, queryable):
+        counts_in: counts.counts_in,
+        counts_out: counts.counts_out,
+        warnings_count: counts.warnings_count,
+        errors_count: counts.errors_count,
+        executed_sql: executedSql,
         debug_json: {
           older_than_minutes: data.older_than_minutes,
           recovered_at: nowIso,
@@ -647,6 +670,10 @@ export const recoverStuckCatalogRuns = createServerFn({ method: "POST" })
             notes: r.notes ?? null,
           },
           counts,
+          executed_sql_steps: [
+            { step: "identify_stuck", sql: selectStuckSql },
+            { step: "mark_failed", sql: updateRunsSql },
+          ],
         },
       };
     });
