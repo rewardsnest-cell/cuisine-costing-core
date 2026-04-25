@@ -416,6 +416,7 @@ function LocalCateringContactsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Contact</TableHead>
+                    <TableHead>Verification</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Priority / Status</TableHead>
                     <TableHead>Next follow-up</TableHead>
