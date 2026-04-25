@@ -228,7 +228,7 @@ export const setRolePermission = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        role: z.enum(["user", "employee", "admin"]),
+        role: z.enum(["user", "employee", "social_media", "sales", "admin"]),
         section: z.string().min(1).max(64),
         enabled: z.boolean(),
       })

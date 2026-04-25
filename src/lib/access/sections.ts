@@ -16,5 +16,13 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   profile: "Profile & Account",
 };
 
-export const ROLE_KEYS = ["user", "employee", "admin"] as const;
+export const ROLE_KEYS = ["user", "employee", "social_media", "sales", "admin"] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
+
+export const ROLE_LABELS: Record<RoleKey, string> = {
+  user: "User",
+  employee: "Employee",
+  social_media: "Social Media",
+  sales: "Sales",
+  admin: "Admin",
+};

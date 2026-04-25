@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Mail, RotateCw, Trash2, UserPlus, Search, ShieldCheck, History } from "lucide-react";
-import { SECTION_KEYS, SECTION_LABELS, ROLE_KEYS, type SectionKey, type RoleKey } from "@/lib/access/sections";
+import { SECTION_KEYS, SECTION_LABELS, ROLE_KEYS, ROLE_LABELS, type SectionKey, type RoleKey } from "@/lib/access/sections";
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
 import {
@@ -185,8 +185,8 @@ function AccessControlPage() {
               <tr className="border-b">
                 <th className="text-left p-2">Section</th>
                 {ROLE_KEYS.map((r) => (
-                  <th key={r} className="text-center p-2 capitalize">
-                    {r}
+                  <th key={r} className="text-center p-2 whitespace-nowrap">
+                    {ROLE_LABELS[r]}
                   </th>
                 ))}
               </tr>
