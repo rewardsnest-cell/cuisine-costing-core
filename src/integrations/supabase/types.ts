@@ -2175,12 +2175,14 @@ export type Database = {
       }
       lead_outreach_log: {
         Row: {
+          attempt: number
           channel: string
           created_at: string
           created_by: string | null
           error_message: string | null
           id: string
           lead_id: string
+          max_attempts: number
           message_id: string | null
           notes: string | null
           recipient_email: string | null
@@ -2190,12 +2192,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attempt?: number
           channel?: string
           created_at?: string
           created_by?: string | null
           error_message?: string | null
           id?: string
           lead_id: string
+          max_attempts?: number
           message_id?: string | null
           notes?: string | null
           recipient_email?: string | null
@@ -2205,12 +2209,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attempt?: number
           channel?: string
           created_at?: string
           created_by?: string | null
           error_message?: string | null
           id?: string
           lead_id?: string
+          max_attempts?: number
           message_id?: string | null
           notes?: string | null
           recipient_email?: string | null
