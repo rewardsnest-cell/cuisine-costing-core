@@ -345,7 +345,7 @@ export const listCatalogRunErrors = createServerFn({ method: "POST" })
     let q = supabase
       .from("pricing_v2_errors")
       .select("*")
-      .eq("stage", STAGE)
+      .in("stage", ["catalog", "catalog_bootstrap_test"])
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (data.run_id) q = q.eq("run_id", data.run_id);

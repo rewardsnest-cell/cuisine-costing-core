@@ -284,7 +284,7 @@ function CatalogBootstrapPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between gap-3 flex-wrap">
-            <span>Errors (stage = catalog)</span>
+            <span>Errors (stage = catalog or catalog_bootstrap_test)</span>
             <div className="flex items-center gap-2 text-sm font-normal">
               <Input className="h-8 w-[26ch] font-mono text-xs" placeholder="filter by run_id" value={errFilterRun} onChange={(e) => setErrFilterRun(e.target.value.trim())} />
               <select className="h-8 rounded-md border border-input bg-background px-2 text-sm" value={errFilterSeverity} onChange={(e) => setErrFilterSeverity(e.target.value as any)}>
