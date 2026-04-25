@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { BRAND, drawBrandedHeader, drawBrandedFooter } from "@/lib/pdf-brand";
+import { canonicalize, formatQty } from "@/lib/cqh/units";
 
 export type ShoppingListPdfItem = {
   ingredient_name: string;
