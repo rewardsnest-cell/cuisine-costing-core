@@ -355,6 +355,56 @@ function PricingCodeInventoryPage() {
 
       <Card>
         <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <GitBranch className="w-4 h-4" /> Pricing dependency graph
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Static map of which pricing modules import / call / mutate each other.
+            Included in the JSON export and rendered in the PDF (with Mermaid source).
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-2 pr-3 font-medium">From</th>
+                  <th className="py-2 pr-3 font-medium">Relationship</th>
+                  <th className="py-2 pr-3 font-medium">To</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PRICING_GRAPH_EDGES.map((e, idx) => {
+                  const from = PRICING_GRAPH_NODES.find((n) => n.id === e.from);
+                  const to = PRICING_GRAPH_NODES.find((n) => n.id === e.to);
+                  return (
+                    <tr key={`${e.from}-${e.to}-${idx}`} className="border-b last:border-0">
+                      <td className="py-2 pr-3 font-mono text-xs">{from?.label ?? e.from}</td>
+                      <td className="py-2 pr-3">
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                          {e.kind}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-3 font-mono text-xs">{to?.label ?? e.to}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <details className="rounded-md border border-border bg-card/50 p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Mermaid source (paste into mermaid.live)
+            </summary>
+            <pre className="mt-3 max-h-96 overflow-auto rounded bg-muted/40 p-3 text-[11px] leading-relaxed font-mono whitespace-pre">
+              {buildPricingGraphMermaid()}
+            </pre>
+          </details>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">SQL pricing references</CardTitle>
         </CardHeader>
         <CardContent>
