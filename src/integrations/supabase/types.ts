@@ -2055,6 +2055,86 @@ export type Database = {
           },
         ]
       }
+      lead_emails: {
+        Row: {
+          body_html: string | null
+          body_preview: string | null
+          body_text: string | null
+          cc_emails: string[] | null
+          created_at: string
+          direction: string
+          from_email: string
+          from_name: string | null
+          id: string
+          in_reply_to: string | null
+          internet_message_id: string | null
+          is_read: boolean | null
+          lead_id: string | null
+          outlook_conversation_id: string | null
+          outlook_message_id: string | null
+          raw: Json | null
+          received_at: string | null
+          sent_at: string | null
+          subject: string | null
+          template_name: string | null
+          to_emails: string[]
+        }
+        Insert: {
+          body_html?: string | null
+          body_preview?: string | null
+          body_text?: string | null
+          cc_emails?: string[] | null
+          created_at?: string
+          direction: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          internet_message_id?: string | null
+          is_read?: boolean | null
+          lead_id?: string | null
+          outlook_conversation_id?: string | null
+          outlook_message_id?: string | null
+          raw?: Json | null
+          received_at?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          template_name?: string | null
+          to_emails?: string[]
+        }
+        Update: {
+          body_html?: string | null
+          body_preview?: string | null
+          body_text?: string | null
+          cc_emails?: string[] | null
+          created_at?: string
+          direction?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          internet_message_id?: string | null
+          is_read?: boolean | null
+          lead_id?: string | null
+          outlook_conversation_id?: string | null
+          outlook_message_id?: string | null
+          raw?: Json | null
+          received_at?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          template_name?: string | null
+          to_emails?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_emails_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_notes: {
         Row: {
           body: string
@@ -2443,6 +2523,36 @@ export type Database = {
           id?: string
           source?: string
           unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      outlook_sync_state: {
+        Row: {
+          delta_link: string | null
+          id: number
+          last_error: string | null
+          last_message_received_at: string | null
+          last_polled_at: string | null
+          total_messages_synced: number | null
+          updated_at: string
+        }
+        Insert: {
+          delta_link?: string | null
+          id?: number
+          last_error?: string | null
+          last_message_received_at?: string | null
+          last_polled_at?: string | null
+          total_messages_synced?: number | null
+          updated_at?: string
+        }
+        Update: {
+          delta_link?: string | null
+          id?: number
+          last_error?: string | null
+          last_message_received_at?: string | null
+          last_polled_at?: string | null
+          total_messages_synced?: number | null
           updated_at?: string
         }
         Relationships: []
