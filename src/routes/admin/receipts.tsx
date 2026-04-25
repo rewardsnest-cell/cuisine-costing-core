@@ -400,6 +400,67 @@ function ReceiptsPage() {
     setReviewReceipt(null);
   };
 
+  const saveAndApplyPrices = async () => {
+    if (!reviewReceipt) return;
+    const { errors, firstMessage } = validateLineItems(editedLineItems);
+    setLineItemErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(firstMessage || "Fix highlighted fields before saving");
+      return;
+    }
+    const matchedCount = editedLineItems.filter(
+      (it) => it.matched_inventory_id && Number(it.unit_price) > 0,
+    ).length;
+    if (matchedCount === 0) {
+      toast.error("No matched line items with a unit price to apply");
+      return;
+    }
+
+    setApplyingPrices(true);
+    try {
+      // 1. Save edited line items first so server reads the latest prices
+      const newTotal = editedLineItems.reduce(
+        (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0),
+        0,
+      );
+      const { error: saveErr } = await supabase
+        .from("receipts")
+        .update({
+          extracted_line_items: editedLineItems as any,
+          total_amount: Math.round(newTotal * 100) / 100,
+        } as any)
+        .eq("id", reviewReceipt.id);
+      if (saveErr) throw saveErr;
+
+      // 2. Apply prices + recalc linked quote
+      const { applyReceiptCostsAndRecalc } = await import(
+        "@/lib/server-fns/apply-receipt-costs.functions"
+      );
+      const result = await applyReceiptCostsAndRecalc({
+        data: { receiptId: reviewReceipt.id },
+      });
+
+      const updatedCount = result.updated.length;
+      const skippedCount = result.skipped.length;
+      if (result.recalc) {
+        toast.success(
+          `Applied ${updatedCount} price${updatedCount === 1 ? "" : "s"} · quote re-costed (per guest $${result.recalc.perGuest}, total $${result.recalc.total.toFixed(2)})`,
+        );
+      } else {
+        toast.success(
+          `Applied ${updatedCount} price${updatedCount === 1 ? "" : "s"}${skippedCount ? ` · ${skippedCount} skipped` : ""} · no linked quote to re-cost`,
+        );
+      }
+      load();
+      setReviewReceipt(null);
+    } catch (err: any) {
+      console.error("Apply prices error:", err);
+      toast.error(err?.message || "Failed to apply prices");
+    } finally {
+      setApplyingPrices(false);
+    }
+  };
+
   const handleProcessAndSave = async (receipt: ReceiptRow) => {
     if (!receipt.image_url) {
       const msg = "No image to process";
