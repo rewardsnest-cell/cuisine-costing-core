@@ -105,11 +105,17 @@ export function GenerateContactDialog({
     if (!prospect) return;
     setSaving(true);
     try {
+      const cleanContacts = extraContacts.filter((c) => c.name || c.email || c.phone || c.role);
+      const contactsBlock = cleanContacts.length > 0
+        ? `Contacts:\n${cleanContacts.map((c) => `• ${[c.name, c.role].filter(Boolean).join(" — ") || "Contact"}${c.email ? ` <${c.email}>` : ""}${c.phone ? ` · ${c.phone}` : ""}`).join("\n")}`
+        : null;
+      const aiBlock = aiNotes
+        ? `AI contact research (${result?.confidence ?? "?"} confidence): ${aiNotes}`
+        : null;
       const trimmedNotes = [
         prospect.notes?.trim(),
-        aiNotes
-          ? `AI contact research (${result?.confidence ?? "?"} confidence): ${aiNotes}${website ? ` · Website: ${website}` : ""}`
-          : null,
+        aiBlock,
+        contactsBlock,
       ].filter(Boolean).join("\n\n");
 
       const { error } = await (supabase as any)
@@ -118,6 +124,8 @@ export function GenerateContactDialog({
           contact_name: contactName.trim() || null,
           email: email.trim() || null,
           phone: phone.trim() || null,
+          website: website.trim() || null,
+          address: address.trim() || null,
           notes: trimmedNotes || null,
         })
         .eq("id", prospect.id);
