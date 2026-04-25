@@ -458,6 +458,12 @@ function LocalCateringContactsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OutreachDraftDialog
+        open={!!draftLead}
+        onOpenChange={(o) => !o && setDraftLead(null)}
+        lead={draftLead}
+      />
     </div>
   );
 }
