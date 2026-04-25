@@ -204,6 +204,12 @@ export const REVIEW_RULES = [
   "Never offer anything in exchange for a review.",
 ];
 
-export const PROSPECT_CITIES = ["Aurora, OH", "Solon, OH", "Hudson, OH"] as const;
+export const PROSPECT_CITIES = [
+  "Aurora, OH", "Solon, OH", "Hudson, OH",
+  "Cleveland, OH", "Beachwood, OH", "Chagrin Falls, OH",
+  "Akron, OH", "Kent, OH", "Stow, OH",
+  "Medina, OH", "Strongsville, OH",
+] as const;
 export const PROSPECT_TYPES = ["Venue", "Corporate", "Medical"] as const;
 export const PROSPECT_STATUSES = ["New", "Contacted", "Interested", "Booked", "Repeat", "Archived"] as const;
+export const PROSPECT_PRIORITIES = ["High", "Medium", "Long-Term"] as const;
