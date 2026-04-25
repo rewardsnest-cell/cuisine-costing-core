@@ -123,8 +123,8 @@ async function enqueueEmail(
   // Render
   const { render } = await import('@react-email/components')
   const templateData = {
-    contactName: contact.contact_name ?? undefined,
-    businessName: contact.organization_name,
+    contactName: contact.name ?? undefined,
+    businessName: contact.company ?? '',
   }
   const element = React.createElement(template.component, templateData)
   const html = await render(element)
