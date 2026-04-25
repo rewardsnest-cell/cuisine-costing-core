@@ -79,57 +79,7 @@ function LeadDetailPage() {
 
       <ComposeCard lead={lead} onSent={() => router.invalidate()} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" /> Email thread ({emails.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {emails.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No emails yet. Send the first one above, or wait for the inbox poller to import a reply.</p>
-          ) : (
-            <ul className="space-y-3">
-              {emails.map((e: any) => (
-                <li
-                  key={e.id}
-                  className={`rounded-lg border p-4 ${e.direction === 'inbound' ? 'border-primary/40 bg-primary/5' : 'bg-muted/40'}`}
-                >
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {e.direction === 'inbound' ? (
-                      <Inbox className="h-3.5 w-3.5" />
-                    ) : (
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    )}
-                    <span className="font-medium">
-                      {e.direction === 'inbound' ? 'From' : 'To'}:
-                    </span>
-                    <span>
-                      {e.direction === 'inbound'
-                        ? `${e.from_name ?? ''} <${e.from_email}>`
-                        : (e.to_emails ?? []).join(', ')}
-                    </span>
-                    <span className="ml-auto">
-                      {(e.received_at || e.sent_at)
-                        ? new Date(e.received_at || e.sent_at).toLocaleString()
-                        : ''}
-                    </span>
-                  </div>
-                  <div className="mt-1 font-medium">{e.subject || '(no subject)'}</div>
-                  <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
-                    {e.body_preview || (e.body_text ?? '').slice(0, 400)}
-                  </p>
-                  {e.template_name && (
-                    <Badge variant="outline" className="mt-2 text-xs">
-                      template: {e.template_name}
-                    </Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <EmailThreadCard emails={emails} />
 
       <AuditCard audit={audit} />
     </div>
