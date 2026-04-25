@@ -270,7 +270,14 @@ function LocalCateringContactsPage() {
       refetch();
       router.invalidate();
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to schedule follow-up");
+      const msg = e?.message ?? "Failed to schedule follow-up";
+      if (msg.includes("manual verification")) {
+        toast.error("Verification required before scheduling outreach.");
+        if (scheduleLead) openReview(scheduleLead);
+        setScheduleLead(null);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSaving(false);
     }
