@@ -287,7 +287,6 @@ export function BulkContactReviewDialog({
                             </Badge>
                           )}
                         </div>
-                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1">
