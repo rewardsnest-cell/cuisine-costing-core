@@ -292,6 +292,30 @@ function CatalogBootstrapPage() {
             </Alert>
           )}
 
+          {/* Recover stuck runs */}
+          <div className="pt-3 border-t border-border space-y-2">
+            <div className="text-xs font-semibold uppercase text-muted-foreground">
+              Recover stuck runs
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-muted-foreground flex-1 min-w-[260px]">
+                Marks any catalog run stuck in <span className="font-mono">running</span> for
+                more than 15 minutes as <span className="font-mono">failed</span> with a
+                timestamp + error summary, and resets bootstrap_state if needed so you can resume.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => recoverMut.mutate()}
+                disabled={recoverMut.isPending}
+                className="gap-1.5"
+              >
+                {recoverMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+                Recover Stuck Runs ({">"}15m)
+              </Button>
+            </div>
+          </div>
+
           {/* Reset (dangerous) */}
           <div className="pt-3 border-t border-destructive/30 space-y-2">
             <div className="text-xs font-semibold text-destructive uppercase">Danger zone — Reset Bootstrap</div>
