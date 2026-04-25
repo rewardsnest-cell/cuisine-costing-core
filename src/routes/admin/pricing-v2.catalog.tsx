@@ -194,6 +194,86 @@ function PricingV2CatalogPage() {
         </Card>
       )}
 
+      {/* Test Harness */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TestTube2 className="w-4 h-4" /> Test Harness
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Runs 6 deterministic test cases (3 PASS, 3 FAIL) against the catalog validator.
+              FAIL cases write real entries to <code>pricing_v2_errors</code> with stage <code>catalog</code>.
+            </p>
+          </div>
+          <Button onClick={() => testMut.mutate()} disabled={testMut.isPending} className="gap-2">
+            <TestTube2 className="w-4 h-4" />
+            {testMut.isPending ? "Running…" : "Run Test Cases"}
+          </Button>
+        </CardHeader>
+        {testMut.data && (
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge variant={testMut.data.overall_pass ? "default" : "destructive"}>
+                {testMut.data.overall_pass ? "ALL PASS" : "FAILURES"}
+              </Badge>
+              <span>{testMut.data.summary.passed}/{testMut.data.summary.total} passed</span>
+              <span className="text-muted-foreground">·</span>
+              <span>{testMut.data.summary.errors_logged} errors logged</span>
+              <span className="text-muted-foreground">·</span>
+              <code className="text-[10px]">{testMut.data.run_id}</code>
+              <Link to="/admin/pricing-v2/errors" search={{ stage: "catalog" } as any}>
+                <Button size="sm" variant="ghost">View errors →</Button>
+              </Link>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">Result</TableHead>
+                  <TableHead className="w-20">Expect</TableHead>
+                  <TableHead>Test case</TableHead>
+                  <TableHead>Details</TableHead>
+                  <TableHead>Issues produced</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {testMut.data.results.map((r: any, idx: number) => (
+                  <TableRow key={idx}>
+                    <TableCell>
+                      {r.passed
+                        ? <Badge variant="default" className="gap-1"><CheckCircle2 className="w-3 h-3" />PASS</Badge>
+                        : <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" />FAIL</Badge>}
+                    </TableCell>
+                    <TableCell className="text-xs uppercase text-muted-foreground">{r.expect}</TableCell>
+                    <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.details}</TableCell>
+                    <TableCell className="text-xs">
+                      {r.actualIssues.length === 0 ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <ul className="space-y-0.5">
+                          {r.actualIssues.map((i: any, j: number) => (
+                            <li key={j} className="flex items-center gap-1.5">
+                              <SeverityBadge s={i.severity} />
+                              <code>{i.type}</code>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        )}
+        {testMut.isError && (
+          <CardContent>
+            <p className="text-sm text-destructive">{(testMut.error as Error).message}</p>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Recent runs */}
       <Card>
         <CardHeader><CardTitle className="text-base">Recent runs</CardTitle></CardHeader>
