@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Send, Loader2 } from "lucide-react";
+import { Mail, Send, Loader2, ArrowLeft, Eye, Pencil, CheckCircle2 } from "lucide-react";
 import {
   PROSPECT_TEMPLATE_LIST,
   defaultTemplateForType,
