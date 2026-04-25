@@ -31,6 +31,7 @@ import {
   Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
 import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
+import { canonicalize, dimensionLabel, type Dimension } from "@/lib/cqh/units";
 
 export const Route = createFileRoute("/admin/quote-creator")({
   validateSearch: (search: Record<string, unknown>) => ({
