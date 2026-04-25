@@ -710,9 +710,11 @@ function RecipeHub() {
                       {r.score_affiliate}/{r.score_video}/{r.score_event}/{r.score_seasonal}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <Link to="/admin/recipe-hub/$id" params={{ id: r.id }}>
-                        <Button size="sm" variant="outline"><Pencil className="w-3 h-3 mr-1" />Edit</Button>
-                      </Link>
+                      <Button asChild size="sm" variant="outline">
+                        <Link to="/admin/recipe-hub/$id" params={{ id: r.id }}>
+                          <Pencil className="w-3 h-3 mr-1" />Edit
+                        </Link>
+                      </Button>
                     </td>
                   </tr>
                 );
