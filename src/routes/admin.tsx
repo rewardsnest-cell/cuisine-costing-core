@@ -81,6 +81,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "System & Governance",
     items: [
+      { to: "/admin/pages",          label: "Admin Pages Registry",   icon: LayoutDashboard, featureKey: "admin_pages_registry" },
       { to: "/admin/visibility",       label: "Feature Visibility",     icon: Globe2,      featureKey: "admin_feature_visibility" },
       { to: "/admin/page-inventory",   label: "Page Inventory",         icon: FileSearch,  featureKey: "admin_page_inventory" },
       { to: "/admin/audit",            label: "Audit Log",              icon: Shield,      featureKey: "admin_audit_log" },
