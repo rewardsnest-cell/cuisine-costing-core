@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload } from "lucide-react";
+import { ExternalLink, Mail, Phone, Filter, RefreshCw, ArrowRight, Upload, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -180,6 +180,12 @@ function LeadsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/local-catering-contacts">
+              <MapPin className="h-4 w-4 mr-2" />
+              Local Contacts
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/admin/outreach">
               <Phone className="h-4 w-4 mr-2" />
