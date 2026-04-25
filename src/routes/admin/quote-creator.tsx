@@ -1153,16 +1153,21 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
             <Badge variant="outline">Draft</Badge>
           )}
         </CardTitle>
-        {!isApproved && (
-          <Button size="sm" onClick={async () => {
-            try {
-              await approveShoppingList({ data: { shopping_list_id: list.id } });
-              toast.success("Approved"); onChanged();
-            } catch (e: any) { toast.error(e.message); }
-          }}>
-            <CheckCircle2 className="w-4 h-4 mr-1" /> Approve Shopping List
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportPdf} disabled={items.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Download PDF
           </Button>
-        )}
+          {!isApproved && (
+            <Button size="sm" onClick={async () => {
+              try {
+                await approveShoppingList({ data: { shopping_list_id: list.id } });
+                toast.success("Approved"); onChanged();
+              } catch (e: any) { toast.error(e.message); }
+            }}>
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Approve Shopping List
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {!isApproved && items.length > 0 && (
