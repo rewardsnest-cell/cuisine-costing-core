@@ -879,15 +879,25 @@ function ReceiptsPage() {
                       {Object.keys(lineItemErrors).length} row{Object.keys(lineItemErrors).length === 1 ? "" : "s"} need fixing before save
                     </p>
                   )}
-                  <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems}>Cancel</Button>
+                  <div className="flex flex-wrap justify-end gap-3">
+                    <Button variant="outline" onClick={() => setReviewReceipt(null)} disabled={savingLineItems || applyingPrices}>Cancel</Button>
                     <Button
                       onClick={saveLineItems}
-                      disabled={savingLineItems || Object.keys(lineItemErrors).length > 0}
-                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                      disabled={savingLineItems || applyingPrices || Object.keys(lineItemErrors).length > 0}
+                      variant="outline"
+                      className="gap-1.5"
                     >
                       {savingLineItems ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                       {savingLineItems ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button
+                      onClick={saveAndApplyPrices}
+                      disabled={savingLineItems || applyingPrices || Object.keys(lineItemErrors).length > 0}
+                      className="bg-gradient-warm text-primary-foreground gap-1.5"
+                      title="Save edits, push unit prices to matched inventory items, and re-cost the linked quote"
+                    >
+                      {applyingPrices ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      {applyingPrices ? "Applying..." : "Save, Apply Prices & Re-cost Quote"}
                     </Button>
                   </div>
                 </div>
