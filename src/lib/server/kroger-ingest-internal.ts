@@ -271,7 +271,9 @@ async function runBootstrap(
           errors.push({ term, page: pageIdx, sku, scoring_error: e?.message ?? "score_failed" });
         }
 
+        const AUTO_CONFIRM_THRESHOLD = 0.85;
         const hasMatch = bestScore >= 0.6 && bestRefId;
+        const autoConfirmed = hasMatch && bestScore >= AUTO_CONFIRM_THRESHOLD;
         const { error: upsertError } = await supabaseAdmin
           .from("kroger_sku_map")
           .upsert({
@@ -284,13 +286,11 @@ async function runBootstrap(
             last_seen_at: new Date().toISOString(),
             reference_id: hasMatch ? bestRefId : null,
             match_confidence: hasMatch ? bestScore : null,
-            // Per spec: write "unmatched" by default. Only mark "pending" when
-            // a confident candidate exists. Never overwrite a human-confirmed
-            // row — onConflict=sku replaces all fields, so we guard "confirmed"
-            // rows by only setting review_state when this is a NEW sku OR the
-            // current state is unmatched/pending (handled by a partial update
-            // below for known skus).
-            review_state: hasMatch ? "pending" : "unmatched",
+            // Auto-confirm very confident matches so daily_update can price
+            // them immediately. Mid-band stays pending for human review;
+            // low-confidence stays unmatched. Confirmed/rejected rows are
+            // protected by a follow-up restore step (see below).
+            review_state: autoConfirmed ? "confirmed" : hasMatch ? "pending" : "unmatched",
           } as any, { onConflict: "sku" });
 
         if (upsertError) {
@@ -370,11 +370,15 @@ async function runDailyUpdate(
   limit: number,
   kFetch: (url: string, init?: RequestInit) => Promise<Response>,
 ): Promise<ReturnType<typeof runKrogerIngestInternal>> {
-  // Confirmed mappings only
+  // Confirmed mappings — plus high-confidence pending rows that already link
+  // to a reference. This lets pricing flow as soon as bootstrap finishes,
+  // without waiting for every row to be human-reviewed. Rejected/unmatched
+  // are still excluded.
   const { data: maps } = await supabaseAdmin
     .from("kroger_sku_map")
-    .select("sku,product_id,upc,reference_id")
-    .eq("review_state", "confirmed")
+    .select("sku,product_id,upc,reference_id,review_state,match_confidence")
+    .in("review_state", ["confirmed", "pending"])
+    .gte("match_confidence", 0.7)
     .not("reference_id", "is", null)
     .limit(limit);
 
@@ -383,7 +387,7 @@ async function runDailyUpdate(
     await supabaseAdmin.from("kroger_ingest_runs").update({
       status: "completed",
       finished_at: new Date().toISOString(),
-      message: "daily_update: no confirmed mappings yet",
+      message: "daily_update: no eligible mappings yet (need confirmed or pending with confidence ≥ 0.7 and a reference_id)",
     }).eq("id", runId);
     return { run_id: runId, mode: "daily_update", location_id: locationId, status: "completed", message: "no_confirmed_mappings" };
   }
