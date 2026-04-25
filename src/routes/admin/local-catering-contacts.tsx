@@ -451,6 +451,26 @@ function LocalCateringContactsPage() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="align-top">
+                          {(() => {
+                            const v = verificationBadge(l.verification_status);
+                            const Icon = v.icon;
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={v.variant} className="w-fit gap-1">
+                                  <Icon className="h-3 w-3" />{v.label}
+                                </Badge>
+                                {l.verification_status === "needs_review" && (
+                                  <ul className="text-xs text-muted-foreground list-disc pl-4">
+                                    {(l.verification_issues ?? []).map((iss) => (
+                                      <li key={iss}>{ISSUE_LABELS[iss] ?? iss}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <div className="text-sm inline-flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
