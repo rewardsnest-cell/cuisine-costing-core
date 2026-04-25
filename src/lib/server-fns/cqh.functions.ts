@@ -548,7 +548,45 @@ export const generateShoppingList = createServerFn({ method: "POST" })
     const dishByName = new Map<string, string>();
     for (const d of dishes) dishByName.set(d.name.toLowerCase(), d.id);
 
-    // Aggregate items by (ingredient_name, unit).
+    // Normalize ingredient names so "Olive Oil", "olive oil", "olive oils" combine.
+    const normalizeName = (raw: string): string => {
+      let s = raw.toLowerCase().trim();
+      s = s.replace(/[\s\-_/]+/g, " ");        // collapse whitespace + separators
+      s = s.replace(/[^\p{L}\p{N} ]+/gu, "");  // strip punctuation
+      // naive de-pluralization for the trailing word
+      s = s.replace(/(\w+?)(es|s)\b/g, (_m, base, suffix) =>
+        suffix === "es" && /(s|x|z|ch|sh)$/.test(base) ? base : base,
+      );
+      return s.trim();
+    };
+
+    // Normalize units so "lb"/"lbs"/"pound", "tbsp"/"tablespoon", etc. combine.
+    const UNIT_ALIASES: Record<string, string> = {
+      lb: "lb", lbs: "lb", pound: "lb", pounds: "lb",
+      oz: "oz", ozs: "oz", ounce: "oz", ounces: "oz",
+      g: "g", gram: "g", grams: "g",
+      kg: "kg", kilogram: "kg", kilograms: "kg",
+      tsp: "tsp", teaspoon: "tsp", teaspoons: "tsp",
+      tbsp: "tbsp", tablespoon: "tbsp", tablespoons: "tbsp",
+      cup: "cup", cups: "cup",
+      qt: "qt", quart: "qt", quarts: "qt",
+      gal: "gal", gallon: "gal", gallons: "gal",
+      ml: "ml", milliliter: "ml", milliliters: "ml",
+      l: "l", liter: "l", liters: "l",
+      ea: "ea", each: "ea", piece: "ea", pieces: "ea", pc: "ea", pcs: "ea",
+      bunch: "bunch", bunches: "bunch",
+      can: "can", cans: "can",
+      jar: "jar", jars: "jar",
+      pkg: "pkg", package: "pkg", packages: "pkg", pack: "pkg", packs: "pkg",
+    };
+    const normalizeUnit = (raw: string | null | undefined): string | null => {
+      if (!raw) return null;
+      const k = String(raw).toLowerCase().trim().replace(/\.$/, "");
+      return UNIT_ALIASES[k] ?? k || null;
+    };
+
+    // Aggregate items by normalized (ingredient_name, unit). Sums quantities,
+    // preserves the most readable display name and merges notes/dish allocations.
     const aggregated = new Map<string, {
       ingredient_name: string;
       unit: string | null;
@@ -560,18 +598,29 @@ export const generateShoppingList = createServerFn({ method: "POST" })
     for (const dishOut of parsed.dishes ?? []) {
       const dishId = dishByName.get(String(dishOut.dish_name ?? "").toLowerCase()) ?? null;
       for (const ing of dishOut.ingredients ?? []) {
-        const name = String(ing.ingredient_name ?? "").trim();
-        if (!name) continue;
-        const unit = ing.unit ? String(ing.unit) : null;
+        const rawName = String(ing.ingredient_name ?? "").trim();
+        if (!rawName) continue;
+        const normName = normalizeName(rawName);
+        if (!normName) continue;
+        const unit = normalizeUnit(ing.unit);
         const qty = Number(ing.quantity) || 0;
-        const key = `${name.toLowerCase()}::${unit ?? ""}`;
+        const key = `${normName}::${unit ?? ""}`;
         const existing = aggregated.get(key);
         if (existing) {
           existing.quantity += qty;
           if (dishId) existing.per_dish_allocation[dishId] = (existing.per_dish_allocation[dishId] ?? 0) + qty;
+          // Prefer the longer / more descriptive display name.
+          if (rawName.length > existing.ingredient_name.length) existing.ingredient_name = rawName;
+          // Merge unique notes.
+          if (ing.notes) {
+            const note = String(ing.notes).trim();
+            if (note && !(existing.notes ?? "").includes(note)) {
+              existing.notes = existing.notes ? `${existing.notes}; ${note}` : note;
+            }
+          }
         } else {
           aggregated.set(key, {
-            ingredient_name: name,
+            ingredient_name: rawName,
             unit,
             quantity: qty,
             per_dish_allocation: dishId ? { [dishId]: qty } : {},
@@ -580,6 +629,7 @@ export const generateShoppingList = createServerFn({ method: "POST" })
         }
       }
     }
+
 
     const itemRows = Array.from(aggregated.values()).map((a) => ({
       shopping_list_id: list.id,
