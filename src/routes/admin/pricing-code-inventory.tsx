@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileJson, FileText, Search } from "lucide-react";
+import { Download, FileCode2, FileJson, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   PRICING_INVENTORY,
   PRICING_INVENTORY_GENERATED_AT,
+  SQL_PRICING_APPENDIX,
   SQL_PRICING_REFERENCES,
+  buildSqlAppendixText,
   summarizeInventory,
   type InventoryEntry,
   type InventoryRecommendation,
@@ -48,7 +50,7 @@ function matches(entry: InventoryEntry, q: string) {
 
 function PricingCodeInventoryPage() {
   const [query, setQuery] = useState("");
-  const [downloading, setDownloading] = useState<null | "pdf" | "json">(null);
+  const [downloading, setDownloading] = useState<null | "pdf" | "json" | "sql">(null);
 
   const filtered = useMemo(
     () => PRICING_INVENTORY.filter((e) => matches(e, query)),
@@ -64,6 +66,7 @@ function PricingCodeInventoryPage() {
         summary,
         entries: PRICING_INVENTORY,
         sql_references: SQL_PRICING_REFERENCES,
+        sql_appendix: SQL_PRICING_APPENDIX,
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
@@ -128,6 +131,48 @@ function PricingCodeInventoryPage() {
         headStyles: { fillColor: [30, 30, 30] },
       });
 
+      // SQL Appendix — full definitions, one section per entry.
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text("SQL Appendix — Pricing & Costing", 40, 48);
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        "Verbatim definitions of functions, triggers, and views referenced by costing/pricing.",
+        40, 64,
+      );
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 80,
+        head: [["Name", "Kind", "Purpose"]],
+        body: SQL_PRICING_APPENDIX.map((e) => [e.name, e.kind, e.purpose]),
+        styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+        headStyles: { fillColor: [30, 30, 30] },
+        columnStyles: {
+          0: { cellWidth: 170 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 280 },
+        },
+      });
+
+      for (const entry of SQL_PRICING_APPENDIX) {
+        doc.addPage();
+        doc.setFontSize(12);
+        doc.text(`${entry.kind.toUpperCase()} — ${entry.name}`, 40, 48);
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        const purposeLines = doc.splitTextToSize(entry.purpose, 520);
+        doc.text(purposeLines, 40, 64);
+        doc.setTextColor(0);
+        doc.setFont("courier", "normal");
+        doc.setFontSize(8);
+        const startY = 64 + purposeLines.length * 11 + 12;
+        const lines = doc.splitTextToSize(entry.definition, 530);
+        doc.text(lines, 40, startY);
+        doc.setFont("helvetica", "normal");
+      }
+
       const blob = doc.output("blob");
       const result = await saveAndLogDownload({
         blob,
@@ -143,6 +188,25 @@ function PricingCodeInventoryPage() {
     }
   }
 
+  async function handleSqlExport() {
+    try {
+      setDownloading("sql");
+      const text = buildSqlAppendixText();
+      const blob = new Blob([text], { type: "application/sql" });
+      const result = await saveAndLogDownload({
+        blob,
+        filename: `pricing-sql-appendix-${PRICING_INVENTORY_GENERATED_AT}.sql`,
+        kind: "admin_export",
+        sourceLabel: "Pricing SQL Appendix (.sql)",
+      });
+      toast.success(result.persisted ? "SQL saved to Downloads Hub" : "SQL downloaded");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not export SQL");
+    } finally {
+      setDownloading(null);
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -153,10 +217,14 @@ function PricingCodeInventoryPage() {
             Generated {PRICING_INVENTORY_GENERATED_AT}.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handleJsonExport} disabled={downloading !== null}>
             <FileJson className="w-4 h-4 mr-2" />
             {downloading === "json" ? "Exporting…" : "Export JSON"}
+          </Button>
+          <Button variant="outline" onClick={handleSqlExport} disabled={downloading !== null}>
+            <FileCode2 className="w-4 h-4 mr-2" />
+            {downloading === "sql" ? "Exporting…" : "Export SQL"}
           </Button>
           <Button onClick={handlePdfExport} disabled={downloading !== null}>
             <Download className="w-4 h-4 mr-2" />
@@ -240,6 +308,37 @@ function PricingCodeInventoryPage() {
               </li>
             ))}
           </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileCode2 className="w-4 h-4" /> SQL Appendix — pricing & costing
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Verbatim definitions of functions, triggers, and views referenced by
+            pricing/costing. Read-only — included in the JSON, PDF, and .sql exports above.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {SQL_PRICING_APPENDIX.map((entry) => (
+            <details
+              key={entry.name}
+              className="rounded-md border border-border bg-card/50 p-3"
+            >
+              <summary className="cursor-pointer text-sm flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                  {entry.kind}
+                </Badge>
+                <span className="font-mono text-xs">{entry.name}</span>
+                <span className="text-muted-foreground text-xs">— {entry.purpose}</span>
+              </summary>
+              <pre className="mt-3 max-h-80 overflow-auto rounded bg-muted/40 p-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all">
+                {entry.definition}
+              </pre>
+            </details>
+          ))}
         </CardContent>
       </Card>
     </div>
