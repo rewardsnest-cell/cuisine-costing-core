@@ -180,3 +180,89 @@ function HealthTile({
     </Link>
   );
 }
+
+type SelfTestData = {
+  pass: boolean;
+  runId: string | null;
+  steps: Array<{ name: string; ok: boolean; detail?: string }>;
+  sampleErrors: any[];
+};
+
+function SelfTestResult({ data, error }: { data?: SelfTestData; error: Error | null }) {
+  if (error) {
+    return (
+      <Card className="border-destructive/50">
+        <CardContent className="p-4 flex items-center gap-3">
+          <XCircle className="w-6 h-6 text-destructive" />
+          <div>
+            <div className="font-display font-bold text-destructive">Self test FAILED</div>
+            <div className="text-sm text-muted-foreground">{error.message}</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (!data) return null;
+  return (
+    <Card className={data.pass ? "border-success/50" : "border-destructive/50"}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {data.pass ? (
+            <CheckCircle2 className="w-5 h-5 text-success" />
+          ) : (
+            <XCircle className="w-5 h-5 text-destructive" />
+          )}
+          Self test {data.pass ? "PASS" : "FAIL"}
+          {data.runId && (
+            <Badge variant="outline" className="ml-auto font-mono text-[10px]">
+              run_id: {data.runId}
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          {data.steps.map((s, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              {s.ok ? (
+                <CheckCircle2 className="w-4 h-4 text-success mt-0.5" />
+              ) : (
+                <XCircle className="w-4 h-4 text-destructive mt-0.5" />
+              )}
+              <div className="flex-1">
+                <div className="font-medium">{s.name}</div>
+                {s.detail && (
+                  <div className="text-xs text-muted-foreground font-mono">{s.detail}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {data.sampleErrors.length > 0 && (
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+              Sample errors inserted (visible on /admin/pricing-v2/errors)
+            </div>
+            <div className="space-y-1.5">
+              {data.sampleErrors.map((e: any) => (
+                <div key={e.id} className="flex items-center gap-2 text-sm border rounded-md p-2">
+                  <Badge variant={e.severity === "warning" ? "outline" : "destructive"}>
+                    {e.severity}
+                  </Badge>
+                  <span className="font-mono text-xs">{e.type}</span>
+                  <span className="text-muted-foreground text-xs truncate">{e.message}</span>
+                </div>
+              ))}
+            </div>
+            <Link
+              to="/admin/pricing-v2/errors"
+              className="inline-block mt-2 text-xs text-primary underline"
+            >
+              View in Errors →
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
