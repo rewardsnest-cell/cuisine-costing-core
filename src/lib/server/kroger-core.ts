@@ -18,7 +18,11 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  *  - All caller surfaces accept a bound `kFetch` instead of the token itself.
  */
 
-export const KROGER_DEFAULT_ZIP = "44202";
+// ZIP 44202 (NE Ohio) has no retail Kroger nearby — only a distribution shed,
+// which returns 0 products for every search. Default to Cincinnati (Kroger's
+// HQ market) where retail stores reliably return SKUs. Callers can still pass
+// any ZIP via the cron payload's `zip_code` field.
+export const KROGER_DEFAULT_ZIP = "45202";
 
 // ─────────────────────────── Token manager ────────────────────────────
 // Cached in module memory only — never written to the database, never
