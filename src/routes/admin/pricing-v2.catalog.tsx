@@ -193,7 +193,11 @@ function CatalogBootstrapPage() {
         </div>
       </header>
 
+      {/* Live progress panel — always visible, polls while a run is active */}
+      <BootstrapLiveProgress guardedPhase={guardedPhase} />
+
       {/* Bootstrap Status panel */}
+
       <Card className={isCompleted ? "border-success/50" : status === "IN_PROGRESS" ? "border-amber-500/60" : ""}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
