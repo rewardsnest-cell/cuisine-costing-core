@@ -41,7 +41,7 @@ export const Route = createFileRoute('/admin/leads/$id')({
 
 function LeadDetailPage() {
   const router = useRouter()
-  const { lead, emails } = Route.useLoaderData()
+  const { lead, emails, audit } = Route.useLoaderData()
 
   if (!lead) {
     return (
