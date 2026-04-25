@@ -133,6 +133,25 @@ export async function saveExportFile(
     throw new Error("Upload succeeded but no public URL was returned.");
   }
 
+  // Best-effort: also log this in user_downloads so it appears in the
+  // unified Downloads hub for both the user and admins.
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id ?? null;
+    if (userId) {
+      await (supabase as any).from("user_downloads").insert({
+        user_id: userId,
+        kind: "admin_export",
+        filename: safeFilename,
+        storage_path: path,
+        public_url: data.publicUrl,
+        mime_type: blob.type || mime || "application/octet-stream",
+        size_bytes: blob.size,
+        source_label: filename,
+      });
+    }
+  } catch { /* non-fatal */ }
+
   return {
     filename: safeFilename,
     path,
