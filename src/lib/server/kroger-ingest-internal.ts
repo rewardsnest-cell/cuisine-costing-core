@@ -370,11 +370,15 @@ async function runDailyUpdate(
   limit: number,
   kFetch: (url: string, init?: RequestInit) => Promise<Response>,
 ): Promise<ReturnType<typeof runKrogerIngestInternal>> {
-  // Confirmed mappings only
+  // Confirmed mappings — plus high-confidence pending rows that already link
+  // to a reference. This lets pricing flow as soon as bootstrap finishes,
+  // without waiting for every row to be human-reviewed. Rejected/unmatched
+  // are still excluded.
   const { data: maps } = await supabaseAdmin
     .from("kroger_sku_map")
-    .select("sku,product_id,upc,reference_id")
-    .eq("review_state", "confirmed")
+    .select("sku,product_id,upc,reference_id,review_state,match_confidence")
+    .in("review_state", ["confirmed", "pending"])
+    .gte("match_confidence", 0.7)
     .not("reference_id", "is", null)
     .limit(limit);
 
