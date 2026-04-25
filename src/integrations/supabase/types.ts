@@ -4493,6 +4493,52 @@ export type Database = {
       }
     }
     Functions: {
+      admin_cron_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          jobid: number
+          jobname: string
+          schedule: string
+        }[]
+      }
+      admin_cron_runs: {
+        Args: {
+          _job_name?: string
+          _limit?: number
+          _offset?: number
+          _since?: string
+          _status?: string
+        }
+        Returns: {
+          duration_ms: number
+          end_time: string
+          jobid: number
+          jobname: string
+          return_message: string
+          runid: number
+          start_time: string
+          status: string
+        }[]
+      }
+      admin_cron_summary: {
+        Args: { _since?: string }
+        Returns: {
+          active: boolean
+          avg_duration_ms: number
+          failed: number
+          failures_24h: number
+          jobid: number
+          jobname: string
+          last_message: string
+          last_run: string
+          last_status: string
+          other: number
+          schedule: string
+          succeeded: number
+          total_runs: number
+        }[]
+      }
       apply_po_to_inventory: { Args: { _po_id: string }; Returns: undefined }
       approve_cost_update: {
         Args: { _notes?: string; _queue_id: string }
