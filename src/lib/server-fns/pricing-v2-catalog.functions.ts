@@ -479,72 +479,280 @@ export const traceCatalogProduct = createServerFn({ method: "POST" })
     return { item, raws: rawRows ?? [], parse };
   });
 
-// ---- Test harness (kept from previous Stage 0; updated payload) -----------
+// ---- Stage 0 Test Harness -------------------------------------------------
+//
+// Deterministic tests for catalog bootstrap + weight parsing. Runs under its
+// own stage `catalog_bootstrap_test` so it doesn't pollute real catalog runs.
+// Synthetic raw rows are persisted with TEST: prefixed product_keys so they
+// can be inspected (and later purged) without affecting live catalog data.
+
+const TEST_STAGE = "catalog_bootstrap_test" as const;
+const TEST_STORE_ID = "TEST";
+const TEST_TOLERANCE_G = 0.001;
+
+type TestCase = {
+  id: string;          // stable id used in product_key
+  name: string;
+  size_raw: string | null;
+  expect_ok: boolean;
+  expect_grams?: number;
+  expect_error_type?: "MISSING_SIZE" | "VOLUME_ONLY" | "WEIGHT_PARSE_FAIL" | "ZERO_OR_NEG_WEIGHT";
+};
+
+const TEST_CASES: TestCase[] = [
+  // PASS
+  { id: "A_oz",     name: "A) 16 oz → 453.59237 g",        size_raw: "16 oz",     expect_ok: true,  expect_grams: 16 * G_PER_OZ_CONST() },
+  { id: "B_mult",   name: "B) 2 x 16 oz → 907.18474 g",    size_raw: "2 x 16 oz", expect_ok: true,  expect_grams: 2 * 16 * G_PER_OZ_CONST() },
+  { id: "C_lb",     name: "C) 5 lb → 2267.96185 g",        size_raw: "5 lb",      expect_ok: true,  expect_grams: 5 * 453.59237 },
+  // FAIL
+  { id: "D_missing", name: "D) empty/null → MISSING_SIZE", size_raw: null,        expect_ok: false, expect_error_type: "MISSING_SIZE" },
+  { id: "E_volume",  name: "E) 32 fl oz → VOLUME_ONLY",    size_raw: "32 fl oz",  expect_ok: false, expect_error_type: "VOLUME_ONLY" },
+  { id: "F_each",    name: "F) 12 ct → WEIGHT_PARSE_FAIL", size_raw: "12 ct",     expect_ok: false, expect_error_type: "WEIGHT_PARSE_FAIL" },
+];
+
+// Local constant proxy so TEST_CASES can reference numeric expectations
+// without importing the parser's private constant.
+function G_PER_OZ_CONST(): number { return 28.349523125; }
 
 export const runCatalogTestHarness = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
+
+    // 1) Create the test run record under the dedicated stage.
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
-        stage: STAGE,
+        stage: TEST_STAGE,
         status: "running",
         initiated_by: userId ?? null,
         triggered_by: "test_harness",
-        params: { test_harness: true },
-        notes: "Stage 0 catalog test harness (parser + uniform errors)",
+        params: { test_harness: true, test_count: TEST_CASES.length },
+        notes: "Stage 0 catalog test harness (parser + raw + catalog upsert)",
       })
       .select("run_id")
       .single();
     if (runErr) throw new Error(runErr.message);
     const runId: string = runRow.run_id;
 
-    type TC = { name: string; size_raw: string; expect_ok: boolean; expect_grams?: number };
-    const tcs: TC[] = [
-      { name: "PASS simple oz",     size_raw: "16 oz",         expect_ok: true, expect_grams: 16 * 28.349523125 },
-      { name: "PASS lb",            size_raw: "1 lb",          expect_ok: true, expect_grams: 453.59237 },
-      { name: "PASS multi pack",    size_raw: "6 x 8 oz",      expect_ok: true, expect_grams: 6 * 8 * 28.349523125 },
-      { name: "FAIL volume only",   size_raw: "1 gallon",      expect_ok: false },
-      { name: "FAIL each only",     size_raw: "each",          expect_ok: false },
-      { name: "FAIL varies",        size_raw: "random weight", expect_ok: false },
-    ];
-
-    const results: Array<{ name: string; pass: boolean; got: any; expect_ok: boolean }> = [];
+    const results: Array<{
+      id: string;
+      name: string;
+      pass: boolean;
+      expect_ok: boolean;
+      expect_grams?: number;
+      expect_error_type?: string;
+      actual_grams: number | null;
+      actual_error_type: string | null;
+      actual_reason: string | null;
+      product_key: string;
+      detail: string;
+    }> = [];
     const errs: ErrorRow[] = [];
-    for (const tc of tcs) {
-      const r = parseWeightToGrams({ size_raw: tc.size_raw });
-      const pass = r.ok === tc.expect_ok && (!tc.expect_grams || (r.ok && Math.abs(r.net_weight_grams - tc.expect_grams) < 0.001));
-      results.push({ name: tc.name, pass, got: r, expect_ok: tc.expect_ok });
-      if (!r.ok) {
-        errs.push({
+    let countsIn = 0;
+    let countsOut = 0;
+
+    try {
+      for (const tc of TEST_CASES) {
+        countsIn += 1;
+        const productKey = `TEST:${runId}:${tc.id}`;
+        const krogerProductId = `TEST_${tc.id}`;
+
+        // 1a) Insert synthetic raw row.
+        await supabase.from("pricing_v2_kroger_catalog_raw").insert({
           run_id: runId,
-          stage: STAGE,
-          severity: pass ? "warning" : "error",
-          type: r.failure,
-          entity_type: "test_case",
-          entity_id: null,
-          entity_name: tc.name,
-          message: r.reason,
-          suggested_fix: pass ? "Expected failure (test case)." : "Investigate parser regression.",
-          debug_json: { size_raw: tc.size_raw, trace: r.trace },
+          store_id: TEST_STORE_ID,
+          kroger_product_id: krogerProductId,
+          upc: null,
+          name: `Test case ${tc.id}`,
+          brand: "TEST_HARNESS",
+          size_raw: tc.size_raw,
+          payload_json: { test_case: tc.id, size_raw: tc.size_raw },
+        });
+
+        // 1b) Run the same parser used by the real bootstrap.
+        const r = parseWeightToGrams({ size_raw: tc.size_raw });
+
+        // 1c) Determine pass/fail vs expectation.
+        let pass = r.ok === tc.expect_ok;
+        let detail = "";
+        if (pass && tc.expect_ok && tc.expect_grams != null && r.ok) {
+          const diff = Math.abs(r.net_weight_grams - tc.expect_grams);
+          if (diff > TEST_TOLERANCE_G) {
+            pass = false;
+            detail = `weight off by ${diff.toFixed(4)} g (expected ${tc.expect_grams.toFixed(5)}, got ${r.net_weight_grams.toFixed(5)})`;
+          } else {
+            detail = `weight matches within ${TEST_TOLERANCE_G} g`;
+          }
+        }
+        if (pass && !tc.expect_ok && !r.ok && tc.expect_error_type) {
+          if (r.failure !== tc.expect_error_type) {
+            pass = false;
+            detail = `expected error type ${tc.expect_error_type}, got ${r.failure}`;
+          } else {
+            detail = `error type matches: ${r.failure}`;
+          }
+        }
+        if (!detail) {
+          detail = pass
+            ? "outcome matches expectation"
+            : `expected_ok=${tc.expect_ok} but got_ok=${r.ok}`;
+        }
+
+        // 1d) Upsert into item catalog. For failures, leave net_weight_grams
+        //     null so the rule "missing/0/negative => null unless override" holds.
+        const upsertGrams = r.ok ? r.net_weight_grams : null;
+        const upsertSource = r.ok ? "parsed" : "unknown";
+        const up = await supabase
+          .from("pricing_v2_item_catalog")
+          .upsert(
+            {
+              store_id: TEST_STORE_ID,
+              product_key: productKey,
+              kroger_product_id: krogerProductId,
+              upc: null,
+              name: `Test case ${tc.id}`,
+              brand: "TEST_HARNESS",
+              size_raw: tc.size_raw,
+              net_weight_grams: upsertGrams,
+              weight_source: upsertSource,
+              manual_net_weight_grams: null,
+              manual_override_reason: null,
+              last_run_id: runId,
+            },
+            { onConflict: "product_key" }
+          );
+        if (!up.error) countsOut += 1;
+
+        // 1e) Log uniform error for parse failures.
+        if (!r.ok) {
+          errs.push({
+            run_id: runId,
+            stage: TEST_STAGE,
+            severity: "error", // blocker per spec for D/E/F
+            type: r.failure,
+            entity_type: "test_case",
+            entity_id: productKey,
+            entity_name: tc.name,
+            message: r.reason,
+            suggested_fix:
+              r.failure === "VOLUME_ONLY"
+                ? "Exclude volume-only items — pipeline is weight-only."
+                : r.failure === "MISSING_SIZE"
+                ? "Provide a size string before bootstrapping."
+                : "Use Fix Weight to set manual_net_weight_grams with a reason.",
+            debug_json: {
+              test_case: tc.id,
+              size_raw: tc.size_raw,
+              reason: r.reason,
+              trace: r.trace,
+            },
+          });
+        }
+
+        // 1f) If the test itself FAILED (parser regression vs expectation),
+        //     also record a TEST_ASSERTION_FAILED error so QA sees it.
+        if (!pass) {
+          errs.push({
+            run_id: runId,
+            stage: TEST_STAGE,
+            severity: "error",
+            type: "TEST_ASSERTION_FAILED",
+            entity_type: "test_case",
+            entity_id: productKey,
+            entity_name: tc.name,
+            message: `Test "${tc.name}" failed: ${detail}`,
+            suggested_fix: "Investigate parser regression or update test expectations.",
+            debug_json: {
+              test_case: tc.id,
+              size_raw: tc.size_raw,
+              expect_ok: tc.expect_ok,
+              expect_grams: tc.expect_grams ?? null,
+              expect_error_type: tc.expect_error_type ?? null,
+              actual: r,
+            },
+          });
+        }
+
+        results.push({
+          id: tc.id,
+          name: tc.name,
+          pass,
+          expect_ok: tc.expect_ok,
+          expect_grams: tc.expect_grams,
+          expect_error_type: tc.expect_error_type,
+          actual_grams: r.ok ? r.net_weight_grams : null,
+          actual_error_type: r.ok ? null : r.failure,
+          actual_reason: r.ok ? null : r.reason,
+          product_key: productKey,
+          detail,
         });
       }
+
+      // 2) Persist all errors in one batch.
+      if (errs.length) {
+        await supabase.from("pricing_v2_errors").insert(errs);
+      }
+
+      const passed = results.filter((r) => r.pass).length;
+      const failed = results.length - passed;
+      const warningsCount = errs.filter((e) => e.severity === "warning").length;
+      const errorsCount = errs.filter((e) => e.severity === "error").length;
+
+      // 3) Finalize run.
+      await supabase
+        .from("pricing_v2_runs")
+        .update({
+          status: failed === 0 ? "succeeded" : "failed",
+          ended_at: new Date().toISOString(),
+          counts_in: countsIn,
+          counts_out: countsOut,
+          warnings_count: warningsCount,
+          errors_count: errorsCount,
+          last_error: results.find((r) => !r.pass)?.detail ?? null,
+        })
+        .eq("run_id", runId);
+
+      return {
+        run_id: runId,
+        stage: TEST_STAGE,
+        total: results.length,
+        passed,
+        failed,
+        warnings_count: warningsCount,
+        errors_count: errorsCount,
+        results,
+      };
+    } catch (e: any) {
+      await supabase
+        .from("pricing_v2_runs")
+        .update({
+          status: "failed",
+          ended_at: new Date().toISOString(),
+          last_error: e?.message ?? String(e),
+          counts_in: countsIn,
+          counts_out: countsOut,
+        })
+        .eq("run_id", runId);
+      throw e;
     }
-    if (errs.length) await supabase.from("pricing_v2_errors").insert(errs);
+  });
 
-    const passed = results.filter((r) => r.pass).length;
-    await supabase
-      .from("pricing_v2_runs")
-      .update({
-        status: passed === results.length ? "succeeded" : "failed",
-        ended_at: new Date().toISOString(),
-        counts_in: results.length,
-        counts_out: passed,
-        warnings_count: errs.filter((e) => e.severity === "warning").length,
-        errors_count: errs.filter((e) => e.severity === "error").length,
-      })
-      .eq("run_id", runId);
-
-    return { run_id: runId, results, passed, total: results.length };
+// List errors for the test stage (used by the test results UI).
+export const listCatalogTestErrors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ run_id: z.string().uuid(), limit: z.number().int().min(1).max(1000).default(500) }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { data: rows, error } = await supabase
+      .from("pricing_v2_errors")
+      .select("*")
+      .eq("stage", TEST_STAGE)
+      .eq("run_id", data.run_id)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    return { errors: rows ?? [] };
   });
