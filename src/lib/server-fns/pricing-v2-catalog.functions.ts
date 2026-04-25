@@ -197,6 +197,31 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
       };
     }
 
+    // ---- Pre-check: mapped-inventory minimum gate ------------------------
+    // Block the full bootstrap when too few inventory items are mapped to a
+    // Kroger product. Dry-runs and explicit bypass skip the gate.
+    if (!data.dry_run && !data.bypass_min_mapped_check) {
+      const pf = await evaluatePreflight(supabase);
+      if (!pf.ok) {
+        return {
+          run_id: null as string | null,
+          skipped: true,
+          blocked_by_preflight: true,
+          preflight: pf,
+          message: pf.reason ?? "Bootstrap blocked by preflight",
+          store_id: storeId,
+          bootstrap_state: state,
+          counts_in: 0,
+          counts_out: 0,
+          warnings_count: 0,
+          errors_count: 0,
+          page_done: false,
+          bootstrap_completed: false,
+          errors_preview: [] as ErrorRow[],
+        };
+      }
+    }
+
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
