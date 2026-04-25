@@ -67,7 +67,7 @@ async function collectInventoryProductIds(supabase: any, max: number): Promise<s
 
 type ErrorRow = {
   run_id: string;
-  stage: typeof STAGE;
+  stage: "catalog" | "catalog_bootstrap_test";
   severity: "warning" | "error";
   type: string;
   entity_type: string;
