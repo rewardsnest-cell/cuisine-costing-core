@@ -253,7 +253,7 @@ export const Route = createFileRoute('/api/public/hooks/catering-followups')({
           return Response.json({ error: 'Server config error' }, { status: 500 })
         }
 
-        const supabase = createClient(supabaseUrl, serviceKey, {
+        const supabase = createClient<Database>(supabaseUrl, serviceKey, {
           auth: { autoRefreshToken: false, persistSession: false },
         })
 
