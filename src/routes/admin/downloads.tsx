@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Download, Trash2, FileDown, Search, RefreshCw } from "lucide-react";
+import { Download, Trash2, FileDown, Search, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 
@@ -35,6 +35,10 @@ type Row = {
   source_id: string | null;
   source_label: string | null;
   created_at: string;
+  module: string | null;
+  record_count: number | null;
+  generated_by_email: string | null;
+  parameters: Record<string, unknown> | null;
 };
 
 const KINDS = [
@@ -55,10 +59,15 @@ const MODULES: { key: string; label: string; match: RegExp }[] = [
   { key: "brand",      label: "Brand",       match: /brand|logo/i },
 ];
 
-function moduleOf(r: { filename: string; source_label: string | null }): string {
+function moduleOf(r: { filename: string; source_label: string | null; module?: string | null }): string {
+  if (r.module) return r.module;
   const hay = `${r.source_label ?? ""} ${r.filename}`;
   for (const m of MODULES) if (m.match.test(hay)) return m.key;
   return "other";
+}
+
+function hasParams(p: Record<string, unknown> | null | undefined) {
+  return !!p && typeof p === "object" && Object.keys(p).length > 0;
 }
 
 function fmtBytes(n: number | null) {
@@ -86,6 +95,14 @@ function AdminDownloadsPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [q, setQ] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const load = async () => {
     setLoading(true);
