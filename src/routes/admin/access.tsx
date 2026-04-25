@@ -185,8 +185,8 @@ function AccessControlPage() {
               <tr className="border-b">
                 <th className="text-left p-2">Section</th>
                 {ROLE_KEYS.map((r) => (
-                  <th key={r} className="text-center p-2 capitalize">
-                    {r}
+                  <th key={r} className="text-center p-2 whitespace-nowrap">
+                    {ROLE_LABELS[r]}
                   </th>
                 ))}
               </tr>
