@@ -323,11 +323,11 @@ function QuoteCreatorHub() {
 
   const runWithProgress = async (label: string, fn: () => Promise<void>) => {
     const stages = [
-      { v: 10, l: `${label}: collecting dishes…` },
-      { v: 30, l: `${label}: parsing recipes…` },
-      { v: 55, l: `${label}: aggregating ingredients…` },
-      { v: 80, l: `${label}: pricing items…` },
-      { v: 92, l: `${label}: finalizing…` },
+      { value: 10, label: `${label}: collecting dishes…` },
+      { value: 30, label: `${label}: parsing recipes…` },
+      { value: 55, label: `${label}: aggregating ingredients…` },
+      { value: 80, label: `${label}: pricing items…` },
+      { value: 92, label: `${label}: finalizing…` },
     ];
     let i = 0;
     setGenProgress({ value: 5, label: `${label}: starting…` });
