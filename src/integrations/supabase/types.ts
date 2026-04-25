@@ -2770,6 +2770,48 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_init_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          invocation_id: string
+          payload: Json | null
+          scope: string
+          status: string
+          target_key: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          invocation_id: string
+          payload?: Json | null
+          scope: string
+          status?: string
+          target_key?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          invocation_id?: string
+          payload?: Json | null
+          scope?: string
+          status?: string
+          target_key?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
       pricing_v2_item_catalog: {
         Row: {
           brand: string | null

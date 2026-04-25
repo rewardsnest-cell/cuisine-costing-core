@@ -298,3 +298,28 @@ export const ensureAccessInitialized = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { summary: data };
   });
+
+// ---- Init log (admin-only audit trail of every seeded change) ------------
+
+const initLogFiltersSchema = z.object({
+  scope: z.enum(["pricing_v2", "access"]).optional(),
+  invocation_id: z.string().uuid().optional(),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+
+export const listPricingV2InitLog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => initLogFiltersSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let q = supabase
+      .from("pricing_v2_init_log")
+      .select("id, invocation_id, actor_user_id, scope, action, target_table, target_key, payload, status, error_message, created_at")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.scope) q = q.eq("scope", data.scope);
+    if (data.invocation_id) q = q.eq("invocation_id", data.invocation_id);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { entries: rows ?? [] };
+  });
