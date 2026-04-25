@@ -38,6 +38,18 @@ export const Route = createFileRoute('/api/public/hooks/prospect-followups')({
 
         for (const job of jobs || []) {
           processed++
+
+          // Atomically claim the job: only one concurrent cron run can flip
+          // status from 'pending' → 'processing'. Others get 0 rows and skip.
+          const { data: claimed } = await supabase
+            .from('sales_followup_queue')
+            .update({ status: 'processing' })
+            .eq('id', job.id)
+            .eq('status', 'pending')
+            .select('id')
+            .maybeSingle()
+          if (!claimed) { skipped++; continue }
+
           const { data: p } = await supabase
             .from('sales_prospects')
             .select('id, business_name, contact_name, email, status')
