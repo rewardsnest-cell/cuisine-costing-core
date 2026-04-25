@@ -308,6 +308,19 @@ function LocalCateringContactsPage() {
         </div>
       </header>
 
+      {needsReviewCount > 0 && verification !== "needs_review" && (
+        <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <ShieldAlert className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+          <div className="flex-1">
+            <div className="font-medium text-destructive">{needsReviewCount} contact{needsReviewCount === 1 ? "" : "s"} need manual review</div>
+            <div className="text-muted-foreground">Outreach scheduling is blocked until missing email/phone or invalid formats are fixed.</div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setVerification("needs_review")}>
+            Show flagged
+          </Button>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
