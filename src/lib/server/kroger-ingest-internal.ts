@@ -57,7 +57,9 @@ export async function runKrogerIngestInternal(opts: RunOpts): Promise<{
   message?: string;
 }> {
   const mode = opts.mode;
-  const zip = (opts.zip_code ?? KROGER_DEFAULT_ZIP).trim();
+  // HARD-CODED: pricing always pulls from Cincinnati 45202. Any caller-passed
+  // ZIP is intentionally ignored to keep one consistent pricing source.
+  const zip = KROGER_DEFAULT_ZIP;
   // Per-run safety cap. Bootstrap is allowed a much wider net so a single
   // cron run can collect thousands of SKUs across all a-z + 0-9 search terms;
   // daily_update stays small and fast. Both are still capped to prevent runaway
