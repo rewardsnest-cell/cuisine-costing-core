@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import { compressImageBlob } from "@/lib/compress-image";
+import { documentFileToImageBlobs, isSupportedDocumentType } from "@/lib/document-to-images";
 
 type Mode = "per-file" | "packet";
 type FileStatus = "queued" | "processing" | "done" | "error";
@@ -30,7 +31,10 @@ async function fileToImageBlobs(file: File, opts: { maxPages?: number } = {}): P
     const c = await compressImageBlob(file, { maxEdge: 1800, quality: 0.85 });
     return [c.blob];
   }
-  throw new Error("Unsupported file type — upload PDFs or images");
+  if (isSupportedDocumentType(file)) {
+    return await documentFileToImageBlobs(file, { maxPages: opts.maxPages ?? 6 });
+  }
+  throw new Error("Unsupported file type — upload PDFs, images, Word, Excel, CSV, or text files");
 }
 
 async function uploadToReceipts(blob: Blob): Promise<{ url: string; path: string }> {
