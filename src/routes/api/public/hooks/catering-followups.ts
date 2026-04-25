@@ -44,8 +44,8 @@ function daysAhead(n: number): string {
 
 interface Contact {
   id: string
-  organization_name: string
-  contact_name: string | null
+  company: string | null
+  name: string | null
   email: string | null
   status: string
   first_outreach_date: string | null
