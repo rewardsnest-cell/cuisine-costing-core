@@ -262,48 +262,96 @@ function AdminDownloadsPage() {
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground border-b">
                   <tr>
+                    <th className="py-2 pr-2 w-6"></th>
                     <th className="py-2 pr-4">When</th>
                     <th className="py-2 pr-4">Kind</th>
                     <th className="py-2 pr-4">File</th>
                     <th className="py-2 pr-4">User</th>
+                    <th className="py-2 pr-4">Records</th>
                     <th className="py-2 pr-4">Size</th>
                     <th className="py-2"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {filtered.map((r) => (
-                    <tr key={r.id}>
-                      <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
-                        {new Date(r.created_at).toLocaleString()}
-                      </td>
-                      <td className="py-2 pr-4">
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="secondary">{r.kind}</Badge>
-                          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                            {MODULES.find((m) => m.key === moduleOf(r))?.label ?? "Other"}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="py-2 pr-4">
-                        <p className="font-medium">{r.source_label || r.filename}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[280px]">{r.filename}</p>
-                      </td>
-                      <td className="py-2 pr-4 text-xs text-muted-foreground truncate max-w-[200px]">
-                        {emails[r.user_id || ""] || r.user_id?.slice(0, 8) || "—"}
-                      </td>
-                      <td className="py-2 pr-4 tabular-nums text-xs">{fmtBytes(r.size_bytes)}</td>
-                      <td className="py-2 text-right whitespace-nowrap">
-                        {r.public_url && (
-                          <a href={r.public_url} target="_blank" rel="noopener" download={r.filename}>
-                            <Button variant="ghost" size="icon" aria-label="Download"><Download className="w-4 h-4" /></Button>
-                          </a>
+                  {filtered.map((r) => {
+                    const isOpen = expanded.has(r.id);
+                    const showDetails = isOpen && (hasParams(r.parameters) || r.generated_by_email || r.record_count != null);
+                    return (
+                      <>
+                        <tr key={r.id}>
+                          <td className="py-2 pr-2 align-top">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => toggleExpand(r.id)}
+                              aria-label={isOpen ? "Hide details" : "Show details"}
+                            >
+                              {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </Button>
+                          </td>
+                          <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
+                            {new Date(r.created_at).toLocaleString()}
+                          </td>
+                          <td className="py-2 pr-4">
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="secondary">{r.kind}</Badge>
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                                {MODULES.find((m) => m.key === moduleOf(r))?.label ?? "Other"}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-4">
+                            <p className="font-medium">{r.source_label || r.filename}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[280px]">{r.filename}</p>
+                          </td>
+                          <td className="py-2 pr-4 text-xs text-muted-foreground truncate max-w-[200px]">
+                            {r.generated_by_email || emails[r.user_id || ""] || r.user_id?.slice(0, 8) || "—"}
+                          </td>
+                          <td className="py-2 pr-4 tabular-nums text-xs">
+                            {r.record_count != null ? r.record_count.toLocaleString() : "—"}
+                          </td>
+                          <td className="py-2 pr-4 tabular-nums text-xs">{fmtBytes(r.size_bytes)}</td>
+                          <td className="py-2 text-right whitespace-nowrap">
+                            {r.public_url && (
+                              <a href={r.public_url} target="_blank" rel="noopener" download={r.filename}>
+                                <Button variant="ghost" size="icon" aria-label="Download"><Download className="w-4 h-4" /></Button>
+                              </a>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Delete">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                        {showDetails && (
+                          <tr key={`${r.id}-details`} className="bg-muted/30">
+                            <td></td>
+                            <td colSpan={7} className="py-3 pr-4">
+                              <div className="grid gap-2 text-xs">
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                                  <span><span className="font-semibold text-foreground">Module:</span> {moduleOf(r)}</span>
+                                  {r.record_count != null && (
+                                    <span><span className="font-semibold text-foreground">Records:</span> {r.record_count.toLocaleString()}</span>
+                                  )}
+                                  {r.generated_by_email && (
+                                    <span><span className="font-semibold text-foreground">Generated by:</span> {r.generated_by_email}</span>
+                                  )}
+                                </div>
+                                {hasParams(r.parameters) && (
+                                  <div>
+                                    <p className="font-semibold mb-1">Parameters</p>
+                                    <pre className="bg-background border rounded p-2 overflow-x-auto text-[11px] leading-snug">
+{JSON.stringify(r.parameters, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)} aria-label="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
