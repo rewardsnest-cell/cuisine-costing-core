@@ -158,33 +158,48 @@ function PricingV2ControlCenter() {
           {overview.isLoading && (
             <p className="text-sm text-muted-foreground">Loading…</p>
           )}
-          {overview.data?.stages.map((s) => (
-            <div
-              key={s.key}
-              className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/60 hover:bg-muted/30"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{s.label}</div>
-                <div className="text-xs text-muted-foreground">
-                  Last run: {fmtTime(s.last?.started_at)}
-                  {s.last && (
-                    <>
-                      {" • "}
-                      in {s.last.counts_in ?? 0} → out {s.last.counts_out ?? 0}
-                      {" • "}
-                      {s.last.warnings_count ?? 0} warn / {s.last.errors_count ?? 0} err
-                    </>
-                  )}
+          {overview.data?.stages.map((s) => {
+            const isStageMinusOne = s.key === "recipe_weight_normalization";
+            const blockedByGate = !isStageMinusOne && gate.data && !gate.data.pricing_allowed;
+            return (
+              <div
+                key={s.key}
+                className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/60 hover:bg-muted/30"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{s.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Last run: {fmtTime(s.last?.started_at)}
+                    {s.last && (
+                      <>
+                        {" • "}
+                        in {s.last.counts_in ?? 0} → out {s.last.counts_out ?? 0}
+                        {" • "}
+                        {s.last.warnings_count ?? 0} warn / {s.last.errors_count ?? 0} err
+                      </>
+                    )}
+                    {blockedByGate && (
+                      <> · <span className="text-destructive">blocked by Stage -1</span></>
+                    )}
+                  </div>
                 </div>
+                <Badge variant={blockedByGate ? "destructive" : statusVariant(s.last?.status)}>
+                  {blockedByGate ? "blocked" : (s.last?.status ?? "never run")}
+                </Badge>
+                {isStageMinusOne ? (
+                  <Button size="sm" variant="outline" asChild className="gap-1.5">
+                    <Link to="/admin/pricing-v2/recipes-normalize">
+                      <Play className="w-3.5 h-3.5" /> Open
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" disabled className="gap-1.5">
+                    <Play className="w-3.5 h-3.5" /> Run Stage
+                  </Button>
+                )}
               </div>
-              <Badge variant={statusVariant(s.last?.status)}>
-                {s.last?.status ?? "never run"}
-              </Badge>
-              <Button size="sm" variant="outline" disabled className="gap-1.5">
-                <Play className="w-3.5 h-3.5" /> Run Stage
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </div>
