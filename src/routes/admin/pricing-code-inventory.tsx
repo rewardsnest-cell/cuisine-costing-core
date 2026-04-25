@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import jsPDF from "jspdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Download, FileJson, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   PRICING_INVENTORY,
-  PRICING_INVENTORY_FINDINGS,
   PRICING_INVENTORY_GENERATED_AT,
-  PRICING_INVENTORY_SQL_REFERENCE,
-  type PricingFileEntry,
-  type Recommendation,
+  SQL_PRICING_REFERENCES,
+  summarizeInventory,
+  type InventoryEntry,
+  type InventoryRecommendation,
 } from "@/lib/admin/pricing-code-inventory";
 import { saveAndLogDownload } from "@/lib/downloads/save-download";
 
@@ -21,279 +20,224 @@ export const Route = createFileRoute("/admin/pricing-code-inventory")({
   head: () => ({
     meta: [
       { title: "Pricing Code Inventory — Admin" },
-      { name: "description", content: "Read-only catalogue of every pricing-related file in the codebase, exportable as PDF or JSON." },
-      { name: "robots", content: "noindex, nofollow" },
+      { name: "description", content: "Read-only catalogue of pricing, costing, and unit logic across the codebase." },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: PricingCodeInventoryPage,
 });
 
-const RECO_COLORS: Record<Recommendation, string> = {
-  KEEP: "bg-emerald-500/10 text-emerald-700 border-emerald-300",
-  CENTRALIZE: "bg-blue-500/10 text-blue-700 border-blue-300",
-  EXPOSE: "bg-violet-500/10 text-violet-700 border-violet-300",
-  LEGACY: "bg-amber-500/10 text-amber-700 border-amber-300",
+const RECOMMENDATION_BADGE: Record<InventoryRecommendation, string> = {
+  KEEP: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  CENTRALIZE: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  EXPOSE: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  LEGACY: "bg-muted text-muted-foreground",
 };
 
-function entryMatches(entry: PricingFileEntry, q: string) {
+function matches(entry: InventoryEntry, q: string) {
   if (!q) return true;
-  const s = q.toLowerCase();
+  const needle = q.toLowerCase();
   return (
-    entry.path.toLowerCase().includes(s) ||
-    entry.does.toLowerCase().includes(s) ||
-    entry.layers.some((l) => l.toLowerCase().includes(s)) ||
-    (entry.notes ?? "").toLowerCase().includes(s) ||
-    entry.recommendation.toLowerCase().includes(s)
+    entry.path.toLowerCase().includes(needle) ||
+    entry.layer.toLowerCase().includes(needle) ||
+    entry.purpose.toLowerCase().includes(needle) ||
+    entry.notes.toLowerCase().includes(needle) ||
+    entry.recommendation.toLowerCase().includes(needle)
   );
-}
-
-function buildJson() {
-  return {
-    generated_at: PRICING_INVENTORY_GENERATED_AT,
-    project: "VPS Finest",
-    title: "Pricing-Related Code Inventory (Read-Only)",
-    sections: PRICING_INVENTORY,
-    sql_reference: PRICING_INVENTORY_SQL_REFERENCE,
-    cross_cutting_findings: PRICING_INVENTORY_FINDINGS,
-  };
-}
-
-async function downloadJson() {
-  const json = JSON.stringify(buildJson(), null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const filename = `pricing-code-inventory-${PRICING_INVENTORY_GENERATED_AT}.json`;
-  await saveAndLogDownload({
-    blob,
-    filename,
-    kind: "admin_export",
-    sourceLabel: "Pricing Code Inventory (JSON)",
-  });
-}
-
-async function downloadPdf() {
-  const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const margin = 40;
-  const contentW = pageW - margin * 2;
-  let y = margin;
-
-  const ensureSpace = (needed: number) => {
-    if (y + needed > pageH - margin) {
-      doc.addPage();
-      y = margin;
-    }
-  };
-
-  const writeWrapped = (text: string, opts: { size: number; bold?: boolean; color?: [number, number, number]; gap?: number }) => {
-    doc.setFont("helvetica", opts.bold ? "bold" : "normal");
-    doc.setFontSize(opts.size);
-    doc.setTextColor(...(opts.color ?? [20, 20, 20]));
-    const lines = doc.splitTextToSize(text, contentW);
-    const lineH = opts.size * 1.25;
-    for (const line of lines) {
-      ensureSpace(lineH);
-      doc.text(line, margin, y);
-      y += lineH;
-    }
-    y += opts.gap ?? 4;
-  };
-
-  // Title
-  writeWrapped("Pricing-Related Code Inventory", { size: 20, bold: true, gap: 6 });
-  writeWrapped("Project: VPS Finest · Read-only audit", { size: 10, color: [110, 110, 110], gap: 2 });
-  writeWrapped(`Generated: ${PRICING_INVENTORY_GENERATED_AT}`, { size: 10, color: [110, 110, 110], gap: 14 });
-
-  for (const section of PRICING_INVENTORY) {
-    ensureSpace(40);
-    writeWrapped(section.title, { size: 14, bold: true, gap: 4 });
-    if (section.description) {
-      writeWrapped(section.description, { size: 9, color: [90, 90, 90], gap: 8 });
-    }
-    for (const entry of section.entries) {
-      ensureSpace(60);
-      writeWrapped(entry.path, { size: 11, bold: true, color: [30, 30, 90], gap: 2 });
-      writeWrapped(`What it does: ${entry.does}`, { size: 9, gap: 2 });
-      writeWrapped(`Layer(s): ${entry.layers.join(", ")}`, { size: 9, color: [60, 60, 60], gap: 2 });
-      if (entry.notes) {
-        writeWrapped(`Notes: ${entry.notes}`, { size: 9, color: [120, 60, 0], gap: 2 });
-      }
-      writeWrapped(`Recommendation: ${entry.recommendation}`, { size: 9, bold: true, color: [0, 90, 60], gap: 10 });
-    }
-    y += 6;
-  }
-
-  ensureSpace(40);
-  writeWrapped("SQL pricing surface (reference)", { size: 14, bold: true, gap: 6 });
-  for (const line of PRICING_INVENTORY_SQL_REFERENCE) {
-    writeWrapped(`• ${line}`, { size: 9, gap: 3 });
-  }
-
-  y += 8;
-  ensureSpace(40);
-  writeWrapped("Cross-cutting findings", { size: 14, bold: true, gap: 6 });
-  for (const line of PRICING_INVENTORY_FINDINGS) {
-    writeWrapped(`• ${line}`, { size: 9, gap: 3 });
-  }
-
-  // Footer page numbers
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(140, 140, 140);
-    doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 20, { align: "right" });
-    doc.text("VPS Finest — Pricing Code Inventory", margin, pageH - 20);
-  }
-
-  const blob = doc.output("blob");
-  const filename = `pricing-code-inventory-${PRICING_INVENTORY_GENERATED_AT}.pdf`;
-  await saveAndLogDownload({
-    blob,
-    filename,
-    kind: "admin_export",
-    sourceLabel: "Pricing Code Inventory (PDF)",
-  });
 }
 
 function PricingCodeInventoryPage() {
   const [query, setQuery] = useState("");
-  const [busy, setBusy] = useState<"pdf" | "json" | null>(null);
+  const [downloading, setDownloading] = useState<null | "pdf" | "json">(null);
 
-  const totals = useMemo(() => {
-    const all = PRICING_INVENTORY.flatMap((s) => s.entries);
-    const counts: Record<Recommendation, number> = { KEEP: 0, CENTRALIZE: 0, EXPOSE: 0, LEGACY: 0 };
-    for (const e of all) counts[e.recommendation]++;
-    return { total: all.length, counts };
-  }, []);
+  const filtered = useMemo(
+    () => PRICING_INVENTORY.filter((e) => matches(e, query)),
+    [query],
+  );
+  const summary = useMemo(() => summarizeInventory(), []);
 
-  const filteredSections = useMemo(() => {
-    if (!query.trim()) return PRICING_INVENTORY;
-    return PRICING_INVENTORY.map((s) => ({
-      ...s,
-      entries: s.entries.filter((e) => entryMatches(e, query.trim())),
-    })).filter((s) => s.entries.length > 0);
-  }, [query]);
-
-  const onJson = async () => {
-    setBusy("json");
+  async function handleJsonExport() {
     try {
-      await downloadJson();
-      toast.success("JSON export ready");
+      setDownloading("json");
+      const payload = {
+        generated_at: PRICING_INVENTORY_GENERATED_AT,
+        summary,
+        entries: PRICING_INVENTORY,
+        sql_references: SQL_PRICING_REFERENCES,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const result = await saveAndLogDownload({
+        blob,
+        filename: `pricing-code-inventory-${PRICING_INVENTORY_GENERATED_AT}.json`,
+        kind: "admin_export",
+        sourceLabel: "Pricing Code Inventory (JSON)",
+      });
+      toast.success(result.persisted ? "JSON saved to Downloads Hub" : "JSON downloaded");
     } catch (e: any) {
-      toast.error(e?.message ?? "JSON export failed");
+      toast.error(e?.message ?? "Could not export JSON");
     } finally {
-      setBusy(null);
+      setDownloading(null);
     }
-  };
+  }
 
-  const onPdf = async () => {
-    setBusy("pdf");
+  async function handlePdfExport() {
     try {
-      await downloadPdf();
-      toast.success("PDF export ready");
+      setDownloading("pdf");
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+
+      doc.setFontSize(16);
+      doc.text("Pricing Code Inventory", 40, 48);
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text(`Generated ${PRICING_INVENTORY_GENERATED_AT} · ${summary.total} files`, 40, 64);
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 84,
+        head: [["Path", "Layer", "Purpose", "Notes", "Rec."]],
+        body: PRICING_INVENTORY.map((e) => [
+          e.path,
+          e.layer,
+          e.purpose,
+          e.notes,
+          e.recommendation,
+        ]),
+        styles: { fontSize: 8, cellPadding: 4, valign: "top" },
+        headStyles: { fillColor: [30, 30, 30] },
+        columnStyles: {
+          0: { cellWidth: 150 },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 140 },
+          3: { cellWidth: 130 },
+          4: { cellWidth: 50 },
+        },
+      });
+
+      const after = (doc as any).lastAutoTable?.finalY ?? 84;
+      doc.setFontSize(12);
+      doc.text("SQL pricing references", 40, after + 28);
+      autoTable(doc, {
+        startY: after + 36,
+        head: [["Object", "Purpose"]],
+        body: SQL_PRICING_REFERENCES.map((r) => [r.name, r.purpose]),
+        styles: { fontSize: 8, cellPadding: 4 },
+        headStyles: { fillColor: [30, 30, 30] },
+      });
+
+      const blob = doc.output("blob");
+      const result = await saveAndLogDownload({
+        blob,
+        filename: `pricing-code-inventory-${PRICING_INVENTORY_GENERATED_AT}.pdf`,
+        kind: "admin_export",
+        sourceLabel: "Pricing Code Inventory (PDF)",
+      });
+      toast.success(result.persisted ? "PDF saved to Downloads Hub" : "PDF downloaded");
     } catch (e: any) {
-      toast.error(e?.message ?? "PDF export failed");
+      toast.error(e?.message ?? "Could not export PDF");
     } finally {
-      setBusy(null);
+      setDownloading(null);
     }
-  };
+  }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="p-6 space-y-6">
+      <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pricing Code Inventory</h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Read-only catalogue of every file that touches pricing, costing, units, conversions, inventory valuation,
-            or quote pricing. Generated {PRICING_INVENTORY_GENERATED_AT}. Use this to map work for Phase Three pricing
-            and the Item Cost Matrix without re-discovering existing logic.
+          <h1 className="font-display text-2xl font-bold text-foreground">Pricing Code Inventory</h1>
+          <p className="text-sm text-muted-foreground">
+            Read-only catalogue of pricing, costing, unit, and quote logic across the repo.
+            Generated {PRICING_INVENTORY_GENERATED_AT}.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onJson} disabled={busy !== null}>
-            <FileJson className="size-4 mr-2" /> {busy === "json" ? "Exporting…" : "Download JSON"}
+          <Button variant="outline" onClick={handleJsonExport} disabled={downloading !== null}>
+            <FileJson className="w-4 h-4 mr-2" />
+            {downloading === "json" ? "Exporting…" : "Export JSON"}
           </Button>
-          <Button onClick={onPdf} disabled={busy !== null}>
-            <Download className="size-4 mr-2" /> {busy === "pdf" ? "Exporting…" : "Download PDF"}
+          <Button onClick={handlePdfExport} disabled={downloading !== null}>
+            <Download className="w-4 h-4 mr-2" />
+            {downloading === "pdf" ? "Exporting…" : "Export PDF"}
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard label="Total files" value={totals.total} />
-        <StatCard label="KEEP" value={totals.counts.KEEP} tone="emerald" />
-        <StatCard label="CENTRALIZE" value={totals.counts.CENTRALIZE} tone="blue" />
-        <StatCard label="EXPOSE" value={totals.counts.EXPOSE} tone="violet" />
-        <StatCard label="LEGACY" value={totals.counts.LEGACY} tone="amber" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <SummaryCard label="Total files" value={summary.total} />
+        <SummaryCard label="KEEP" value={summary.byRecommendation.KEEP} />
+        <SummaryCard label="CENTRALIZE" value={summary.byRecommendation.CENTRALIZE} />
+        <SummaryCard label="EXPOSE" value={summary.byRecommendation.EXPOSE} />
+        <SummaryCard label="LEGACY" value={summary.byRecommendation.LEGACY} />
       </div>
-
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          placeholder="Search path, layer, notes…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {filteredSections.map((section) => (
-        <Card key={section.title}>
-          <CardHeader>
-            <CardTitle className="text-base">{section.title}</CardTitle>
-            {section.description ? (
-              <p className="text-xs text-muted-foreground">{section.description}</p>
-            ) : null}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {section.entries.map((entry) => (
-              <div key={entry.path} className="rounded-md border p-3 space-y-2">
-                <div className="flex flex-wrap items-center gap-2 justify-between">
-                  <code className="text-xs font-mono break-all">{entry.path}</code>
-                  <Badge variant="outline" className={RECO_COLORS[entry.recommendation]}>
-                    {entry.recommendation}
-                  </Badge>
-                </div>
-                <p className="text-sm">{entry.does}</p>
-                <div className="flex flex-wrap gap-1">
-                  {entry.layers.map((l) => (
-                    <Badge key={l} variant="secondary" className="text-xs font-normal">{l}</Badge>
-                  ))}
-                </div>
-                {entry.notes ? (
-                  <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Notes:</span> {entry.notes}</p>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="size-4" /> SQL pricing surface (reference)
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="w-4 h-4" /> Files & summaries
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
-            {PRICING_INVENTORY_SQL_REFERENCE.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search path, layer, purpose, notes…"
+              className="pl-9"
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-2 pr-3 font-medium">Path</th>
+                  <th className="py-2 pr-3 font-medium">Layer</th>
+                  <th className="py-2 pr-3 font-medium">Purpose</th>
+                  <th className="py-2 pr-3 font-medium">Notes</th>
+                  <th className="py-2 pr-3 font-medium">Rec.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e) => (
+                  <tr key={e.path} className="border-b last:border-0 align-top">
+                    <td className="py-2 pr-3 font-mono text-xs break-all">{e.path}</td>
+                    <td className="py-2 pr-3">{e.layer}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{e.purpose}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{e.notes || "—"}</td>
+                    <td className="py-2 pr-3">
+                      <Badge className={RECOMMENDATION_BADGE[e.recommendation]} variant="secondary">
+                        {e.recommendation}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      No entries match “{query}”.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cross-cutting findings</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">SQL pricing references</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
-            {PRICING_INVENTORY_FINDINGS.map((line) => (
-              <li key={line}>{line}</li>
+          <ul className="space-y-2 text-sm">
+            {SQL_PRICING_REFERENCES.map((r) => (
+              <li key={r.name} className="flex flex-col md:flex-row md:gap-3">
+                <span className="font-mono text-xs">{r.name}</span>
+                <span className="text-muted-foreground">{r.purpose}</span>
+              </li>
             ))}
           </ul>
         </CardContent>
@@ -302,18 +246,12 @@ function PricingCodeInventoryPage() {
   );
 }
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone?: "emerald" | "blue" | "violet" | "amber" }) {
-  const toneClass =
-    tone === "emerald" ? "text-emerald-700"
-    : tone === "blue" ? "text-blue-700"
-    : tone === "violet" ? "text-violet-700"
-    : tone === "amber" ? "text-amber-700"
-    : "text-foreground";
+function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className={`text-2xl font-semibold ${toneClass}`}>{value}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="text-2xl font-semibold text-foreground">{value}</div>
       </CardContent>
     </Card>
   );
