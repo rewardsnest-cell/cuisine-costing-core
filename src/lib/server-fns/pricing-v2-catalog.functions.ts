@@ -220,17 +220,6 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
         });
       }
 
-          severity: "warning",
-          type: "NO_PRODUCTS",
-          entity_type: "run",
-          entity_id: null,
-          entity_name: null,
-          message: "No products fetched from Kroger (no inventory mappings and no keyword).",
-          suggested_fix: "Set kroger_product_id on inventory items, or pass a keyword via Run Subset.",
-          debug_json: { store_id: storeId, inventory_ids: fromInventory.length },
-        });
-      }
-
       // 2) Per-product: persist raw + upsert catalog + parse weight.
       const seenKeys = new Set<string>();
       for (const p of products) {
