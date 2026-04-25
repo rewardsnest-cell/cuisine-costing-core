@@ -3429,6 +3429,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_downloads: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          kind: string
+          mime_type: string | null
+          public_url: string | null
+          size_bytes: number | null
+          source_id: string | null
+          source_label: string | null
+          storage_path: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          kind: string
+          mime_type?: string | null
+          public_url?: string | null
+          size_bytes?: number | null
+          source_id?: string | null
+          source_label?: string | null
+          storage_path?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          public_url?: string | null
+          size_bytes?: number | null
+          source_id?: string | null
+          source_label?: string | null
+          storage_path?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
