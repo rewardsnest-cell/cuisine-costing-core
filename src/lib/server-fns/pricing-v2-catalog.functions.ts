@@ -389,7 +389,7 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
       await supabase
         .from("pricing_v2_runs")
         .update({
-          status: errCount > 0 ? "failed" : "succeeded",
+          status: errCount > 0 ? "failed" : "success",
           ended_at: new Date().toISOString(),
           counts_in: countsIn,
           counts_out: countsOut,
@@ -858,7 +858,7 @@ export const runCatalogTestHarness = createServerFn({ method: "POST" })
       await supabase
         .from("pricing_v2_runs")
         .update({
-          status: failed === 0 ? "succeeded" : "failed",
+          status: failed === 0 ? "success" : "failed",
           ended_at: new Date().toISOString(),
           counts_in: countsIn,
           counts_out: countsOut,
