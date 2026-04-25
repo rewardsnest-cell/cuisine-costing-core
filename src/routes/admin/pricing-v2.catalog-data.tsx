@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { RefreshCw, Database, Boxes, AlertTriangle } from "lucide-react";
+import { RefreshCw, Database, Boxes, AlertTriangle, Download } from "lucide-react";
 import {
   listItemCatalog,
   listKrogerCatalogRaw,
