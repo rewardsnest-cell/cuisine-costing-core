@@ -580,14 +580,33 @@ function CatalogBootstrapPage() {
                         <td className="pr-2 text-right">{r.errors_count}</td>
                         <td className="text-muted-foreground truncate max-w-[24ch]" title={r.notes ?? ""}>{r.notes}</td>
                         <td>
-                          <Button
-                            size="sm"
-                            variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
-                            className="h-6 px-2 gap-1 text-[11px]"
-                            onClick={() => setDetailsRunId(r.run_id)}
-                          >
-                            <Bug className="w-3 h-3" /> Details
-                          </Button>
+                          <div className="flex items-center gap-1 justify-end">
+                            {(r.status === "failed" || r.status === "running") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 gap-1 text-[11px]"
+                                disabled={replayMut.isPending && replayMut.variables === r.run_id}
+                                onClick={() => replayMut.mutate(r.run_id)}
+                                title="Re-run this stage with the same params; appends a new audit entry"
+                              >
+                                {replayMut.isPending && replayMut.variables === r.run_id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Repeat className="w-3 h-3" />
+                                )}
+                                Replay
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={r.status === "failed" || r.status === "running" ? "destructive" : "ghost"}
+                              className="h-6 px-2 gap-1 text-[11px]"
+                              onClick={() => setDetailsRunId(r.run_id)}
+                            >
+                              <Bug className="w-3 h-3" /> Details
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
