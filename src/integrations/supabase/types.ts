@@ -967,6 +967,39 @@ export type Database = {
           },
         ]
       }
+      cron_secrets: {
+        Row: {
+          created_at: string
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          name: string
+          secret_hash: string | null
+          secret_preview: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          name: string
+          secret_hash?: string | null
+          secret_preview?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          name?: string
+          secret_hash?: string | null
+          secret_preview?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       decision_logs: {
         Row: {
           created_at: string
@@ -4292,10 +4325,12 @@ export type Database = {
           source: string
         }[]
       }
+      generate_cron_secret: { Args: { _name: string }; Returns: Json }
       get_active_flyer_for_supplier: {
         Args: { _supplier_id: string }
         Returns: string
       }
+      get_cron_secret_status: { Args: { _name: string }; Returns: Json }
       get_quote_by_reference: {
         Args: { _reference: string }
         Returns: {
@@ -4405,6 +4440,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      verify_cron_secret: {
+        Args: { _name: string; _secret: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "employee" | "marketing"
