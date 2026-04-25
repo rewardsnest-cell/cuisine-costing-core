@@ -1,0 +1,1 @@
+DELETE FROM public.app_kv WHERE key = 'kroger_location_for_zip:44202';
