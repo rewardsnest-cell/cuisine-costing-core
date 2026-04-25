@@ -118,44 +118,106 @@ async function runBootstrap(
     .limit(2000);
   const candidates = (refs ?? []) as Array<{ id: string; canonical_name: string; canonical_normalized: string }>;
 
+  // Pre-load SKUs already in the map so repeat bootstrap runs do not re-process
+  // products we've seen before. Combined with the per-request `seenSkus` set
+  // and the `kroger_sku_map.sku` unique constraint, this gives us 3 layers of
+  // dedup: in-memory (this run), DB pre-load (across runs), DB upsert (final).
+  const knownSkus = new Set<string>();
+  {
+    const pageSize = 1000;
+    let from = 0;
+    // Cap pre-load to a sane upper bound to avoid pulling unbounded rows.
+    while (from < 50000) {
+      const { data: rows } = await supabaseAdmin
+        .from("kroger_sku_map")
+        .select("sku")
+        .range(from, from + pageSize - 1);
+      if (!rows || rows.length === 0) break;
+      for (const r of rows as Array<{ sku: string }>) knownSkus.add(r.sku);
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
+  }
+
   const seenSkus = new Set<string>();
   let skuTouched = 0;
-  let queried = 0;
+  let queried = 0; // HTTP requests issued
+  let pagesFetched = 0;
   const errors: any[] = [];
 
-  for (const term of BOOTSTRAP_SEARCH_TERMS) {
+  // ── Pagination & rate-limit constants ──────────────────────────────────
+  const PAGE_LIMIT = 50;          // Kroger Product API page size
+  const MAX_PAGES_PER_TERM = 40;  // hard ceiling per search term (50*40 = 2000)
+  const REQUEST_DELAY_MS = 200;   // gentle pacing between requests
+  const MAX_BACKOFF_MS = 30_000;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  termLoop: for (const term of BOOTSTRAP_SEARCH_TERMS) {
     if (seenSkus.size >= productCap) break;
 
     // Resume support: skip if this term already completed for this run.
     const { data: prog } = await supabaseAdmin
       .from("kroger_bootstrap_progress")
-      .select("completed_at")
+      .select("completed_at,page")
       .eq("run_id", runId)
       .eq("search_term", term)
       .maybeSingle();
     if (prog?.completed_at) continue;
 
-    let pageProducts = 0;
-    try {
+    // Resume mid-term: continue from the last recorded page if any.
+    let start = prog?.page && prog.page > 0 ? prog.page * PAGE_LIMIT : 0;
+    let pageIdx = prog?.page ?? 0;
+    let termProducts = 0;
+    let backoffMs = 1000;
+
+    pageLoop: while (pageIdx < MAX_PAGES_PER_TERM) {
+      if (seenSkus.size >= productCap) break termLoop;
+
       const url = new URL("https://api.kroger.com/v1/products");
       url.searchParams.set("filter.term", term);
-      url.searchParams.set("filter.limit", "50");
+      url.searchParams.set("filter.limit", String(PAGE_LIMIT));
+      url.searchParams.set("filter.start", String(start));
       url.searchParams.set("filter.locationId", locationId);
-      const res = await kFetch(url.toString());
-      queried++;
-      if (!res.ok) {
-        errors.push({ term, http_status: res.status });
-        await supabaseAdmin.from("kroger_bootstrap_progress").upsert({
-          run_id: runId, search_term: term, page: 1, products_seen: 0,
-        }, { onConflict: "run_id,search_term" });
-        continue;
+
+      let res: Response;
+      try {
+        res = await kFetch(url.toString());
+        queried++;
+      } catch (e: any) {
+        errors.push({ term, page: pageIdx, error: e?.message ?? "fetch_failed" });
+        break pageLoop;
       }
+
+      // 429 → exponential backoff, then retry the same page once per loop turn.
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get("retry-after")) * 1000;
+        const wait = Math.min(MAX_BACKOFF_MS, isFinite(retryAfter) && retryAfter > 0 ? retryAfter : backoffMs);
+        errors.push({ term, page: pageIdx, http_status: 429, backoff_ms: wait });
+        await sleep(wait);
+        backoffMs = Math.min(MAX_BACKOFF_MS, backoffMs * 2);
+        continue pageLoop; // retry same start
+      }
+      if (!res.ok) {
+        errors.push({ term, page: pageIdx, http_status: res.status });
+        break pageLoop;
+      }
+      backoffMs = 1000; // reset on success
+
       const body = (await res.json()) as { data?: any[] };
-      for (const p of body.data ?? []) {
+      const products = body.data ?? [];
+      pagesFetched++;
+
+      // Empty page → done with this term (do NOT stop on partial page; keep going).
+      if (products.length === 0) break pageLoop;
+
+      let pageProducts = 0;
+      for (const p of products) {
         const sku: string | undefined = p.productId ?? p.upc;
-        if (!sku || seenSkus.has(sku)) continue;
+        if (!sku) continue;
+        if (seenSkus.has(sku) || knownSkus.has(sku)) continue;
         seenSkus.add(sku);
         pageProducts++;
+        termProducts++;
 
         const productName: string = p.description ?? p.brand ?? "";
         const sizeText: string | null = Array.isArray(p.items) && p.items[0]?.size ? String(p.items[0].size) : null;
@@ -184,25 +246,40 @@ async function runBootstrap(
           product_name_normalized: normalizeForScoring(productName),
           price_unit_size: sizeText,
           last_seen_at: new Date().toISOString(),
-          // Only suggest a reference link when the score is meaningful.
           reference_id: bestScore >= 0.6 ? bestRefId : null,
           match_confidence: bestScore,
-          // review_state defaults to 'auto' in DB. Suggested matches go to 'pending'.
           review_state: bestScore >= 0.6 ? "pending" : "auto",
         } as any, { onConflict: "sku" });
         skuTouched++;
       }
 
+      // Persist pagination cursor so we can resume mid-term on the next run.
+      pageIdx++;
+      start += PAGE_LIMIT;
       await supabaseAdmin.from("kroger_bootstrap_progress").upsert({
         run_id: runId,
         search_term: term,
-        page: 1,
-        products_seen: pageProducts,
-        completed_at: new Date().toISOString(),
+        page: pageIdx,
+        products_seen: termProducts,
       }, { onConflict: "run_id,search_term" });
-    } catch (e: any) {
-      errors.push({ term, error: e?.message ?? "unknown" });
+
+      // Gentle pacing between requests
+      await sleep(REQUEST_DELAY_MS);
+
+      // Stop only when API returns an empty page (handled at top of next iter).
+      // Do NOT stop because pageProducts === 0 (could just be all dupes) —
+      // keep walking until products.length === 0.
+      void pageProducts;
     }
+
+    // Mark term complete
+    await supabaseAdmin.from("kroger_bootstrap_progress").upsert({
+      run_id: runId,
+      search_term: term,
+      page: pageIdx,
+      products_seen: termProducts,
+      completed_at: new Date().toISOString(),
+    }, { onConflict: "run_id,search_term" });
   }
 
   await supabaseAdmin.from("kroger_ingest_runs").update({
