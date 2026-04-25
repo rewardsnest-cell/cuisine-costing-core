@@ -515,8 +515,103 @@ function DailyDashboardPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Activity Log */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" /> Activity Log
+            <span className="ml-auto flex gap-1">
+              {(["all", "priority", "goal"] as const).map((f) => (
+                <Button
+                  key={f}
+                  size="sm"
+                  variant={activityFilter === f ? "default" : "outline"}
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setActivityFilter(f)}
+                >
+                  {f === "all" ? "All" : f === "priority" ? "Priorities" : "Goals"}
+                </Button>
+              ))}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const filtered = activity.filter((a) => activityFilter === "all" || a.entity_type === activityFilter);
+            if (filtered.length === 0) {
+              return <p className="text-sm text-muted-foreground py-4">No recent activity.</p>;
+            }
+            return (
+              <ul className="divide-y max-h-96 overflow-auto">
+                {filtered.map((a) => (
+                  <li key={a.id} className="py-2.5 flex items-start gap-3 text-sm">
+                    <Badge variant="outline" className="text-[10px] uppercase shrink-0 mt-0.5">
+                      {a.entity_type}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{a.actor_email || "Unknown"}</span>
+                        <span className="text-muted-foreground">{actionLabel(a.action)}</span>
+                        {a.title && <span className="truncate">"{a.title}"</span>}
+                      </div>
+                      {Object.keys(a.changes || {}).length > 0 && (
+                        <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                          {Object.entries(a.changes).map(([field, diff]) => (
+                            <div key={field}>
+                              <span className="font-medium">{field}:</span>{" "}
+                              <span className="line-through opacity-70">{formatVal(diff.from)}</span>
+                              {" → "}
+                              <span>{formatVal(diff.to)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                      {timeAgo(a.created_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+          <Separator className="my-3" />
+          <p className="text-xs text-muted-foreground">
+            Tracks the last 50 changes to Daily Priorities and Weekly Goals.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
+}
+
+function actionLabel(action: string) {
+  switch (action) {
+    case "created": return "created";
+    case "updated": return "edited";
+    case "deleted": return "deleted";
+    case "completed": return "completed";
+    case "reopened": return "reopened";
+    default: return action;
+  }
+}
+
+function formatVal(v: any) {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  return String(v);
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
 function ReminderBlock({
