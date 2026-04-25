@@ -66,7 +66,7 @@ const STAGE_CONFIG: Record<Stage, {
 }
 
 async function enqueueEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: DB,
   contact: Contact,
   stage: Stage,
 ): Promise<{ ok: boolean; messageId: string; error?: string }> {
@@ -173,7 +173,7 @@ async function enqueueEmail(
 }
 
 async function processStage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: DB,
   stage: Stage,
 ): Promise<{ stage: Stage; processed: number; sent: number; failed: number }> {
   const cfg = STAGE_CONFIG[stage]
