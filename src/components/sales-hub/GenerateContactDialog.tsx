@@ -26,6 +26,8 @@ export interface GenerateContactDialogProps {
     contact_name: string | null;
     email: string | null;
     phone: string | null;
+    address?: string | null;
+    website?: string | null;
     notes: string | null;
   } | null;
   onSaved?: () => void;
