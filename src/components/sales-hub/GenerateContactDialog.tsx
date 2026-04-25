@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Save, UserSearch, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, Save, UserSearch, AlertTriangle, Plus, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   generateProspectContact,
