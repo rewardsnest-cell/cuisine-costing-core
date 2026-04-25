@@ -416,8 +416,9 @@ function ProspectsPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Phone / Email</TableHead>
+                    <TableHead>Address</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Last</TableHead>
+                    <TableHead>Last contact</TableHead>
                     <TableHead>Next</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
