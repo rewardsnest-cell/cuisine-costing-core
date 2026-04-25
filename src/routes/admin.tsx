@@ -121,7 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Pricing v2",
     items: [
       { to: "/admin/pricing-v2",          label: "Control Center",       icon: LayoutDashboard, exact: true },
-      { to: "/admin/pricing-v2/catalog",  label: "Stage 0 — Catalog",    icon: Tag },
+      { to: "/admin/pricing-v2/catalog",  label: "Stage 0 — Catalog Bootstrap", icon: Tag },
       { to: "/admin/pricing-v2/errors",   label: "Errors",               icon: AlertTriangle },
       { to: "/admin/pricing-v2/settings", label: "Settings",             icon: ShieldCheck },
     ],
