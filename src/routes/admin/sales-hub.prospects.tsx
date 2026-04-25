@@ -176,6 +176,8 @@ function ProspectsPage() {
         original_contact_name: p.contact_name,
         original_email: p.email,
         original_phone: p.phone,
+        original_address: p.address,
+        original_website: p.website,
         original_notes: p.notes,
       };
       try {
@@ -189,7 +191,9 @@ function ProspectsPage() {
             contact_name: p.contact_name ?? "",
             email: p.email ?? "",
             phone: p.phone ?? "",
-            website: "",
+            website: p.website ?? "",
+            address: p.address ?? "",
+            contacts: [],
             ai_notes: "",
             confidence: null,
             error: res.error,
@@ -201,7 +205,11 @@ function ProspectsPage() {
             contact_name: c.contact_name ?? p.contact_name ?? "",
             email: c.email ?? p.email ?? "",
             phone: c.phone ?? p.phone ?? "",
-            website: c.website ?? "",
+            website: c.website ?? p.website ?? "",
+            address: c.address ?? p.address ?? "",
+            contacts: (c.contacts ?? []).map((x) => ({
+              name: x.name ?? "", role: x.role ?? "", email: x.email ?? "", phone: x.phone ?? "",
+            })),
             ai_notes: c.notes ?? "",
             confidence: (c.confidence ?? null) as BulkReviewItem["confidence"],
           });
@@ -213,7 +221,9 @@ function ProspectsPage() {
           contact_name: p.contact_name ?? "",
           email: p.email ?? "",
           phone: p.phone ?? "",
-          website: "",
+          website: p.website ?? "",
+          address: p.address ?? "",
+          contacts: [],
           ai_notes: "",
           confidence: null,
           error: e?.message ?? "Failed",
