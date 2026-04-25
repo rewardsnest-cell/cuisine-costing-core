@@ -1,4 +1,5 @@
-// Pricing v2 — Kroger product search server function.
+// Pricing v2 — Kroger product search + UPC-to-inventory mapping +
+// catalog data browse server functions.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -27,7 +28,6 @@ export const searchKrogerProducts = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
 
-    // Resolve store id: explicit override, else settings row.
     let storeId = data.storeId;
     if (!storeId) {
       const { data: s } = await supabase
@@ -47,7 +47,6 @@ export const searchKrogerProducts = createServerFn({ method: "POST" })
       limit: data.limit,
     });
 
-    // Flatten to one row per product, picking the first item (most relevant size).
     const hits: KrogerSearchHit[] = products.map((p) => {
       const item = p.items?.[0];
       return {
@@ -63,4 +62,133 @@ export const searchKrogerProducts = createServerFn({ method: "POST" })
     });
 
     return { storeId, term: data.term, count: hits.length, hits };
+  });
+
+// ---------------------------------------------------------------------------
+// Inventory items list — for the mapping picker on the Search page.
+// ---------------------------------------------------------------------------
+
+const listInventorySchema = z.object({
+  search: z.string().trim().max(120).optional(),
+  onlyUnmapped: z.boolean().default(false),
+  limit: z.number().int().min(1).max(200).default(50),
+});
+
+export type InventoryItemLite = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string | null;
+  kroger_product_id: string | null;
+};
+
+export const listInventoryForMapping = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => listInventorySchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let q = supabase
+      .from("inventory_items")
+      .select("id,name,category,unit,kroger_product_id")
+      .order("name", { ascending: true })
+      .limit(data.limit);
+    if (data.search) q = q.ilike("name", `%${data.search}%`);
+    if (data.onlyUnmapped) q = q.is("kroger_product_id", null);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { items: (rows ?? []) as InventoryItemLite[] };
+  });
+
+// ---------------------------------------------------------------------------
+// Map a UPC onto an inventory item.
+// Uses requireSupabaseAuth so RLS enforces admin-only writes via existing policies.
+// ---------------------------------------------------------------------------
+
+const mapSchema = z.object({
+  inventoryItemId: z.string().uuid(),
+  upc: z.string().trim().min(6).max(32),
+});
+
+export const mapUpcToInventoryItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => mapSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { data: row, error } = await supabase
+      .from("inventory_items")
+      .update({ kroger_product_id: data.upc })
+      .eq("id", data.inventoryItemId)
+      .select("id,name,kroger_product_id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { item: row };
+  });
+
+// ---------------------------------------------------------------------------
+// Catalog data browse — for the new Catalog Data viewer page.
+// ---------------------------------------------------------------------------
+
+const browseSchema = z.object({
+  search: z.string().trim().max(120).optional(),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+
+export const listItemCatalog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => browseSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let q = supabase
+      .from("pricing_v2_item_catalog")
+      .select(
+        "id,store_id,upc,kroger_product_id,name,brand,size_raw,net_weight_grams,weight_source,manual_net_weight_grams,manual_override_reason,updated_at"
+      )
+      .order("updated_at", { ascending: false })
+      .limit(data.limit);
+    if (data.search) {
+      const like = `%${data.search}%`;
+      q = q.or(`name.ilike.${like},upc.ilike.${like},brand.ilike.${like}`);
+    }
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [] };
+  });
+
+export const listKrogerCatalogRaw = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => browseSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let q = supabase
+      .from("pricing_v2_kroger_catalog_raw")
+      .select(
+        "id,run_id,store_id,upc,kroger_product_id,name,brand,size_raw,fetched_at,payload_json"
+      )
+      .order("fetched_at", { ascending: false })
+      .limit(data.limit);
+    if (data.search) {
+      const like = `%${data.search}%`;
+      q = q.or(`name.ilike.${like},upc.ilike.${like},brand.ilike.${like}`);
+    }
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [] };
+  });
+
+export const getCatalogStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const [raw, cat, mapped, unmapped] = await Promise.all([
+      supabase.from("pricing_v2_kroger_catalog_raw").select("*", { count: "exact", head: true }),
+      supabase.from("pricing_v2_item_catalog").select("*", { count: "exact", head: true }),
+      supabase.from("inventory_items").select("*", { count: "exact", head: true }).not("kroger_product_id", "is", null),
+      supabase.from("inventory_items").select("*", { count: "exact", head: true }).is("kroger_product_id", null),
+    ]);
+    return {
+      raw_count: raw.count ?? 0,
+      catalog_count: cat.count ?? 0,
+      inventory_mapped: mapped.count ?? 0,
+      inventory_unmapped: unmapped.count ?? 0,
+    };
   });
