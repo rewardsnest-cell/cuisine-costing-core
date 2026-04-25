@@ -930,3 +930,54 @@ async function exportErrorsCsv(runId: string, stage?: "catalog_bootstrap_test") 
   a.click();
   URL.revokeObjectURL(url);
 }
+
+function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v: any) => void; saving: boolean }) {
+  const [threshold, setThreshold] = useState<number>(initial.stuck_minutes_threshold ?? 30);
+  const [bannerEnabled, setBannerEnabled] = useState<boolean>(!!initial.banner_enabled);
+  const [emailEnabled, setEmailEnabled] = useState<boolean>(!!initial.email_enabled);
+  const [recipients, setRecipients] = useState<string>((initial.email_recipients ?? []).join(", "));
+  const [webhookEnabled, setWebhookEnabled] = useState<boolean>(!!initial.webhook_enabled);
+  const [webhookUrl, setWebhookUrl] = useState<string>(initial.webhook_url ?? "");
+  const [webhookSecret, setWebhookSecret] = useState<string>(initial.webhook_secret ?? "");
+  return (
+    <div className="grid gap-3 text-sm">
+      <div className="flex items-center gap-2">
+        <Label className="w-44">Stuck threshold (minutes)</Label>
+        <Input type="number" min={1} max={1440} className="h-8 w-28" value={threshold}
+          onChange={(e) => setThreshold(Number(e.target.value) || 1)} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={bannerEnabled} onChange={(e) => setBannerEnabled(e.target.checked)} />
+        <Label>Banner enabled</Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={emailEnabled} onChange={(e) => setEmailEnabled(e.target.checked)} />
+        <Label>Email enabled</Label>
+        <Input className="h-8 flex-1" placeholder="comma-separated emails" value={recipients}
+          onChange={(e) => setRecipients(e.target.value)} disabled={!emailEnabled} />
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" checked={webhookEnabled} onChange={(e) => setWebhookEnabled(e.target.checked)} />
+        <Label className="w-32">Webhook enabled</Label>
+        <Input className="h-8 flex-1" placeholder="https://..." value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)} disabled={!webhookEnabled} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Label className="w-44">Webhook signing secret</Label>
+        <Input className="h-8 flex-1 font-mono text-xs" placeholder="optional" value={webhookSecret}
+          onChange={(e) => setWebhookSecret(e.target.value)} disabled={!webhookEnabled} />
+      </div>
+      <div>
+        <Button size="sm" disabled={saving} onClick={() => onSave({
+          stuck_minutes_threshold: threshold,
+          banner_enabled: bannerEnabled,
+          email_enabled: emailEnabled,
+          email_recipients: recipients.split(",").map((s) => s.trim()).filter(Boolean),
+          webhook_enabled: webhookEnabled,
+          webhook_url: webhookUrl.trim() || null,
+          webhook_secret: webhookSecret.trim() || null,
+        })}>{saving ? "Saving…" : "Save alert config"}</Button>
+      </div>
+    </div>
+  );
+}
