@@ -805,7 +805,7 @@ function QuoteCreatorHub() {
               </Card>
 
               {list && (
-                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} onChanged={reload} isApproved={isApproved} />
+                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} event={data.event} onChanged={reload} isApproved={isApproved} />
               )}
 
               {isApproved && (
@@ -902,7 +902,7 @@ function QuoteCreatorHub() {
 
             <TabsContent value="shopping">
               {list ? (
-                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} onChanged={reload} isApproved={isApproved} />
+                <ShoppingListEditor list={list} items={data.items} dishes={data.dishes} event={data.event} onChanged={reload} isApproved={isApproved} />
               ) : (
                 <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Generate a shopping list first.</CardContent></Card>
               )}
