@@ -78,14 +78,15 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         if (pErr || !prospect) {
           return Response.json({ error: "Prospect not found" }, { status: 404 });
         }
-        if (!prospect.email) {
+        if (!prospect.email && !body.recipientEmail) {
           return Response.json({ error: "Prospect has no email" }, { status: 400 });
         }
+        const toEmail = (body.recipientEmail ?? prospect.email)!.trim();
 
         const attemptedAt = new Date();
         const t0 = Date.now();
         const sendResult = await sendOutlookEmail({
-          to: prospect.email,
+          to: toEmail,
           subject: body.subject,
           html: body.html,
           text: body.text,
