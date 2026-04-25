@@ -126,6 +126,17 @@ function ProspectsPage() {
     load();
   };
 
+  const setFollowUp = async (p: Prospect, days: number | null) => {
+    const next = days === null
+      ? null
+      : new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+    const { error } = await (supabase as any)
+      .from("sales_prospects").update({ next_follow_up: next }).eq("id", p.id);
+    if (error) return toast.error(error.message);
+    toast.success(next ? `Follow-up set for ${next}` : "Follow-up cleared");
+    setRows((prev) => prev.map((x) => x.id === p.id ? { ...x, next_follow_up: next } : x));
+  };
+
   return (
     <div className="space-y-4">
       <Card>
