@@ -116,3 +116,148 @@ export const getMarginVarianceRange = createServerFn({ method: "POST" })
       },
     };
   });
+
+/**
+ * Per-ingredient theoretical vs actual cost variance for a quote.
+ *
+ * Theoretical: sum over each quote_item of
+ *   recipe_ingredient.quantity * recipe_ingredient.cost_per_unit * quote_item.quantity (servings)
+ *   grouped by inventory_item_id (or by ingredient name when no inventory link).
+ *
+ * Actual: aggregated `extracted_line_items` (only entries with matched_inventory_id)
+ * from receipts where linked_quote_id = this quote, summing total_price per inventory item.
+ *
+ * Read-only. Sorted by absolute variance descending so the biggest drivers surface first.
+ */
+export const getQuoteIngredientVariance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { quote_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+
+    const { data: items } = await sb
+      .from("quote_items")
+      .select("recipe_id, quantity")
+      .eq("quote_id", data.quote_id);
+
+    type Row = {
+      key: string;
+      inventory_item_id: string | null;
+      name: string;
+      theoreticalCost: number;
+      actualCost: number;
+    };
+    const byKey = new Map<string, Row>();
+    const upsert = (key: string, name: string, inventoryId: string | null) => {
+      let r = byKey.get(key);
+      if (!r) {
+        r = { key, inventory_item_id: inventoryId, name, theoreticalCost: 0, actualCost: 0 };
+        byKey.set(key, r);
+      }
+      // Prefer the more descriptive name when one is empty
+      if (!r.name && name) r.name = name;
+      if (!r.inventory_item_id && inventoryId) r.inventory_item_id = inventoryId;
+      return r;
+    };
+
+    // ---- Theoretical: walk each quote_item -> recipe_ingredients ----
+    for (const it of items ?? []) {
+      if (!it.recipe_id) continue;
+      const servings = Number(it.quantity) || 0;
+      if (servings <= 0) continue;
+      const { data: ings } = await sb
+        .from("recipe_ingredients")
+        .select("name, quantity, cost_per_unit, inventory_item_id")
+        .eq("recipe_id", it.recipe_id);
+      for (const ing of ings ?? []) {
+        const qty = Number(ing.quantity) || 0;
+        const cpu = Number(ing.cost_per_unit) || 0;
+        if (qty <= 0 || cpu <= 0) continue;
+        const lineCost = qty * cpu * servings;
+        const key = ing.inventory_item_id
+          ? `inv:${ing.inventory_item_id}`
+          : `name:${(ing.name || "").trim().toLowerCase()}`;
+        const row = upsert(key, ing.name || "Unknown", ing.inventory_item_id || null);
+        row.theoreticalCost += lineCost;
+      }
+    }
+
+    // ---- Actual: walk receipts.extracted_line_items, group by matched inventory ----
+    const { data: receipts } = await sb
+      .from("receipts")
+      .select("extracted_line_items")
+      .eq("linked_quote_id", data.quote_id);
+    for (const rcpt of receipts ?? []) {
+      const lines = Array.isArray(rcpt.extracted_line_items) ? rcpt.extracted_line_items : [];
+      for (const li of lines) {
+        const total = Number(li?.total_price) || 0;
+        if (total <= 0) continue;
+        const invId: string | null = li?.matched_inventory_id || null;
+        const name: string = li?.matched_inventory_name || li?.item_name || "Unknown";
+        const key = invId ? `inv:${invId}` : `name:${(name || "").trim().toLowerCase()}`;
+        const row = upsert(key, name, invId);
+        row.actualCost += total;
+      }
+    }
+
+    // Resolve names for inventory-only rows
+    const missingNameIds = Array.from(byKey.values())
+      .filter((r) => r.inventory_item_id && (!r.name || r.name === "Unknown"))
+      .map((r) => r.inventory_item_id!) as string[];
+    if (missingNameIds.length > 0) {
+      const { data: inv } = await sb
+        .from("inventory_items")
+        .select("id,name")
+        .in("id", missingNameIds);
+      const nameMap = new Map<string, string>((inv ?? []).map((x: any) => [x.id, x.name]));
+      for (const r of byKey.values()) {
+        if (r.inventory_item_id && nameMap.has(r.inventory_item_id)) {
+          r.name = nameMap.get(r.inventory_item_id)!;
+        }
+      }
+    }
+
+    const rows = Array.from(byKey.values()).map((r) => {
+      const theoretical = Math.round(r.theoreticalCost * 100) / 100;
+      const actual = Math.round(r.actualCost * 100) / 100;
+      const variance = Math.round((actual - theoretical) * 100) / 100;
+      const variancePct =
+        theoretical > 0 ? Math.round((variance / theoretical) * 1000) / 10 : null;
+      return {
+        key: r.key,
+        inventory_item_id: r.inventory_item_id,
+        name: r.name,
+        theoreticalCost: theoretical,
+        actualCost: actual,
+        variance,
+        variancePct,
+        absVariance: Math.abs(variance),
+      };
+    });
+
+    rows.sort((a, b) => b.absVariance - a.absVariance);
+
+    const totals = rows.reduce(
+      (acc, r) => {
+        acc.theoretical += r.theoreticalCost;
+        acc.actual += r.actualCost;
+        return acc;
+      },
+      { theoretical: 0, actual: 0 },
+    );
+    const totalVariance = Math.round((totals.actual - totals.theoretical) * 100) / 100;
+
+    return {
+      quote_id: data.quote_id,
+      rows,
+      totals: {
+        theoreticalCost: Math.round(totals.theoretical * 100) / 100,
+        actualCost: Math.round(totals.actual * 100) / 100,
+        variance: totalVariance,
+        variancePct:
+          totals.theoretical > 0
+            ? Math.round((totalVariance / totals.theoretical) * 1000) / 10
+            : 0,
+      },
+    };
+  });
