@@ -32,6 +32,13 @@ export type CqhDish = {
   source_documents: string[];
   is_main: boolean;
   merged_from: string[];
+  source_qty: number | null;
+  source_unit: string | null;
+  source_unit_price: number | null;
+  source_line_total: number | null;
+  source_category: string | null;
+  source_notes: string | null;
+  source_raw: string | null;
 };
 
 export type CqhShoppingList = {
