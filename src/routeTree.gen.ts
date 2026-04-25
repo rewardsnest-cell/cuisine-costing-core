@@ -153,6 +153,7 @@ import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminPricingLabPreviewRouteImport } from './routes/admin/pricing-lab.preview'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
+import { Route as AdminLeadsImportRouteImport } from './routes/admin/leads.import'
 import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminGuidesNewRouteImport } from './routes/admin/guides.new'
@@ -904,6 +905,11 @@ const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   path: '/preview',
   getParentRoute: () => AdminMenuModulesRoute,
 } as any)
+const AdminLeadsImportRoute = AdminLeadsImportRouteImport.update({
+  id: '/leads/import',
+  path: '/leads/import',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLeadsIdRoute = AdminLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
@@ -1123,6 +1129,7 @@ export interface FileRoutesByFullPath {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/leads/$id': typeof AdminLeadsIdRoute
+  '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1283,6 +1290,7 @@ export interface FileRoutesByTo {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/leads/$id': typeof AdminLeadsIdRoute
+  '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1446,6 +1454,7 @@ export interface FileRoutesById {
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
   '/admin/leads/$id': typeof AdminLeadsIdRoute
+  '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1610,6 +1619,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/leads/$id'
+    | '/admin/leads/import'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -1770,6 +1780,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/leads/$id'
+    | '/admin/leads/import'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -1932,6 +1943,7 @@ export interface FileRouteTypes {
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
     | '/admin/leads/$id'
+    | '/admin/leads/import'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -3037,6 +3049,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMenuModulesPreviewRouteImport
       parentRoute: typeof AdminMenuModulesRoute
     }
+    '/admin/leads/import': {
+      id: '/admin/leads/import'
+      path: '/leads/import'
+      fullPath: '/admin/leads/import'
+      preLoaderRoute: typeof AdminLeadsImportRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/leads/$id': {
       id: '/admin/leads/$id'
       path: '/leads/$id'
@@ -3351,6 +3370,7 @@ interface AdminRouteChildren {
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
+  AdminLeadsImportRoute: typeof AdminLeadsImportRoute
   AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
@@ -3430,6 +3450,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
+  AdminLeadsImportRoute: AdminLeadsImportRoute,
   AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
