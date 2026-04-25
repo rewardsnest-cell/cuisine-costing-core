@@ -110,7 +110,7 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
         });
 
         if (!sendResult.ok) {
-          // Log the failed attempt for visibility
+          // Log the failed attempt with whatever IDs we managed to capture.
           await (supabase as any).from("sales_contact_log").insert({
             prospect_id: prospect.id,
             channel: "email",
@@ -118,9 +118,14 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
             direction: "outbound",
             subject: body.subject,
             body_html: body.html,
+            body_text: body.text,
             body_preview: body.text.slice(0, 240),
             template_key: body.templateKey,
+            from_email: null,
             to_email: prospect.email,
+            outlook_message_id: sendResult.outlookMessageId ?? null,
+            outlook_conversation_id: sendResult.outlookConversationId ?? null,
+            internet_message_id: sendResult.internetMessageId ?? null,
             notes: sendResult.error ?? `HTTP ${sendResult.status}`,
             contacted_by: userId,
           });
@@ -138,9 +143,14 @@ export const Route = createFileRoute("/api/public/hooks/send-prospect-email")({
           direction: "outbound",
           subject: body.subject,
           body_html: body.html,
+          body_text: body.text,
           body_preview: body.text.slice(0, 240),
           template_key: body.templateKey,
+          from_email: null,
           to_email: prospect.email,
+          outlook_message_id: sendResult.outlookMessageId ?? null,
+          outlook_conversation_id: sendResult.outlookConversationId ?? null,
+          internet_message_id: sendResult.internetMessageId ?? null,
           contacted_by: userId,
           contacted_at: now,
         });
