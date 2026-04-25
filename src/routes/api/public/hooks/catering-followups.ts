@@ -70,22 +70,12 @@ async function enqueueEmail(
     return { ok: false, messageId, error: `Template ${cfg.template} not registered` }
   }
 
-  // Idempotency: don't re-send the same stage to the same lead on the same day.
-  const today = daysAgo(0)
-  const { data: alreadySent } = await supabase
-    .from('lead_emails')
-    .select('id')
-    .eq('lead_id', contact.id)
-    .eq('template_name', cfg.template)
-    .gte('sent_at', `${today}T00:00:00Z`)
-    .limit(1)
-    .maybeSingle()
-
-  if (alreadySent) {
-    return { ok: false, messageId, error: 'already-sent-today' }
-  }
-
-  // Render template (no unsubscribe footer — Outlook is a 1:1 personal mailbox)
+  // Idempotency: race-safe insert-first claim. A partial unique index on
+  // (lead_id, template_name, sent_at::date) where direction='outbound'
+  // guarantees that even if two cron runs fire concurrently, only one will
+  // succeed in creating the log row — the other gets a unique-violation
+  // (Postgres error code 23505) and we skip the send.
+  const sentAt = new Date().toISOString()
   const { render } = await import('@react-email/components')
   const templateData = {
     contactName: contact.name ?? undefined,
@@ -98,7 +88,33 @@ async function enqueueEmail(
     ? template.subject(templateData)
     : template.subject
 
-  // Send via Outlook
+  // Step 1 — claim the daily slot by inserting the log row FIRST.
+  const { data: claimed, error: claimErr } = await supabase
+    .from('lead_emails')
+    .insert({
+      lead_id: contact.id,
+      direction: 'outbound',
+      from_email: 'outlook@self',
+      to_emails: [recipient],
+      subject,
+      body_preview: plainText.slice(0, 250),
+      body_html: html,
+      body_text: plainText,
+      sent_at: sentAt,
+      template_name: cfg.template,
+    })
+    .select('id')
+    .maybeSingle()
+
+  if (claimErr) {
+    if (claimErr.code === '23505') {
+      // Another run already sent this stage today → idempotent skip.
+      return { ok: false, messageId, error: 'already-sent-today' }
+    }
+    return { ok: false, messageId, error: `claim failed: ${claimErr.message}` }
+  }
+
+  // Step 2 — slot claimed; perform the actual send.
   const result = await sendOutlookEmail({
     to: recipient,
     subject,
@@ -106,21 +122,11 @@ async function enqueueEmail(
     text: plainText,
   })
 
-  // Log the outbound email regardless of outcome
-  await supabase.from('lead_emails').insert({
-    lead_id: contact.id,
-    direction: 'outbound',
-    from_email: 'outlook@self', // actual From is the connected mailbox, set by Outlook
-    to_emails: [recipient],
-    subject,
-    body_preview: plainText.slice(0, 250),
-    body_html: html,
-    body_text: plainText,
-    sent_at: new Date().toISOString(),
-    template_name: cfg.template,
-  })
-
   if (!result.ok) {
+    // Roll back the claim so a later run can retry this stage today.
+    if (claimed?.id) {
+      await supabase.from('lead_emails').delete().eq('id', claimed.id)
+    }
     return { ok: false, messageId, error: result.error || `outlook status ${result.status}` }
   }
 
