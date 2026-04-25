@@ -1060,10 +1060,31 @@ function QuoteRow({ q, onChanged }: { q: any; onChanged: () => void }) {
   );
 }
 
-function ShoppingListEditor({ list, items, dishes, onChanged, isApproved }: {
-  list: CqhShoppingList; items: CqhShoppingListItem[]; dishes: CqhDish[]; onChanged: () => void; isApproved: boolean;
+function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved }: {
+  list: CqhShoppingList; items: CqhShoppingListItem[]; dishes: CqhDish[];
+  event?: any; onChanged: () => void; isApproved: boolean;
 }) {
   const total = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
+  const exportPdf = () => {
+    if (items.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      const doc = generateShoppingListPdf(items, {
+        eventName: event?.event_name ?? event?.name ?? null,
+        eventReference: event?.reference_number ?? null,
+        guestCount: event?.guest_count ?? null,
+        revisionNumber: list.revision_number,
+        status: list.status,
+      });
+      const slug = (event?.event_name ?? event?.name ?? "shopping-list")
+        .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      doc.save(`${slug || "shopping-list"}-rev${list.revision_number}.pdf`);
+    } catch (e: any) {
+      toast.error("PDF export failed", { description: e.message });
+    }
+  };
   const confirm = useConfirm();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
