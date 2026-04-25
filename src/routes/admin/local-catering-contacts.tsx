@@ -312,6 +312,13 @@ function LocalCateringContactsPage() {
             <RefreshCw className={cn("h-4 w-4 mr-2", isFetching && "animate-spin")} />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setPreviewLead(null); setPreviewOpen(true); }}
+          >
+            <Eye className="h-4 w-4 mr-2" />Preview templates
+          </Button>
           <Link to="/admin/outreach">
             <Button size="sm"><CalendarPlus className="h-4 w-4 mr-2" />Outreach Queue</Button>
           </Link>
