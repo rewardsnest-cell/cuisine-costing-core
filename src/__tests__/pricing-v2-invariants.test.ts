@@ -41,14 +41,12 @@ describe("Pricing v2 invariants — UI cannot create or seed data", () => {
     });
 
     it(`anon client cannot UPDATE ${table}`, async () => {
-      const { error, count } = await anon
-        .from(table)
-        .update({ updated_at: new Date().toISOString() } as any)
+      const res: any = await (anon.from(table) as any)
+        .update({ updated_at: new Date().toISOString() })
         .neq("created_at", "1900-01-01")
-        .select("*", { count: "exact", head: true });
-      // Anon must not be able to mutate any row.
-      // Acceptable outcomes: error, or count===0 (RLS hid all rows).
-      if (!error) expect(count ?? 0).toBe(0);
+        .select("*", { count: "exact" });
+      // Anon must not mutate any row. Acceptable: error or 0 rows affected.
+      if (!res.error) expect((res.data ?? []).length).toBe(0);
     });
   }
 
