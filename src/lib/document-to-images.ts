@@ -88,6 +88,7 @@ async function textToImageBlobs(text: string, maxPages = 6): Promise<Blob[]> {
 }
 
 async function docxToText(file: File): Promise<string> {
+  // @ts-expect-error - no types for browser bundle
   const mammoth = await import("mammoth/mammoth.browser");
   const arrayBuffer = await file.arrayBuffer();
   const { value } = await (mammoth as any).extractRawText({ arrayBuffer });
