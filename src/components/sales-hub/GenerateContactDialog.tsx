@@ -46,6 +46,10 @@ export function GenerateContactDialog({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
+  const [extraContacts, setExtraContacts] = useState<
+    Array<{ name: string; role: string; email: string; phone: string }>
+  >([]);
   const [aiNotes, setAiNotes] = useState("");
 
   useEffect(() => {
@@ -54,7 +58,9 @@ export function GenerateContactDialog({
     setContactName(prospect.contact_name ?? "");
     setEmail(prospect.email ?? "");
     setPhone(prospect.phone ?? "");
-    setWebsite("");
+    setWebsite(prospect.website ?? "");
+    setAddress(prospect.address ?? "");
+    setExtraContacts([]);
     setAiNotes("");
   }, [open, prospect]);
 
