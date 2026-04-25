@@ -184,62 +184,90 @@ function ProspectsPage() {
       ) : Object.keys(grouped).length === 0 ? (
         <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No prospects yet. Add your first one.</CardContent></Card>
       ) : (
-        Object.entries(grouped).map(([city, list]) => (
-          <Card key={city}>
-            <CardContent className="p-0">
-              <div className="px-4 py-3 border-b flex items-center justify-between">
-                <h3 className="font-display font-semibold">{city}</h3>
-                <Badge variant="secondary">{list.length}</Badge>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Business</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Phone / Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last</TableHead>
-                    <TableHead>Next</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {list.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        <button onClick={() => openEdit(p)} className="font-medium text-left hover:underline">
-                          {p.business_name}
-                        </button>
-                        {p.notes && <p className="text-xs text-muted-foreground line-clamp-1">{p.notes}</p>}
-                      </TableCell>
-                      <TableCell><Badge variant="outline">{p.type}</Badge></TableCell>
-                      <TableCell className="text-sm">{p.contact_name || "—"}</TableCell>
-                      <TableCell className="text-xs">
-                        {p.phone && <div>{p.phone}</div>}
-                        {p.email && <div className="text-muted-foreground">{p.email}</div>}
-                      </TableCell>
-                      <TableCell><Badge>{p.status}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.last_contacted ? new Date(p.last_contacted).toLocaleDateString() : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {p.next_follow_up ? new Date(p.next_follow_up).toLocaleDateString() : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => logContact(p, "call")} title="Log call"><Phone className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => logContact(p, "email")} title="Log email"><MailIcon className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => remove(p.id)} title="Delete"><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ))
+        Object.entries(grouped).map(([city, byType]) => {
+          const cityCount = Object.values(byType).reduce((n, arr) => n + arr.length, 0);
+          // Render type sections in the canonical order, then any extras
+          const orderedTypes = [
+            ...PROSPECT_TYPES.filter((t) => byType[t]?.length),
+            ...Object.keys(byType).filter((t) => !(PROSPECT_TYPES as readonly string[]).includes(t)),
+          ];
+          return (
+            <Card key={city}>
+              <CardContent className="p-0">
+                <div className="px-4 py-3 border-b flex items-center justify-between bg-muted/30">
+                  <h3 className="font-display font-semibold text-lg">{city}</h3>
+                  <Badge variant="secondary">{cityCount}</Badge>
+                </div>
+                {orderedTypes.map((typeKey) => {
+                  const list = byType[typeKey];
+                  return (
+                    <div key={typeKey} className="border-b last:border-b-0">
+                      <div className="px-4 py-2 flex items-center gap-2 bg-muted/10">
+                        <Badge variant="outline">{typeKey}</Badge>
+                        <span className="text-xs text-muted-foreground">{list.length} prospect{list.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Business</TableHead>
+                            <TableHead>Contact</TableHead>
+                            <TableHead>Phone / Email</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Last</TableHead>
+                            <TableHead>Next follow-up</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {list.map((p: Prospect) => (
+                            <TableRow key={p.id}>
+                              <TableCell>
+                                <button onClick={() => openEdit(p)} className="font-medium text-left hover:underline">
+                                  {p.business_name}
+                                </button>
+                                {p.notes && <p className="text-xs text-muted-foreground line-clamp-1">{p.notes}</p>}
+                              </TableCell>
+                              <TableCell className="text-sm">{p.contact_name || "—"}</TableCell>
+                              <TableCell className="text-xs">
+                                {p.phone && <div>{p.phone}</div>}
+                                {p.email && <div className="text-muted-foreground">{p.email}</div>}
+                              </TableCell>
+                              <TableCell><Badge>{p.status}</Badge></TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {p.last_contacted ? new Date(p.last_contacted).toLocaleDateString() : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-muted-foreground w-24">
+                                    {p.next_follow_up ? new Date(p.next_follow_up).toLocaleDateString() : "—"}
+                                  </span>
+                                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setFollowUp(p, 1)} title="Follow up tomorrow">+1d</Button>
+                                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setFollowUp(p, 5)} title="Follow up in 5 days">+5d</Button>
+                                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setFollowUp(p, 14)} title="Follow up in 14 days">+14d</Button>
+                                  {p.next_follow_up && (
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setFollowUp(p, null)} title="Clear follow-up"><X className="w-3 h-3" /></Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button size="sm" variant="ghost" onClick={() => logContact(p, "call")} title="Log call"><Phone className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => logContact(p, "email")} title="Log email"><MailIcon className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => openEdit(p)} title="Schedule / edit"><CalendarClock className="w-4 h-4" /></Button>
+                                  <Button size="sm" variant="ghost" onClick={() => remove(p.id)} title="Delete"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          );
+        })
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
