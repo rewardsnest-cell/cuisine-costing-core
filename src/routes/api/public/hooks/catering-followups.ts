@@ -17,18 +17,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as React from 'react'
 import type { Database } from '@/integrations/supabase/types'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { sendOutlookEmail } from '@/lib/outlook/send'
 
 type DB = SupabaseClient<Database>
-
-const SITE_NAME = 'VPS Finest'
-const SENDER_DOMAIN = 'notify.vpfinest.com'
-const FROM_DOMAIN = 'notify.vpfinest.com'
-
-function generateToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 function daysAgo(n: number): string {
   const d = new Date()
@@ -79,48 +70,22 @@ async function enqueueEmail(
     return { ok: false, messageId, error: `Template ${cfg.template} not registered` }
   }
 
-  // Suppression check
-  const { data: suppressed } = await supabase
-    .from('suppressed_emails')
+  // Idempotency: don't re-send the same stage to the same lead on the same day.
+  const today = daysAgo(0)
+  const { data: alreadySent } = await supabase
+    .from('lead_emails')
     .select('id')
-    .eq('email', recipient.toLowerCase())
+    .eq('lead_id', contact.id)
+    .eq('template_name', cfg.template)
+    .gte('sent_at', `${today}T00:00:00Z`)
+    .limit(1)
     .maybeSingle()
 
-  if (suppressed) {
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: cfg.template,
-      recipient_email: recipient,
-      status: 'suppressed',
-    })
-    return { ok: false, messageId, error: 'suppressed' }
+  if (alreadySent) {
+    return { ok: false, messageId, error: 'already-sent-today' }
   }
 
-  // Unsubscribe token
-  const normalized = recipient.toLowerCase()
-  let unsubscribeToken: string
-  const { data: existingToken } = await supabase
-    .from('email_unsubscribe_tokens')
-    .select('token, used_at')
-    .eq('email', normalized)
-    .maybeSingle()
-
-  if (existingToken && !(existingToken as any).used_at) {
-    unsubscribeToken = (existingToken as any).token
-  } else {
-    unsubscribeToken = generateToken()
-    await supabase
-      .from('email_unsubscribe_tokens')
-      .upsert({ token: unsubscribeToken, email: normalized }, { onConflict: 'email', ignoreDuplicates: true })
-    const { data: stored } = await supabase
-      .from('email_unsubscribe_tokens')
-      .select('token')
-      .eq('email', normalized)
-      .maybeSingle()
-    if (stored) unsubscribeToken = (stored as any).token
-  }
-
-  // Render
+  // Render template (no unsubscribe footer — Outlook is a 1:1 personal mailbox)
   const { render } = await import('@react-email/components')
   const templateData = {
     contactName: contact.name ?? undefined,
@@ -133,40 +98,30 @@ async function enqueueEmail(
     ? template.subject(templateData)
     : template.subject
 
-  await supabase.from('email_send_log').insert({
-    message_id: messageId,
+  // Send via Outlook
+  const result = await sendOutlookEmail({
+    to: recipient,
+    subject,
+    html,
+    text: plainText,
+  })
+
+  // Log the outbound email regardless of outcome
+  await supabase.from('lead_emails').insert({
+    lead_id: contact.id,
+    direction: 'outbound',
+    from_email: 'outlook@self', // actual From is the connected mailbox, set by Outlook
+    to_emails: [recipient],
+    subject,
+    body_preview: plainText.slice(0, 250),
+    body_html: html,
+    body_text: plainText,
+    sent_at: new Date().toISOString(),
     template_name: cfg.template,
-    recipient_email: recipient,
-    status: 'pending',
   })
 
-  const { error: enqueueError } = await supabase.rpc('enqueue_email', {
-    queue_name: 'transactional_emails',
-    payload: {
-      message_id: messageId,
-      to: recipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
-      subject,
-      html,
-      text: plainText,
-      purpose: 'transactional',
-      label: cfg.template,
-      idempotency_key: `lcc-${stage}-${contact.id}-${daysAgo(0)}`,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  })
-
-  if (enqueueError) {
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: cfg.template,
-      recipient_email: recipient,
-      status: 'failed',
-      error_message: enqueueError.message,
-    })
-    return { ok: false, messageId, error: enqueueError.message }
+  if (!result.ok) {
+    return { ok: false, messageId, error: result.error || `outlook status ${result.status}` }
   }
 
   return { ok: true, messageId }

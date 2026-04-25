@@ -153,6 +153,7 @@ import { Route as AdminQuotesIdRouteImport } from './routes/admin/quotes.$id'
 import { Route as AdminPricingNationalRouteImport } from './routes/admin/pricing.national'
 import { Route as AdminPricingLabPreviewRouteImport } from './routes/admin/pricing-lab.preview'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
+import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
 import { Route as AdminIngredientsReviewUnlinkedRouteImport } from './routes/admin/ingredients.review-unlinked'
 import { Route as AdminGuidesNewRouteImport } from './routes/admin/guides.new'
 import { Route as AdminGuidesIdRouteImport } from './routes/admin/guides.$id'
@@ -164,6 +165,7 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
+import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
 import { Route as ApiPublicHooksCateringFollowupsRouteImport } from './routes/api/public/hooks/catering-followups'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
@@ -902,6 +904,11 @@ const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   path: '/preview',
   getParentRoute: () => AdminMenuModulesRoute,
 } as any)
+const AdminLeadsIdRoute = AdminLeadsIdRouteImport.update({
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIngredientsReviewUnlinkedRoute =
   AdminIngredientsReviewUnlinkedRouteImport.update({
     id: '/ingredients/review-unlinked',
@@ -960,6 +967,12 @@ const ApiPublicHooksProspectFollowupsRoute =
   ApiPublicHooksProspectFollowupsRouteImport.update({
     id: '/api/public/hooks/prospect-followups',
     path: '/api/public/hooks/prospect-followups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksOutlookPollInboxRoute =
+  ApiPublicHooksOutlookPollInboxRouteImport.update({
+    id: '/api/public/hooks/outlook-poll-inbox',
+    path: '/api/public/hooks/outlook-poll-inbox',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksKrogerDailyIngestRoute =
@@ -1109,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1132,6 +1146,7 @@ export interface FileRoutesByFullPath {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1267,6 +1282,7 @@ export interface FileRoutesByTo {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1290,6 +1306,7 @@ export interface FileRoutesByTo {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1428,6 +1445,7 @@ export interface FileRoutesById {
   '/admin/guides/$id': typeof AdminGuidesIdRoute
   '/admin/guides/new': typeof AdminGuidesNewRoute
   '/admin/ingredients/review-unlinked': typeof AdminIngredientsReviewUnlinkedRoute
+  '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
   '/admin/pricing-lab/preview': typeof AdminPricingLabPreviewRoute
   '/admin/pricing/national': typeof AdminPricingNationalRoute
@@ -1451,6 +1469,7 @@ export interface FileRoutesById {
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
+  '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -1590,6 +1609,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/leads/$id'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -1613,6 +1633,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
@@ -1748,6 +1769,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/leads/$id'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -1771,6 +1793,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
@@ -1908,6 +1931,7 @@ export interface FileRouteTypes {
     | '/admin/guides/$id'
     | '/admin/guides/new'
     | '/admin/ingredients/review-unlinked'
+    | '/admin/leads/$id'
     | '/admin/menu-modules/preview'
     | '/admin/pricing-lab/preview'
     | '/admin/pricing/national'
@@ -1931,6 +1955,7 @@ export interface FileRouteTypes {
     | '/admin/recipes/$id/edit'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
+    | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/prospect-followups'
     | '/api/recipes/$id/printable'
     | '/lovable/email/auth/preview'
@@ -1992,6 +2017,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksCateringFollowupsRoute: typeof ApiPublicHooksCateringFollowupsRoute
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
+  ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -3011,6 +3037,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMenuModulesPreviewRouteImport
       parentRoute: typeof AdminMenuModulesRoute
     }
+    '/admin/leads/$id': {
+      id: '/admin/leads/$id'
+      path: '/leads/$id'
+      fullPath: '/admin/leads/$id'
+      preLoaderRoute: typeof AdminLeadsIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/ingredients/review-unlinked': {
       id: '/admin/ingredients/review-unlinked'
       path: '/ingredients/review-unlinked'
@@ -3086,6 +3119,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/prospect-followups'
       fullPath: '/api/public/hooks/prospect-followups'
       preLoaderRoute: typeof ApiPublicHooksProspectFollowupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/outlook-poll-inbox': {
+      id: '/api/public/hooks/outlook-poll-inbox'
+      path: '/api/public/hooks/outlook-poll-inbox'
+      fullPath: '/api/public/hooks/outlook-poll-inbox'
+      preLoaderRoute: typeof ApiPublicHooksOutlookPollInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/kroger-daily-ingest': {
@@ -3310,6 +3350,7 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCompetitorQuotesIdRoute: typeof AdminCompetitorQuotesIdRoute
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
+  AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminPricingNationalRoute: typeof AdminPricingNationalRoute
   AdminSaleFlyersIdRoute: typeof AdminSaleFlyersIdRoute
   AdminCompetitorQuotesIndexRoute: typeof AdminCompetitorQuotesIndexRoute
@@ -3388,6 +3429,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminCompetitorQuotesIdRoute: AdminCompetitorQuotesIdRoute,
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
+  AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminPricingNationalRoute: AdminPricingNationalRoute,
   AdminSaleFlyersIdRoute: AdminSaleFlyersIdRoute,
   AdminCompetitorQuotesIndexRoute: AdminCompetitorQuotesIndexRoute,
@@ -3489,6 +3531,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksCateringFollowupsRoute: ApiPublicHooksCateringFollowupsRoute,
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
+  ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
