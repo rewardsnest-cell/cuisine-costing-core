@@ -189,10 +189,15 @@ function collectServerFns(): string {
 }
 
 function collectRoutes(): string {
-  const routeGlob = (import.meta as any).glob?.("/src/routes/**/*.tsx", {
-    eager: false,
-  }) as Record<string, unknown> | undefined;
-  const files = routeGlob ? Object.keys(routeGlob).sort() : [];
+  let files: string[] = [];
+  try {
+    const routeGlob = import.meta.glob("/src/routes/**/*.tsx", {
+      eager: false,
+    }) as Record<string, unknown>;
+    files = Object.keys(routeGlob).sort();
+  } catch {
+    files = [];
+  }
   if (files.length === 0) return "(route inventory unavailable in this runtime)";
   const buckets: Record<string, string[]> = { admin: [], employee: [], public: [] };
   for (const f of files) {
