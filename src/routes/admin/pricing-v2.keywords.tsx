@@ -906,12 +906,23 @@ function SchedulesSection({
                 </div>
               </div>
             )}
+            {(validationErrors.until || validationErrors.runs || validationErrors.continuousInterval || validationErrors.emptyRuns) && (
+              <p className="text-xs text-destructive">
+                {validationErrors.until || validationErrors.runs || validationErrors.continuousInterval || validationErrors.emptyRuns}
+              </p>
+            )}
           </div>
+
+          {(validationErrors.name || validationErrors.cadence || validationErrors.keywords) && (
+            <p className="text-xs text-destructive">
+              {validationErrors.name || validationErrors.cadence || validationErrors.keywords}
+            </p>
+          )}
 
           <div className="flex justify-end">
             <Button
               size="sm"
-              onClick={() => saveMut.mutate()}
+              onClick={handleSaveClick}
               disabled={!canSave}
             >
               {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
