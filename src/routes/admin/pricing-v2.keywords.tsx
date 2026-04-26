@@ -605,12 +605,14 @@ function SchedulesSection({
     : editingId
     ? editKeywordIds.length
     : currentSelection.length;
+  const isContinuousMode = limitMode === "continuous";
   const canSave =
     !!name.trim() &&
     !saveMut.isPending &&
-    (useAllKeywords || effectiveKeywordCount > 0) &&
+    (useAllKeywords || isContinuousMode || effectiveKeywordCount > 0) &&
     (limitMode !== "until" || !!untilDate) &&
-    (limitMode !== "runs" || maxRuns > 0);
+    (limitMode !== "runs" || maxRuns > 0) &&
+    (limitMode !== "continuous" || (continuousIntervalSec >= 10 && emptyRunsThreshold >= 1));
 
   return (
     <Card>
@@ -737,7 +739,55 @@ function SchedulesSection({
                   onChange={(e) => setMaxRuns(Math.max(1, Number(e.target.value) || 1))}
                 />
               )}
+              <label className="inline-flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="limit-mode"
+                  checked={limitMode === "continuous"}
+                  onChange={() => setLimitMode("continuous")}
+                />
+                Continuous (until catalog complete)
+              </label>
             </div>
+            {isContinuousMode && (
+              <div className="rounded-md border border-dashed bg-background p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Runs back-to-back across <strong>all enabled keywords</strong>. After each run finishes,
+                  the next one starts ~{continuousIntervalSec}s later. When {emptyRunsThreshold} consecutive
+                  runs add no new items to the catalog, the schedule auto-disables.
+                </p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Gap between runs (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={10}
+                      max={3600}
+                      className="w-28"
+                      value={continuousIntervalSec}
+                      onChange={(e) =>
+                        setContinuousIntervalSec(
+                          Math.max(10, Math.min(3600, Number(e.target.value) || 60))
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Stop after N empty runs</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      className="w-24"
+                      value={emptyRunsThreshold}
+                      onChange={(e) =>
+                        setEmptyRunsThreshold(Math.max(1, Math.min(50, Number(e.target.value) || 2)))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end">
