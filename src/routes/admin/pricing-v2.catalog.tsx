@@ -783,6 +783,9 @@ function CatalogBootstrapPage() {
         </CardContent>
       </Card>
 
+      {/* Products list with per-row Fix Weight */}
+      <ProductsCard onChanged={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
+
       {/* Fix weight + Trace */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FixWeightCard onSaved={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
