@@ -16,6 +16,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { fetchProductsByIds, searchProducts, type KrogerProduct } from "@/lib/server/pricing-v2/kroger";
 import { parseWeightToGrams } from "@/lib/server/pricing-v2/weight-parser";
+import { normalizeWeightInput, compareWithSizeRaw } from "@/lib/server/pricing-v2/normalize-weight-input";
 import {
   dispatchStuckRecoveryAlerts,
   loadAlertConfig,
