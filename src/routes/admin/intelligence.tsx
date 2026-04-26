@@ -20,6 +20,7 @@ import {
   createDecisionLog,
 } from "@/lib/server-fns/governance.functions";
 import { downloadFile } from "@/lib/admin/project-audit";
+import { logAndDownload } from "@/lib/admin/log-download";
 import { LoadingState } from "@/components/LoadingState";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -78,8 +79,15 @@ function ExportTab() {
 
   const mut = useMutation({
     mutationFn: async () => generate(),
-    onSuccess: (res) => {
-      downloadFile(res.content, res.filename, "text/markdown");
+    onSuccess: async (res) => {
+      await logAndDownload({
+        content: res.content,
+        filename: res.filename,
+        mimeType: "text/markdown",
+        kind: "admin_export",
+        module: "intelligence",
+        parameters: { type: "project_state_export" },
+      });
       toast.success("Export generated and downloaded");
       qc.invalidateQueries({ queryKey: ["audit-exports"] });
     },
@@ -192,8 +200,16 @@ function ImpactTab() {
   const mut = useMutation({
     mutationFn: async () =>
       run({ data: { audit_export_id: selectedExport, change_description: description } }),
-    onSuccess: (res) => {
-      downloadFile(res.content, res.filename, "text/markdown");
+    onSuccess: async (res) => {
+      await logAndDownload({
+        content: res.content,
+        filename: res.filename,
+        mimeType: "text/markdown",
+        kind: "admin_export",
+        module: "intelligence",
+        parameters: { type: "change_impact_analysis", audit_export_id: selectedExport, change_description: description },
+        sourceId: selectedExport || null,
+      });
       toast.success("Analysis saved and downloaded");
       setDescription("");
       qc.invalidateQueries({ queryKey: ["impact-analyses"] });
