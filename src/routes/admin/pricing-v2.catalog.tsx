@@ -44,7 +44,24 @@ import {
   getAlertConfig,
   saveAlertConfig,
   testAlertConfig,
+  listCatalogProducts,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
   head: () => ({ meta: [{ title: "Pricing v2 — Stage 0 Catalog Bootstrap" }] }),
@@ -766,6 +783,9 @@ function CatalogBootstrapPage() {
         </CardContent>
       </Card>
 
+      {/* Products list with per-row Fix Weight */}
+      <ProductsCard onChanged={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
+
       {/* Fix weight + Trace */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FixWeightCard onSaved={() => qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] })} />
@@ -1047,5 +1067,246 @@ function AlertConfigForm({ initial, onSave, saving, onTest, testing }: { initial
         Test sends a synthetic alert through all currently-saved enabled channels (banner + email + webhook). Save first if you've changed anything.
       </p>
     </div>
+  );
+}
+
+// ---- Products list with per-row Fix Weight -------------------------------
+
+function ProductsCard({ onChanged }: { onChanged: () => void }) {
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [page, setPage] = useState(0);
+  const [editing, setEditing] = useState<any | null>(null);
+  const limit = 50;
+
+  const products = useQuery({
+    queryKey: ["pricing-v2", "catalog", "products", { search, sourceFilter, onlyMissing, page }],
+    queryFn: () =>
+      listCatalogProducts({
+        data: {
+          search: search || undefined,
+          weight_source: sourceFilter === "all" ? undefined : sourceFilter,
+          only_missing_weight: onlyMissing || undefined,
+          limit,
+          offset: page * limit,
+        },
+      }),
+  });
+
+  const total = products.data?.total ?? 0;
+  const rows = products.data?.products ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span>Products ({total.toLocaleString()})</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search name, brand, UPC…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setSearch(searchInput);
+                  setPage(0);
+                }
+              }}
+              className="w-56 text-xs"
+            />
+            <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(0); }}>
+              <SelectTrigger className="w-40 text-xs"><SelectValue placeholder="weight_source" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="parsed">parsed</SelectItem>
+                <SelectItem value="manual_override">manual_override</SelectItem>
+                <SelectItem value="unparsed">unparsed</SelectItem>
+                <SelectItem value="unknown">unknown</SelectItem>
+                <SelectItem value="label">label</SelectItem>
+                <SelectItem value="vendor">vendor</SelectItem>
+                <SelectItem value="estimated">estimated</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className="flex items-center gap-2 text-xs">
+              <Switch checked={onlyMissing} onCheckedChange={(v) => { setOnlyMissing(!!v); setPage(0); }} />
+              Missing weight only
+            </label>
+            <Button size="sm" variant="ghost" onClick={() => products.refetch()}>Refresh</Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {products.isLoading ? (
+          <p className="text-sm">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No products match the current filter.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-muted-foreground">
+                <tr>
+                  <th className="py-1 pr-2">name</th>
+                  <th className="py-1 pr-2">brand</th>
+                  <th className="py-1 pr-2">upc</th>
+                  <th className="py-1 pr-2">size_raw</th>
+                  <th className="py-1 pr-2">net_g</th>
+                  <th className="py-1 pr-2">source</th>
+                  <th className="py-1 pr-2 text-right">action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p: any) => (
+                  <tr key={p.product_key} className="border-t align-top">
+                    <td className="py-1 pr-2 max-w-[28ch]">{p.name ?? "—"}</td>
+                    <td className="py-1 pr-2 max-w-[16ch]">{p.brand ?? "—"}</td>
+                    <td className="py-1 pr-2 font-mono">{p.upc ?? "—"}</td>
+                    <td className="py-1 pr-2">{p.size_raw ?? "—"}</td>
+                    <td className="py-1 pr-2 font-mono">
+                      {p.net_weight_grams != null ? Math.round(Number(p.net_weight_grams)) : "—"}
+                    </td>
+                    <td className="py-1 pr-2">
+                      <Badge variant={p.weight_source === "manual_override" ? "default" : "secondary"}>
+                        {p.weight_source ?? "—"}
+                      </Badge>
+                    </td>
+                    <td className="py-1 pr-2 text-right">
+                      <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
+                        <Wrench className="w-3 h-3 mr-1" /> Fix Weight
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-3 flex items-center justify-between text-xs">
+          <div className="text-muted-foreground">
+            Showing {rows.length === 0 ? 0 : page * limit + 1}–{page * limit + rows.length} of {total.toLocaleString()}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
+            <Button size="sm" variant="outline" disabled={(page + 1) * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</Button>
+          </div>
+        </div>
+      </CardContent>
+
+      <FixWeightDialog
+        product={editing}
+        open={!!editing}
+        onOpenChange={(o) => { if (!o) setEditing(null); }}
+        onSaved={() => { setEditing(null); products.refetch(); onChanged(); }}
+      />
+    </Card>
+  );
+}
+
+function FixWeightDialog({
+  product,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  product: any | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [grams, setGrams] = useState("");
+  const [reason, setReason] = useState("");
+  const [source, setSource] = useState<string>("manual_override");
+
+  // Reset fields whenever a new product is opened
+  useMemo(() => {
+    if (product) {
+      setGrams(product.net_weight_grams != null ? String(Math.round(Number(product.net_weight_grams))) : "");
+      setReason(product.manual_override_reason ?? "");
+      setSource(product.weight_source ?? "manual_override");
+    }
+  }, [product?.product_key]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      setManualWeight({
+        data: {
+          product_key: product.product_key,
+          grams: Number(grams),
+          reason,
+          weight_source: source as any,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Weight saved");
+      onSaved();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Fix Weight</DialogTitle>
+          <DialogDescription>
+            Manually set <span className="font-mono">net_weight_grams</span> and{" "}
+            <span className="font-mono">weight_source</span> for this product. A reason is required for the audit trail.
+          </DialogDescription>
+        </DialogHeader>
+        {product && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border p-2 text-xs">
+              <div className="font-medium">{product.name ?? "—"} <span className="text-muted-foreground">({product.brand ?? "—"})</span></div>
+              <div className="font-mono text-muted-foreground break-all">{product.product_key}</div>
+              <div className="mt-1 grid grid-cols-2 gap-1 text-muted-foreground">
+                <div>upc: <span className="font-mono">{product.upc ?? "—"}</span></div>
+                <div>size_raw: {product.size_raw ?? "—"}</div>
+              </div>
+            </div>
+            <div>
+              <Label>Net weight (grams)</Label>
+              <Input
+                value={grams}
+                onChange={(e) => setGrams(e.target.value.replace(/[^\d.]/g, ""))}
+                inputMode="decimal"
+                placeholder="e.g. 454"
+              />
+            </div>
+            <div>
+              <Label>Weight source</Label>
+              <Select value={source} onValueChange={setSource}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual_override">manual_override</SelectItem>
+                  <SelectItem value="label">label</SelectItem>
+                  <SelectItem value="vendor">vendor</SelectItem>
+                  <SelectItem value="estimated">estimated</SelectItem>
+                  <SelectItem value="parsed">parsed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Reason</Label>
+              <Textarea
+                rows={3}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why this override (e.g. weighed package on scale, vendor spec sheet, etc.)"
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => save.mutate()}
+            disabled={!product || !grams || !reason || save.isPending}
+          >
+            {save.isPending ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

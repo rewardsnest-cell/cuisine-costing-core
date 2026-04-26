@@ -1142,6 +1142,9 @@ export const setManualWeight = createServerFn({ method: "POST" })
         product_key: z.string().min(1).max(200),
         grams: z.number().positive().max(1_000_000),
         reason: z.string().min(1).max(500),
+        weight_source: z
+          .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
+          .default("manual_override"),
       })
       .parse(input)
   )
@@ -1153,11 +1156,49 @@ export const setManualWeight = createServerFn({ method: "POST" })
         manual_net_weight_grams: data.grams,
         manual_override_reason: data.reason,
         net_weight_grams: data.grams,
-        weight_source: "manual_override",
+        weight_source: data.weight_source,
       })
       .eq("product_key", data.product_key);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+// ---- List catalog products (for per-row Fix Weight UI) -------------------
+
+export const listCatalogProducts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        search: z.string().max(200).optional(),
+        weight_source: z.string().max(50).optional(),
+        only_missing_weight: z.boolean().optional(),
+        limit: z.number().int().min(1).max(500).default(100),
+        offset: z.number().int().min(0).default(0),
+      })
+      .parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let q = supabase
+      .from("pricing_v2_item_catalog")
+      .select(
+        "product_key, store_id, kroger_product_id, upc, name, brand, size_raw, net_weight_grams, weight_source, manual_net_weight_grams, manual_override_reason, updated_at",
+        { count: "exact" }
+      )
+      .order("updated_at", { ascending: false })
+      .range(data.offset, data.offset + data.limit - 1);
+    if (data.search && data.search.trim()) {
+      const s = data.search.trim().replace(/[%_]/g, "");
+      q = q.or(
+        `name.ilike.%${s}%,brand.ilike.%${s}%,upc.ilike.%${s}%,kroger_product_id.ilike.%${s}%,product_key.ilike.%${s}%`
+      );
+    }
+    if (data.weight_source) q = q.eq("weight_source", data.weight_source);
+    if (data.only_missing_weight) q = q.is("net_weight_grams", null);
+    const { data: rows, error, count } = await q;
+    if (error) throw new Error(error.message);
+    return { products: rows ?? [], total: count ?? 0 };
   });
 
 // ---- Re-parse a single item (uses latest stored payload) ------------------
