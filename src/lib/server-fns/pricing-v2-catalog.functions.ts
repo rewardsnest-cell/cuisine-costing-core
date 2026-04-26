@@ -178,7 +178,7 @@ type ErrorRow = {
 type BootstrapInput = z.infer<typeof bootstrapSchema>;
 type ExecOpts = { triggered_by?: string; replay_of?: string | null };
 
-async function executeCatalogBootstrap(
+export async function executeCatalogBootstrap(
   supabase: any,
   userId: string | null,
   data: BootstrapInput,
