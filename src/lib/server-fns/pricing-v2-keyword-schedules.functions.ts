@@ -128,6 +128,30 @@ export const upsertKeywordSchedule = createServerFn({ method: "POST" })
     }
   });
 
+// Manual "Run now" — bumps next_run_at to now and re-enables, so the next cron
+// tick (within ~1 minute) will execute this schedule immediately.
+export const runKeywordScheduleNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { data: row, error } = await supabase
+      .from("pricing_v2_keyword_schedules")
+      .update({
+        next_run_at: new Date().toISOString(),
+        enabled: true,
+        // Re-arm continuous auto-stop counter so a manual kick can resume.
+        consecutive_empty_runs: 0,
+      })
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return { row: row as ScheduleRow };
+  });
+
 export const deleteKeywordSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
