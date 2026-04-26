@@ -327,7 +327,7 @@ async function collectItemCatalogQuality() {
     .from("pricing_v2_item_catalog" as any)
     .select("store_id, weight_source, net_weight_grams");
   if (error) return `(item_catalog unavailable: ${error.message})`;
-  const rows = (data ?? []) as Array<{ store_id: string; weight_source: string | null; net_weight_grams: number | null }>;
+  const rows = ((data ?? []) as unknown) as Array<{ store_id: string; weight_source: string | null; net_weight_grams: number | null }>;
   const total = rows.length;
   const realRows = rows.filter((r) => r.store_id !== "TEST");
   const withWeight = rows.filter((r) => r.net_weight_grams != null).length;
@@ -352,7 +352,7 @@ async function collectErrorBreakdown() {
     .order("created_at", { ascending: false } as any)
     .limit(500);
   if (error) return `(errors unavailable: ${error.message})`;
-  const rows = (data ?? []) as Array<{ stage: string; type: string; severity: string; message: string }>;
+  const rows = ((data ?? []) as unknown) as Array<{ stage: string; type: string; severity: string; message: string }>;
   if (!rows.length) return "(no errors in the last 7 days)";
   const groups = new Map<string, { count: number; sample: string }>();
   for (const r of rows) {
