@@ -727,13 +727,43 @@ function SchedulesSection({
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  const handleStart = (s: ScheduleRow) => {
+    // Capture the baseline last_run_at NOW so the watcher can detect when the
+    // server records a fresh completion.
+    setRunStatusMap((prev) => ({
+      ...prev,
+      [s.id]: {
+        startedAt: Date.now(),
+        baselineLastRunAt: s.last_run_at ?? null,
+        phase: "queued",
+      },
+    }));
+    runNowMut.mutate(s.id);
+  };
+
   const runNowMut = useMutation({
     mutationFn: (id: string) => runKeywordScheduleNow({ data: { id } }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       toast.success("Queued — will run on the next cron tick (within ~1 min)");
       qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+      // Confirm queued (already set optimistically by handleStart).
+      setRunStatusMap((prev) =>
+        prev[id]?.phase === "queued" ? prev : { ...prev, [id]: { ...(prev[id] ?? { startedAt: Date.now(), baselineLastRunAt: null, phase: "queued" }) } },
+      );
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to start schedule"),
+    onError: (e: any, id) => {
+      toast.error(e?.message ?? "Failed to start schedule");
+      setRunStatusMap((prev) => ({
+        ...prev,
+        [id]: {
+          startedAt: prev[id]?.startedAt ?? Date.now(),
+          baselineLastRunAt: prev[id]?.baselineLastRunAt ?? null,
+          phase: "failed",
+          endedAt: Date.now(),
+          error: e?.message ?? "Failed to start",
+        },
+      }));
+    },
   });
 
   const list = schedules.data?.rows ?? [];
