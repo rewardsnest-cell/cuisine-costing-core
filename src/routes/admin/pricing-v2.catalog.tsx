@@ -1082,6 +1082,8 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<any | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
   const limit = 50;
 
   const products = useQuery({
