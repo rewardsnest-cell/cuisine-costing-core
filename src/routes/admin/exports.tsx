@@ -998,11 +998,16 @@ function PricingAuditCard() {
           </Button>
           <Button
             onClick={download}
-            disabled={!auditText}
+            disabled={!auditText || downloading}
             variant="outline"
             className="gap-2"
           >
-            <Download className="w-4 h-4" /> Download .md
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {downloading ? "Preparing download…" : "Download .md"}
           </Button>
           {auditText && (
             <Badge variant="secondary" className="font-mono text-[10px]">
