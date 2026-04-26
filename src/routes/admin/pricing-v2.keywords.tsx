@@ -1079,6 +1079,7 @@ function SchedulesSection({
               const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
               const isEditing = editingId === s.id;
               const isStarting = runNowMut.isPending && runNowMut.variables === s.id;
+              const runStatus = runStatusMap[s.id];
               return (
                 <div
                   key={s.id}
