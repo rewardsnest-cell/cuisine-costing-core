@@ -173,3 +173,59 @@ export const markKeywordsRun = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Read-only sweep metrics for the keywords page mini panel.
+export const getKeywordSweepMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const now = Date.now();
+    const since15m = new Date(now - 15 * 60 * 1000).toISOString();
+    const since1h = new Date(now - 60 * 60 * 1000).toISOString();
+
+    const [r15, r1h, lastRow, kwLib] = await Promise.all([
+      supabase
+        .from("pricing_v2_kroger_catalog_raw")
+        .select("id", { count: "exact", head: true })
+        .gte("fetched_at", since15m),
+      supabase
+        .from("pricing_v2_kroger_catalog_raw")
+        .select("id", { count: "exact", head: true })
+        .gte("fetched_at", since1h),
+      supabase
+        .from("pricing_v2_kroger_catalog_raw")
+        .select("fetched_at")
+        .order("fetched_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("pricing_v2_keyword_library")
+        .select("last_run_at"),
+    ]);
+
+    if (r15.error) throw new Error(r15.error.message);
+    if (r1h.error) throw new Error(r1h.error.message);
+
+    // "keywords processed since last run" — count keywords whose last_run_at
+    // matches the most recent sweep timestamp (within a 10-minute window of the
+    // max last_run_at, since a sweep stamps all its keywords near-simultaneously).
+    const libRows = (kwLib.data ?? []) as { last_run_at: string | null }[];
+    const stamps = libRows
+      .map((r) => r.last_run_at)
+      .filter((t): t is string => !!t)
+      .map((t) => new Date(t).getTime())
+      .sort((a, b) => b - a);
+    const lastSweepAt = stamps[0] ?? null;
+    const windowMs = 10 * 60 * 1000;
+    const keywordsProcessedSinceLastRun = lastSweepAt
+      ? stamps.filter((t) => lastSweepAt - t <= windowMs).length
+      : 0;
+
+    return {
+      rows_last_15m: r15.count ?? 0,
+      rows_last_1h: r1h.count ?? 0,
+      last_raw_fetched_at: (lastRow.data as any)?.fetched_at ?? null,
+      last_sweep_at: lastSweepAt ? new Date(lastSweepAt).toISOString() : null,
+      keywords_processed_since_last_run: keywordsProcessedSinceLastRun,
+    };
+  });
