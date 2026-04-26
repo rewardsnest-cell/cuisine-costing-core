@@ -511,9 +511,26 @@ async function executeCatalogBootstrap(
           const chunk = errors.slice(i, i + 500);
           await supabase.from("pricing_v2_errors").insert(chunk);
         }
+
+      // 3b) Persist keyword→product attribution (sweep runs only, non-dry).
+      if (isKeywordSweep && !data.dry_run && keywordHits.length) {
+        // De-dupe (keyword, product_key) tuples in-memory to keep insert small.
+        const seenTuple = new Set<string>();
+        const rows = keywordHits.filter((h) => {
+          const k = `${h.keyword}::${h.product_key}`;
+          if (seenTuple.has(k)) return false;
+          seenTuple.add(k);
+          return true;
+        }).map((h) => ({ run_id: runId, keyword: h.keyword, product_key: h.product_key }));
+        for (let i = 0; i < rows.length; i += 500) {
+          const chunk = rows.slice(i, i + 500);
+          // Ignore duplicate-key conflicts (unique on run_id, keyword, product_key).
+          await supabase
+            .from("pricing_v2_catalog_keyword_hits")
+            .upsert(chunk, { onConflict: "run_id,keyword,product_key", ignoreDuplicates: true });
+        }
       }
 
-      // 4) Advance bootstrap_state cursor + counters; finalize when done.
       let bootstrapCompleted = false;
       if (!data.dry_run) {
         // Cursor advances even if some products weren't returned by Kroger,
