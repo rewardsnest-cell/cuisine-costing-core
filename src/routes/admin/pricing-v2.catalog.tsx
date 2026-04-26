@@ -299,7 +299,13 @@ function CatalogBootstrapPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Stuck-run alert config</CardTitle></CardHeader>
           <CardContent>
-            <AlertConfigForm initial={alertConfig.data} onSave={(v) => saveAlertCfgMut.mutate(v)} saving={saveAlertCfgMut.isPending} />
+            <AlertConfigForm
+              initial={alertConfig.data}
+              onSave={(v) => saveAlertCfgMut.mutate(v)}
+              saving={saveAlertCfgMut.isPending}
+              onTest={() => testAlertMut.mutate()}
+              testing={testAlertMut.isPending}
+            />
           </CardContent>
         </Card>
       )}
