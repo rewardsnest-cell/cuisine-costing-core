@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw, ExternalLink, Link2, Check, LayoutGrid, Table as TableIcon, Database, ArrowUpDown } from "lucide-react";
+import { Search, ChefHat, ImageOff, Sparkles, Loader2, RefreshCw, ExternalLink, Link2, Check, LayoutGrid, Table as TableIcon, Database, ArrowUpDown, Info } from "lucide-react";
+import { ExplainPriceDrawer } from "@/components/admin/ExplainPriceDrawer";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useServerFn } from "@tanstack/react-start";
@@ -62,6 +63,7 @@ function AdminMenuPage() {
   });
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [explain, setExplain] = useState<{ id: string; name: string } | null>(null);
   const [view, setView] = useState<"cards" | "table">("cards");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -372,6 +374,9 @@ function AdminMenuPage() {
                             <Switch checked={r.is_premium} onCheckedChange={(v) => updateRecipe(r.id, { is_premium: v })} disabled={savingId === r.id} />
                             <span className="text-muted-foreground">Prem</span>
                           </label>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => setExplain({ id: r.id, name: r.name })}>
+                            <Info className="w-3 h-3" /> Explain
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -460,6 +465,9 @@ function AdminMenuPage() {
                       >
                         {copiedId === r.id ? (<><Check className="w-3 h-3 text-green-500" />Copied</>) : (<><Link2 className="w-3 h-3" />Copy link</>)}
                       </Button>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1.5" onClick={() => setExplain({ id: r.id, name: r.name })}>
+                        <Info className="w-3 h-3" /> Explain price
+                      </Button>
                     </div>
                   </div>
 
@@ -495,6 +503,13 @@ function AdminMenuPage() {
           })}
         </div>
       )}
+
+      <ExplainPriceDrawer
+        recipeId={explain?.id ?? null}
+        recipeName={explain?.name}
+        open={!!explain}
+        onOpenChange={(v) => { if (!v) setExplain(null); }}
+      />
     </div>
   );
 }

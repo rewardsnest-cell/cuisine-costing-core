@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Plus, X, Loader2 } from "lucide-react";
+import { Zap, Plus, X, Loader2, Info } from "lucide-react";
+import { ExplainPriceDrawer } from "@/components/admin/ExplainPriceDrawer";
 import { MENU_STYLES, SERVICE_STYLES, TIERS, ALLERGIES, PROTEINS } from "@/components/quote/types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
 import { roundUpToNext5 } from "@/lib/utils";
@@ -27,6 +28,7 @@ function QuickQuotePage() {
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
   const [saving, setSaving] = useState(false);
+  const [explain, setExplain] = useState<{ id: string; name: string } | null>(null);
 
   const [form, setForm] = useState({
     clientName: "",
@@ -292,25 +294,42 @@ function QuickQuotePage() {
                     const isSelected = form.selectedRecipeIds.includes(r.id);
                     const price = pricePerGuestForRecipe(r, markup, form.tier);
                     return (
-                      <button
+                      <div
                         key={r.id}
-                        type="button"
-                        onClick={() => toggleArr("selectedRecipeIds", r.id)}
                         className={`text-left p-3 rounded-lg border transition ${
                           isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
                         }`}
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleArr("selectedRecipeIds", r.id)}
+                            className="min-w-0 flex-1 text-left"
+                          >
                             <p className="text-sm font-medium truncate">{r.name}</p>
                             <p className="text-[11px] text-muted-foreground">{r.category || "—"} · {r.cuisine || "—"}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
+                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
                             <span className="text-sm font-semibold text-primary">${price.toFixed(2)}</span>
-                            {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                            <button
+                              type="button"
+                              onClick={() => setExplain({ id: r.id, name: r.name })}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                              title="Explain price"
+                            >
+                              <Info className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleArr("selectedRecipeIds", r.id)}
+                              className="p-1 rounded hover:bg-muted"
+                              aria-label={isSelected ? "Remove" : "Add"}
+                            >
+                              {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                            </button>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -335,11 +354,19 @@ function QuickQuotePage() {
                   <p className="text-xs text-muted-foreground mb-2">Selected</p>
                   <ul className="space-y-1 max-h-40 overflow-y-auto">
                     {selected.map((r) => (
-                      <li key={r.id} className="text-xs flex justify-between gap-2">
-                        <span className="truncate">{r.name}</span>
+                      <li key={r.id} className="text-xs flex justify-between gap-2 items-center">
+                        <span className="truncate flex-1">{r.name}</span>
                         <span className="text-muted-foreground shrink-0">
                           ${pricePerGuestForRecipe(r, markup, form.tier).toFixed(2)}/g
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => setExplain({ id: r.id, name: r.name })}
+                          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
+                          title="Explain price"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -367,6 +394,13 @@ function QuickQuotePage() {
           </Card>
         </div>
       </div>
+
+      <ExplainPriceDrawer
+        recipeId={explain?.id ?? null}
+        recipeName={explain?.name}
+        open={!!explain}
+        onOpenChange={(v) => { if (!v) setExplain(null); }}
+      />
     </div>
   );
 }
