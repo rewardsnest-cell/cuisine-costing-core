@@ -1348,8 +1348,19 @@ function FixWeightDialog({
               </div>
             </div>
             <div>
-              <Label>Weight source</Label>
-              <Select value={source} onValueChange={setSource}>
+              <div className="flex items-center justify-between">
+                <Label>Weight source</Label>
+                {suggestion && source !== suggestion.value && (
+                  <button
+                    type="button"
+                    className="text-[11px] underline text-muted-foreground hover:text-foreground"
+                    onClick={() => { setSource(suggestion.value); setSourceTouched(false); }}
+                  >
+                    Use suggestion: {suggestion.value}
+                  </button>
+                )}
+              </div>
+              <Select value={source} onValueChange={(v) => { setSource(v); setSourceTouched(true); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual_override">manual_override</SelectItem>
@@ -1359,6 +1370,12 @@ function FixWeightDialog({
                   <SelectItem value="parsed">parsed</SelectItem>
                 </SelectContent>
               </Select>
+              {suggestion && (
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  {source === suggestion.value && !sourceTouched ? "Suggested" : "Suggested"}:{" "}
+                  <span className="font-mono">{suggestion.value}</span> — {suggestion.reason}
+                </div>
+              )}
             </div>
             <div>
               <Label>Reason</Label>
