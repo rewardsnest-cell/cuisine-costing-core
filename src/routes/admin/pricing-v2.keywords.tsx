@@ -622,16 +622,19 @@ function SchedulesSection({
 
   const list = schedules.data?.rows ?? [];
   const kwById = new Map(rows.map((r) => [r.id, r.keyword]));
-  const effectiveKeywordCount = useAllKeywords
-    ? rows.filter((r) => r.enabled).length
-    : editingId
-    ? editKeywordIds.length
-    : currentSelection.length;
+  const enabledCount = rows.filter((r) => r.enabled).length;
+  const selectedIdsForForm = editingId ? editKeywordIds : currentSelection;
   const isContinuousMode = limitMode === "continuous";
+  const isExcludeMode = filterMode === "exclude" && !isContinuousMode;
+  const effectiveKeywordCount = isExcludeMode
+    ? Math.max(0, enabledCount - selectedIdsForForm.length)
+    : useAllKeywords
+    ? enabledCount
+    : selectedIdsForForm.length;
   const canSave =
     !!name.trim() &&
     !saveMut.isPending &&
-    (useAllKeywords || isContinuousMode || effectiveKeywordCount > 0) &&
+    (useAllKeywords || isContinuousMode || isExcludeMode || effectiveKeywordCount > 0) &&
     (limitMode !== "until" || !!untilDate) &&
     (limitMode !== "runs" || maxRuns > 0) &&
     (limitMode !== "continuous" || (continuousIntervalSec >= 10 && emptyRunsThreshold >= 1));
