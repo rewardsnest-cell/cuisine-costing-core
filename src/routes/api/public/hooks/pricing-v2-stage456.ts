@@ -40,7 +40,7 @@ async function stage4(): Promise<{ run_id?: string; auto_applied: number; queued
   const { data: items } = await supabaseAdmin
     .from("inventory_items")
     .select("id, name, category_for_median, cost_per_gram_live, last_approved_cost_per_gram, cost_equivalent_of");
-  const itemIds = (items ?? []).map((i) => i.id);
+  const itemIds = (items ?? []).map((i: any) => i.id);
 
   const signalsByItem = new Map<string, number[]>();
   if (itemIds.length) {
@@ -59,7 +59,7 @@ async function stage4(): Promise<{ run_id?: string; auto_applied: number; queued
     }
   }
 
-  const equivIds = (items ?? []).map((i) => i.cost_equivalent_of).filter(Boolean) as string[];
+  const equivIds = (items ?? []).map((i: any) => i.cost_equivalent_of).filter(Boolean) as string[];
   const equivCost = new Map<string, number>();
   if (equivIds.length) {
     const { data: eq } = await supabaseAdmin
@@ -174,7 +174,7 @@ async function stage4(): Promise<{ run_id?: string; auto_applied: number; queued
 async function stage5(): Promise<{ run_id?: string; ok: number; warning: number; blocked: number }> {
   const runId = await createRun("rollups", "Stage 5 — scheduled");
   const { data: recipes } = await supabaseAdmin.from("recipes").select("id, servings").eq("active", true);
-  const recipeIds = (recipes ?? []).map((r) => r.id);
+  const recipeIds = (recipes ?? []).map((r: any) => r.id);
   if (!recipeIds.length) {
     await finishRun(runId, "success", { counts_in: 0, counts_out: 0 });
     return { run_id: runId, ok: 0, warning: 0, blocked: 0 };
@@ -183,7 +183,7 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
     .from("recipe_ingredients")
     .select("recipe_id, name, quantity_grams, inventory_item_id")
     .in("recipe_id", recipeIds);
-  const invIds = Array.from(new Set((ingredients ?? []).map((i) => i.inventory_item_id).filter(Boolean))) as string[];
+  const invIds = Array.from(new Set((ingredients ?? []).map((i: any) => i.inventory_item_id).filter(Boolean))) as string[];
   const invMap = new Map<string, { cpg: number | null; status: string; name: string }>();
   if (invIds.length) {
     const { data: inv } = await supabaseAdmin
@@ -284,7 +284,7 @@ async function stage6(): Promise<{ run_id?: string; ok: number; warning: number;
     });
   }
   if (snapshots.length) {
-    const ids = snapshots.map((s) => s.recipe_id);
+    const ids = snapshots.map((s: any) => s.recipe_id);
     await supabaseAdmin.from("pricing_v2_menu_prices")
       .update({ is_current: false })
       .eq("scope", "recipe_menu").in("recipe_id", ids).eq("is_current", true).eq("frozen", false);
