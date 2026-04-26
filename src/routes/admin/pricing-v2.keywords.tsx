@@ -439,3 +439,206 @@ function KeywordRowView({
     </tr>
   );
 }
+
+// ----- Schedules -----------------------------------------------------------
+
+import { CalendarClock, Save } from "lucide-react";
+import {
+  listKeywordSchedules,
+  upsertKeywordSchedule,
+  deleteKeywordSchedule,
+  type ScheduleRow,
+} from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
+
+function SchedulesSection({
+  rows,
+  currentSelection,
+  keywordLimit,
+  skipWeight,
+}: {
+  rows: KeywordRow[];
+  currentSelection: string[];
+  keywordLimit: number;
+  skipWeight: boolean;
+}) {
+  const qc = useQueryClient();
+  const schedules = useQuery({
+    queryKey: ["pricing-v2", "keyword-schedules"],
+    queryFn: () => listKeywordSchedules(),
+  });
+  const [name, setName] = useState("");
+  const [cadence, setCadence] = useState<number>(24);
+
+  const createMut = useMutation({
+    mutationFn: () =>
+      upsertKeywordSchedule({
+        data: {
+          name: name.trim(),
+          cadence_hours: cadence,
+          keyword_ids: currentSelection,
+          keyword_limit: keywordLimit,
+          skip_weight_normalization: skipWeight,
+          enabled: true,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Schedule created");
+      setName("");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Create failed"),
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: (s: ScheduleRow) =>
+      upsertKeywordSchedule({
+        data: {
+          id: s.id,
+          name: s.name,
+          cadence_hours: s.cadence_hours,
+          keyword_ids: s.keyword_ids,
+          keyword_limit: s.keyword_limit,
+          skip_weight_normalization: s.skip_weight_normalization,
+          enabled: !s.enabled,
+        },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
+    onError: (e: any) => toast.error(e?.message ?? "Update failed"),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteKeywordSchedule({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Schedule removed");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+  });
+
+  const list = schedules.data?.rows ?? [];
+  const kwById = new Map(rows.map((r) => [r.id, r.keyword]));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Schedules run automatically (checked hourly). The current selection above
+          ({currentSelection.length} keyword{currentSelection.length === 1 ? "" : "s"}),
+          hits-per-keyword ({keywordLimit}) and skip-weight ({String(skipWeight)}) are saved with the schedule.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="sched-name">Name</Label>
+            <Input
+              id="sched-name"
+              placeholder="e.g. Daily produce + dairy"
+              className="w-64"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="sched-cadence">Cadence (hours)</Label>
+            <Input
+              id="sched-cadence"
+              type="number"
+              min={1}
+              max={720}
+              className="w-28"
+              value={cadence}
+              onChange={(e) => setCadence(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
+            />
+            <p className="text-[10px] text-muted-foreground">24 = daily · 168 = weekly</p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => createMut.mutate()}
+            disabled={
+              !name.trim() ||
+              currentSelection.length === 0 ||
+              createMut.isPending
+            }
+          >
+            {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save schedule from current selection
+          </Button>
+        </div>
+
+        {schedules.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : list.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No schedules yet.</p>
+        ) : (
+          <div className="overflow-auto border rounded-md">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="p-2">Name</th>
+                  <th className="p-2">Cadence</th>
+                  <th className="p-2">Keywords</th>
+                  <th className="p-2">Last run</th>
+                  <th className="p-2">Next run</th>
+                  <th className="p-2">Enabled</th>
+                  <th className="p-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((s) => {
+                  const sample = (s.keyword_ids ?? []).slice(0, 4).map((id) => kwById.get(id) ?? id.slice(0, 6));
+                  const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
+                  return (
+                    <tr key={s.id} className="border-t">
+                      <td className="p-2 font-medium">{s.name}</td>
+                      <td className="p-2 tabular-nums">
+                        {s.cadence_hours}h
+                        {s.cadence_hours === 24 ? " (daily)" : s.cadence_hours === 168 ? " (weekly)" : ""}
+                      </td>
+                      <td className="p-2 text-xs">
+                        <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
+                        {sample.join(", ")}
+                        {more > 0 && <span className="text-muted-foreground"> +{more}</span>}
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {s.last_run_at ? new Date(s.last_run_at).toLocaleString() : "—"}
+                        {s.last_run_id && (
+                          <div className="font-mono text-[10px]">{s.last_run_id.slice(0, 8)}…</div>
+                        )}
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {s.next_run_at ? new Date(s.next_run_at).toLocaleString() : "—"}
+                      </td>
+                      <td className="p-2">
+                        <Switch
+                          checked={s.enabled}
+                          onCheckedChange={() => toggleMut.mutate(s)}
+                          disabled={toggleMut.isPending}
+                        />
+                      </td>
+                      <td className="p-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm(`Delete schedule "${s.name}"?`)) delMut.mutate(s.id);
+                          }}
+                          disabled={delMut.isPending}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
