@@ -45,7 +45,9 @@ import {
   saveAlertConfig,
   testAlertConfig,
   listCatalogProducts,
+  bulkSetManualWeight,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
+import { Checkbox } from "@/components/ui/checkbox";
 import { normalizeWeightInput } from "@/lib/server/pricing-v2/normalize-weight-input";
 
 import {
@@ -1080,6 +1082,8 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<any | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
   const limit = 50;
 
   const products = useQuery({
@@ -1098,6 +1102,26 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
 
   const total = products.data?.total ?? 0;
   const rows = products.data?.products ?? [];
+
+  const pageKeys = rows.map((p: any) => p.product_key);
+  const allOnPageSelected = pageKeys.length > 0 && pageKeys.every((k: string) => selected.has(k));
+  const someOnPageSelected = pageKeys.some((k: string) => selected.has(k));
+  const togglePage = (checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) pageKeys.forEach((k: string) => next.add(k));
+      else pageKeys.forEach((k: string) => next.delete(k));
+      return next;
+    });
+  };
+  const toggleOne = (key: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(key); else next.delete(key);
+      return next;
+    });
+  };
+  const selectedRows = rows.filter((p: any) => selected.has(p.product_key));
 
   return (
     <Card>
@@ -1139,6 +1163,31 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Bulk action toolbar */}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{selected.size}</span>
+            <span className="text-muted-foreground">selected</span>
+            {selected.size > 0 && (
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]"
+                onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={selected.size === 0}
+              onClick={() => setBulkOpen(true)}
+            >
+              <Wrench className="w-3 h-3 mr-1" />
+              Bulk Fix Weight ({selected.size})
+            </Button>
+          </div>
+        </div>
+
         {products.isLoading ? (
           <p className="text-sm">Loading…</p>
         ) : rows.length === 0 ? (
@@ -1148,6 +1197,13 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
             <table className="w-full text-xs">
               <thead className="text-left text-muted-foreground">
                 <tr>
+                  <th className="py-1 pr-2 w-6">
+                    <Checkbox
+                      checked={allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false}
+                      onCheckedChange={(v) => togglePage(v === true)}
+                      aria-label="Select all on page"
+                    />
+                  </th>
                   <th className="py-1 pr-2">name</th>
                   <th className="py-1 pr-2">brand</th>
                   <th className="py-1 pr-2">upc</th>
@@ -1160,6 +1216,13 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
               <tbody>
                 {rows.map((p: any) => (
                   <tr key={p.product_key} className="border-t align-top">
+                    <td className="py-1 pr-2">
+                      <Checkbox
+                        checked={selected.has(p.product_key)}
+                        onCheckedChange={(v) => toggleOne(p.product_key, v === true)}
+                        aria-label={`Select ${p.name ?? p.product_key}`}
+                      />
+                    </td>
                     <td className="py-1 pr-2 max-w-[28ch]">{p.name ?? "—"}</td>
                     <td className="py-1 pr-2 max-w-[16ch]">{p.brand ?? "—"}</td>
                     <td className="py-1 pr-2 font-mono">{p.upc ?? "—"}</td>
@@ -1199,6 +1262,18 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
         open={!!editing}
         onOpenChange={(o) => { if (!o) setEditing(null); }}
         onSaved={() => { setEditing(null); products.refetch(); onChanged(); }}
+      />
+
+      <BulkFixWeightDialog
+        products={selectedRows}
+        allSelectedKeys={Array.from(selected)}
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        onSaved={(clear) => {
+          if (clear) setSelected(new Set());
+          products.refetch();
+          onChanged();
+        }}
       />
     </Card>
   );
@@ -1417,6 +1492,232 @@ function FixWeightDialog({
               disabled={!product || !norm.ok || !reason || save.isPending}
             >
               {save.isPending ? "Saving…" : "Save"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---- Bulk Fix Weight dialog ----------------------------------------------
+
+function BulkFixWeightDialog({
+  products,
+  allSelectedKeys,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  products: any[];
+  allSelectedKeys: string[];
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onSaved: (clearSelection: boolean) => void;
+}) {
+  const [weightInput, setWeightInput] = useState("");
+  const [reason, setReason] = useState("");
+  const [source, setSource] = useState<string>("manual_override");
+  const [skipped, setSkipped] = useState<
+    Array<{ product_key: string; reason: string; parsed_grams?: number; ratio?: number }>
+  >([]);
+  const [lastResult, setLastResult] = useState<any | null>(null);
+
+  // Reset on open
+  useMemo(() => {
+    if (open) {
+      setWeightInput("");
+      setReason("");
+      setSource("manual_override");
+      setSkipped([]);
+      setLastResult(null);
+    }
+  }, [open]);
+
+  const norm = useMemo(() => normalizeWeightInput(weightInput), [weightInput]);
+  const clientError = !weightInput.trim() ? null : norm.ok ? null : norm.reason;
+
+  const save = useMutation({
+    mutationFn: ({ force, keys }: { force: boolean; keys: string[] }) =>
+      bulkSetManualWeight({
+        data: {
+          product_keys: keys,
+          weight_input: weightInput.trim(),
+          reason,
+          weight_source: source as any,
+          force_override: force,
+        },
+      }),
+    onSuccess: (r: any) => {
+      setLastResult(r);
+      if (r?.ok === false && r?.kind === "invalid_input") {
+        toast.error(r.message);
+        return;
+      }
+      const updated = r?.updated ?? 0;
+      const skippedList = r?.skipped ?? [];
+      const failed = r?.failed ?? [];
+      setSkipped(skippedList);
+      if (updated > 0) {
+        toast.success(
+          `Updated ${updated}/${r.requested} product${updated === 1 ? "" : "s"}` +
+            (skippedList.length ? ` · ${skippedList.length} skipped (inconsistent)` : "") +
+            (failed.length ? ` · ${failed.length} failed` : "")
+        );
+      } else if (skippedList.length || failed.length) {
+        toast.error(
+          `No products updated · ${skippedList.length} skipped · ${failed.length} failed`
+        );
+      }
+      // Close + clear selection if everything succeeded outright
+      if (updated === r?.requested && skippedList.length === 0 && failed.length === 0) {
+        onOpenChange(false);
+        onSaved(true);
+      } else {
+        onSaved(false);
+      }
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Bulk save failed"),
+  });
+
+  const submit = (force: boolean, keys?: string[]) => {
+    if (!norm.ok) {
+      toast.error(norm.reason);
+      return;
+    }
+    save.mutate({ force, keys: keys ?? allSelectedKeys });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Bulk Fix Weight</DialogTitle>
+          <DialogDescription>
+            Apply the same <span className="font-mono">net_weight_grams</span> and{" "}
+            <span className="font-mono">weight_source</span> to{" "}
+            <span className="font-mono">{allSelectedKeys.length}</span> selected product
+            {allSelectedKeys.length === 1 ? "" : "s"}. Rows that disagree with their{" "}
+            <span className="font-mono">size_raw</span> are skipped unless you confirm to override.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 text-sm">
+          <div className="rounded-md border p-2 text-xs max-h-36 overflow-auto">
+            {products.length === 0 ? (
+              <span className="text-muted-foreground">
+                Selection spans pages — {allSelectedKeys.length} keys selected.
+              </span>
+            ) : (
+              <ul className="space-y-1">
+                {products.slice(0, 20).map((p) => (
+                  <li key={p.product_key} className="flex justify-between gap-2">
+                    <span className="truncate">{p.name ?? "—"} <span className="text-muted-foreground">({p.brand ?? "—"})</span></span>
+                    <span className="text-muted-foreground">{p.size_raw ?? "—"}</span>
+                  </li>
+                ))}
+                {products.length > 20 && (
+                  <li className="text-muted-foreground">…and {products.length - 20} more</li>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <Label>Net weight (any unit)</Label>
+            <Input
+              value={weightInput}
+              onChange={(e) => { setWeightInput(e.target.value); setSkipped([]); }}
+              placeholder="e.g. 454 g, 1.5 lb, 16 oz, 0.45 kg"
+            />
+            <div className="mt-1 text-[11px] min-h-4">
+              {clientError ? (
+                <span className="text-destructive">{clientError}</span>
+              ) : norm.ok ? (
+                <span className="text-muted-foreground">
+                  → <span className="font-mono">{Math.round(norm.grams)} g</span>
+                  {norm.unit !== "g" && (
+                    <span> (from {norm.raw_value} {norm.unit})</span>
+                  )}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
+            <Label>Weight source</Label>
+            <Select value={source} onValueChange={setSource}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manual_override">manual_override</SelectItem>
+                <SelectItem value="label">label</SelectItem>
+                <SelectItem value="vendor">vendor</SelectItem>
+                <SelectItem value="estimated">estimated</SelectItem>
+                <SelectItem value="parsed">parsed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Shared reason</Label>
+            <Textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why this bulk override (e.g. vendor spec sheet for 16oz pack, weighed sample, etc.)"
+            />
+          </div>
+
+          {skipped.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{skipped.length} skipped — inconsistent with size_raw</AlertTitle>
+              <AlertDescription className="text-xs">
+                <ul className="mt-1 max-h-24 overflow-auto space-y-0.5">
+                  {skipped.slice(0, 10).map((s) => (
+                    <li key={s.product_key} className="font-mono">
+                      {s.product_key.slice(0, 24)}… · parsed≈{Math.round(s.parsed_grams ?? 0)}g · ratio {((s.ratio ?? 0) * 100).toFixed(0)}%
+                    </li>
+                  ))}
+                  {skipped.length > 10 && <li>…and {skipped.length - 10} more</li>}
+                </ul>
+                <div className="mt-2">Confirm to apply the override to skipped rows anyway.</div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {lastResult?.failed?.length > 0 && (
+            <div className="text-xs text-destructive">
+              {lastResult.failed.length} failed: {lastResult.failed.slice(0, 3).map((f: any) => f.message).join("; ")}
+              {lastResult.failed.length > 3 ? "…" : ""}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          {skipped.length > 0 ? (
+            <>
+              <Button
+                variant="destructive"
+                onClick={() => submit(true, skipped.map((s) => s.product_key))}
+                disabled={!norm.ok || !reason || save.isPending}
+              >
+                {save.isPending ? "Saving…" : `Override ${skipped.length} skipped`}
+              </Button>
+              <Button
+                onClick={() => submit(false)}
+                disabled={!norm.ok || !reason || save.isPending}
+              >
+                Re-run on all
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => submit(false)}
+              disabled={!norm.ok || !reason || save.isPending || allSelectedKeys.length === 0}
+            >
+              {save.isPending ? "Saving…" : `Apply to ${allSelectedKeys.length}`}
             </Button>
           )}
         </DialogFooter>
