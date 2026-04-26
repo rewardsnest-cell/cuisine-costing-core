@@ -926,6 +926,7 @@ function PricingAuditCard() {
   const [auditText, setAuditText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const run = async () => {
     setLoading(true);
@@ -944,12 +945,24 @@ function PricingAuditCard() {
   };
 
   const download = async () => {
-    if (!auditText) return;
+    if (!auditText || downloading) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+    const filename = `pricing-audit-${stamp}.md`;
+    setDownloading(true);
+    const toastId = toast.loading(`Preparing ${filename}…`);
     try {
-      await downloadFile(auditText, `pricing-audit-${stamp}.md`, "text/markdown");
+      await downloadFile(auditText, filename, "text/markdown");
+      toast.success("Pricing audit downloaded", { id: toastId, description: filename });
     } catch (e: any) {
-      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+      if (e?.name === "AbortError") {
+        toast.dismiss(toastId);
+      } else {
+        const msg = e?.message || "Download failed";
+        setError(msg);
+        toast.error("Download failed", { id: toastId, description: msg });
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
