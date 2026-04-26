@@ -172,21 +172,32 @@ async function collectIntegrationStatus() {
 // which evaluates at compile time on the server bundle.
 
 function collectServerFns(): string {
-  // eager: false, query: '?raw' — read filenames only, no content.
-  const fnGlob = (import.meta as any).glob?.("/src/lib/server-fns/*.functions.ts", {
-    eager: false,
-  }) as Record<string, unknown> | undefined;
-  const files = fnGlob ? Object.keys(fnGlob).sort() : [];
+  // import.meta.glob must be referenced by its literal name — Vite replaces it
+  // statically at transform time. Indirect access is NOT replaced.
+  let files: string[] = [];
+  try {
+    const fnGlob = import.meta.glob("/src/lib/server-fns/*.functions.ts", {
+      eager: false,
+    }) as Record<string, unknown>;
+    files = Object.keys(fnGlob).sort();
+  } catch {
+    files = [];
+  }
   return files.length === 0
     ? "(server function inventory unavailable in this runtime)"
     : files.map((f) => `  - ${f.replace("/src/lib/server-fns/", "")}`).join("\n");
 }
 
 function collectRoutes(): string {
-  const routeGlob = (import.meta as any).glob?.("/src/routes/**/*.tsx", {
-    eager: false,
-  }) as Record<string, unknown> | undefined;
-  const files = routeGlob ? Object.keys(routeGlob).sort() : [];
+  let files: string[] = [];
+  try {
+    const routeGlob = import.meta.glob("/src/routes/**/*.tsx", {
+      eager: false,
+    }) as Record<string, unknown>;
+    files = Object.keys(routeGlob).sort();
+  } catch {
+    files = [];
+  }
   if (files.length === 0) return "(route inventory unavailable in this runtime)";
   const buckets: Record<string, string[]> = { admin: [], employee: [], public: [] };
   for (const f of files) {
