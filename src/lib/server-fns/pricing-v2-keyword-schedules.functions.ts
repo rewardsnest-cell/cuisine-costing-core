@@ -60,11 +60,19 @@ const upsertSchema = z
     stop_when_no_new_items: z.boolean().default(true),
     empty_runs_threshold: z.number().int().min(1).max(50).default(2),
     continuous_interval_seconds: z.number().int().min(10).max(3600).default(60),
+    keyword_filter_mode: z.enum(["include", "exclude"]).default("include"),
   })
-  .refine((v) => v.use_all_keywords || v.continuous_mode || v.keyword_ids.length > 0, {
-    message: "Pick at least one keyword or enable 'sweep all keywords'.",
-    path: ["keyword_ids"],
-  });
+  .refine(
+    (v) =>
+      v.use_all_keywords ||
+      v.continuous_mode ||
+      v.keyword_filter_mode === "exclude" ||
+      v.keyword_ids.length > 0,
+    {
+      message: "Pick at least one keyword or enable 'sweep all keywords'.",
+      path: ["keyword_ids"],
+    },
+  );
 
 export const upsertKeywordSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
