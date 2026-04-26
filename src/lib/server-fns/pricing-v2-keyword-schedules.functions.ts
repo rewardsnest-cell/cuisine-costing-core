@@ -23,6 +23,7 @@ export type ScheduleRow = {
   empty_runs_threshold: number;
   consecutive_empty_runs: number;
   continuous_interval_seconds: number;
+  keyword_filter_mode: "include" | "exclude";
   last_run_at: string | null;
   last_run_id: string | null;
   next_run_at: string;
