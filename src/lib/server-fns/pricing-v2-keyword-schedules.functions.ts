@@ -1,5 +1,7 @@
 // Pricing v2 — Keyword sweep schedules.
-// Lets admins schedule recurring multi-keyword sweeps on a fixed cadence.
+// Lets admins schedule recurring multi-keyword sweeps on a fixed cadence,
+// optionally with an end date or run-count limit, and optionally sweeping
+// the entire keyword library instead of a fixed selection.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -12,6 +14,10 @@ export type ScheduleRow = {
   keyword_limit: number;
   skip_weight_normalization: boolean;
   enabled: boolean;
+  use_all_keywords: boolean;
+  expires_at: string | null;
+  max_runs: number | null;
+  run_count: number;
   last_run_at: string | null;
   last_run_id: string | null;
   next_run_at: string;
@@ -31,16 +37,24 @@ export const listKeywordSchedules = createServerFn({ method: "GET" })
     return { rows: (data ?? []) as ScheduleRow[] };
   });
 
-const upsertSchema = z.object({
-  id: z.string().uuid().optional(),
-  name: z.string().trim().min(1).max(120),
-  cadence_hours: z.number().int().min(1).max(24 * 30),
-  keyword_ids: z.array(z.string().uuid()).min(1).max(1000),
-  keyword_limit: z.number().int().min(1).max(500).default(250),
-  skip_weight_normalization: z.boolean().default(true),
-  enabled: z.boolean().default(true),
-  next_run_at: z.string().datetime().optional(),
-});
+const upsertSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    name: z.string().trim().min(1).max(120),
+    cadence_hours: z.number().int().min(1).max(24 * 30),
+    keyword_ids: z.array(z.string().uuid()).max(1000).default([]),
+    keyword_limit: z.number().int().min(1).max(500).default(250),
+    skip_weight_normalization: z.boolean().default(true),
+    enabled: z.boolean().default(true),
+    use_all_keywords: z.boolean().default(false),
+    expires_at: z.string().datetime().nullable().optional(),
+    max_runs: z.number().int().min(1).max(100000).nullable().optional(),
+    next_run_at: z.string().datetime().optional(),
+  })
+  .refine((v) => v.use_all_keywords || v.keyword_ids.length > 0, {
+    message: "Pick at least one keyword or enable 'sweep all keywords'.",
+    path: ["keyword_ids"],
+  });
 
 export const upsertKeywordSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -50,10 +64,13 @@ export const upsertKeywordSchedule = createServerFn({ method: "POST" })
     const payload: Record<string, any> = {
       name: data.name,
       cadence_hours: data.cadence_hours,
-      keyword_ids: data.keyword_ids,
+      keyword_ids: data.use_all_keywords ? [] : data.keyword_ids,
       keyword_limit: data.keyword_limit,
       skip_weight_normalization: data.skip_weight_normalization,
       enabled: data.enabled,
+      use_all_keywords: data.use_all_keywords,
+      expires_at: data.expires_at ?? null,
+      max_runs: data.max_runs ?? null,
     };
     if (data.next_run_at) payload.next_run_at = data.next_run_at;
 
