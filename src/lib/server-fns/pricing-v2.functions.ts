@@ -77,6 +77,18 @@ const settingsSchema = z.object({
   warning_threshold_pct: z.number().min(0).max(100),
   zero_cost_blocking: z.boolean(),
   default_menu_multiplier: z.number().min(0.1).max(20),
+  // Stage 4→6 automation
+  stage456_cron_enabled: z.boolean().optional(),
+  auto_apply_threshold_pct: z.number().min(0).max(100).optional(),
+}).partial({
+  // Allow callers (e.g. the new automation card) to PATCH a subset of fields.
+  kroger_store_id: true,
+  kroger_zip: true,
+  monthly_schedule_day: true,
+  monthly_schedule_hour: true,
+  warning_threshold_pct: true,
+  zero_cost_blocking: true,
+  default_menu_multiplier: true,
 });
 
 export const getPricingV2Settings = createServerFn({ method: "GET" })
