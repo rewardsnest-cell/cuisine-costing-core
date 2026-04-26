@@ -283,11 +283,6 @@ async function executeCatalogBootstrap(
           : data.dry_run
             ? "dry_run=true (catalog_bootstrap)"
             : "catalog_bootstrap",
-        notes: opts.replay_of
-          ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
-          : data.dry_run
-            ? "dry_run=true (catalog_bootstrap)"
-            : "catalog_bootstrap",
       })
       .select("run_id")
       .single();
