@@ -380,6 +380,31 @@ function CatalogBootstrapPage() {
                 <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
                 <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
               </div>
+              <div className="basis-full" />
+              <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 px-3 py-2 max-w-xl">
+                <Switch
+                  id="skip-weight"
+                  checked={skipWeight}
+                  onCheckedChange={setSkipWeight}
+                  className="mt-0.5"
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="skip-weight" className="cursor-pointer font-medium">
+                    Skip weight normalization
+                    {skipWeight && <Badge variant="secondary" className="ml-2 text-[10px]">ON</Badge>}
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    When enabled, the bootstrap downloads raw Kroger product data and stores
+                    <code className="mx-1 px-1 rounded bg-background">size_raw</code>
+                    only — it does <strong>not</strong> attempt to parse net weight in grams,
+                    and no <code className="px-1 rounded bg-background">WEIGHT_PARSE_FAIL</code> /
+                    <code className="px-1 rounded bg-background">VOLUME_ONLY</code> errors are logged.
+                    Weights can be filled in afterward via <em>Fix Weight</em> or a reparse.
+                    Recommended for staging / first downloads.
+                  </p>
+                </div>
+              </div>
+              <div className="basis-full" />
               <Button
                 onClick={runGuarded}
                 disabled={
