@@ -15,7 +15,7 @@ import {
   PlayCircle,
   ShieldCheck,
 } from "lucide-react";
-import { PROJECT_AUDIT_MD, rowsToCsv } from "@/lib/admin/project-audit";
+import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import { runDeepAudit, runPricingAudit } from "@/lib/server-fns/deep-audit.functions";
@@ -819,17 +819,14 @@ function DeepAuditCard() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([auditText], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+  const download = async () => {
+    if (!auditText) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
-    a.download = `deep-audit-${stamp}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(auditText, `deep-audit-${stamp}.md`, "text/markdown");
+    } catch (e: any) {
+      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+    }
   };
 
   return (
@@ -927,17 +924,14 @@ function PricingAuditCard() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([auditText], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+  const download = async () => {
+    if (!auditText) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
-    a.download = `pricing-audit-${stamp}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(auditText, `pricing-audit-${stamp}.md`, "text/markdown");
+    } catch (e: any) {
+      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+    }
   };
 
   return (
