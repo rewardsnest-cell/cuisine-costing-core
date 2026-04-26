@@ -128,7 +128,7 @@ function CatalogBootstrapPage() {
       setGuardedPhase("dry-running");
       setGuardedDryResult(null);
       const dry = await runCatalogBootstrap({
-        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined },
+        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined, skip_weight_normalization: skipWeight },
       }) as RunResult;
       setLastResult(dry);
       setGuardedDryResult(dry);
