@@ -1070,3 +1070,175 @@ function PricingAuditCard() {
     </Card>
   );
 }
+
+// ---- Kroger raw API data card --------------------------------------------
+
+function KrogerRawExportCard() {
+  const [busy, setBusy] = useState<null | "csv" | "json">(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progressMsg, setProgressMsg] = useState<string>("");
+  const [savedCsv, setSavedCsv] = useState<SavedExportFile | null>(null);
+  const [savedJson, setSavedJson] = useState<SavedExportFile | null>(null);
+  const [rowCount, setRowCount] = useState<number | null>(null);
+
+  async function loadAllRaw() {
+    const PAGE = 1000;
+    const all: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error: e } = await (supabase as any)
+        .from("pricing_v2_kroger_catalog_raw")
+        .select(
+          "id, run_id, store_id, kroger_product_id, upc, name, brand, size_raw, fetched_at, payload_json",
+        )
+        .order("fetched_at", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (e) throw e;
+      const batch = data ?? [];
+      all.push(...batch);
+      setProgressMsg(`Loaded ${all.length} rows…`);
+      if (batch.length < PAGE) break;
+      from += PAGE;
+    }
+    setRowCount(all.length);
+    return all;
+  }
+
+  const handleCsv = async () => {
+    setBusy("csv");
+    setError(null);
+    setSavedCsv(null);
+    try {
+      const rows = await loadAllRaw();
+      // Flatten: keep core columns + a few derived fields from payload_json.
+      const flat = rows.map((r) => {
+        const p = r.payload_json ?? {};
+        const item0 = Array.isArray(p.items) ? p.items[0] : null;
+        return {
+          id: r.id,
+          fetched_at: r.fetched_at,
+          store_id: r.store_id,
+          kroger_product_id: r.kroger_product_id,
+          upc: r.upc,
+          name: r.name,
+          brand: r.brand,
+          size_raw: r.size_raw,
+          sold_by: item0?.soldBy ?? null,
+          price_regular: item0?.price?.regular ?? null,
+          price_promo: item0?.price?.promo ?? null,
+          probe_keyword: p._probe_keyword ?? null,
+          probe_fetched_at: p._probe_fetched_at ?? null,
+        };
+      });
+      setProgressMsg(`Uploading ${flat.length} rows…`);
+      const csv = rowsToCsv(flat);
+      const saved = await saveExportFile(
+        csv,
+        `kroger_raw_${new Date().toISOString().split("T")[0]}.csv`,
+        "text/csv;charset=utf-8",
+      );
+      setSavedCsv(saved);
+      setProgressMsg("");
+      // Also trigger a local download for convenience.
+      await downloadFile(csv, saved.filename, "text/csv;charset=utf-8");
+    } catch (e: any) {
+      setError(e?.message || "Kroger CSV export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleJson = async () => {
+    setBusy("json");
+    setError(null);
+    setSavedJson(null);
+    try {
+      const rows = await loadAllRaw();
+      const bundle = {
+        generated_at: new Date().toISOString(),
+        source_table: "pricing_v2_kroger_catalog_raw",
+        row_count: rows.length,
+        rows,
+      };
+      const json = JSON.stringify(bundle, null, 2);
+      setProgressMsg(`Uploading ${rows.length} rows…`);
+      const saved = await saveExportFile(
+        json,
+        `kroger_raw_${new Date().toISOString().split("T")[0]}.json`,
+        "application/json;charset=utf-8",
+      );
+      setSavedJson(saved);
+      setProgressMsg("");
+      await downloadFile(json, saved.filename, "application/json;charset=utf-8");
+    } catch (e: any) {
+      setError(e?.message || "Kroger JSON export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display flex items-center gap-2">
+          <Database className="w-5 h-5 text-primary" /> Kroger raw API data
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Every raw product payload captured from the Kroger Products API
+          (table <code className="font-mono text-xs">pricing_v2_kroger_catalog_raw</code>).
+          Unmodified — exactly what Kroger returned, including size string,
+          regular/promo price, and the keyword that surfaced each item.
+          JSON preserves the full payload; CSV flattens to the most-used fields.
+        </p>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleJson} disabled={!!busy} className="gap-2">
+            {busy === "json" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            Download JSON (full payload)
+          </Button>
+          <Button
+            onClick={handleCsv}
+            disabled={!!busy}
+            variant="outline"
+            className="gap-2"
+          >
+            {busy === "csv" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Download CSV (flat)
+          </Button>
+          {rowCount !== null && (
+            <Badge variant="secondary" className="font-mono text-[10px] self-center">
+              {rowCount.toLocaleString()} rows
+            </Badge>
+          )}
+        </div>
+
+        {busy && progressMsg && (
+          <div className="text-xs text-muted-foreground">{progressMsg}</div>
+        )}
+
+        {savedJson && (
+          <ExportProgressLine label="Kroger JSON" file={savedJson} />
+        )}
+        {savedCsv && (
+          <ExportProgressLine label="Kroger CSV" file={savedCsv} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
