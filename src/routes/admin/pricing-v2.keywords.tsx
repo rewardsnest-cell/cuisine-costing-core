@@ -596,6 +596,44 @@ function SchedulesSection({
   // Remember where the user was scrolled when they opened the edit form, so
   // we can return them there after Save or Cancel.
   const savedScrollYRef = useRef<number | null>(null);
+  // Snapshot of form values at the moment edit started, used to detect
+  // unsaved changes when the user clicks Cancel.
+  type FormSnapshot = {
+    name: string;
+    cadence: number;
+    useAllKeywords: boolean;
+    limitMode: LimitMode;
+    untilDate: string;
+    maxRuns: number;
+    continuousIntervalSec: number;
+    emptyRunsThreshold: number;
+    filterMode: "include" | "exclude";
+    editKeywordIds: string[];
+  };
+  const editSnapshotRef = useRef<FormSnapshot | null>(null);
+
+  function currentFormSnapshot(): FormSnapshot {
+    return {
+      name,
+      cadence,
+      useAllKeywords,
+      limitMode,
+      untilDate,
+      maxRuns,
+      continuousIntervalSec,
+      emptyRunsThreshold,
+      filterMode,
+      editKeywordIds: [...editKeywordIds].sort(),
+    };
+  }
+
+  function hasUnsavedEdits(): boolean {
+    const snap = editSnapshotRef.current;
+    if (!snap) return false;
+    const cur = currentFormSnapshot();
+    const normSnap = { ...snap, editKeywordIds: [...snap.editKeywordIds].sort() };
+    return JSON.stringify(normSnap) !== JSON.stringify(cur);
+  }
 
   function resetForm() {
     setEditingId(null);
@@ -609,6 +647,7 @@ function SchedulesSection({
     setEmptyRunsThreshold(2);
     setFilterMode("include");
     setEditKeywordIds([]);
+    editSnapshotRef.current = null;
     // Restore the scroll position captured when edit started.
     const y = savedScrollYRef.current;
     if (y != null) {
@@ -617,6 +656,14 @@ function SchedulesSection({
         window.scrollTo({ top: y, behavior: "smooth" });
       });
     }
+  }
+
+  function handleCancelEdit() {
+    if (hasUnsavedEdits()) {
+      const ok = window.confirm("You have unsaved changes. Discard them?");
+      if (!ok) return;
+    }
+    resetForm();
   }
 
   function startEdit(s: ScheduleRow) {
@@ -629,27 +676,43 @@ function SchedulesSection({
     setName(s.name);
     setCadence(s.cadence_hours);
     setUseAllKeywords(!!s.use_all_keywords);
-    setEditKeywordIds(s.keyword_ids ?? []);
+    const kwIds = s.keyword_ids ?? [];
+    setEditKeywordIds(kwIds);
     setContinuousIntervalSec(s.continuous_interval_seconds ?? 60);
     setEmptyRunsThreshold(s.empty_runs_threshold ?? 2);
-    setFilterMode(s.keyword_filter_mode === "exclude" ? "exclude" : "include");
+    const nextFilterMode: "include" | "exclude" =
+      s.keyword_filter_mode === "exclude" ? "exclude" : "include";
+    setFilterMode(nextFilterMode);
+    let nextLimitMode: LimitMode;
+    let nextUntilDate = "";
+    let nextMaxRuns = 10;
     if (s.continuous_mode) {
-      setLimitMode("continuous");
-      setUntilDate("");
-      setMaxRuns(10);
+      nextLimitMode = "continuous";
     } else if (s.expires_at) {
-      setLimitMode("until");
-      setUntilDate(new Date(s.expires_at).toISOString().slice(0, 10));
-      setMaxRuns(10);
+      nextLimitMode = "until";
+      nextUntilDate = new Date(s.expires_at).toISOString().slice(0, 10);
     } else if (s.max_runs) {
-      setLimitMode("runs");
-      setMaxRuns(s.max_runs);
-      setUntilDate("");
+      nextLimitMode = "runs";
+      nextMaxRuns = s.max_runs;
     } else {
-      setLimitMode("forever");
-      setUntilDate("");
-      setMaxRuns(10);
+      nextLimitMode = "forever";
     }
+    setLimitMode(nextLimitMode);
+    setUntilDate(nextUntilDate);
+    setMaxRuns(nextMaxRuns);
+    // Snapshot the values we just set so we can detect unsaved edits later.
+    editSnapshotRef.current = {
+      name: s.name,
+      cadence: s.cadence_hours,
+      useAllKeywords: !!s.use_all_keywords,
+      limitMode: nextLimitMode,
+      untilDate: nextUntilDate,
+      maxRuns: nextMaxRuns,
+      continuousIntervalSec: s.continuous_interval_seconds ?? 60,
+      emptyRunsThreshold: s.empty_runs_threshold ?? 2,
+      filterMode: nextFilterMode,
+      editKeywordIds: [...kwIds].sort(),
+    };
     // Bring the form into view so the user sees their edit immediately.
     requestAnimationFrame(() => {
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
