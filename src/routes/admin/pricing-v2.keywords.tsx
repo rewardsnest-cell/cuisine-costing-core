@@ -240,6 +240,14 @@ function KeywordsPage() {
         </CardContent>
       </Card>
 
+      {/* Schedules */}
+      <SchedulesSection
+        rows={rows}
+        currentSelection={Array.from(selected)}
+        keywordLimit={keywordLimit}
+        skipWeight={skipWeight}
+      />
+
       {/* Add keywords */}
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
