@@ -486,6 +486,7 @@ function SchedulesSection({
   const [maxRuns, setMaxRuns] = useState<number>(10);
   const [continuousIntervalSec, setContinuousIntervalSec] = useState<number>(60);
   const [emptyRunsThreshold, setEmptyRunsThreshold] = useState<number>(2);
+  const [filterMode, setFilterMode] = useState<"include" | "exclude">("include");
   // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
@@ -500,6 +501,7 @@ function SchedulesSection({
     setMaxRuns(10);
     setContinuousIntervalSec(60);
     setEmptyRunsThreshold(2);
+    setFilterMode("include");
     setEditKeywordIds([]);
   }
 
