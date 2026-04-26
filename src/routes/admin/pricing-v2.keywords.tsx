@@ -959,7 +959,8 @@ function SchedulesSection({
               return (
                 <div
                   key={s.id}
-                  className={`rounded-lg border bg-card p-3 flex flex-col gap-3 transition-colors ${
+                  id={`schedule-${s.id}`}
+                  className={`rounded-lg border bg-card p-3 flex flex-col gap-3 transition-all scroll-mt-4 ${
                     isEditing ? "border-primary ring-1 ring-primary/40" : ""
                   } ${!s.enabled ? "opacity-70" : ""}`}
                 >
