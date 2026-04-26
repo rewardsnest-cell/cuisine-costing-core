@@ -175,6 +175,143 @@ export const listKrogerCatalogRaw = createServerFn({ method: "POST" })
     return { rows: rows ?? [] };
   });
 
+// ---------------------------------------------------------------------------
+// Bulk auto-suggest UPCs for unmapped inventory items.
+// For each unmapped item, run a Kroger keyword search and return the top hits
+// so an admin can approve mappings in one click.
+// ---------------------------------------------------------------------------
+
+const bulkSuggestSchema = z.object({
+  limit: z.number().int().min(1).max(200).default(25),
+  hitsPerItem: z.number().int().min(1).max(10).default(5),
+  storeId: z.string().trim().min(1).max(32).optional(),
+  search: z.string().trim().max(120).optional(),
+});
+
+export type BulkSuggestion = {
+  inventoryItemId: string;
+  inventoryName: string;
+  category: string | null;
+  unit: string | null;
+  query: string;
+  hits: KrogerSearchHit[];
+  error?: string;
+};
+
+export const bulkSuggestUpcsForInventory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => bulkSuggestSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+
+    let storeId = data.storeId;
+    if (!storeId) {
+      const { data: s } = await supabase
+        .from("pricing_v2_settings")
+        .select("kroger_store_id")
+        .eq("id", 1)
+        .maybeSingle();
+      storeId = s?.kroger_store_id;
+    }
+    if (!storeId) {
+      throw new Error("No Kroger store id configured. Set one in Pricing v2 → Settings.");
+    }
+
+    let q = supabase
+      .from("inventory_items")
+      .select("id,name,category,unit")
+      .is("kroger_product_id", null)
+      .order("name", { ascending: true })
+      .limit(data.limit);
+    if (data.search) q = q.ilike("name", `%${data.search}%`);
+    const { data: items, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const suggestions: BulkSuggestion[] = [];
+    // Sequential to respect Kroger rate limits.
+    for (const it of items ?? []) {
+      const query = String(it.name ?? "").trim();
+      if (!query) continue;
+      try {
+        const products = await searchProducts({
+          storeId,
+          term: query,
+          limit: data.hitsPerItem,
+        });
+        const hits: KrogerSearchHit[] = products.map((p) => {
+          const item = p.items?.[0];
+          return {
+            productId: p.productId,
+            upc: p.upc,
+            description: p.description,
+            brand: p.brand,
+            size: item?.size,
+            soldBy: item?.soldBy,
+            regularPrice: item?.price?.regular,
+            promoPrice: item?.price?.promo,
+          };
+        });
+        suggestions.push({
+          inventoryItemId: it.id,
+          inventoryName: it.name,
+          category: it.category,
+          unit: it.unit,
+          query,
+          hits,
+        });
+      } catch (e: any) {
+        suggestions.push({
+          inventoryItemId: it.id,
+          inventoryName: it.name,
+          category: it.category,
+          unit: it.unit,
+          query,
+          hits: [],
+          error: e?.message ?? "search failed",
+        });
+      }
+    }
+
+    return { storeId, suggestions, count: suggestions.length };
+  });
+
+// ---------------------------------------------------------------------------
+// Bulk approve a set of inventory_id → UPC mappings in one call.
+// ---------------------------------------------------------------------------
+
+const bulkApproveSchema = z.object({
+  mappings: z
+    .array(
+      z.object({
+        inventoryItemId: z.string().uuid(),
+        upc: z.string().trim().min(6).max(32),
+      })
+    )
+    .min(1)
+    .max(500),
+});
+
+export const bulkApproveUpcMappings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => bulkApproveSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    let updated = 0;
+    const errors: Array<{ inventoryItemId: string; message: string }> = [];
+    for (const m of data.mappings) {
+      const { error } = await supabase
+        .from("inventory_items")
+        .update({ kroger_product_id: m.upc })
+        .eq("id", m.inventoryItemId);
+      if (error) {
+        errors.push({ inventoryItemId: m.inventoryItemId, message: error.message });
+      } else {
+        updated += 1;
+      }
+    }
+    return { updated, errors };
+  });
+
 export const getCatalogStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

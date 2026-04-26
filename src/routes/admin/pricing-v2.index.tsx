@@ -111,6 +111,9 @@ function PricingV2ControlCenter() {
           <Link to="/admin/pricing-v2/search" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
             <Play className="w-4 h-4" /> Kroger Search
           </Link>
+          <Link to="/admin/pricing-v2/bulk-suggest" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <Play className="w-4 h-4" /> Bulk UPC Auto-Suggest
+          </Link>
           <Link to="/admin/pricing-v2/errors" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
             <AlertTriangle className="w-4 h-4" /> Errors
           </Link>
