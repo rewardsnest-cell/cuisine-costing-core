@@ -100,7 +100,7 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
           }
           await supabaseAdmin
             .from("pricing_v2_keyword_schedules")
-            .update(update)
+            .update(update as any)
             .eq("id", sched.id);
         }
 
