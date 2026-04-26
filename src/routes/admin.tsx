@@ -124,6 +124,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/pricing-v2/recipes-normalize",  label: "Stage -1 — Recipe Normalization",      icon: Scale },
       { to: "/admin/pricing-v2/unit-rules",          label: "Unit Conversion Rules",                icon: Scale },
       { to: "/admin/pricing-v2/catalog",            label: "Stage 0 — Catalog Bootstrap",          icon: Tag },
+      { to: "/admin/pricing-v2/keywords",           label: "Keyword Library & Sweeps",             icon: BookOpen },
       { to: "/admin/pricing-v2/errors",             label: "Errors",                               icon: AlertTriangle },
       { to: "/admin/pricing-v2/settings",           label: "Settings",                             icon: ShieldCheck },
     ],
