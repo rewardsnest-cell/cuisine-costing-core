@@ -1184,26 +1184,7 @@ function KrogerRawExportCard() {
     setSavedCsv(null);
     try {
       const rows = await loadAllRaw();
-      // Flatten: keep core columns + a few derived fields from payload_json.
-      const flat = rows.map((r) => {
-        const p = r.payload_json ?? {};
-        const item0 = Array.isArray(p.items) ? p.items[0] : null;
-        return {
-          id: r.id,
-          fetched_at: r.fetched_at,
-          store_id: r.store_id,
-          kroger_product_id: r.kroger_product_id,
-          upc: r.upc,
-          name: r.name,
-          brand: r.brand,
-          size_raw: r.size_raw,
-          sold_by: item0?.soldBy ?? null,
-          price_regular: item0?.price?.regular ?? null,
-          price_promo: item0?.price?.promo ?? null,
-          probe_keyword: p._probe_keyword ?? null,
-          probe_fetched_at: p._probe_fetched_at ?? null,
-        };
-      });
+      const flat = flattenRows(rows);
       setProgressMsg(`Uploading ${flat.length} rows…`);
       const csv = rowsToCsv(flat);
       const saved = await saveExportFile(
