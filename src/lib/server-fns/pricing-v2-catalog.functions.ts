@@ -511,6 +511,7 @@ async function executeCatalogBootstrap(
           const chunk = errors.slice(i, i + 500);
           await supabase.from("pricing_v2_errors").insert(chunk);
         }
+      }
 
       // 3b) Persist keyword→product attribution (sweep runs only, non-dry).
       if (isKeywordSweep && !data.dry_run && keywordHits.length) {
