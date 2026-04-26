@@ -155,7 +155,7 @@ function CatalogBootstrapPage() {
     try {
       setGuardedPhase("full-running");
       const res = await runCatalogBootstrap({
-        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined },
+        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined, skip_weight_normalization: skipWeight },
       }) as RunResult;
       setLastResult(res);
       if (res.run_id) setErrFilterRun(res.run_id);
