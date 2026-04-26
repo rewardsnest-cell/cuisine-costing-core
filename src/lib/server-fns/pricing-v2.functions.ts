@@ -77,6 +77,18 @@ const settingsSchema = z.object({
   warning_threshold_pct: z.number().min(0).max(100),
   zero_cost_blocking: z.boolean(),
   default_menu_multiplier: z.number().min(0.1).max(20),
+  // Stage 4→6 automation
+  stage456_cron_enabled: z.boolean().optional(),
+  auto_apply_threshold_pct: z.number().min(0).max(100).optional(),
+}).partial({
+  // Allow callers (e.g. the new automation card) to PATCH a subset of fields.
+  kroger_store_id: true,
+  kroger_zip: true,
+  monthly_schedule_day: true,
+  monthly_schedule_hour: true,
+  warning_threshold_pct: true,
+  zero_cost_blocking: true,
+  default_menu_multiplier: true,
 });
 
 export const getPricingV2Settings = createServerFn({ method: "GET" })
@@ -103,6 +115,35 @@ export const savePricingV2Settings = createServerFn({ method: "POST" })
       .eq("id", 1);
     if (error) throw new Error(error.message);
     return { success: true };
+  });
+
+// Most recent runs created by the Stage 4→5→6 cron hook.
+// We identify scheduled runs via their notes prefix written by the cron route.
+export const getPricingV2LastScheduledRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase
+      .from("pricing_v2_runs")
+      .select("run_id, stage, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, last_error, notes")
+      .like("notes", "Stage %— scheduled%")
+      .order("started_at", { ascending: false })
+      .limit(3);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Array<{
+      run_id: string;
+      stage: string;
+      status: string;
+      started_at: string;
+      ended_at: string | null;
+      counts_in: number;
+      counts_out: number;
+      warnings_count: number;
+      errors_count: number;
+      last_error: string | null;
+      notes: string | null;
+    }>;
+    return { latest: rows[0] ?? null, recent: rows };
   });
 
 // ---- Health tiles (placeholders — wired to real queries later) ------------
