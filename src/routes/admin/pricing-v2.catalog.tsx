@@ -967,7 +967,7 @@ function AlertConfigForm({ initial, onSave, saving, onTest, testing }: { initial
         <Input className="h-8 flex-1 font-mono text-xs" placeholder="optional" value={webhookSecret}
           onChange={(e) => setWebhookSecret(e.target.value)} disabled={!webhookEnabled} />
       </div>
-      <div>
+      <div className="flex gap-2">
         <Button size="sm" disabled={saving} onClick={() => onSave({
           stuck_minutes_threshold: threshold,
           banner_enabled: bannerEnabled,
@@ -977,7 +977,13 @@ function AlertConfigForm({ initial, onSave, saving, onTest, testing }: { initial
           webhook_url: webhookUrl.trim() || null,
           webhook_secret: webhookSecret.trim() || null,
         })}>{saving ? "Saving…" : "Save alert config"}</Button>
+        <Button size="sm" variant="outline" disabled={testing} onClick={onTest}>
+          {testing ? "Sending…" : "Send test alert"}
+        </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Test sends a synthetic alert through all currently-saved enabled channels (banner + email + webhook). Save first if you've changed anything.
+      </p>
     </div>
   );
 }
