@@ -654,6 +654,9 @@ function ExportsPage() {
         </CardContent>
       </Card>
 
+      {/* Deep audit (live snapshot + mega prompt) */}
+      <DeepAuditCard />
+
       {/* CSV exports */}
       <Card>
         <CardHeader>
