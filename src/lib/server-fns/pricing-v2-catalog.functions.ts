@@ -27,7 +27,7 @@ const STAGE = "catalog" as const;
 
 // ---- Inputs ---------------------------------------------------------------
 
-const bootstrapSchema = z.object({
+export const bootstrapSchema = z.object({
   dry_run: z.boolean().default(false),
   // Per-call batch size (a single page of inventory IDs to fetch this invocation).
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
