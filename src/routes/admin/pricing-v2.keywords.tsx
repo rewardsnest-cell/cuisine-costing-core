@@ -828,6 +828,7 @@ function SchedulesSection({
                   value={untilDate}
                   onChange={(e) => setUntilDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
+                  aria-invalid={!!validationErrors.until}
                 />
               )}
               <label className="inline-flex items-center gap-1.5 text-sm">
@@ -842,11 +843,18 @@ function SchedulesSection({
               {limitMode === "runs" && (
                 <Input
                   type="number"
+                  inputMode="numeric"
+                  step={1}
                   min={1}
                   max={100000}
                   className="w-24"
                   value={maxRuns}
-                  onChange={(e) => setMaxRuns(Math.max(1, Number(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isFinite(n)) return;
+                    setMaxRuns(Math.max(1, Math.min(100000, Math.floor(n))));
+                  }}
+                  aria-invalid={!!validationErrors.runs}
                 />
               )}
               <label className="inline-flex items-center gap-1.5 text-sm">
