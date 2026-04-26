@@ -1143,7 +1143,7 @@ export const setManualWeight = createServerFn({ method: "POST" })
         grams: z.number().positive().max(1_000_000),
         reason: z.string().min(1).max(500),
         weight_source: z
-          .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed"])
+          .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
           .default("manual_override"),
       })
       .parse(input)
