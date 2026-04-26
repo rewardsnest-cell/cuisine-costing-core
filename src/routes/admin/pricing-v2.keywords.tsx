@@ -193,6 +193,8 @@ function KeywordsPage() {
         </AlertDescription>
       </Alert>
 
+      <SweepMetricsPanel />
+
       {/* Sweep controls */}
       <Card>
         <CardHeader>
