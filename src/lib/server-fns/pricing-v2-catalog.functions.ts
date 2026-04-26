@@ -241,6 +241,7 @@ async function executeCatalogBootstrap(
           dry_run: data.dry_run,
           batch_size: data.batch_size ?? null,
           keyword: data.keyword ?? null,
+          keywords: data.keywords ?? null,
           store_id: storeId,
           resumed_from: state.last_page_token ?? null,
           replay_of: opts.replay_of ?? null,
