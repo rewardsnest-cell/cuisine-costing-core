@@ -42,7 +42,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
     if (data.scope === "recipe_menu" || data.scope === "all") {
       let q = supabase
         .from("pricing_v2_recipe_costs")
-        .select("recipe_id, cost_per_serving, status, recipes!inner(id, menu_price)")
+        .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids, recipes!inner(id, menu_price)")
         .eq("is_current", true);
       if (data.recipe_ids?.length) q = q.in("recipe_id", data.recipe_ids);
       const { data: rows } = await q;
@@ -69,6 +69,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
           menu_price: menuPrice,
           status,
           warning_flags: warns,
+          contributing_inventory_item_ids: r.contributing_inventory_item_ids ?? [],
           is_current: true,
           frozen: false,
         });
