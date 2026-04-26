@@ -109,6 +109,7 @@ import { Route as AdminIngredientReferenceRouteImport } from './routes/admin/ing
 import { Route as AdminImportRecipesRouteImport } from './routes/admin/import-recipes'
 import { Route as AdminGuidesRouteImport } from './routes/admin/guides'
 import { Route as AdminGenerateRecipePhotosRouteImport } from './routes/admin/generate-recipe-photos'
+import { Route as AdminFilesReportsRouteImport } from './routes/admin/files-reports'
 import { Route as AdminFeedbackRouteImport } from './routes/admin/feedback'
 import { Route as AdminExportsRouteImport } from './routes/admin/exports'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
@@ -698,6 +699,11 @@ const AdminGenerateRecipePhotosRoute =
     path: '/generate-recipe-photos',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminFilesReportsRoute = AdminFilesReportsRouteImport.update({
+  id: '/files-reports',
+  path: '/files-reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
   id: '/feedback',
   path: '/feedback',
@@ -1161,6 +1167,7 @@ export interface FileRoutesByFullPath {
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
+  '/admin/files-reports': typeof AdminFilesReportsRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
@@ -1339,6 +1346,7 @@ export interface FileRoutesByTo {
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
+  '/admin/files-reports': typeof AdminFilesReportsRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
@@ -1520,6 +1528,7 @@ export interface FileRoutesById {
   '/admin/events': typeof AdminEventsRoute
   '/admin/exports': typeof AdminExportsRoute
   '/admin/feedback': typeof AdminFeedbackRoute
+  '/admin/files-reports': typeof AdminFilesReportsRoute
   '/admin/generate-recipe-photos': typeof AdminGenerateRecipePhotosRoute
   '/admin/guides': typeof AdminGuidesRouteWithChildren
   '/admin/import-recipes': typeof AdminImportRecipesRoute
@@ -1702,6 +1711,7 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/exports'
     | '/admin/feedback'
+    | '/admin/files-reports'
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
@@ -1880,6 +1890,7 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/exports'
     | '/admin/feedback'
+    | '/admin/files-reports'
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
@@ -2060,6 +2071,7 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/exports'
     | '/admin/feedback'
+    | '/admin/files-reports'
     | '/admin/generate-recipe-photos'
     | '/admin/guides'
     | '/admin/import-recipes'
@@ -2958,6 +2970,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGenerateRecipePhotosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/files-reports': {
+      id: '/admin/files-reports'
+      path: '/files-reports'
+      fullPath: '/admin/files-reports'
+      preLoaderRoute: typeof AdminFilesReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/feedback': {
       id: '/admin/feedback'
       path: '/feedback'
@@ -3669,6 +3688,7 @@ interface AdminRouteChildren {
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExportsRoute: typeof AdminExportsRoute
   AdminFeedbackRoute: typeof AdminFeedbackRoute
+  AdminFilesReportsRoute: typeof AdminFilesReportsRoute
   AdminGenerateRecipePhotosRoute: typeof AdminGenerateRecipePhotosRoute
   AdminGuidesRoute: typeof AdminGuidesRouteWithChildren
   AdminImportRecipesRoute: typeof AdminImportRecipesRoute
@@ -3760,6 +3780,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEventsRoute: AdminEventsRoute,
   AdminExportsRoute: AdminExportsRoute,
   AdminFeedbackRoute: AdminFeedbackRoute,
+  AdminFilesReportsRoute: AdminFilesReportsRoute,
   AdminGenerateRecipePhotosRoute: AdminGenerateRecipePhotosRoute,
   AdminGuidesRoute: AdminGuidesRouteWithChildren,
   AdminImportRecipesRoute: AdminImportRecipesRoute,

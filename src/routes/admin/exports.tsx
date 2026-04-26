@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PROJECT_AUDIT_MD, rowsToCsv, downloadFile } from "@/lib/admin/project-audit";
+import { logAndDownload } from "@/lib/admin/log-download";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import { runDeepAudit, runPricingAudit } from "@/lib/server-fns/deep-audit.functions";
@@ -828,8 +829,30 @@ function DeepAuditCard() {
     setDownloading(true);
     const toastId = toast.loading(`Preparing ${filename}…`);
     try {
-      await downloadFile(auditText, filename, "text/markdown");
-      toast.success("Deep audit downloaded", { id: toastId, description: filename });
+      const res = await logAndDownload({
+        content: auditText,
+        filename,
+        mimeType: "text/markdown",
+        kind: "audit_export",
+        module: "audit",
+        recordCount: auditText.length,
+        parameters: { promptVersion: "deep-audit", generatedAt },
+        sourceLabel: "Deep audit (AI-ready)",
+      });
+      // Also persist into project_audit_exports for diffing.
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        await (supabase as any).from("project_audit_exports").insert({
+          prompt_version: "deep-audit",
+          output_filename: filename,
+          output_content: auditText,
+          executed_by: sess.session?.user?.id ?? null,
+        });
+      } catch { /* ignore */ }
+      toast.success("Deep audit downloaded", {
+        id: toastId,
+        description: res.persisted ? `${filename} · saved to Files & Reports` : filename,
+      });
     } catch (e: any) {
       if (e?.name === "AbortError") {
         toast.dismiss(toastId);
@@ -951,8 +974,20 @@ function PricingAuditCard() {
     setDownloading(true);
     const toastId = toast.loading(`Preparing ${filename}…`);
     try {
-      await downloadFile(auditText, filename, "text/markdown");
-      toast.success("Pricing audit downloaded", { id: toastId, description: filename });
+      const res = await logAndDownload({
+        content: auditText,
+        filename,
+        mimeType: "text/markdown",
+        kind: "audit_export",
+        module: "pricing",
+        recordCount: auditText.length,
+        parameters: { promptVersion: "pricing-audit", generatedAt },
+        sourceLabel: "Pricing pipeline audit",
+      });
+      toast.success("Pricing audit downloaded", {
+        id: toastId,
+        description: res.persisted ? `${filename} · saved to Files & Reports` : filename,
+      });
     } catch (e: any) {
       if (e?.name === "AbortError") {
         toast.dismiss(toastId);

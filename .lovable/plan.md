@@ -1,81 +1,75 @@
-# Pricing v2 Audit — Why items aren't landing in the catalog
+## Goal
 
-## TL;DR
+Build a single **Admin → Files & Reports** hub that captures every generated artifact (quotes, audits, pricing audits, newsletter guides, shopping lists, recipe cards, etc.) into one database, so you can browse, filter, download again, and compare runs over time.
 
-The pipeline isn't broken — it's gated and starved. The catalog stage only pulls Kroger products for inventory items that have a `kroger_product_id` mapped, and **only 1 of 689 inventory items has that mapping**. Bootstrap state is still `NOT_STARTED`, and recent "real" runs returned 0–1 items because there was nothing to fetch.
+## What already exists (we'll build on it, not replace)
 
-## What I checked (live data)
+- Table `public.user_downloads` already stores logged files with: `kind`, `module`, `filename`, `storage_path`, `public_url`, `mime_type`, `size_bytes`, `record_count`, `parameters` (JSONB snapshot of options), `generated_by_email`, `created_at`, plus source linkage (`source_id`, `source_label`).
+- Helper `saveAndLogDownload()` in `src/lib/downloads/save-download.ts` already uploads the blob to storage AND inserts a row.
+- An admin page `src/routes/admin/downloads.tsx` already lists `user_downloads` with filters by kind/module/user.
+- Table `public.project_audit_exports` separately stores Deep Audit markdown content.
 
-**Tables:**
-- `pricing_v2_item_catalog`: **13 rows total** — 6 are real test fixtures (`store_id='TEST'`), only **1 real Kroger product** (`Kroger® Active Dry Yeast`), 6 from older test runs.
-- `pricing_v2_kroger_catalog_raw`: 14 rows (mostly the same test fixtures + the one real product).
-- `inventory_items`: 689 rows, **only 1 has `kroger_product_id` set**.
-- `pricing_v2_catalog_bootstrap_state` for store `01400376`: `status=NOT_STARTED`, `total_items_fetched=0`, no `started_at`.
-- `pricing_v2_settings.min_mapped_inventory_for_bootstrap = 1` (gate is permissive).
+The gap: **the audit/pricing-audit downloads use `downloadFile()` (browser-only) and are NOT logged**, so they never show up in the hub. Quotes PDFs and a few other generators also bypass logging.
 
-**Recent `catalog` runs (`pricing_v2_runs`):**
+## Plan
 
-```text
-status   counts_in  counts_out  params
-success     1           1       dry_run=false               ← only run that wrote anything
-success     1           0       dry_run=true                ← dry runs never persist
-success     1           0       dry_run=true
-success     1           0       dry_run=true
-failed      0           0       (orphaned, killed by enum-fix)
-failed      0           0       (orphaned)
-failed      0           0       (orphaned)
-```
+### 1. Wire every "Run / Download" action into the central log
 
-The `1` that flowed through is the single mapped inventory item (Active Dry Yeast). Every other "real" attempt was either a dry run, an orphan, or had nothing to ingest.
+For each generator, switch from raw `downloadFile()` / browser anchor to `saveAndLogDownload()` so a row + storage copy is created every time. Coverage pass:
 
-**Recent errors (`pricing_v2_errors`)** are concentrated in `recipe_weight_normalization`, not catalog ingest:
-- `VOLUME_UNIT_NO_DENSITY` — recipes use `cup`, `tbsp` without densities defined.
-- `EACH_UNIT_NO_WEIGHT` — items use `each` with no `each_weight_grams`.
-- `ZERO_OR_NEG_GRAMS` from a trigger: `record "new" has no field "show_on_home"` — a Postgres trigger on a recipe table references a missing column. This blocks recipe weight normalization writes.
-- `Cannot add a free-text ingredient … to a published recipe; link it to ingredient_reference first or move the recipe back to draft` — recipes published before ingredients were linked.
+- Deep Audit (`src/routes/admin/exports.tsx` → `DeepAuditCard`) — kind `audit_export`, module `audit`, parameters = `{ promptVersion, scope }`.
+- Pricing Audit (`exports.tsx` → `PricingAuditCard`) — kind `audit_export`, module `pricing`.
+- Quote PDFs (`src/lib/generate-quote-pdf.ts` callers in `quote.tsx`, `admin/quotes.$id.tsx`, `q.$reference.tsx`) — kind `quote_pdf`, module `quote`, `source_id = quote.id`, parameters snapshot of totals/line counts.
+- Newsletter Guide (`admin/newsletter-guide.tsx`) — kind `newsletter_guide`.
+- Shopping list PDF/XLSX (`src/lib/cqh/shopping-list-*.ts`) — kind `shopping_list`.
+- Recipe cards (`RecipeScaler.tsx`) — kind `recipe_card`.
+- Pricing code inventory + intelligence exports — kind `admin_export`, module `pricing`.
 
-## Root causes (ranked)
+Every call passes a real `parameters` JSON (filters, date ranges, scope) and `record_count` so reports are meaningful.
 
-1. **Catalog ingest is mapping-driven, not catalog-driven.** `runCatalogBootstrap` in `src/lib/server-fns/pricing-v2-catalog.functions.ts` collects `kroger_product_id` values from `inventory_items` and calls `fetchProductsByIds(...)`. With only 1 inventory item mapped, the pipeline can fetch at most 1 product per run. Without a Kroger ID, the keyword search path (`searchProducts`) only runs when an explicit `keyword` is passed — the UI hasn't been triggering that.
-2. **Bootstrap_state never advanced.** All real ingest attempts ran in `dry_run=true` (4 of 7) or were orphaned by the earlier enum-value bug (3 of 7). The single non-dry success only persisted 1 row and didn't advance `total_items_fetched` enough to flip `status` to `IN_PROGRESS`/`COMPLETED`.
-3. **Trigger bug blocks recipe normalization writes.** A trigger references a non-existent column `show_on_home`, surfacing as `record "new" has no field "show_on_home"` whenever Stage 2 tries to update a recipe ingredient. This explains the 1767 errors on the 04-25 21:31 normalization run.
-4. **No volume/each conversions configured.** Even with a perfect catalog, recipes using `cup`, `tbsp`, `each` cannot be costed without densities and `each_weight_grams`. `pricing_v2_unit_conversion_rules` and inventory `each_weight_grams` are unpopulated for the offending ingredients.
-5. **Inventory ↔ ingredient_reference linkage is incomplete.** Published recipes reject free-text ingredients, so even successful catalog ingest can't reach the recipes until ingredients are linked.
+### 2. Also persist Deep Audit markdown into `project_audit_exports`
 
-## What the audit will deliver (read-only, no code changes yet)
+Keep the existing audit history table populated whenever a Deep Audit runs (insert row with `prompt_version`, `output_filename`, `output_content`, `executed_by`). This lets us diff two audit runs later.
 
-A downloadable Markdown report at `/admin/exports` (extending the existing Deep Audit) with these sections, all sourced from live DB:
+### 3. New unified admin page: **Files & Reports** (`/admin/files-reports`)
 
-1. **Catalog health**
-   - Mapped inventory count vs total, % mapped, list of top-100 unmapped high-usage items.
-   - Bootstrap_state per store, last cursor, completion %.
-   - Last 20 catalog runs with `dry_run`, counts, errors, duration.
-2. **Item catalog quality**
-   - Rows by `weight_source` (parsed / manual / unknown).
-   - Rows missing `net_weight_grams`, grouped by failure reason.
-3. **Recipe normalization blockers**
-   - Top error types with example messages (volume-no-density, each-no-weight, trigger errors).
-   - List of recipes blocked by free-text ingredients on published recipes.
-   - SQL snippet identifying the bad `show_on_home` trigger so it can be fixed.
-4. **Pipeline gates**
-   - Current `pricing_v2_settings` values (store ID, ZIP, thresholds, blocking flags).
-   - Whether `min_mapped_inventory_for_bootstrap` would block a real bootstrap.
-5. **Recommended next actions** (ordered, with effort estimate):
-   1. Fix the `show_on_home` trigger (1 migration).
-   2. Backfill `kroger_product_id` on top-N inventory items (UI exists at `/admin/pricing-v2/catalog`).
-   3. Run a real (non-dry) bootstrap with `keyword` fallback for unmapped items.
-   4. Populate volume densities + `each_weight_grams` for the ingredients listed in §3.
-   5. Link free-text ingredients on published recipes to `ingredient_reference`.
+A single hub with three tabs:
 
-## Implementation (after approval)
+**Tab A — All files** (extends current `/admin/downloads`)
+- Grouped by module (Audit, Pricing, Quotes, Recipes, Newsletter, Shopping, Other) with counts.
+- Filters: module, kind, generator (user), date range, search by filename/source label.
+- Each row: download (re-uses `public_url` or re-signed storage URL), open parameters drawer, delete.
+- Bulk select → "Compare selected" (≥2 rows of same kind) opens compare view.
 
-- Add `runPricingAudit` server function in `src/lib/server-fns/deep-audit.functions.ts` that aggregates the queries above into a single Markdown blob.
-- Add a "Pricing audit" button to the existing Deep Audit card on `/admin/exports` (separate from the architecture audit so the two don't collide). Same preview + download UX.
-- No schema changes. No data writes. Read-only RPCs only — reuses the admin guard already on the page.
+**Tab B — Reports**
+- Daily/weekly chart: file count by module.
+- "Top generators" table (by `generated_by_email`).
+- Avg `record_count` per kind, total storage MB.
+- Latest audit summary card (links to most recent Deep + Pricing audit).
+
+**Tab C — Compare runs**
+- Pick 2 rows of the same `kind`. For text artifacts (audits, SQL appendix, CSVs) show side-by-side with a basic line diff. For numeric artifacts (quotes, pricing audits) show a parameter diff + record_count delta.
+
+### 4. Sidebar + dashboard links
+
+- Add "Files & Reports" entry under the Overview/Operations group in `src/routes/admin.tsx` `NAV_GROUPS`.
+- Add a dashboard tile on `/admin` linking to it.
+- Redirect existing `/admin/downloads` to the new page (keep route as alias) so old links keep working.
+
+### 5. Storage + DB hygiene
+
+- No schema migration needed — `user_downloads` already has every column we need.
+- Migration adds: small view `v_files_reports_daily` (date_trunc('day'), module, kind, count, sum bytes) for the Reports tab to query cheaply.
+- Add a nightly retention setting (kept in `app_settings`) to optionally prune file blobs older than N days while keeping the metadata row.
+
+## Technical notes
+
+- All generator changes are in client components — `saveAndLogDownload` returns `{ persisted, publicUrl }` and falls back to a local download if the user is anonymous, so user-facing UX (the recent loading-spinner + toast pattern) is preserved.
+- New page is a TanStack Start route file `src/routes/admin/files-reports.tsx` using `Route.useSearch()` for filter state (consistent with other admin pages) and `errorComponent` + `notFoundComponent`.
+- Compare diff uses a tiny in-repo line-diff helper (no new heavy dep); for parameter diff, JSON.stringify with sorted keys.
+- The view `v_files_reports_daily` is read with `supabase.from('v_files_reports_daily').select(...)`; RLS via `has_role(auth.uid(),'admin')`.
 
 ## Files touched
 
-- `src/lib/server-fns/deep-audit.functions.ts` — add `runPricingAudit`.
-- `src/routes/admin/exports.tsx` — add second button + state to the existing `DeepAuditCard` (or sibling `PricingAuditCard`).
-
-No migrations. No RLS changes.
+- New: `src/routes/admin/files-reports.tsx`, `src/lib/admin/files-reports/diff.ts`, migration adding the view.
+- Edit: `exports.tsx` (audit + pricing audit cards), `newsletter-guide.tsx`, `quote.tsx`, `admin/quotes.$id.tsx`, `q.$reference.tsx`, `RecipeScaler.tsx`, `cqh/shopping-list-*.ts` callers, `pricing-code-inventory.tsx`, `intelligence.tsx`, `admin.tsx` (nav), `admin/index.tsx` (tile), `admin/downloads.tsx` (redirect).
