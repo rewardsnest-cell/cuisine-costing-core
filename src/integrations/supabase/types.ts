@@ -2964,6 +2964,45 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_keyword_library: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          keyword: string
+          last_hits: number | null
+          last_run_at: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          keyword: string
+          last_hits?: number | null
+          last_run_at?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          keyword?: string
+          last_hits?: number | null
+          last_run_at?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_v2_kroger_catalog_raw: {
         Row: {
           brand: string | null
