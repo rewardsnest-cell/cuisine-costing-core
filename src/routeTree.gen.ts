@@ -157,6 +157,7 @@ import { Route as AdminPricingV2UnitRulesRouteImport } from './routes/admin/pric
 import { Route as AdminPricingV2SettingsRouteImport } from './routes/admin/pricing-v2.settings'
 import { Route as AdminPricingV2SearchRouteImport } from './routes/admin/pricing-v2.search'
 import { Route as AdminPricingV2RecipesNormalizeRouteImport } from './routes/admin/pricing-v2.recipes-normalize'
+import { Route as AdminPricingV2RecipeCostsRouteImport } from './routes/admin/pricing-v2.recipe-costs'
 import { Route as AdminPricingV2KeywordsRouteImport } from './routes/admin/pricing-v2.keywords'
 import { Route as AdminPricingV2ErrorsRouteImport } from './routes/admin/pricing-v2.errors'
 import { Route as AdminPricingV2CostQueueRouteImport } from './routes/admin/pricing-v2.cost-queue'
@@ -941,6 +942,12 @@ const AdminPricingV2RecipesNormalizeRoute =
     path: '/pricing-v2/recipes-normalize',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminPricingV2RecipeCostsRoute =
+  AdminPricingV2RecipeCostsRouteImport.update({
+    id: '/pricing-v2/recipe-costs',
+    path: '/pricing-v2/recipe-costs',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminPricingV2KeywordsRoute = AdminPricingV2KeywordsRouteImport.update({
   id: '/pricing-v2/keywords',
   path: '/pricing-v2/keywords',
@@ -1233,6 +1240,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing-v2/cost-queue': typeof AdminPricingV2CostQueueRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/keywords': typeof AdminPricingV2KeywordsRoute
+  '/admin/pricing-v2/recipe-costs': typeof AdminPricingV2RecipeCostsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/search': typeof AdminPricingV2SearchRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
@@ -1409,6 +1417,7 @@ export interface FileRoutesByTo {
   '/admin/pricing-v2/cost-queue': typeof AdminPricingV2CostQueueRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/keywords': typeof AdminPricingV2KeywordsRoute
+  '/admin/pricing-v2/recipe-costs': typeof AdminPricingV2RecipeCostsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/search': typeof AdminPricingV2SearchRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
@@ -1588,6 +1597,7 @@ export interface FileRoutesById {
   '/admin/pricing-v2/cost-queue': typeof AdminPricingV2CostQueueRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
   '/admin/pricing-v2/keywords': typeof AdminPricingV2KeywordsRoute
+  '/admin/pricing-v2/recipe-costs': typeof AdminPricingV2RecipeCostsRoute
   '/admin/pricing-v2/recipes-normalize': typeof AdminPricingV2RecipesNormalizeRoute
   '/admin/pricing-v2/search': typeof AdminPricingV2SearchRoute
   '/admin/pricing-v2/settings': typeof AdminPricingV2SettingsRoute
@@ -1768,6 +1778,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/cost-queue'
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/keywords'
+    | '/admin/pricing-v2/recipe-costs'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/search'
     | '/admin/pricing-v2/settings'
@@ -1944,6 +1955,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/cost-queue'
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/keywords'
+    | '/admin/pricing-v2/recipe-costs'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/search'
     | '/admin/pricing-v2/settings'
@@ -2122,6 +2134,7 @@ export interface FileRouteTypes {
     | '/admin/pricing-v2/cost-queue'
     | '/admin/pricing-v2/errors'
     | '/admin/pricing-v2/keywords'
+    | '/admin/pricing-v2/recipe-costs'
     | '/admin/pricing-v2/recipes-normalize'
     | '/admin/pricing-v2/search'
     | '/admin/pricing-v2/settings'
@@ -3268,6 +3281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingV2RecipesNormalizeRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-v2/recipe-costs': {
+      id: '/admin/pricing-v2/recipe-costs'
+      path: '/pricing-v2/recipe-costs'
+      fullPath: '/admin/pricing-v2/recipe-costs'
+      preLoaderRoute: typeof AdminPricingV2RecipeCostsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pricing-v2/keywords': {
       id: '/admin/pricing-v2/keywords'
       path: '/pricing-v2/keywords'
@@ -3685,6 +3705,7 @@ interface AdminRouteChildren {
   AdminPricingV2CostQueueRoute: typeof AdminPricingV2CostQueueRoute
   AdminPricingV2ErrorsRoute: typeof AdminPricingV2ErrorsRoute
   AdminPricingV2KeywordsRoute: typeof AdminPricingV2KeywordsRoute
+  AdminPricingV2RecipeCostsRoute: typeof AdminPricingV2RecipeCostsRoute
   AdminPricingV2RecipesNormalizeRoute: typeof AdminPricingV2RecipesNormalizeRoute
   AdminPricingV2SearchRoute: typeof AdminPricingV2SearchRoute
   AdminPricingV2SettingsRoute: typeof AdminPricingV2SettingsRoute
@@ -3774,6 +3795,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPricingV2CostQueueRoute: AdminPricingV2CostQueueRoute,
   AdminPricingV2ErrorsRoute: AdminPricingV2ErrorsRoute,
   AdminPricingV2KeywordsRoute: AdminPricingV2KeywordsRoute,
+  AdminPricingV2RecipeCostsRoute: AdminPricingV2RecipeCostsRoute,
   AdminPricingV2RecipesNormalizeRoute: AdminPricingV2RecipesNormalizeRoute,
   AdminPricingV2SearchRoute: AdminPricingV2SearchRoute,
   AdminPricingV2SettingsRoute: AdminPricingV2SettingsRoute,
