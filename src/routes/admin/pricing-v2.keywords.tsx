@@ -671,15 +671,18 @@ function SchedulesSection({
             <div className="flex items-center gap-2">
               <Switch
                 id="all-kw"
-                checked={useAllKeywords}
+                checked={useAllKeywords || isContinuousMode}
                 onCheckedChange={setUseAllKeywords}
+                disabled={isContinuousMode}
               />
               <Label htmlFor="all-kw" className="text-sm">
                 Sweep <strong>all enabled keywords</strong> in the library (no filter)
               </Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              {useAllKeywords ? (
+              {isContinuousMode ? (
+                <>Continuous mode always sweeps every enabled keyword (currently {rows.filter((r) => r.enabled).length}).</>
+              ) : useAllKeywords ? (
                 <>Will run against every enabled keyword at the time the schedule fires (currently {effectiveKeywordCount}).</>
               ) : editingId ? (
                 <>Locked to the {editKeywordIds.length} keyword{editKeywordIds.length === 1 ? "" : "s"} captured when saved. Re-save while editing to refresh.</>
