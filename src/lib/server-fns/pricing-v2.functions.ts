@@ -117,6 +117,35 @@ export const savePricingV2Settings = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+// Most recent runs created by the Stage 4→5→6 cron hook.
+// We identify scheduled runs via their notes prefix written by the cron route.
+export const getPricingV2LastScheduledRun = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const { data, error } = await supabase
+      .from("pricing_v2_runs")
+      .select("run_id, stage, status, started_at, ended_at, counts_in, counts_out, warnings_count, errors_count, last_error, notes")
+      .like("notes", "Stage %— scheduled%")
+      .order("started_at", { ascending: false })
+      .limit(3);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Array<{
+      run_id: string;
+      stage: string;
+      status: string;
+      started_at: string;
+      ended_at: string | null;
+      counts_in: number;
+      counts_out: number;
+      warnings_count: number;
+      errors_count: number;
+      last_error: string | null;
+      notes: string | null;
+    }>;
+    return { latest: rows[0] ?? null, recent: rows };
+  });
+
 // ---- Health tiles (placeholders — wired to real queries later) ------------
 
 export const getPricingV2Health = createServerFn({ method: "GET" })
