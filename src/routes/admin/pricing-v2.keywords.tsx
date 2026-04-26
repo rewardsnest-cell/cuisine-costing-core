@@ -138,7 +138,6 @@ function KeywordsPage() {
 
   const sweepMut = useMutation({
     mutationFn: async () => {
-      const ids = Array.from(selected);
       const terms = rows
         .filter((r) => selected.has(r.id) && r.enabled)
         .map((r) => r.keyword);
@@ -153,16 +152,17 @@ function KeywordsPage() {
           bypass_min_mapped_check: true,
         } as any,
       });
-      // Update last_run stats (count attributed evenly is rough; store total)
-      if (!dryRun && res?.counts_out != null) {
-        try {
-          await markKeywordsRun({
-            data: { ids, hits_total: Number(res.counts_out) },
-          });
-        } catch {}
-      }
       return res;
     },
+    onSuccess: (res: any) => {
+      const inCount = res?.counts_in ?? 0;
+      const outCount = res?.counts_out ?? 0;
+      toast.success(`Sweep complete — fetched ${inCount}, persisted ${outCount}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keywords", "library"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "runs"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Sweep failed"),
+  });
     onSuccess: (res: any) => {
       const inCount = res?.counts_in ?? 0;
       const outCount = res?.counts_out ?? 0;
