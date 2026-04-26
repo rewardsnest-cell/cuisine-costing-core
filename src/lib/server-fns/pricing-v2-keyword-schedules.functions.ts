@@ -18,6 +18,11 @@ export type ScheduleRow = {
   expires_at: string | null;
   max_runs: number | null;
   run_count: number;
+  continuous_mode: boolean;
+  stop_when_no_new_items: boolean;
+  empty_runs_threshold: number;
+  consecutive_empty_runs: number;
+  continuous_interval_seconds: number;
   last_run_at: string | null;
   last_run_id: string | null;
   next_run_at: string;
@@ -50,8 +55,12 @@ const upsertSchema = z
     expires_at: z.string().datetime().nullable().optional(),
     max_runs: z.number().int().min(1).max(100000).nullable().optional(),
     next_run_at: z.string().datetime().optional(),
+    continuous_mode: z.boolean().default(false),
+    stop_when_no_new_items: z.boolean().default(true),
+    empty_runs_threshold: z.number().int().min(1).max(50).default(2),
+    continuous_interval_seconds: z.number().int().min(10).max(3600).default(60),
   })
-  .refine((v) => v.use_all_keywords || v.keyword_ids.length > 0, {
+  .refine((v) => v.use_all_keywords || v.continuous_mode || v.keyword_ids.length > 0, {
     message: "Pick at least one keyword or enable 'sweep all keywords'.",
     path: ["keyword_ids"],
   });
@@ -61,16 +70,24 @@ export const upsertKeywordSchedule = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => upsertSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    // Continuous mode forces "use all enabled keywords" semantically.
+    const useAll = data.use_all_keywords || data.continuous_mode;
     const payload: Record<string, any> = {
       name: data.name,
       cadence_hours: data.cadence_hours,
-      keyword_ids: data.use_all_keywords ? [] : data.keyword_ids,
+      keyword_ids: useAll ? [] : data.keyword_ids,
       keyword_limit: data.keyword_limit,
       skip_weight_normalization: data.skip_weight_normalization,
       enabled: data.enabled,
-      use_all_keywords: data.use_all_keywords,
+      use_all_keywords: useAll,
       expires_at: data.expires_at ?? null,
       max_runs: data.max_runs ?? null,
+      continuous_mode: data.continuous_mode,
+      stop_when_no_new_items: data.stop_when_no_new_items,
+      empty_runs_threshold: data.empty_runs_threshold,
+      continuous_interval_seconds: data.continuous_interval_seconds,
+      // Reset empty-run counter on every save so toggles re-arm continuous mode.
+      consecutive_empty_runs: 0,
     };
     if (data.next_run_at) payload.next_run_at = data.next_run_at;
 
