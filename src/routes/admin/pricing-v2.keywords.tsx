@@ -621,6 +621,15 @@ function SchedulesSection({
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  const runNowMut = useMutation({
+    mutationFn: (id: string) => runKeywordScheduleNow({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Queued — will run on the next cron tick (within ~1 min)");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to start schedule"),
+  });
+
   const list = schedules.data?.rows ?? [];
   const kwById = new Map(rows.map((r) => [r.id, r.keyword]));
   const enabledCount = rows.filter((r) => r.enabled).length;
