@@ -293,12 +293,38 @@ async function executeCatalogBootstrap(
       }
 
       // Keyword sweep is supplemental and only runs on the FIRST invocation.
-      if (data.keyword && !nextCursor) {
-        const more = await searchProducts({ storeId, term: data.keyword, limit: 250 });
+      if (!nextCursor) {
+        const terms: string[] = [];
+        if (data.keyword) terms.push(data.keyword);
+        if (data.keywords?.length) {
+          for (const k of data.keywords) {
+            const t = k.trim();
+            if (t && !terms.some((x) => x.toLowerCase() === t.toLowerCase())) terms.push(t);
+          }
+        }
         const seenK = new Set(products.map((p) => productKey(storeId, p)));
-        for (const p of more) {
-          const k = productKey(storeId, p);
-          if (!seenK.has(k)) { products.push(p); seenK.add(k); }
+        for (const term of terms) {
+          try {
+            const more = await searchProducts({ storeId, term, limit: data.keyword_limit });
+            for (const p of more) {
+              const k = productKey(storeId, p);
+              if (!seenK.has(k)) { products.push(p); seenK.add(k); }
+            }
+          } catch (e: any) {
+            warnings += 1;
+            errors.push({
+              run_id: runId,
+              stage: STAGE,
+              severity: "warning",
+              type: "KEYWORD_SEARCH_FAILED",
+              entity_type: "keyword",
+              entity_id: null,
+              entity_name: term,
+              message: `Kroger search failed for "${term}": ${e?.message ?? "unknown"}`,
+              suggested_fix: "Retry the sweep; if persistent, check Kroger API status / rate limits.",
+              debug_json: { term },
+            });
+          }
         }
       }
 
