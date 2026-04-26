@@ -442,13 +442,15 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon } from "lucide-react";
 import {
   listKeywordSchedules,
   upsertKeywordSchedule,
   deleteKeywordSchedule,
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
+
+type LimitMode = "forever" | "until" | "runs";
 
 function SchedulesSection({
   rows,
@@ -466,27 +468,84 @@ function SchedulesSection({
     queryKey: ["pricing-v2", "keyword-schedules"],
     queryFn: () => listKeywordSchedules(),
   });
+
+  // Form state — used for both "new" (no editingId) and "edit" (editingId set)
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [cadence, setCadence] = useState<number>(24);
+  const [useAllKeywords, setUseAllKeywords] = useState(false);
+  const [limitMode, setLimitMode] = useState<LimitMode>("forever");
+  const [untilDate, setUntilDate] = useState(""); // yyyy-mm-dd
+  const [maxRuns, setMaxRuns] = useState<number>(10);
+  // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
+  // new, we use the live `currentSelection` from the parent.
+  const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      upsertKeywordSchedule({
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setCadence(24);
+    setUseAllKeywords(false);
+    setLimitMode("forever");
+    setUntilDate("");
+    setMaxRuns(10);
+    setEditKeywordIds([]);
+  }
+
+  function startEdit(s: ScheduleRow) {
+    setEditingId(s.id);
+    setName(s.name);
+    setCadence(s.cadence_hours);
+    setUseAllKeywords(!!s.use_all_keywords);
+    setEditKeywordIds(s.keyword_ids ?? []);
+    if (s.expires_at) {
+      setLimitMode("until");
+      setUntilDate(new Date(s.expires_at).toISOString().slice(0, 10));
+      setMaxRuns(10);
+    } else if (s.max_runs) {
+      setLimitMode("runs");
+      setMaxRuns(s.max_runs);
+      setUntilDate("");
+    } else {
+      setLimitMode("forever");
+      setUntilDate("");
+      setMaxRuns(10);
+    }
+  }
+
+  const saveMut = useMutation({
+    mutationFn: () => {
+      const keyword_ids = useAllKeywords
+        ? []
+        : editingId
+        ? editKeywordIds
+        : currentSelection;
+      const expires_at =
+        limitMode === "until" && untilDate
+          ? new Date(`${untilDate}T23:59:59`).toISOString()
+          : null;
+      const max_runs = limitMode === "runs" ? maxRuns : null;
+      return upsertKeywordSchedule({
         data: {
+          id: editingId ?? undefined,
           name: name.trim(),
           cadence_hours: cadence,
-          keyword_ids: currentSelection,
+          keyword_ids,
           keyword_limit: keywordLimit,
           skip_weight_normalization: skipWeight,
           enabled: true,
+          use_all_keywords: useAllKeywords,
+          expires_at,
+          max_runs,
         },
-      }),
+      });
+    },
     onSuccess: () => {
-      toast.success("Schedule created");
-      setName("");
+      toast.success(editingId ? "Schedule updated" : "Schedule created");
+      resetForm();
       qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Create failed"),
+    onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
 
   const toggleMut = useMutation({
@@ -496,10 +555,13 @@ function SchedulesSection({
           id: s.id,
           name: s.name,
           cadence_hours: s.cadence_hours,
-          keyword_ids: s.keyword_ids,
+          keyword_ids: s.keyword_ids ?? [],
           keyword_limit: s.keyword_limit,
           skip_weight_normalization: s.skip_weight_normalization,
           enabled: !s.enabled,
+          use_all_keywords: !!s.use_all_keywords,
+          expires_at: s.expires_at ?? null,
+          max_runs: s.max_runs ?? null,
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
@@ -510,6 +572,7 @@ function SchedulesSection({
     mutationFn: (id: string) => deleteKeywordSchedule({ data: { id } }),
     onSuccess: () => {
       toast.success("Schedule removed");
+      if (editingId) resetForm();
       qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
@@ -517,6 +580,17 @@ function SchedulesSection({
 
   const list = schedules.data?.rows ?? [];
   const kwById = new Map(rows.map((r) => [r.id, r.keyword]));
+  const effectiveKeywordCount = useAllKeywords
+    ? rows.filter((r) => r.enabled).length
+    : editingId
+    ? editKeywordIds.length
+    : currentSelection.length;
+  const canSave =
+    !!name.trim() &&
+    !saveMut.isPending &&
+    (useAllKeywords || effectiveKeywordCount > 0) &&
+    (limitMode !== "until" || !!untilDate) &&
+    (limitMode !== "runs" || maxRuns > 0);
 
   return (
     <Card>
@@ -525,50 +599,140 @@ function SchedulesSection({
           <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         <p className="text-xs text-muted-foreground">
-          Schedules run automatically (checked hourly). The current selection above
-          ({currentSelection.length} keyword{currentSelection.length === 1 ? "" : "s"}),
-          hits-per-keyword ({keywordLimit}) and skip-weight ({String(skipWeight)}) are saved with the schedule.
+          Schedules are checked hourly and run automatically. Each schedule remembers
+          the keyword set, hits-per-keyword, and skip-weight setting captured when it was saved.
         </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="sched-name">Name</Label>
-            <Input
-              id="sched-name"
-              placeholder="e.g. Daily produce + dairy"
-              className="w-64"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+
+        {/* Form */}
+        <div className="rounded-md border p-4 space-y-4 bg-muted/20">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm font-medium">
+              {editingId ? "Edit schedule" : "New schedule"}
+            </div>
+            {editingId && (
+              <Button size="sm" variant="ghost" onClick={resetForm}>
+                <XIcon className="w-3 h-3" /> Cancel edit
+              </Button>
+            )}
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="sched-cadence">Cadence (hours)</Label>
-            <Input
-              id="sched-cadence"
-              type="number"
-              min={1}
-              max={720}
-              className="w-28"
-              value={cadence}
-              onChange={(e) => setCadence(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
-            />
-            <p className="text-[10px] text-muted-foreground">24 = daily · 168 = weekly</p>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="sched-name">Name</Label>
+              <Input
+                id="sched-name"
+                placeholder="e.g. Daily produce + dairy"
+                className="w-64"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sched-cadence">Cadence (hours)</Label>
+              <Input
+                id="sched-cadence"
+                type="number"
+                min={1}
+                max={720}
+                className="w-28"
+                value={cadence}
+                onChange={(e) => setCadence(Math.max(1, Math.min(720, Number(e.target.value) || 24)))}
+              />
+              <p className="text-[10px] text-muted-foreground">24 = daily · 168 = weekly</p>
+            </div>
           </div>
-          <Button
-            size="sm"
-            onClick={() => createMut.mutate()}
-            disabled={
-              !name.trim() ||
-              currentSelection.length === 0 ||
-              createMut.isPending
-            }
-          >
-            {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save schedule from current selection
-          </Button>
+
+          {/* Keyword scope toggle */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="all-kw"
+                checked={useAllKeywords}
+                onCheckedChange={setUseAllKeywords}
+              />
+              <Label htmlFor="all-kw" className="text-sm">
+                Sweep <strong>all enabled keywords</strong> in the library (no filter)
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {useAllKeywords ? (
+                <>Will run against every enabled keyword at the time the schedule fires (currently {effectiveKeywordCount}).</>
+              ) : editingId ? (
+                <>Locked to the {editKeywordIds.length} keyword{editKeywordIds.length === 1 ? "" : "s"} captured when saved. Re-save while editing to refresh.</>
+              ) : (
+                <>Will use your current selection above ({currentSelection.length} keyword{currentSelection.length === 1 ? "" : "s"}).</>
+              )}
+            </p>
+          </div>
+
+          {/* Run-until / max-runs toggle */}
+          <div className="space-y-2">
+            <Label className="text-sm">Run for how long?</Label>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="limit-mode"
+                  checked={limitMode === "forever"}
+                  onChange={() => setLimitMode("forever")}
+                />
+                Forever (until disabled)
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="limit-mode"
+                  checked={limitMode === "until"}
+                  onChange={() => setLimitMode("until")}
+                />
+                Until date
+              </label>
+              {limitMode === "until" && (
+                <Input
+                  type="date"
+                  className="w-44"
+                  value={untilDate}
+                  onChange={(e) => setUntilDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                />
+              )}
+              <label className="inline-flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="limit-mode"
+                  checked={limitMode === "runs"}
+                  onChange={() => setLimitMode("runs")}
+                />
+                For N runs
+              </label>
+              {limitMode === "runs" && (
+                <Input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  className="w-24"
+                  value={maxRuns}
+                  onChange={(e) => setMaxRuns(Math.max(1, Number(e.target.value) || 1))}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={() => saveMut.mutate()}
+              disabled={!canSave}
+            >
+              {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editingId ? "Save changes" : "Save schedule"}
+            </Button>
+          </div>
         </div>
 
+        {/* List */}
         {schedules.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : list.length === 0 ? (
@@ -580,11 +744,12 @@ function SchedulesSection({
                 <tr>
                   <th className="p-2">Name</th>
                   <th className="p-2">Cadence</th>
-                  <th className="p-2">Keywords</th>
+                  <th className="p-2">Scope</th>
+                  <th className="p-2">Limit</th>
                   <th className="p-2">Last run</th>
                   <th className="p-2">Next run</th>
                   <th className="p-2">Enabled</th>
-                  <th className="p-2"></th>
+                  <th className="p-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -592,16 +757,31 @@ function SchedulesSection({
                   const sample = (s.keyword_ids ?? []).slice(0, 4).map((id) => kwById.get(id) ?? id.slice(0, 6));
                   const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
                   return (
-                    <tr key={s.id} className="border-t">
+                    <tr key={s.id} className={`border-t ${editingId === s.id ? "bg-primary/5" : ""}`}>
                       <td className="p-2 font-medium">{s.name}</td>
                       <td className="p-2 tabular-nums">
                         {s.cadence_hours}h
                         {s.cadence_hours === 24 ? " (daily)" : s.cadence_hours === 168 ? " (weekly)" : ""}
                       </td>
                       <td className="p-2 text-xs">
-                        <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
-                        {sample.join(", ")}
-                        {more > 0 && <span className="text-muted-foreground"> +{more}</span>}
+                        {s.use_all_keywords ? (
+                          <Badge variant="secondary">All enabled keywords</Badge>
+                        ) : (
+                          <>
+                            <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
+                            {sample.join(", ")}
+                            {more > 0 && <span className="text-muted-foreground"> +{more}</span>}
+                          </>
+                        )}
+                      </td>
+                      <td className="p-2 text-xs">
+                        {s.expires_at ? (
+                          <>until {new Date(s.expires_at).toLocaleDateString()}</>
+                        ) : s.max_runs ? (
+                          <>{s.run_count ?? 0} / {s.max_runs} runs</>
+                        ) : (
+                          <span className="text-muted-foreground">forever</span>
+                        )}
                       </td>
                       <td className="p-2 text-xs text-muted-foreground">
                         {s.last_run_at ? new Date(s.last_run_at).toLocaleString() : "—"}
@@ -619,7 +799,15 @@ function SchedulesSection({
                           disabled={toggleMut.isPending}
                         />
                       </td>
-                      <td className="p-2 text-right">
+                      <td className="p-2 text-right whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => startEdit(s)}
+                          title="Edit"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -627,6 +815,7 @@ function SchedulesSection({
                             if (confirm(`Delete schedule "${s.name}"?`)) delMut.mutate(s.id);
                           }}
                           disabled={delMut.isPending}
+                          title="Delete"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
@@ -642,3 +831,4 @@ function SchedulesSection({
     </Card>
   );
 }
+
