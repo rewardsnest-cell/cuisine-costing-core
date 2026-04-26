@@ -354,11 +354,19 @@ function QuickQuotePage() {
                   <p className="text-xs text-muted-foreground mb-2">Selected</p>
                   <ul className="space-y-1 max-h-40 overflow-y-auto">
                     {selected.map((r) => (
-                      <li key={r.id} className="text-xs flex justify-between gap-2">
-                        <span className="truncate">{r.name}</span>
+                      <li key={r.id} className="text-xs flex justify-between gap-2 items-center">
+                        <span className="truncate flex-1">{r.name}</span>
                         <span className="text-muted-foreground shrink-0">
                           ${pricePerGuestForRecipe(r, markup, form.tier).toFixed(2)}/g
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => setExplain({ id: r.id, name: r.name })}
+                          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
+                          title="Explain price"
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
                       </li>
                     ))}
                   </ul>
