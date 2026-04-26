@@ -365,11 +365,44 @@ async function executeCatalogBootstrap(
         }
         seenKeys.add(key);
 
-        // Bootstrap intentionally SKIPS weight normalization.
-        // Raw size is preserved on the catalog row; weight is normalized
-        // later by a separate stage (or via "Fix Weight" manual override).
-        const netGrams: number | null = null;
-        const weightSource = "unparsed";
+        // Weight handling. When skip_weight_normalization is true, bootstrap
+        // stores raw size only — net_weight_grams is left null and no parse
+        // errors are logged. Normalization happens later via reparse / Fix Weight.
+        let netGrams: number | null = null;
+        let weightSource = "unparsed";
+
+        if (!data.skip_weight_normalization) {
+          const parsed = parseWeightToGrams({ size_raw: sizeRaw, payload_json: p.raw });
+          if (parsed.ok) {
+            netGrams = parsed.net_weight_grams;
+            weightSource = "parsed";
+          } else {
+            const isBlocker =
+              parsed.failure === "MISSING_SIZE" ||
+              parsed.failure === "WEIGHT_PARSE_FAIL" ||
+              parsed.failure === "VOLUME_ONLY" ||
+              parsed.failure === "ZERO_OR_NEG_WEIGHT";
+            const sev: "warning" | "error" = isBlocker ? "error" : "warning";
+            if (sev === "error") errCount += 1;
+            else warnings += 1;
+            errors.push({
+              run_id: runId,
+              stage: STAGE,
+              severity: sev,
+              type: parsed.failure,
+              entity_type: "product",
+              entity_id: key,
+              entity_name: p.description ?? null,
+              message: parsed.reason,
+              suggested_fix:
+                parsed.failure === "VOLUME_ONLY"
+                  ? "Exclude this item — pipeline is weight-only."
+                  : "Use Fix Weight to set manual_net_weight_grams with a reason.",
+              debug_json: { size_raw: sizeRaw, trace: parsed.trace },
+            });
+            weightSource = "unknown";
+          }
+        }
 
         if (!data.dry_run) {
           // Preserve manual override if it exists.
