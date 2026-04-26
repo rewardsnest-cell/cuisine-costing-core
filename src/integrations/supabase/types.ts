@@ -3038,8 +3038,12 @@ export type Database = {
       pricing_v2_keyword_schedules: {
         Row: {
           cadence_hours: number
+          consecutive_empty_runs: number
+          continuous_interval_seconds: number
+          continuous_mode: boolean
           created_at: string
           created_by: string | null
+          empty_runs_threshold: number
           enabled: boolean
           expires_at: string | null
           id: string
@@ -3052,13 +3056,18 @@ export type Database = {
           next_run_at: string
           run_count: number
           skip_weight_normalization: boolean
+          stop_when_no_new_items: boolean
           updated_at: string
           use_all_keywords: boolean
         }
         Insert: {
           cadence_hours: number
+          consecutive_empty_runs?: number
+          continuous_interval_seconds?: number
+          continuous_mode?: boolean
           created_at?: string
           created_by?: string | null
+          empty_runs_threshold?: number
           enabled?: boolean
           expires_at?: string | null
           id?: string
@@ -3071,13 +3080,18 @@ export type Database = {
           next_run_at?: string
           run_count?: number
           skip_weight_normalization?: boolean
+          stop_when_no_new_items?: boolean
           updated_at?: string
           use_all_keywords?: boolean
         }
         Update: {
           cadence_hours?: number
+          consecutive_empty_runs?: number
+          continuous_interval_seconds?: number
+          continuous_mode?: boolean
           created_at?: string
           created_by?: string | null
+          empty_runs_threshold?: number
           enabled?: boolean
           expires_at?: string | null
           id?: string
@@ -3090,6 +3104,7 @@ export type Database = {
           next_run_at?: string
           run_count?: number
           skip_weight_normalization?: boolean
+          stop_when_no_new_items?: boolean
           updated_at?: string
           use_all_keywords?: boolean
         }

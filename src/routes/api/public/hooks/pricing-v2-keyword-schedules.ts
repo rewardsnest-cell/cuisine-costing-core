@@ -36,8 +36,9 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
         for (const sched of due) {
           let didRun = false;
           let autoDisableReason: string | null = null;
+          let addedNewItems = false;
 
-          // Check expiry before running.
+          // Check expiry / cap before running.
           if (sched.expires_at && new Date(sched.expires_at).getTime() <= Date.now()) {
             autoDisableReason = "expired";
             results.push({ schedule_id: sched.id, skipped: true, reason: "expired" });
@@ -46,13 +47,13 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
             results.push({ schedule_id: sched.id, skipped: true, reason: "max_runs_reached" });
           } else {
             try {
-              // Resolve enabled keyword strings: either the schedule's selection,
-              // or — when use_all_keywords is true — every enabled keyword in the library.
+              // Continuous mode always sweeps all enabled keywords.
+              const sweepAll = sched.continuous_mode || sched.use_all_keywords;
               let kwQuery = supabaseAdmin
                 .from("pricing_v2_keyword_library")
                 .select("keyword, enabled")
                 .eq("enabled", true);
-              if (!sched.use_all_keywords) {
+              if (!sweepAll) {
                 kwQuery = kwQuery.in("id", sched.keyword_ids ?? []);
               }
               const { data: kwRows } = await kwQuery;
@@ -60,6 +61,15 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
               if (!terms.length) {
                 results.push({ schedule_id: sched.id, skipped: true, reason: "no enabled keywords" });
               } else {
+                // Snapshot catalog size to detect "no new items" for continuous mode.
+                let beforeCount = 0;
+                if (sched.continuous_mode && sched.stop_when_no_new_items) {
+                  const { count } = await supabaseAdmin
+                    .from("pricing_v2_item_catalog")
+                    .select("*", { count: "exact", head: true });
+                  beforeCount = count ?? 0;
+                }
+
                 const input = bootstrapSchema.parse({
                   dry_run: false,
                   keywords: terms,
@@ -73,11 +83,22 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
                   triggered_by: "schedule",
                 });
                 didRun = true;
+
+                if (sched.continuous_mode && sched.stop_when_no_new_items) {
+                  const { count } = await supabaseAdmin
+                    .from("pricing_v2_item_catalog")
+                    .select("*", { count: "exact", head: true });
+                  const afterCount = count ?? 0;
+                  addedNewItems = afterCount > beforeCount;
+                }
+
                 results.push({
                   schedule_id: sched.id,
                   run_id: (res as any).run_id ?? null,
                   counts_in: (res as any).counts_in ?? 0,
                   counts_out: (res as any).counts_out ?? 0,
+                  continuous: !!sched.continuous_mode,
+                  added_new_items: addedNewItems,
                 });
               }
             } catch (e: any) {
@@ -85,19 +106,36 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
             }
           }
 
-          // Reschedule (or auto-disable) regardless of outcome.
-          const next = new Date(Date.now() + (sched.cadence_hours ?? 24) * 3600_000).toISOString();
+          // Compute next_run_at: continuous = short interval; otherwise cadence_hours.
+          const intervalMs = sched.continuous_mode
+            ? Math.max(10, sched.continuous_interval_seconds ?? 60) * 1000
+            : (sched.cadence_hours ?? 24) * 3600_000;
+          const next = new Date(Date.now() + intervalMs).toISOString();
           const update: Record<string, any> = { next_run_at: next };
           if (didRun) update.run_count = (sched.run_count ?? 0) + 1;
-          // Auto-disable when expiry / cap reached, OR when this run pushes us over the cap.
-          if (autoDisableReason) {
+
+          // Continuous: track consecutive empty runs and auto-stop when threshold reached.
+          if (didRun && sched.continuous_mode && sched.stop_when_no_new_items) {
+            const nextEmpty = addedNewItems ? 0 : (sched.consecutive_empty_runs ?? 0) + 1;
+            update.consecutive_empty_runs = nextEmpty;
+            if (nextEmpty >= (sched.empty_runs_threshold ?? 2)) {
+              update.enabled = false;
+              autoDisableReason = autoDisableReason ?? "catalog_complete";
+            }
+          }
+
+          if (autoDisableReason && update.enabled !== false) {
             update.enabled = false;
           } else if (didRun && sched.max_runs && (sched.run_count ?? 0) + 1 >= sched.max_runs) {
             update.enabled = false;
-          } else if (didRun && sched.expires_at && new Date(sched.expires_at).getTime() <= Date.now() + (sched.cadence_hours ?? 24) * 3600_000) {
-            // Next scheduled run would land after expiry — disable now.
+          } else if (
+            didRun &&
+            sched.expires_at &&
+            new Date(sched.expires_at).getTime() <= Date.now() + intervalMs
+          ) {
             update.enabled = false;
           }
+
           await supabaseAdmin
             .from("pricing_v2_keyword_schedules")
             .update(update as any)

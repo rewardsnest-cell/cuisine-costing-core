@@ -450,7 +450,7 @@ import {
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
 
-type LimitMode = "forever" | "until" | "runs";
+type LimitMode = "forever" | "until" | "runs" | "continuous";
 
 function SchedulesSection({
   rows,
@@ -477,6 +477,8 @@ function SchedulesSection({
   const [limitMode, setLimitMode] = useState<LimitMode>("forever");
   const [untilDate, setUntilDate] = useState(""); // yyyy-mm-dd
   const [maxRuns, setMaxRuns] = useState<number>(10);
+  const [continuousIntervalSec, setContinuousIntervalSec] = useState<number>(60);
+  const [emptyRunsThreshold, setEmptyRunsThreshold] = useState<number>(2);
   // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
@@ -489,6 +491,8 @@ function SchedulesSection({
     setLimitMode("forever");
     setUntilDate("");
     setMaxRuns(10);
+    setContinuousIntervalSec(60);
+    setEmptyRunsThreshold(2);
     setEditKeywordIds([]);
   }
 
@@ -498,7 +502,13 @@ function SchedulesSection({
     setCadence(s.cadence_hours);
     setUseAllKeywords(!!s.use_all_keywords);
     setEditKeywordIds(s.keyword_ids ?? []);
-    if (s.expires_at) {
+    setContinuousIntervalSec(s.continuous_interval_seconds ?? 60);
+    setEmptyRunsThreshold(s.empty_runs_threshold ?? 2);
+    if (s.continuous_mode) {
+      setLimitMode("continuous");
+      setUntilDate("");
+      setMaxRuns(10);
+    } else if (s.expires_at) {
       setLimitMode("until");
       setUntilDate(new Date(s.expires_at).toISOString().slice(0, 10));
       setMaxRuns(10);
@@ -515,7 +525,9 @@ function SchedulesSection({
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const keyword_ids = useAllKeywords
+      const isContinuous = limitMode === "continuous";
+      const effectiveUseAll = useAllKeywords || isContinuous;
+      const keyword_ids = effectiveUseAll
         ? []
         : editingId
         ? editKeywordIds
@@ -534,9 +546,13 @@ function SchedulesSection({
           keyword_limit: keywordLimit,
           skip_weight_normalization: skipWeight,
           enabled: true,
-          use_all_keywords: useAllKeywords,
+          use_all_keywords: effectiveUseAll,
           expires_at,
           max_runs,
+          continuous_mode: isContinuous,
+          stop_when_no_new_items: true,
+          empty_runs_threshold: emptyRunsThreshold,
+          continuous_interval_seconds: continuousIntervalSec,
         },
       });
     },
@@ -562,6 +578,10 @@ function SchedulesSection({
           use_all_keywords: !!s.use_all_keywords,
           expires_at: s.expires_at ?? null,
           max_runs: s.max_runs ?? null,
+          continuous_mode: !!s.continuous_mode,
+          stop_when_no_new_items: s.stop_when_no_new_items ?? true,
+          empty_runs_threshold: s.empty_runs_threshold ?? 2,
+          continuous_interval_seconds: s.continuous_interval_seconds ?? 60,
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
@@ -585,12 +605,14 @@ function SchedulesSection({
     : editingId
     ? editKeywordIds.length
     : currentSelection.length;
+  const isContinuousMode = limitMode === "continuous";
   const canSave =
     !!name.trim() &&
     !saveMut.isPending &&
-    (useAllKeywords || effectiveKeywordCount > 0) &&
+    (useAllKeywords || isContinuousMode || effectiveKeywordCount > 0) &&
     (limitMode !== "until" || !!untilDate) &&
-    (limitMode !== "runs" || maxRuns > 0);
+    (limitMode !== "runs" || maxRuns > 0) &&
+    (limitMode !== "continuous" || (continuousIntervalSec >= 10 && emptyRunsThreshold >= 1));
 
   return (
     <Card>
@@ -649,15 +671,18 @@ function SchedulesSection({
             <div className="flex items-center gap-2">
               <Switch
                 id="all-kw"
-                checked={useAllKeywords}
+                checked={useAllKeywords || isContinuousMode}
                 onCheckedChange={setUseAllKeywords}
+                disabled={isContinuousMode}
               />
               <Label htmlFor="all-kw" className="text-sm">
                 Sweep <strong>all enabled keywords</strong> in the library (no filter)
               </Label>
             </div>
             <p className="text-xs text-muted-foreground">
-              {useAllKeywords ? (
+              {isContinuousMode ? (
+                <>Continuous mode always sweeps every enabled keyword (currently {rows.filter((r) => r.enabled).length}).</>
+              ) : useAllKeywords ? (
                 <>Will run against every enabled keyword at the time the schedule fires (currently {effectiveKeywordCount}).</>
               ) : editingId ? (
                 <>Locked to the {editKeywordIds.length} keyword{editKeywordIds.length === 1 ? "" : "s"} captured when saved. Re-save while editing to refresh.</>
@@ -717,7 +742,55 @@ function SchedulesSection({
                   onChange={(e) => setMaxRuns(Math.max(1, Number(e.target.value) || 1))}
                 />
               )}
+              <label className="inline-flex items-center gap-1.5 text-sm">
+                <input
+                  type="radio"
+                  name="limit-mode"
+                  checked={limitMode === "continuous"}
+                  onChange={() => setLimitMode("continuous")}
+                />
+                Continuous (until catalog complete)
+              </label>
             </div>
+            {isContinuousMode && (
+              <div className="rounded-md border border-dashed bg-background p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Runs back-to-back across <strong>all enabled keywords</strong>. After each run finishes,
+                  the next one starts ~{continuousIntervalSec}s later. When {emptyRunsThreshold} consecutive
+                  runs add no new items to the catalog, the schedule auto-disables.
+                </p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Gap between runs (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={10}
+                      max={3600}
+                      className="w-28"
+                      value={continuousIntervalSec}
+                      onChange={(e) =>
+                        setContinuousIntervalSec(
+                          Math.max(10, Math.min(3600, Number(e.target.value) || 60))
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Stop after N empty runs</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      className="w-24"
+                      value={emptyRunsThreshold}
+                      onChange={(e) =>
+                        setEmptyRunsThreshold(Math.max(1, Math.min(50, Number(e.target.value) || 2)))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end">
@@ -775,7 +848,18 @@ function SchedulesSection({
                         )}
                       </td>
                       <td className="p-2 text-xs">
-                        {s.expires_at ? (
+                        {s.continuous_mode ? (
+                          <div className="space-y-0.5">
+                            <Badge variant="secondary">Continuous</Badge>
+                            <div className="text-muted-foreground">
+                              every ~{s.continuous_interval_seconds ?? 60}s · stops after{" "}
+                              {s.empty_runs_threshold ?? 2} empty
+                              {(s.consecutive_empty_runs ?? 0) > 0 && (
+                                <> ({s.consecutive_empty_runs}/{s.empty_runs_threshold ?? 2})</>
+                              )}
+                            </div>
+                          </div>
+                        ) : s.expires_at ? (
                           <>until {new Date(s.expires_at).toLocaleDateString()}</>
                         ) : s.max_runs ? (
                           <>{s.run_count ?? 0} / {s.max_runs} runs</>
