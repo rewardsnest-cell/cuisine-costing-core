@@ -1849,3 +1849,96 @@ function MetaField({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+
+function SweepMetricsPanel() {
+  const metrics = useQuery({
+    queryKey: ["pricing-v2", "keywords", "sweep-metrics"],
+    queryFn: () => getKeywordSweepMetrics(),
+    refetchInterval: 30_000,
+  });
+
+  const m = metrics.data;
+  const fmt = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString() : "—";
+  const relative = (iso: string | null) => {
+    if (!iso) return "";
+    const diff = Date.now() - new Date(iso).getTime();
+    const s = Math.floor(diff / 1000);
+    if (s < 60) return `${s}s ago`;
+    const min = Math.floor(s / 60);
+    if (min < 60) return `${min}m ago`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center justify-between">
+          <span>Ingestion activity</span>
+          <button
+            type="button"
+            onClick={() => metrics.refetch()}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            {metrics.isFetching ? "Refreshing…" : "Refresh"}
+          </button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Metric
+            label="Rows · last 15m"
+            value={m?.rows_last_15m ?? "—"}
+            hint="pricing_v2_kroger_catalog_raw"
+          />
+          <Metric
+            label="Rows · last 1h"
+            value={m?.rows_last_1h ?? "—"}
+            hint="pricing_v2_kroger_catalog_raw"
+          />
+          <Metric
+            label="Keywords processed"
+            value={m?.keywords_processed_since_last_run ?? "—"}
+            hint="since last sweep"
+          />
+          <Metric
+            label="Last sweep"
+            value={
+              <span className="text-base font-medium">
+                {m?.last_sweep_at ? relative(m.last_sweep_at) : "—"}
+              </span>
+            }
+            hint={fmt(m?.last_sweep_at ?? null)}
+          />
+        </div>
+        {m?.last_raw_fetched_at && (
+          <p className="text-[11px] text-muted-foreground mt-3 font-mono">
+            Last raw row: {fmt(m.last_raw_fetched_at)} ({relative(m.last_raw_fetched_at)})
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3 space-y-0.5">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="font-display text-2xl font-bold leading-tight">{value}</div>
+      {hint && <div className="text-[10px] font-mono text-muted-foreground truncate">{hint}</div>}
+    </div>
+  );
+}
