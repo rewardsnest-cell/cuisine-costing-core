@@ -578,6 +578,48 @@ async function executeCatalogBootstrap(
         })
         .eq("run_id", runId);
 
+      // 6) Update keyword library stats + linked schedule (sweep + non-dry only).
+      if (isKeywordSweep && !data.dry_run) {
+        try {
+          const { data: kwRows } = await supabase
+            .from("pricing_v2_keyword_library")
+            .select("id, keyword");
+          const idsToMark: string[] = [];
+          const lookup = new Map<string, string>();
+          for (const r of kwRows ?? []) {
+            lookup.set(String(r.keyword).toLowerCase(), r.id as string);
+          }
+          // Per-keyword hit counts (unique product_keys per keyword in this run).
+          const perKw = new Map<string, Set<string>>();
+          for (const h of keywordHits) {
+            if (!perKw.has(h.keyword)) perKw.set(h.keyword, new Set());
+            perKw.get(h.keyword)!.add(h.product_key);
+          }
+          for (const term of normalizedSweepKeywords) {
+            const id = lookup.get(term);
+            if (!id) continue;
+            idsToMark.push(id);
+            const hits = perKw.get(term)?.size ?? 0;
+            await supabase
+              .from("pricing_v2_keyword_library")
+              .update({ last_run_at: new Date().toISOString(), last_hits: hits })
+              .eq("id", id);
+          }
+          // Update linked schedule run history if applicable.
+          if (data.schedule_id) {
+            await supabase
+              .from("pricing_v2_keyword_schedules")
+              .update({
+                last_run_at: new Date().toISOString(),
+                last_run_id: runId,
+              })
+              .eq("id", data.schedule_id);
+          }
+        } catch (e) {
+          console.error("[catalog-bootstrap] keyword stats update failed:", e);
+        }
+      }
+
       return {
         run_id: runId,
         dry_run: data.dry_run,
