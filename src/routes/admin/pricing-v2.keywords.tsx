@@ -2,7 +2,7 @@
 // Lets admins curate Kroger search keywords and run a single combined
 // catalog bootstrap pass over the selected ones.
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -480,9 +480,102 @@ function SchedulesSection({
   skipWeight: boolean;
 }) {
   const qc = useQueryClient();
+  // Per-schedule live "Start" status (queued → running → completed/failed).
+  type RunPhase = "queued" | "running" | "completed" | "failed";
+  type RunStatus = {
+    startedAt: number;
+    baselineLastRunAt: string | null;
+    phase: RunPhase;
+    endedAt?: number;
+    error?: string;
+  };
+  const [runStatusMap, setRunStatusMap] = useState<Record<string, RunStatus>>({});
+  // 1Hz tick to keep elapsed timers fresh.
+  const [, setNowTick] = useState(0);
+  const hasActiveRun = Object.values(runStatusMap).some(
+    (r) => r.phase === "queued" || r.phase === "running",
+  );
+
   const schedules = useQuery({
     queryKey: ["pricing-v2", "keyword-schedules"],
     queryFn: () => listKeywordSchedules(),
+    // Poll faster while we're tracking an in-flight Start so the user sees
+    // it transition through queued → running → completed.
+    refetchInterval: hasActiveRun ? 5000 : false,
+  });
+
+  useEffect(() => {
+    if (!hasActiveRun) return;
+    const t = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [hasActiveRun]);
+
+  // Watch the schedule list: when last_run_at advances past the baseline we
+  // captured at Start time, flip the card to "completed". Auto-clear after a
+  // few seconds so the card returns to its normal resting state.
+  useEffect(() => {
+    const list = schedules.data?.rows ?? [];
+    setRunStatusMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of list) {
+        const cur = next[s.id];
+        if (!cur) continue;
+        if (cur.phase === "queued" || cur.phase === "running") {
+          const advanced =
+            (s.last_run_at ?? null) !== (cur.baselineLastRunAt ?? null) &&
+            s.last_run_at != null;
+          if (advanced) {
+            next[s.id] = { ...cur, phase: "completed", endedAt: Date.now() };
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [schedules.data]);
+
+  // Auto-clear completed/failed entries after 10s.
+  useEffect(() => {
+    const finished = Object.entries(runStatusMap).filter(
+      ([, r]) => r.phase === "completed" || r.phase === "failed",
+    );
+    if (!finished.length) return;
+    const timers = finished.map(([id, r]) => {
+      const remaining = Math.max(0, 10_000 - (Date.now() - (r.endedAt ?? Date.now())));
+      return window.setTimeout(() => {
+        setRunStatusMap((prev) => {
+          const { [id]: _drop, ...rest } = prev;
+          return rest;
+        });
+      }, remaining);
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [runStatusMap]);
+
+  // Heuristic to surface "running": once the cron tick should have picked up
+  // the queued run (>= 60s after Start, or once next_run_at falls in the past),
+  // promote queued → running so the user sees forward motion.
+  useEffect(() => {
+    if (!hasActiveRun) return;
+    const list = schedules.data?.rows ?? [];
+    const now = Date.now();
+    setRunStatusMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of list) {
+        const cur = next[s.id];
+        if (!cur || cur.phase !== "queued") continue;
+        const elapsed = now - cur.startedAt;
+        const nextRunMs = s.next_run_at ? new Date(s.next_run_at).getTime() : Infinity;
+        if (elapsed >= 60_000 || nextRunMs <= now) {
+          next[s.id] = { ...cur, phase: "running" };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // Re-evaluate every second alongside the timer tick.
   });
 
   // Form state — used for both "new" (no editingId) and "edit" (editingId set)
@@ -634,13 +727,43 @@ function SchedulesSection({
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
   });
 
+  const handleStart = (s: ScheduleRow) => {
+    // Capture the baseline last_run_at NOW so the watcher can detect when the
+    // server records a fresh completion.
+    setRunStatusMap((prev) => ({
+      ...prev,
+      [s.id]: {
+        startedAt: Date.now(),
+        baselineLastRunAt: s.last_run_at ?? null,
+        phase: "queued",
+      },
+    }));
+    runNowMut.mutate(s.id);
+  };
+
   const runNowMut = useMutation({
     mutationFn: (id: string) => runKeywordScheduleNow({ data: { id } }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       toast.success("Queued — will run on the next cron tick (within ~1 min)");
       qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+      // Confirm queued (already set optimistically by handleStart).
+      setRunStatusMap((prev) =>
+        prev[id]?.phase === "queued" ? prev : { ...prev, [id]: { ...(prev[id] ?? { startedAt: Date.now(), baselineLastRunAt: null, phase: "queued" }) } },
+      );
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to start schedule"),
+    onError: (e: any, id) => {
+      toast.error(e?.message ?? "Failed to start schedule");
+      setRunStatusMap((prev) => ({
+        ...prev,
+        [id]: {
+          startedAt: prev[id]?.startedAt ?? Date.now(),
+          baselineLastRunAt: prev[id]?.baselineLastRunAt ?? null,
+          phase: "failed",
+          endedAt: Date.now(),
+          error: e?.message ?? "Failed to start",
+        },
+      }));
+    },
   });
 
   const list = schedules.data?.rows ?? [];
@@ -956,6 +1079,7 @@ function SchedulesSection({
               const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
               const isEditing = editingId === s.id;
               const isStarting = runNowMut.isPending && runNowMut.variables === s.id;
+              const runStatus = runStatusMap[s.id];
               return (
                 <div
                   key={s.id}
@@ -1052,12 +1176,14 @@ function SchedulesSection({
                     </div>
                   </div>
 
+                  {runStatus && <RunStatusRow status={runStatus} />}
+
                   <div className="flex items-center justify-end gap-1 pt-1 border-t">
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-7 px-2 text-xs gap-1"
-                      onClick={() => runNowMut.mutate(s.id)}
+                      onClick={() => handleStart(s)}
                       disabled={runNowMut.isPending}
                       title="Run on the next cron tick"
                     >
@@ -1543,6 +1669,70 @@ function NotificationDetailDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RunStatusRow({
+  status,
+}: {
+  status: {
+    startedAt: number;
+    phase: "queued" | "running" | "completed" | "failed";
+    endedAt?: number;
+    error?: string;
+  };
+}) {
+  // Recompute elapsed every render (the parent ticks 1Hz while active runs exist).
+  const endRef = status.endedAt ?? Date.now();
+  const elapsedMs = Math.max(0, endRef - status.startedAt);
+  const elapsedSec = Math.floor(elapsedMs / 1000);
+  const mm = Math.floor(elapsedSec / 60);
+  const ss = elapsedSec % 60;
+  const elapsedLabel = mm > 0 ? `${mm}m ${ss}s` : `${ss}s`;
+  const startedLabel = new Date(status.startedAt).toLocaleTimeString();
+
+  const tone =
+    status.phase === "failed"
+      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      : status.phase === "completed"
+      ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
+      : status.phase === "running"
+      ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+      : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400";
+
+  const label =
+    status.phase === "queued"
+      ? "Queued"
+      : status.phase === "running"
+      ? "Running"
+      : status.phase === "completed"
+      ? "Completed"
+      : "Failed";
+
+  const Icon =
+    status.phase === "completed"
+      ? CheckCheck
+      : status.phase === "failed"
+      ? XIcon
+      : Loader2;
+  const spin = status.phase === "queued" || status.phase === "running";
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px] ${tone}`}
+      role="status"
+      aria-live="polite"
+    >
+      <Icon className={`w-3 h-3 shrink-0 ${spin ? "animate-spin" : ""}`} />
+      <span className="font-semibold uppercase tracking-wide">{label}</span>
+      <span className="opacity-80 tabular-nums">
+        · {elapsedLabel}
+      </span>
+      <span className="opacity-60 ml-auto tabular-nums">started {startedLabel}</span>
+      {status.phase === "failed" && status.error && (
+        <span className="basis-full text-[10px] opacity-80 break-words">{status.error}</span>
+      )}
+    </div>
   );
 }
 
