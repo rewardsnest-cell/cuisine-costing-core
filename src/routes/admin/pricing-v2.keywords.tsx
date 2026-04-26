@@ -1242,6 +1242,61 @@ function NotificationDetailDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const open = !!n;
+  const qc = useQueryClient();
+
+  // Look up the related schedule (if any) so we can show the right actions
+  // (e.g. only show "Disable" when the schedule is currently enabled).
+  const schedules = useQuery({
+    queryKey: ["pricing-v2", "keyword-schedules"],
+    queryFn: () => listKeywordSchedules(),
+    staleTime: 30_000,
+  });
+  const relatedSchedule = useMemo(
+    () =>
+      n?.schedule_id
+        ? (schedules.data?.rows ?? []).find((s) => s.id === n.schedule_id) ?? null
+        : null,
+    [schedules.data, n?.schedule_id],
+  );
+
+  const retryMut = useMutation({
+    mutationFn: (id: string) => runKeywordScheduleNow({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Retry queued — will run on the next cron tick (within ~1 min)");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "schedule-notifications"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to retry schedule"),
+  });
+
+  const disableMut = useMutation({
+    mutationFn: (s: ScheduleRow) =>
+      upsertKeywordSchedule({
+        data: {
+          id: s.id,
+          name: s.name,
+          cadence_hours: s.cadence_hours,
+          keyword_ids: s.keyword_ids ?? [],
+          keyword_limit: s.keyword_limit,
+          skip_weight_normalization: s.skip_weight_normalization,
+          enabled: false,
+          use_all_keywords: !!s.use_all_keywords,
+          keyword_filter_mode: s.keyword_filter_mode === "exclude" ? "exclude" : "include",
+          expires_at: s.expires_at ?? null,
+          max_runs: s.max_runs ?? null,
+          continuous_mode: !!s.continuous_mode,
+          stop_when_no_new_items: s.stop_when_no_new_items ?? true,
+          empty_runs_threshold: s.empty_runs_threshold ?? 2,
+          continuous_interval_seconds: s.continuous_interval_seconds ?? 60,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Schedule disabled");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "schedule-notifications"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to disable schedule"),
+  });
 
   const severityBadge = (sev: ScheduleNotification["severity"]) => {
     const variant: Record<typeof sev, string> = {
@@ -1299,6 +1354,28 @@ function NotificationDetailDialog({
       }, 50);
     });
   };
+
+  const handleRetry = () => {
+    if (!n?.schedule_id) return;
+    retryMut.mutate(n.schedule_id);
+  };
+  const handleDisable = () => {
+    if (!relatedSchedule) {
+      toast.error("Schedule not found — it may have been deleted.");
+      return;
+    }
+    disableMut.mutate(relatedSchedule);
+  };
+
+  // Show Retry only for run failures (and we need a schedule_id to retry).
+  const canRetry = !!n && n.event_type === "run_error" && !!n.schedule_id;
+  // Show Disable for auto-disable/run-error events when the schedule is still enabled.
+  const isActionableEvent = !!n && (n.event_type === "run_error" || n.event_type === "auto_disabled");
+  const canDisable =
+    isActionableEvent && !!relatedSchedule && relatedSchedule.enabled === true;
+  // If the schedule is already disabled (common after auto_disabled), surface that too.
+  const alreadyDisabled =
+    isActionableEvent && !!relatedSchedule && relatedSchedule.enabled === false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
