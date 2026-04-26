@@ -537,11 +537,21 @@ function SchedulesSection({
     mutationFn: () => {
       const isContinuous = limitMode === "continuous";
       const effectiveUseAll = useAllKeywords || isContinuous;
-      const keyword_ids = effectiveUseAll
-        ? []
-        : editingId
-        ? editKeywordIds
-        : currentSelection;
+      // Continuous mode is sweep-all-with-no-filter; force include mode.
+      const effectiveFilterMode: "include" | "exclude" = isContinuous ? "include" : filterMode;
+      // In exclude mode the keyword_ids are the *exclusion* list and we keep them
+      // even when sweeping all. In include mode they are the inclusion list and
+      // are dropped when sweeping all.
+      const keyword_ids =
+        effectiveFilterMode === "exclude"
+          ? editingId
+            ? editKeywordIds
+            : currentSelection
+          : effectiveUseAll
+          ? []
+          : editingId
+          ? editKeywordIds
+          : currentSelection;
       const expires_at =
         limitMode === "until" && untilDate
           ? new Date(`${untilDate}T23:59:59`).toISOString()
@@ -557,6 +567,7 @@ function SchedulesSection({
           skip_weight_normalization: skipWeight,
           enabled: true,
           use_all_keywords: effectiveUseAll,
+          keyword_filter_mode: effectiveFilterMode,
           expires_at,
           max_runs,
           continuous_mode: isContinuous,
