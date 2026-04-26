@@ -83,13 +83,21 @@ export async function downloadFile(
   }
 
   const url = URL.createObjectURL(blob);
+  const landingHtml = buildDownloadLandingHtml(url, filename);
+  const landingBlob = new Blob([landingHtml], { type: "text/html" });
+  const landingUrl = URL.createObjectURL(landingBlob);
+
+  const cleanup = (delay = 60000) => {
+    setTimeout(() => {
+      try { URL.revokeObjectURL(url); } catch {}
+      try { URL.revokeObjectURL(landingUrl); } catch {}
+    }, delay);
+  };
 
   if (targetWindow && !targetWindow.closed) {
     try {
-      targetWindow.document.open();
-      targetWindow.document.write(buildDownloadLandingHtml(url, filename));
-      targetWindow.document.close();
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      targetWindow.location.href = landingUrl;
+      cleanup();
       return;
     } catch {}
   }
@@ -109,10 +117,13 @@ export async function downloadFile(
     if (canShare) {
       try {
         await navigator.share(shareData);
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        cleanup();
         return;
       } catch (err: any) {
-        if (err?.name === "AbortError") throw err;
+        if (err?.name === "AbortError") {
+          cleanup();
+          throw err;
+        }
       }
     }
   }
@@ -130,21 +141,58 @@ export async function downloadFile(
 
   if (!inIframe) {
     triggerAnchor();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    cleanup();
     return;
   }
 
+  // In iframe: open the landing page as a real URL (blob:) so the popup
+  // renders content. about:blank + document.write is blocked in many
+  // sandboxed previews and shows blank.
   try {
-    const popup = window.open("", "_blank", "noopener,noreferrer");
+    const popup = window.open(landingUrl, "_blank", "noopener,noreferrer");
     if (popup) {
-      popup.document.open();
-      popup.document.write(buildDownloadLandingHtml(url, filename));
-      popup.document.close();
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      cleanup();
       return;
     }
   } catch {}
 
-  triggerAnchor("_blank");
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  // Last resort: render an in-page overlay with the download link so the user
+  // always sees something actionable, even if popups are blocked.
+  showInPageDownloadOverlay(url, filename);
+  cleanup();
 }
+
+function showInPageDownloadOverlay(url: string, filename: string) {
+  if (typeof document === "undefined") return;
+  const existing = document.getElementById("__lovable_download_overlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "__lovable_download_overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.style.cssText =
+    "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;";
+
+  const card = document.createElement("div");
+  card.style.cssText =
+    "background:#fff;color:#111;max-width:420px;width:100%;border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3);";
+  card.innerHTML = `
+    <h2 style="margin:0 0 8px;font-size:18px;font-weight:600;">Your file is ready</h2>
+    <p style="margin:0 0 16px;color:#555;font-size:14px;">Tap the button below to save <strong>${filename.replace(/[<>&"']/g, "")}</strong>.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" id="__lovable_dl_close" style="padding:10px 14px;border:1px solid #ddd;background:#fff;border-radius:8px;font-weight:500;cursor:pointer;">Close</button>
+      <a id="__lovable_dl_link" href="${url}" download="${filename.replace(/"/g, "&quot;")}" style="padding:10px 14px;background:#111;color:#fff;text-decoration:none;border-radius:8px;font-weight:500;">Download</a>
+    </div>
+  `;
+  overlay.appendChild(card);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+  const closeBtn = card.querySelector("#__lovable_dl_close") as HTMLButtonElement | null;
+  const link = card.querySelector("#__lovable_dl_link") as HTMLAnchorElement | null;
+  closeBtn?.addEventListener("click", () => overlay.remove());
+  link?.addEventListener("click", () => setTimeout(() => overlay.remove(), 500));
+}
+
