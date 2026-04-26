@@ -548,7 +548,15 @@ export const runCatalogBootstrap = createServerFn({ method: "POST" })
 export const replayCatalogRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ run_id: z.string().uuid() }).parse(input)
+    z.object({
+      run_id: z.string().uuid(),
+      // When true, reset the bootstrap cursor (last_page_token) before
+      // replaying so the run reprocesses every product ID from the start —
+      // including ones the original successfully fetched. Useful when
+      // debugging because the original run's "successful stages" are
+      // re-executed end-to-end instead of resuming from the failure point.
+      include_successful: z.boolean().default(false),
+    }).parse(input)
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
@@ -580,12 +588,39 @@ export const replayCatalogRun = createServerFn({ method: "POST" })
       bypass_min_mapped_check: true,
     });
 
+    // Optionally rewind the cursor so successful stages are re-executed.
+    let priorCursor: string | null | undefined;
+    if (data.include_successful && !replayInput.dry_run) {
+      const storeId = await getStoreId(supabase);
+      const { data: stateRow } = await supabase
+        .from("pricing_v2_catalog_bootstrap_state")
+        .select("last_page_token, status")
+        .eq("store_id", storeId)
+        .maybeSingle();
+      priorCursor = stateRow?.last_page_token ?? null;
+      await supabase
+        .from("pricing_v2_catalog_bootstrap_state")
+        .update({
+          last_page_token: null,
+          // Force IN_PROGRESS so a previously COMPLETED bootstrap doesn't
+          // short-circuit on the "already completed" guard.
+          status: stateRow?.status === "COMPLETED" ? "IN_PROGRESS" : stateRow?.status ?? "NOT_STARTED",
+        })
+        .eq("store_id", storeId);
+    }
+
     const result = await executeCatalogBootstrap(supabase, userId ?? null, replayInput, {
-      triggered_by: "replay",
+      triggered_by: data.include_successful ? "replay_full" : "replay",
       replay_of: orig.run_id,
     });
 
-    return { ...result, replay_of: orig.run_id, original_params: p };
+    return {
+      ...result,
+      replay_of: orig.run_id,
+      original_params: p,
+      include_successful: data.include_successful,
+      prior_cursor: priorCursor ?? null,
+    };
   });
 
 // ---- Bootstrap state (status panel + reset) -------------------------------
