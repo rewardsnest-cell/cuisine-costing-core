@@ -268,7 +268,7 @@ async function stage6(): Promise<{ run_id?: string; ok: number; warning: number;
 
   const { data: rows } = await supabaseAdmin
     .from("pricing_v2_recipe_costs")
-    .select("recipe_id, cost_per_serving, status")
+    .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids")
     .eq("is_current", true);
 
   let ok = 0, warning = 0, blocked = 0;
@@ -284,7 +284,9 @@ async function stage6(): Promise<{ run_id?: string; ok: number; warning: number;
     snapshots.push({
       recipe_id: r.recipe_id, scope: "recipe_menu", run_id: runId,
       recipe_cost_per_serving: cps, multiplier: mult, multiplier_source: "default",
-      menu_price: menuPrice, status, warning_flags: warns, is_current: true, frozen: false,
+      menu_price: menuPrice, status, warning_flags: warns,
+      contributing_inventory_item_ids: r.contributing_inventory_item_ids ?? [],
+      is_current: true, frozen: false,
     });
   }
   if (snapshots.length) {
