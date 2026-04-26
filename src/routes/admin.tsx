@@ -121,6 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/competitor-quotes",  label: "Competitor Quotes",  icon: FileSearch, featureKey: "admin_competitor_quotes" },
       { to: "/admin/competitor-trends",  label: "Competitor Trends",  icon: TrendingUp, featureKey: "admin_competitor_trends" },
       { to: "/admin/sales",              label: "Sales Flyers",       icon: Tag,        featureKey: "admin_sales_flyers" },
+      { to: "/admin/scan-flyer",         label: "Scan Flyer",         icon: ScanLine },
     ],
   },
   {
