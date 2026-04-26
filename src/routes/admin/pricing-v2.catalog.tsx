@@ -97,6 +97,14 @@ function CatalogBootstrapPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
   });
+  const testAlertMut = useMutation({
+    mutationFn: () => testAlertConfig(),
+    onSuccess: (r: any) => {
+      toast.success(`Test alert dispatched (${r?.fired ?? 0} event${r?.fired === 1 ? "" : "s"})`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "stuck-alerts"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Test alert failed"),
+  });
 
   const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
