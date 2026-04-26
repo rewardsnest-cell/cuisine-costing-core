@@ -950,123 +950,149 @@ function SchedulesSection({
         ) : list.length === 0 ? (
           <p className="text-sm text-muted-foreground">No schedules yet.</p>
         ) : (
-          <div className="overflow-auto border rounded-md">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-2">Name</th>
-                  <th className="p-2">Cadence</th>
-                  <th className="p-2">Scope</th>
-                  <th className="p-2">Limit</th>
-                  <th className="p-2">Last run</th>
-                  <th className="p-2">Next run</th>
-                  <th className="p-2">Enabled</th>
-                  <th className="p-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((s) => {
-                  const sample = (s.keyword_ids ?? []).slice(0, 4).map((id) => kwById.get(id) ?? id.slice(0, 6));
-                  const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
-                  return (
-                    <tr key={s.id} className={`border-t ${editingId === s.id ? "bg-primary/5" : ""}`}>
-                      <td className="p-2 font-medium">{s.name}</td>
-                      <td className="p-2 tabular-nums">
-                        {s.cadence_hours}h
-                        {s.cadence_hours === 24 ? " (daily)" : s.cadence_hours === 168 ? " (weekly)" : ""}
-                      </td>
-                      <td className="p-2 text-xs">
-                        {s.use_all_keywords ? (
-                          s.keyword_filter_mode === "exclude" && (s.keyword_ids ?? []).length > 0 ? (
-                            <div className="space-y-0.5">
-                              <Badge variant="secondary">All enabled · excluding {(s.keyword_ids ?? []).length}</Badge>
-                              <div className="text-muted-foreground">
-                                excl: {sample.join(", ")}
-                                {more > 0 && <> +{more}</>}
-                              </div>
-                            </div>
-                          ) : (
-                            <Badge variant="secondary">All enabled keywords</Badge>
-                          )
-                        ) : (
-                          <>
-                            <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
-                            {sample.join(", ")}
-                            {more > 0 && <span className="text-muted-foreground"> +{more}</span>}
-                          </>
-                        )}
-                      </td>
-                      <td className="p-2 text-xs">
-                        {s.continuous_mode ? (
-                          <div className="space-y-0.5">
-                            <Badge variant="secondary">Continuous</Badge>
-                            <div className="text-muted-foreground">
-                              every ~{s.continuous_interval_seconds ?? 60}s · stops after{" "}
-                              {s.empty_runs_threshold ?? 2} empty
-                              {(s.consecutive_empty_runs ?? 0) > 0 && (
-                                <> ({s.consecutive_empty_runs}/{s.empty_runs_threshold ?? 2})</>
-                              )}
-                            </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {list.map((s) => {
+              const sample = (s.keyword_ids ?? []).slice(0, 4).map((id) => kwById.get(id) ?? id.slice(0, 6));
+              const more = Math.max(0, (s.keyword_ids ?? []).length - sample.length);
+              const isEditing = editingId === s.id;
+              const isStarting = runNowMut.isPending && runNowMut.variables === s.id;
+              return (
+                <div
+                  key={s.id}
+                  className={`rounded-lg border bg-card p-3 flex flex-col gap-3 transition-colors ${
+                    isEditing ? "border-primary ring-1 ring-primary/40" : ""
+                  } ${!s.enabled ? "opacity-70" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{s.name}</div>
+                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                        every {s.cadence_hours}h
+                        {s.cadence_hours === 24 ? " · daily" : s.cadence_hours === 168 ? " · weekly" : ""}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={s.enabled}
+                      onCheckedChange={() => toggleMut.mutate(s)}
+                      disabled={toggleMut.isPending}
+                      aria-label={s.enabled ? "Disable schedule" : "Enable schedule"}
+                    />
+                  </div>
+
+                  <div className="text-[11px] space-y-1">
+                    <div className="text-muted-foreground uppercase tracking-wide text-[10px] font-semibold">
+                      Scope
+                    </div>
+                    {s.use_all_keywords ? (
+                      s.keyword_filter_mode === "exclude" && (s.keyword_ids ?? []).length > 0 ? (
+                        <>
+                          <Badge variant="secondary">All enabled · excl {(s.keyword_ids ?? []).length}</Badge>
+                          <div className="text-muted-foreground truncate">
+                            excl: {sample.join(", ")}
+                            {more > 0 && <> +{more}</>}
                           </div>
-                        ) : s.expires_at ? (
-                          <>until {new Date(s.expires_at).toLocaleDateString()}</>
-                        ) : s.max_runs ? (
-                          <>{s.run_count ?? 0} / {s.max_runs} runs</>
-                        ) : (
-                          <span className="text-muted-foreground">forever</span>
-                        )}
-                      </td>
-                      <td className="p-2 text-xs text-muted-foreground">
+                        </>
+                      ) : (
+                        <Badge variant="secondary">All enabled keywords</Badge>
+                      )
+                    ) : (
+                      <div className="truncate">
+                        <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
+                        {sample.join(", ")}
+                        {more > 0 && <span className="text-muted-foreground"> +{more}</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] space-y-1">
+                    <div className="text-muted-foreground uppercase tracking-wide text-[10px] font-semibold">
+                      Limit
+                    </div>
+                    {s.continuous_mode ? (
+                      <>
+                        <Badge variant="secondary">Continuous</Badge>
+                        <div className="text-muted-foreground">
+                          ~{s.continuous_interval_seconds ?? 60}s · stops after {s.empty_runs_threshold ?? 2} empty
+                          {(s.consecutive_empty_runs ?? 0) > 0 && (
+                            <> ({s.consecutive_empty_runs}/{s.empty_runs_threshold ?? 2})</>
+                          )}
+                        </div>
+                      </>
+                    ) : s.expires_at ? (
+                      <span>until {new Date(s.expires_at).toLocaleDateString()}</span>
+                    ) : s.max_runs ? (
+                      <span>{s.run_count ?? 0} / {s.max_runs} runs</span>
+                    ) : (
+                      <span className="text-muted-foreground">forever</span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide text-[10px] font-semibold">
+                        Last run
+                      </div>
+                      <div className="text-muted-foreground">
                         {s.last_run_at ? new Date(s.last_run_at).toLocaleString() : "—"}
-                        {s.last_run_id && (
-                          <div className="font-mono text-[10px]">{s.last_run_id.slice(0, 8)}…</div>
-                        )}
-                      </td>
-                      <td className="p-2 text-xs text-muted-foreground">
+                      </div>
+                      {s.last_run_id && (
+                        <div className="font-mono text-[10px] text-muted-foreground">
+                          {s.last_run_id.slice(0, 8)}…
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground uppercase tracking-wide text-[10px] font-semibold">
+                        Next run
+                      </div>
+                      <div className="text-muted-foreground">
                         {s.next_run_at ? new Date(s.next_run_at).toLocaleString() : "—"}
-                      </td>
-                      <td className="p-2">
-                        <Switch
-                          checked={s.enabled}
-                          onCheckedChange={() => toggleMut.mutate(s)}
-                          disabled={toggleMut.isPending}
-                        />
-                      </td>
-                      <td className="p-2 text-right whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => runNowMut.mutate(s.id)}
-                          disabled={runNowMut.isPending}
-                          title="Run now"
-                        >
-                          <Play className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => startEdit(s)}
-                          title="Edit"
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm(`Delete schedule "${s.name}"?`)) delMut.mutate(s.id);
-                          }}
-                          disabled={delMut.isPending}
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1 pt-1 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs gap-1"
+                      onClick={() => runNowMut.mutate(s.id)}
+                      disabled={runNowMut.isPending}
+                      title="Run on the next cron tick"
+                    >
+                      {isStarting ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Play className="w-3 h-3" />
+                      )}
+                      Start
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs gap-1"
+                      onClick={() => startEdit(s)}
+                      title="Edit"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm(`Delete schedule "${s.name}"?`)) delMut.mutate(s.id);
+                      }}
+                      disabled={delMut.isPending}
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>
