@@ -33,10 +33,41 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
         }
 
         const results: any[] = [];
+
+        // Helper to record an in-app notification (best-effort, never throws).
+        async function notify(
+          sched: any,
+          event_type: "run_success" | "run_error" | "auto_disabled",
+          severity: "info" | "warning" | "error" | "success",
+          title: string,
+          message: string | null,
+          run_id: string | null,
+          metadata: Record<string, any> = {},
+        ) {
+          try {
+            await supabaseAdmin.from("pricing_v2_schedule_notifications").insert({
+              schedule_id: sched.id,
+              schedule_name: sched.name,
+              event_type,
+              severity,
+              title,
+              message,
+              run_id,
+              metadata,
+            });
+          } catch (e) {
+            console.error("[schedule-notify] insert failed:", e);
+          }
+        }
+
         for (const sched of due) {
           let didRun = false;
           let autoDisableReason: string | null = null;
           let addedNewItems = false;
+          let runOk = false;
+          let runError: string | null = null;
+          let runId: string | null = null;
+          let countsOut = 0;
 
           // Check expiry / cap before running.
           if (sched.expires_at && new Date(sched.expires_at).getTime() <= Date.now()) {
@@ -83,6 +114,9 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
                   triggered_by: "schedule",
                 });
                 didRun = true;
+                runOk = true;
+                runId = (res as any).run_id ?? null;
+                countsOut = (res as any).counts_out ?? 0;
 
                 if (sched.continuous_mode && sched.stop_when_no_new_items) {
                   const { count } = await supabaseAdmin
@@ -94,15 +128,16 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
 
                 results.push({
                   schedule_id: sched.id,
-                  run_id: (res as any).run_id ?? null,
+                  run_id: runId,
                   counts_in: (res as any).counts_in ?? 0,
-                  counts_out: (res as any).counts_out ?? 0,
+                  counts_out: countsOut,
                   continuous: !!sched.continuous_mode,
                   added_new_items: addedNewItems,
                 });
               }
             } catch (e: any) {
-              results.push({ schedule_id: sched.id, error: e?.message ?? String(e) });
+              runError = e?.message ?? String(e);
+              results.push({ schedule_id: sched.id, error: runError });
             }
           }
 
@@ -128,18 +163,63 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
             update.enabled = false;
           } else if (didRun && sched.max_runs && (sched.run_count ?? 0) + 1 >= sched.max_runs) {
             update.enabled = false;
+            autoDisableReason = autoDisableReason ?? "max_runs_reached";
           } else if (
             didRun &&
             sched.expires_at &&
             new Date(sched.expires_at).getTime() <= Date.now() + intervalMs
           ) {
             update.enabled = false;
+            autoDisableReason = autoDisableReason ?? "expiring_before_next_run";
           }
 
           await supabaseAdmin
             .from("pricing_v2_keyword_schedules")
             .update(update as any)
             .eq("id", sched.id);
+
+          // ---------- Notifications ----------
+          if (runOk) {
+            await notify(
+              sched,
+              "run_success",
+              "success",
+              `Sweep finished: ${sched.name}`,
+              `Fetched ${countsOut} item${countsOut === 1 ? "" : "s"}${
+                sched.continuous_mode ? (addedNewItems ? " (new items added)" : " (no new items)") : ""
+              }.`,
+              runId,
+              { counts_out: countsOut, added_new_items: addedNewItems, continuous: !!sched.continuous_mode },
+            );
+          }
+          if (runError) {
+            await notify(
+              sched,
+              "run_error",
+              "error",
+              `Sweep failed: ${sched.name}`,
+              runError.slice(0, 500),
+              null,
+              { error: runError },
+            );
+          }
+          if (autoDisableReason) {
+            const reasonText: Record<string, string> = {
+              expired: "Schedule reached its end date.",
+              max_runs_reached: "Schedule hit its maximum run count.",
+              catalog_complete: "Continuous sweep stopped: catalog appears complete (no new items in recent runs).",
+              expiring_before_next_run: "Next scheduled run would land after the end date.",
+            };
+            await notify(
+              sched,
+              "auto_disabled",
+              autoDisableReason === "catalog_complete" ? "success" : "warning",
+              `Schedule auto-disabled: ${sched.name}`,
+              reasonText[autoDisableReason] ?? `Reason: ${autoDisableReason}`,
+              runId,
+              { reason: autoDisableReason, run_count: (sched.run_count ?? 0) + (didRun ? 1 : 0) },
+            );
+          }
         }
 
         return Response.json({ ok: true, ran: results.length, results });
