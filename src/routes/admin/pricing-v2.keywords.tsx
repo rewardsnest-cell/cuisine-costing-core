@@ -1402,13 +1402,26 @@ function NotificationDetailDialog({
               )}
             </div>
 
-            <DialogFooter className="gap-2">
-              <Button size="sm" variant="outline" onClick={copyJson}>
-                Copy JSON
+            <DialogFooter className="gap-2 sm:justify-between">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={goToSchedule}
+                disabled={!n.schedule_id}
+                className="gap-1"
+                title={n.schedule_id ? "Jump to this schedule" : "No related schedule"}
+              >
+                <ArrowDownToLine className="w-3 h-3" />
+                Go to schedule
               </Button>
-              <Button size="sm" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={copyJson}>
+                  Copy JSON
+                </Button>
+                <Button size="sm" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+              </div>
             </DialogFooter>
           </>
         )}
