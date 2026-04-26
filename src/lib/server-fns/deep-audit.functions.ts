@@ -110,16 +110,16 @@ async function collectErrorLogSummary() {
   try {
     const { data, error } = await supabaseAdmin
       .from("pricing_v2_errors")
-      .select("severity, code")
+      .select("severity, type")
       .gte("created_at", new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString())
       .limit(5000);
     if (error) {
       sections.push(`pricing_v2_errors: (unavailable — ${error.message})`);
     } else {
-      const rows = (data ?? []) as Array<{ severity: string | null; code: string | null }>;
+      const rows = (data ?? []) as Array<{ severity: string | null; type: string | null }>;
       const counts = new Map<string, number>();
       for (const r of rows) {
-        const k = `${r.severity ?? "unknown"}:${r.code ?? "unknown"}`;
+        const k = `${r.severity ?? "unknown"}:${r.type ?? "unknown"}`;
         counts.set(k, (counts.get(k) ?? 0) + 1);
       }
       const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 25);
