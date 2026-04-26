@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Plus, X, Loader2 } from "lucide-react";
+import { Zap, Plus, X, Loader2, Info } from "lucide-react";
+import { ExplainPriceDrawer } from "@/components/admin/ExplainPriceDrawer";
 import { MENU_STYLES, SERVICE_STYLES, TIERS, ALLERGIES, PROTEINS } from "@/components/quote/types";
 import { filterRecipesForSelections, pricePerGuestForRecipe, type RecipeRow } from "@/lib/quote-recipes";
 import { roundUpToNext5 } from "@/lib/utils";
