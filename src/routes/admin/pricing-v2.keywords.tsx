@@ -513,6 +513,7 @@ function SchedulesSection({
     setEditKeywordIds(s.keyword_ids ?? []);
     setContinuousIntervalSec(s.continuous_interval_seconds ?? 60);
     setEmptyRunsThreshold(s.empty_runs_threshold ?? 2);
+    setFilterMode(s.keyword_filter_mode === "exclude" ? "exclude" : "include");
     if (s.continuous_mode) {
       setLimitMode("continuous");
       setUntilDate("");
