@@ -662,6 +662,9 @@ function ExportsPage() {
       {/* Pricing pipeline diagnostic */}
       <PricingAuditCard />
 
+      {/* Kroger raw API data */}
+      <KrogerRawExportCard />
+
       {/* CSV exports */}
       <Card>
         <CardHeader>
