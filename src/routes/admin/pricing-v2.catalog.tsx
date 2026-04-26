@@ -42,6 +42,7 @@ import {
   acknowledgeStuckAlert,
   getAlertConfig,
   saveAlertConfig,
+  testAlertConfig,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
@@ -96,6 +97,14 @@ function CatalogBootstrapPage() {
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "alert-config"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
+  });
+  const testAlertMut = useMutation({
+    mutationFn: () => testAlertConfig(),
+    onSuccess: (r: any) => {
+      toast.success(`Test alert dispatched (${r?.fired ?? 0} event${r?.fired === 1 ? "" : "s"})`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "stuck-alerts"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Test alert failed"),
   });
 
   const [batchSize, setBatchSize] = useState<string>("");
@@ -290,7 +299,13 @@ function CatalogBootstrapPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Stuck-run alert config</CardTitle></CardHeader>
           <CardContent>
-            <AlertConfigForm initial={alertConfig.data} onSave={(v) => saveAlertCfgMut.mutate(v)} saving={saveAlertCfgMut.isPending} />
+            <AlertConfigForm
+              initial={alertConfig.data}
+              onSave={(v) => saveAlertCfgMut.mutate(v)}
+              saving={saveAlertCfgMut.isPending}
+              onTest={() => testAlertMut.mutate()}
+              testing={testAlertMut.isPending}
+            />
           </CardContent>
         </Card>
       )}
@@ -931,7 +946,7 @@ async function exportErrorsCsv(runId: string, stage?: "catalog_bootstrap_test") 
   URL.revokeObjectURL(url);
 }
 
-function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v: any) => void; saving: boolean }) {
+function AlertConfigForm({ initial, onSave, saving, onTest, testing }: { initial: any; onSave: (v: any) => void; saving: boolean; onTest: () => void; testing: boolean }) {
   const [threshold, setThreshold] = useState<number>(initial.stuck_minutes_threshold ?? 30);
   const [bannerEnabled, setBannerEnabled] = useState<boolean>(!!initial.banner_enabled);
   const [emailEnabled, setEmailEnabled] = useState<boolean>(!!initial.email_enabled);
@@ -967,7 +982,7 @@ function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v
         <Input className="h-8 flex-1 font-mono text-xs" placeholder="optional" value={webhookSecret}
           onChange={(e) => setWebhookSecret(e.target.value)} disabled={!webhookEnabled} />
       </div>
-      <div>
+      <div className="flex gap-2">
         <Button size="sm" disabled={saving} onClick={() => onSave({
           stuck_minutes_threshold: threshold,
           banner_enabled: bannerEnabled,
@@ -977,7 +992,13 @@ function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v
           webhook_url: webhookUrl.trim() || null,
           webhook_secret: webhookSecret.trim() || null,
         })}>{saving ? "Saving…" : "Save alert config"}</Button>
+        <Button size="sm" variant="outline" disabled={testing} onClick={onTest}>
+          {testing ? "Sending…" : "Send test alert"}
+        </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Test sends a synthetic alert through all currently-saved enabled channels (banner + email + webhook). Save first if you've changed anything.
+      </p>
     </div>
   );
 }
