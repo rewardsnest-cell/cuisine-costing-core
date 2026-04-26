@@ -931,7 +931,7 @@ async function exportErrorsCsv(runId: string, stage?: "catalog_bootstrap_test") 
   URL.revokeObjectURL(url);
 }
 
-function AlertConfigForm({ initial, onSave, saving }: { initial: any; onSave: (v: any) => void; saving: boolean }) {
+function AlertConfigForm({ initial, onSave, saving, onTest, testing }: { initial: any; onSave: (v: any) => void; saving: boolean; onTest: () => void; testing: boolean }) {
   const [threshold, setThreshold] = useState<number>(initial.stuck_minutes_threshold ?? 30);
   const [bannerEnabled, setBannerEnabled] = useState<boolean>(!!initial.banner_enabled);
   const [emailEnabled, setEmailEnabled] = useState<boolean>(!!initial.email_enabled);
