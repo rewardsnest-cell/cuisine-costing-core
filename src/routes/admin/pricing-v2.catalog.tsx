@@ -45,7 +45,9 @@ import {
   saveAlertConfig,
   testAlertConfig,
   listCatalogProducts,
+  bulkSetManualWeight,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
+import { Checkbox } from "@/components/ui/checkbox";
 import { normalizeWeightInput } from "@/lib/server/pricing-v2/normalize-weight-input";
 
 import {
