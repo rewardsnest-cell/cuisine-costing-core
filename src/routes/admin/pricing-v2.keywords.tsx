@@ -525,7 +525,9 @@ function SchedulesSection({
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const keyword_ids = useAllKeywords
+      const isContinuous = limitMode === "continuous";
+      const effectiveUseAll = useAllKeywords || isContinuous;
+      const keyword_ids = effectiveUseAll
         ? []
         : editingId
         ? editKeywordIds
@@ -544,9 +546,13 @@ function SchedulesSection({
           keyword_limit: keywordLimit,
           skip_weight_normalization: skipWeight,
           enabled: true,
-          use_all_keywords: useAllKeywords,
+          use_all_keywords: effectiveUseAll,
           expires_at,
           max_runs,
+          continuous_mode: isContinuous,
+          stop_when_no_new_items: true,
+          empty_runs_threshold: emptyRunsThreshold,
+          continuous_interval_seconds: continuousIntervalSec,
         },
       });
     },
@@ -572,6 +578,10 @@ function SchedulesSection({
           use_all_keywords: !!s.use_all_keywords,
           expires_at: s.expires_at ?? null,
           max_runs: s.max_runs ?? null,
+          continuous_mode: !!s.continuous_mode,
+          stop_when_no_new_items: s.stop_when_no_new_items ?? true,
+          empty_runs_threshold: s.empty_runs_threshold ?? 2,
+          continuous_interval_seconds: s.continuous_interval_seconds ?? 60,
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
