@@ -13,7 +13,29 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Play, Plus, Trash2, ListChecks, ArrowLeft } from "lucide-react";
+import { Loader2, Play, Plus, Trash2, ListChecks, ArrowLeft, CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info, ArrowDownToLine, RefreshCw, PowerOff } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  listKeywordSchedules,
+  upsertKeywordSchedule,
+  deleteKeywordSchedule,
+  runKeywordScheduleNow,
+  type ScheduleRow,
+} from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
+import {
+  listScheduleNotifications,
+  markScheduleNotificationsRead,
+  clearScheduleNotifications,
+  type ScheduleNotification,
+} from "@/lib/server-fns/pricing-v2-schedule-notifications.functions";
 import { toast } from "sonner";
 import {
   listKeywordLibrary,
