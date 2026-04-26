@@ -3249,6 +3249,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_v2_schedule_notifications: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          metadata: Json
+          read_at: string | null
+          run_id: string | null
+          schedule_id: string | null
+          schedule_name: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          read_at?: string | null
+          run_id?: string | null
+          schedule_id?: string | null
+          schedule_name?: string | null
+          severity?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          read_at?: string | null
+          run_id?: string | null
+          schedule_id?: string | null
+          schedule_name?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_schedule_notifications_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_keyword_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_v2_settings: {
         Row: {
           default_menu_multiplier: number

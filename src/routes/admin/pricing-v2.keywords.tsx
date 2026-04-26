@@ -442,13 +442,20 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   listKeywordSchedules,
   upsertKeywordSchedule,
   deleteKeywordSchedule,
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
+import {
+  listScheduleNotifications,
+  markScheduleNotificationsRead,
+  clearScheduleNotifications,
+  type ScheduleNotification,
+} from "@/lib/server-fns/pricing-v2-schedule-notifications.functions";
 
 type LimitMode = "forever" | "until" | "runs" | "continuous";
 
@@ -617,8 +624,11 @@ function SchedulesSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
+        <CardTitle className="text-base flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-2">
+            <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
+          </span>
+          <NotificationsBell />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -916,3 +926,118 @@ function SchedulesSection({
   );
 }
 
+// ----- Notifications bell ---------------------------------------------------
+
+function NotificationsBell() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const notifs = useQuery({
+    queryKey: ["pricing-v2", "schedule-notifications"],
+    queryFn: () => listScheduleNotifications({ data: { limit: 50, unread_only: false } }),
+    refetchInterval: 30_000,
+  });
+
+  const markRead = useMutation({
+    mutationFn: (vars: { ids?: string[]; all?: boolean }) =>
+      markScheduleNotificationsRead({ data: { ids: vars.ids, all: !!vars.all } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "schedule-notifications"] }),
+  });
+  const clearRead = useMutation({
+    mutationFn: () => clearScheduleNotifications({ data: { only_read: true } }),
+    onSuccess: (r) => {
+      toast.success(`Cleared ${r.deleted} read notification${r.deleted === 1 ? "" : "s"}`);
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "schedule-notifications"] });
+    },
+  });
+
+  const unread = notifs.data?.unread_count ?? 0;
+  const rows = notifs.data?.rows ?? [];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="ghost" className="relative h-8 w-8 p-0" aria-label="Schedule notifications">
+          <Bell className="w-4 h-4" />
+          {unread > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-96 p-0">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
+          <div className="text-sm font-medium">
+            Notifications {unread > 0 && <span className="text-muted-foreground font-normal">· {unread} unread</span>}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => markRead.mutate({ all: true })}
+              disabled={markRead.isPending || unread === 0}
+              title="Mark all as read"
+            >
+              <CheckCheck className="w-3 h-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => clearRead.mutate()}
+              disabled={clearRead.isPending || rows.every((r) => !r.read_at)}
+              title="Clear read notifications"
+            >
+              <Eraser className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+        <div className="max-h-96 overflow-auto divide-y">
+          {notifs.isLoading ? (
+            <p className="p-4 text-xs text-muted-foreground">Loading…</p>
+          ) : rows.length === 0 ? (
+            <p className="p-4 text-xs text-muted-foreground">No notifications yet.</p>
+          ) : (
+            rows.map((n: ScheduleNotification) => {
+              const isUnread = !n.read_at;
+              const dot =
+                n.severity === "error"
+                  ? "bg-destructive"
+                  : n.severity === "warning"
+                  ? "bg-yellow-500"
+                  : n.severity === "success"
+                  ? "bg-green-500"
+                  : "bg-muted-foreground";
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => isUnread && markRead.mutate({ ids: [n.id] })}
+                  className={`w-full text-left px-3 py-2.5 hover:bg-muted/50 ${
+                    isUnread ? "bg-primary/5" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span className={`mt-1.5 inline-block w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">{n.title}</div>
+                      {n.message && (
+                        <div className="text-[11px] text-muted-foreground line-clamp-2">{n.message}</div>
+                      )}
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(n.created_at).toLocaleString()}
+                        {n.run_id && (
+                          <span className="font-mono ml-1">· {n.run_id.slice(0, 8)}…</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
