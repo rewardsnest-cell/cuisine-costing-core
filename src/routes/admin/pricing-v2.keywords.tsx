@@ -448,6 +448,7 @@ import {
   listKeywordSchedules,
   upsertKeywordSchedule,
   deleteKeywordSchedule,
+  runKeywordScheduleNow,
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
 import {
