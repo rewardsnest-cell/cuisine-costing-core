@@ -170,65 +170,121 @@ function CostQueuePage() {
                   </Table>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead className="text-right">Old</TableHead>
-                        <TableHead className="text-right">New</TableHead>
-                        <TableHead className="text-right">Δ</TableHead>
-                        <TableHead>Source</TableHead>
-                        <TableHead>Flags</TableHead>
-                        {tab === "pending" && <TableHead className="text-right">Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.length === 0 ? (
-                        <TableRow><TableCell colSpan={tab === "pending" ? 7 : 6} className="text-center text-muted-foreground py-8">
-                          No entries
-                        </TableCell></TableRow>
-                      ) : rows.map((r) => {
-                        const inv = r.inventory_items;
-                        return (
-                          <TableRow key={r.id}>
-                            <TableCell className="font-medium">
-                              {inv?.name ?? r.inventory_item_id}
-                              {inv?.category && <div className="text-xs text-muted-foreground">{inv.category}</div>}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">{fmtCpg(r.old_cost_per_gram)}</TableCell>
-                            <TableCell className="text-right tabular-nums font-semibold">{fmtCpg(r.new_computed_cost_per_gram)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{fmtPct(r.pct_change)}</TableCell>
-                            <TableCell>{srcBadge(r.resolution_source)}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-1">
-                                {(r.warning_flags ?? []).map((f: string, i: number) => (
-                                  <Badge key={i} variant="outline" className="text-xs gap-1">
-                                    <AlertTriangle className="w-3 h-3" />{f}
-                                  </Badge>
-                                ))}
-                                {r.signals_count > 0 && <Badge variant="outline" className="text-xs">{r.signals_count} signals</Badge>}
-                              </div>
-                            </TableCell>
-                            {tab === "pending" && (
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button size="sm" variant="outline" disabled={decideMut.isPending}
-                                    onClick={() => decideMut.mutate({ id: r.id, decision: "reject" })}>
-                                    <XCircle className="w-3 h-3" /> Reject
-                                  </Button>
-                                  <Button size="sm" disabled={decideMut.isPending}
-                                    onClick={() => decideMut.mutate({ id: r.id, decision: "approve" })}>
-                                    <CheckCircle2 className="w-3 h-3" /> Approve
-                                  </Button>
+                <div className="space-y-3">
+                  {tab === "pending" && rows.length > 0 && (
+                    <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-2 px-3 flex-wrap">
+                      <span className="text-sm">
+                        {selected.size} of {rows.length} selected
+                      </span>
+                      <Separator orientation="vertical" className="h-6" />
+                      <Button size="sm" variant="default"
+                        disabled={!selected.size || bulkBusy !== null}
+                        onClick={() => runBulk("approve")}>
+                        {bulkBusy === "approve"
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <CheckCircle2 className="w-3 h-3" />}
+                        Approve selected
+                      </Button>
+                      <Button size="sm" variant="outline"
+                        disabled={!selected.size || bulkBusy !== null}
+                        onClick={() => runBulk("reject")}>
+                        {bulkBusy === "reject"
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <XCircle className="w-3 h-3" />}
+                        Reject selected
+                      </Button>
+                      {selected.size > 0 && (
+                        <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {tab === "pending" && (
+                            <TableHead className="w-10">
+                              <Checkbox
+                                checked={rows.length > 0 && selected.size === rows.length}
+                                onCheckedChange={(c) => toggleAllPending(!!c)}
+                                aria-label="Select all"
+                              />
+                            </TableHead>
+                          )}
+                          <TableHead>Item</TableHead>
+                          <TableHead className="text-right">Old</TableHead>
+                          <TableHead className="text-right">New</TableHead>
+                          <TableHead className="text-right">Δ</TableHead>
+                          <TableHead>Source</TableHead>
+                          <TableHead>Flags</TableHead>
+                          {tab === "pending" && <TableHead className="text-right">Actions</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.length === 0 ? (
+                          <TableRow><TableCell colSpan={tab === "pending" ? 8 : 6} className="text-center text-muted-foreground py-8">
+                            No entries
+                          </TableCell></TableRow>
+                        ) : rows.map((r) => {
+                          const inv = r.inventory_items;
+                          const isSelected = selected.has(r.id);
+                          return (
+                            <TableRow key={r.id} className={isSelected ? "bg-primary/5" : ""}>
+                              {tab === "pending" && (
+                                <TableCell>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={(c) => {
+                                      setSelected((s) => {
+                                        const n = new Set(s);
+                                        if (c) n.add(r.id); else n.delete(r.id);
+                                        return n;
+                                      });
+                                    }}
+                                    aria-label="Select row"
+                                  />
+                                </TableCell>
+                              )}
+                              <TableCell className="font-medium">
+                                {inv?.name ?? r.inventory_item_id}
+                                {inv?.category && <div className="text-xs text-muted-foreground">{inv.category}</div>}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtCpg(r.old_cost_per_gram)}</TableCell>
+                              <TableCell className="text-right tabular-nums font-semibold">{fmtCpg(r.new_computed_cost_per_gram)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtPct(r.pct_change)}</TableCell>
+                              <TableCell>{srcBadge(r.resolution_source)}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {(r.warning_flags ?? []).map((f: string, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-xs gap-1">
+                                      <AlertTriangle className="w-3 h-3" />{f}
+                                    </Badge>
+                                  ))}
+                                  {r.signals_count > 0 && <Badge variant="outline" className="text-xs">{r.signals_count} signals</Badge>}
                                 </div>
                               </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              {tab === "pending" && (
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button size="sm" variant="outline" disabled={decideMut.isPending || bulkBusy !== null}
+                                      onClick={() => decideMut.mutate({ id: r.id, decision: "reject" })}>
+                                      <XCircle className="w-3 h-3" /> Reject
+                                    </Button>
+                                    <Button size="sm" disabled={decideMut.isPending || bulkBusy !== null}
+                                      onClick={() => decideMut.mutate({ id: r.id, decision: "approve" })}>
+                                      <CheckCircle2 className="w-3 h-3" /> Approve
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
