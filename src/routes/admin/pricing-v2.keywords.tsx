@@ -624,8 +624,11 @@ function SchedulesSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
+        <CardTitle className="text-base flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-2">
+            <CalendarClock className="w-4 h-4" /> Recurring sweep schedules
+          </span>
+          <NotificationsBell />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
