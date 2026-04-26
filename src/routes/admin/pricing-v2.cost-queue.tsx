@@ -119,11 +119,12 @@ function CostQueuePage() {
                         <TableHead>Category</TableHead>
                         <TableHead className="text-right">Last approved</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Audit</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {blockedItems.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                           No blocked items 🎉
                         </TableCell></TableRow>
                       ) : blockedItems.map((it) => (
@@ -132,6 +133,11 @@ function CostQueuePage() {
                           <TableCell>{it.category ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtCpg(it.last_approved_cost_per_gram)}</TableCell>
                           <TableCell><Badge variant="destructive">{it.pricing_status}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" variant="outline" onClick={() => setAuditFor({ id: it.id, name: it.name })}>
+                              <History className="w-3 h-3" /> History
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
