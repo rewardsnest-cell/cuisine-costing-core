@@ -219,8 +219,10 @@ function AdminLayout() {
     } catch { return new Set(allLabels); }
   });
 
-  // Auth gate
-  if (loading) {
+  // Auth gate — only flash the loader on the very first session check
+  // (when we don't yet have a cached user). Subsequent navigations or role
+  // refreshes shouldn't blank out the screen.
+  if (loading && !user) {
     return <LoadingState fullScreen label="Checking your session…" />;
   }
 
