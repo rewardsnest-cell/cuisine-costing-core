@@ -499,6 +499,7 @@ function SchedulesSection({
   // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   function resetForm() {
     setEditingId(null);
