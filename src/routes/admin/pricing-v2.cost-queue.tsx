@@ -125,7 +125,7 @@ function CostQueuePage() {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+      <Tabs value={tab} onValueChange={changeTab}>
         <TabsList>
           <TabsTrigger value="pending">Pending review</TabsTrigger>
           <TabsTrigger value="auto_applied">Auto-applied</TabsTrigger>
