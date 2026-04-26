@@ -414,7 +414,7 @@ function CatalogBootstrapPage() {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })}
+                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50, skip_weight_normalization: skipWeight })}
                 disabled={runMut.isPending || guardedPhase !== "idle"}
               >
                 Dry Run Only (50)
