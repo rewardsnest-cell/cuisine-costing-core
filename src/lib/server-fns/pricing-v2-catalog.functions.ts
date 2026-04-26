@@ -1254,6 +1254,121 @@ export const setManualWeight = createServerFn({ method: "POST" })
     };
   });
 
+// ---- Bulk: set manual weight + source across multiple products -----------
+
+const bulkSetManualWeightSchema = z.object({
+  product_keys: z.array(z.string().min(1).max(200)).min(1).max(500),
+  weight_input: z.string().min(1).max(50),
+  reason: z.string().min(1).max(500),
+  weight_source: z
+    .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
+    .default("manual_override"),
+  // When true, save inconsistent rows anyway (audit-tagged). When false,
+  // inconsistent rows are reported back as skipped so the user can confirm.
+  force_override: z.boolean().default(false),
+});
+
+export const bulkSetManualWeight = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => bulkSetManualWeightSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+
+    const norm = normalizeWeightInput(data.weight_input);
+    if (!norm.ok) {
+      return {
+        ok: false as const,
+        kind: "invalid_input" as const,
+        message: norm.reason,
+        updated: 0,
+        skipped: [] as Array<{ product_key: string; reason: string; parsed_grams?: number; ratio?: number }>,
+        failed: [] as Array<{ product_key: string; message: string }>,
+      };
+    }
+    const grams = norm.grams;
+    const unit = norm.unit;
+
+    const { data: items, error: e1 } = await supabase
+      .from("pricing_v2_item_catalog")
+      .select("product_key, store_id, kroger_product_id, size_raw")
+      .in("product_key", data.product_keys);
+    if (e1) throw new Error(e1.message);
+
+    const found = new Map<string, any>((items ?? []).map((r: any) => [r.product_key, r]));
+    const updated: string[] = [];
+    const skipped: Array<{ product_key: string; reason: string; parsed_grams?: number; ratio?: number }> = [];
+    const failed: Array<{ product_key: string; message: string }> = [];
+
+    for (const key of data.product_keys) {
+      const item = found.get(key);
+      if (!item) {
+        failed.push({ product_key: key, message: "not found" });
+        continue;
+      }
+
+      let parsed: ReturnType<typeof parseWeightToGrams> | null = null;
+      try {
+        const { data: raw } = await supabase
+          .from("pricing_v2_kroger_catalog_raw")
+          .select("size_raw, payload_json")
+          .eq("store_id", item.store_id)
+          .eq("kroger_product_id", item.kroger_product_id)
+          .order("fetched_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        parsed = parseWeightToGrams({
+          size_raw: raw?.size_raw ?? item.size_raw,
+          payload_json: raw?.payload_json ?? null,
+        });
+      } catch {
+        parsed = null;
+      }
+
+      const cmp = compareWithSizeRaw(grams, parsed);
+      if (cmp.comparable && !cmp.consistent && !data.force_override) {
+        skipped.push({
+          product_key: key,
+          reason: `inconsistent with size_raw "${item.size_raw ?? "—"}"`,
+          parsed_grams: cmp.parsed_grams,
+          ratio: cmp.ratio,
+        });
+        continue;
+      }
+
+      const finalReason =
+        cmp.comparable && !cmp.consistent && data.force_override
+          ? `${data.reason} [bulk override: parsed≈${Math.round(cmp.parsed_grams)} g, entered=${Math.round(grams)} g]`
+          : `${data.reason} [bulk]`;
+
+      const { error } = await supabase
+        .from("pricing_v2_item_catalog")
+        .update({
+          manual_net_weight_grams: grams,
+          manual_override_reason: finalReason,
+          net_weight_grams: grams,
+          weight_source: data.weight_source,
+        })
+        .eq("product_key", key);
+
+      if (error) {
+        failed.push({ product_key: key, message: error.message });
+      } else {
+        updated.push(key);
+      }
+    }
+
+    return {
+      ok: true as const,
+      grams,
+      unit,
+      requested: data.product_keys.length,
+      updated: updated.length,
+      updated_keys: updated,
+      skipped,
+      failed,
+    };
+  });
+
 // ---- List catalog products (for per-row Fix Weight UI) -------------------
 
 export const listCatalogProducts = createServerFn({ method: "POST" })
