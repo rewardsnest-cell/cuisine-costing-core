@@ -46,6 +46,7 @@ import {
   testAlertConfig,
   listCatalogProducts,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
+import { normalizeWeightInput } from "@/lib/server/pricing-v2/normalize-weight-input";
 
 import {
   Dialog,
