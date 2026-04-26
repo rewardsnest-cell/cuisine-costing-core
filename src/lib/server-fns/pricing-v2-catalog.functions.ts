@@ -324,22 +324,18 @@ async function executeCatalogBootstrap(
         products = await fetchProductsByIds({ storeId, productIds: slice });
       }
 
-      // Keyword sweep is supplemental and only runs on the FIRST invocation.
-      if (!nextCursor) {
-        const terms: string[] = [];
-        if (data.keyword) terms.push(data.keyword);
-        if (data.keywords?.length) {
-          for (const k of data.keywords) {
-            const t = k.trim();
-            if (t && !terms.some((x) => x.toLowerCase() === t.toLowerCase())) terms.push(t);
-          }
-        }
+      // Keyword sweep — runs ONLY when explicitly requested via keywords[].
+      // Tracks per-keyword product attribution so we can answer
+      // "which keyword found this item?" later.
+      const keywordHits: { keyword: string; product_key: string }[] = [];
+      if (isKeywordSweep && !nextCursor) {
         const seenK = new Set(products.map((p) => productKey(storeId, p)));
-        for (const term of terms) {
+        for (const term of normalizedSweepKeywords) {
           try {
             const more = await searchProducts({ storeId, term, limit: data.keyword_limit });
             for (const p of more) {
               const k = productKey(storeId, p);
+              keywordHits.push({ keyword: term, product_key: k });
               if (!seenK.has(k)) { products.push(p); seenK.add(k); }
             }
           } catch (e: any) {
@@ -359,6 +355,7 @@ async function executeCatalogBootstrap(
           }
         }
       }
+
 
       countsIn = products.length;
       pageDone = remainingAfter === 0;
