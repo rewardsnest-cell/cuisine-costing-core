@@ -38,6 +38,8 @@ const bootstrapSchema = z.object({
   keywords: z.array(z.string().trim().min(1).max(120)).max(500).optional(),
   // Per-keyword search limit (caps Kroger results per term).
   keyword_limit: z.number().int().min(1).max(500).default(250),
+  // Optional schedule_id when this run is triggered by a recurring schedule.
+  schedule_id: z.string().uuid().optional(),
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
   bypass_min_mapped_check: z.boolean().default(false),
