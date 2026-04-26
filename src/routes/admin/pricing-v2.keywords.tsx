@@ -641,13 +641,50 @@ function SchedulesSection({
     : useAllKeywords
     ? enabledCount
     : selectedIdsForForm.length;
-  const canSave =
-    !!name.trim() &&
-    !saveMut.isPending &&
-    (useAllKeywords || isContinuousMode || isExcludeMode || effectiveKeywordCount > 0) &&
-    (limitMode !== "until" || !!untilDate) &&
-    (limitMode !== "runs" || maxRuns > 0) &&
-    (limitMode !== "continuous" || (continuousIntervalSec >= 10 && emptyRunsThreshold >= 1));
+  // ---- Validation ---------------------------------------------------------
+  const validationErrors: Record<string, string> = {};
+  if (!name.trim()) validationErrors.name = "Name is required.";
+  else if (name.trim().length > 120) validationErrors.name = "Name must be 120 characters or fewer.";
+  if (!Number.isFinite(cadence) || cadence < 1 || cadence > 24 * 30) {
+    validationErrors.cadence = "Cadence must be between 1 and 720 hours.";
+  }
+  if (!useAllKeywords && !isContinuousMode && !isExcludeMode && effectiveKeywordCount === 0) {
+    validationErrors.keywords = "Select at least one keyword, or enable Sweep all.";
+  }
+  if (limitMode === "until") {
+    if (!untilDate) {
+      validationErrors.until = "Pick a date when 'Until date' is selected.";
+    } else {
+      const parsed = new Date(`${untilDate}T23:59:59`);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (Number.isNaN(parsed.getTime())) validationErrors.until = "Invalid date.";
+      else if (parsed < today) validationErrors.until = "Date must be today or in the future.";
+    }
+  }
+  if (limitMode === "runs") {
+    if (!Number.isFinite(maxRuns) || !Number.isInteger(maxRuns)) {
+      validationErrors.runs = "Enter a whole number of runs.";
+    } else if (maxRuns < 1) validationErrors.runs = "Must be at least 1 run.";
+    else if (maxRuns > 100000) validationErrors.runs = "Maximum is 100,000 runs.";
+  }
+  if (limitMode === "continuous") {
+    if (!Number.isFinite(continuousIntervalSec) || continuousIntervalSec < 10 || continuousIntervalSec > 3600) {
+      validationErrors.continuousInterval = "Gap must be 10–3600 seconds.";
+    }
+    if (!Number.isFinite(emptyRunsThreshold) || !Number.isInteger(emptyRunsThreshold) || emptyRunsThreshold < 1 || emptyRunsThreshold > 50) {
+      validationErrors.emptyRuns = "Empty-run threshold must be a whole number 1–50.";
+    }
+  }
+  const canSave = Object.keys(validationErrors).length === 0 && !saveMut.isPending;
+
+  const handleSaveClick = () => {
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error(Object.values(validationErrors)[0]);
+      return;
+    }
+    saveMut.mutate();
+  };
+
 
   return (
     <Card>
@@ -791,6 +828,7 @@ function SchedulesSection({
                   value={untilDate}
                   onChange={(e) => setUntilDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
+                  aria-invalid={!!validationErrors.until}
                 />
               )}
               <label className="inline-flex items-center gap-1.5 text-sm">
@@ -805,11 +843,18 @@ function SchedulesSection({
               {limitMode === "runs" && (
                 <Input
                   type="number"
+                  inputMode="numeric"
+                  step={1}
                   min={1}
                   max={100000}
                   className="w-24"
                   value={maxRuns}
-                  onChange={(e) => setMaxRuns(Math.max(1, Number(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isFinite(n)) return;
+                    setMaxRuns(Math.max(1, Math.min(100000, Math.floor(n))));
+                  }}
+                  aria-invalid={!!validationErrors.runs}
                 />
               )}
               <label className="inline-flex items-center gap-1.5 text-sm">
@@ -861,12 +906,23 @@ function SchedulesSection({
                 </div>
               </div>
             )}
+            {(validationErrors.until || validationErrors.runs || validationErrors.continuousInterval || validationErrors.emptyRuns) && (
+              <p className="text-xs text-destructive">
+                {validationErrors.until || validationErrors.runs || validationErrors.continuousInterval || validationErrors.emptyRuns}
+              </p>
+            )}
           </div>
+
+          {(validationErrors.name || validationErrors.cadence || validationErrors.keywords) && (
+            <p className="text-xs text-destructive">
+              {validationErrors.name || validationErrors.cadence || validationErrors.keywords}
+            </p>
+          )}
 
           <div className="flex justify-end">
             <Button
               size="sm"
-              onClick={() => saveMut.mutate()}
+              onClick={handleSaveClick}
               disabled={!canSave}
             >
               {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
