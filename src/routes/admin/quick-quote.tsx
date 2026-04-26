@@ -294,25 +294,42 @@ function QuickQuotePage() {
                     const isSelected = form.selectedRecipeIds.includes(r.id);
                     const price = pricePerGuestForRecipe(r, markup, form.tier);
                     return (
-                      <button
+                      <div
                         key={r.id}
-                        type="button"
-                        onClick={() => toggleArr("selectedRecipeIds", r.id)}
                         className={`text-left p-3 rounded-lg border transition ${
                           isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
                         }`}
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleArr("selectedRecipeIds", r.id)}
+                            className="min-w-0 flex-1 text-left"
+                          >
                             <p className="text-sm font-medium truncate">{r.name}</p>
                             <p className="text-[11px] text-muted-foreground">{r.category || "—"} · {r.cuisine || "—"}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
+                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
                             <span className="text-sm font-semibold text-primary">${price.toFixed(2)}</span>
-                            {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                            <button
+                              type="button"
+                              onClick={() => setExplain({ id: r.id, name: r.name })}
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                              title="Explain price"
+                            >
+                              <Info className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleArr("selectedRecipeIds", r.id)}
+                              className="p-1 rounded hover:bg-muted"
+                              aria-label={isSelected ? "Remove" : "Add"}
+                            >
+                              {isSelected ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                            </button>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
