@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, AlertTriangle, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPricingV2Settings,
   savePricingV2Settings,
+  getPricingV2LastScheduledRun,
 } from "@/lib/server-fns/pricing-v2.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/settings")({
@@ -25,6 +28,8 @@ type Form = {
   warning_threshold_pct: number;
   zero_cost_blocking: boolean;
   default_menu_multiplier: number;
+  stage456_cron_enabled: boolean;
+  auto_apply_threshold_pct: number;
 };
 
 function PricingV2SettingsPage() {
@@ -47,6 +52,8 @@ function PricingV2SettingsPage() {
         warning_threshold_pct: Number(s.warning_threshold_pct),
         zero_cost_blocking: s.zero_cost_blocking,
         default_menu_multiplier: Number(s.default_menu_multiplier),
+        stage456_cron_enabled: s.stage456_cron_enabled ?? true,
+        auto_apply_threshold_pct: Number(s.auto_apply_threshold_pct ?? 10),
       });
     }
   }, [settings.data, form]);
