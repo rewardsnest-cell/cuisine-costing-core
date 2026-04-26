@@ -1556,6 +1556,70 @@ function NotificationDetailDialog({
   );
 }
 
+function RunStatusRow({
+  status,
+}: {
+  status: {
+    startedAt: number;
+    phase: "queued" | "running" | "completed" | "failed";
+    endedAt?: number;
+    error?: string;
+  };
+}) {
+  // Recompute elapsed every render (the parent ticks 1Hz while active runs exist).
+  const endRef = status.endedAt ?? Date.now();
+  const elapsedMs = Math.max(0, endRef - status.startedAt);
+  const elapsedSec = Math.floor(elapsedMs / 1000);
+  const mm = Math.floor(elapsedSec / 60);
+  const ss = elapsedSec % 60;
+  const elapsedLabel = mm > 0 ? `${mm}m ${ss}s` : `${ss}s`;
+  const startedLabel = new Date(status.startedAt).toLocaleTimeString();
+
+  const tone =
+    status.phase === "failed"
+      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      : status.phase === "completed"
+      ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-400"
+      : status.phase === "running"
+      ? "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+      : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400";
+
+  const label =
+    status.phase === "queued"
+      ? "Queued"
+      : status.phase === "running"
+      ? "Running"
+      : status.phase === "completed"
+      ? "Completed"
+      : "Failed";
+
+  const Icon =
+    status.phase === "completed"
+      ? CheckCheck
+      : status.phase === "failed"
+      ? XIcon
+      : Loader2;
+  const spin = status.phase === "queued" || status.phase === "running";
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[11px] ${tone}`}
+      role="status"
+      aria-live="polite"
+    >
+      <Icon className={`w-3 h-3 shrink-0 ${spin ? "animate-spin" : ""}`} />
+      <span className="font-semibold uppercase tracking-wide">{label}</span>
+      <span className="opacity-80 tabular-nums">
+        · {elapsedLabel}
+      </span>
+      <span className="opacity-60 ml-auto tabular-nums">started {startedLabel}</span>
+      {status.phase === "failed" && status.error && (
+        <span className="basis-full text-[10px] opacity-80 break-words">{status.error}</span>
+      )}
+    </div>
+  );
+}
+
 function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
