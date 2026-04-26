@@ -33,6 +33,11 @@ const bootstrapSchema = z.object({
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
   batch_size: z.number().int().min(1).max(10000).optional(),
   keyword: z.string().trim().max(120).optional(),
+  // Optional list of keywords to sweep (in addition to or instead of `keyword`).
+  // Each keyword runs an independent Kroger search; results are merged + de-duped.
+  keywords: z.array(z.string().trim().min(1).max(120)).max(500).optional(),
+  // Per-keyword search limit (caps Kroger results per term).
+  keyword_limit: z.number().int().min(1).max(500).default(250),
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
   bypass_min_mapped_check: z.boolean().default(false),
