@@ -13,10 +13,12 @@ import {
   Check,
   Download,
   PlayCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { PROJECT_AUDIT_MD, rowsToCsv } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
+import { runDeepAudit } from "@/lib/server-fns/deep-audit.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -652,6 +654,9 @@ function ExportsPage() {
         </CardContent>
       </Card>
 
+      {/* Deep audit (live snapshot + mega prompt) */}
+      <DeepAuditCard />
+
       {/* CSV exports */}
       <Card>
         <CardHeader>
@@ -783,5 +788,113 @@ function ExportProgressLine({
         </a>
       )}
     </div>
+  );
+}
+
+// ---- Deep Audit card -----------------------------------------------------
+
+function DeepAuditCard() {
+  const runFn = useServerFn(runDeepAudit);
+  const [loading, setLoading] = useState(false);
+  const [auditText, setAuditText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+
+  const run = async () => {
+    setLoading(true);
+    setError(null);
+    setAuditText("");
+    setGeneratedAt(null);
+    try {
+      const res = await runFn();
+      setAuditText(res.text);
+      setGeneratedAt(res.generated_at);
+    } catch (e: any) {
+      setError(e?.message ?? "Deep audit failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const download = () => {
+    const blob = new Blob([auditText], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+    a.download = `deep-audit-${stamp}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" /> Deep audit (AI-ready)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Generates a live snapshot — public schema, RLS policies, server
+          functions, route inventory, configured integrations (names only),
+          and a 7-day error-log summary — prepended with a principal-architect
+          audit prompt tailored to this stack. Paste the downloaded file into
+          GPT / Claude / Copilot for a structured security &amp; architecture
+          review.
+        </p>
+
+        <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+          <strong className="text-foreground">No secrets are emitted.</strong>{" "}
+          Integration entries list configured-vs-missing only — never values.
+          Admin-only.
+        </div>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={run} disabled={loading} className="gap-2">
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <PlayCircle className="w-4 h-4" />
+            )}
+            {loading ? "Running deep audit…" : "Run deep audit"}
+          </Button>
+          <Button
+            onClick={download}
+            disabled={!auditText}
+            variant="outline"
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" /> Download .md
+          </Button>
+          {auditText && (
+            <Badge variant="secondary" className="font-mono text-[10px]">
+              {auditText.length.toLocaleString()} chars
+              {generatedAt && ` · ${new Date(generatedAt).toLocaleTimeString()}`}
+            </Badge>
+          )}
+        </div>
+
+        {auditText && (
+          <details className="rounded-md border border-border/60 bg-muted/30">
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
+              Preview (first 4 KB)
+            </summary>
+            <pre className="px-3 pb-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words max-h-80 overflow-auto">
+              {auditText.slice(0, 4000)}
+              {auditText.length > 4000 ? "\n\n…(truncated — download for full)" : ""}
+            </pre>
+          </details>
+        )}
+      </CardContent>
+    </Card>
   );
 }
