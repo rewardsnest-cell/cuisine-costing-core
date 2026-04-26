@@ -1061,6 +1061,30 @@ export const saveAlertConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Send a synthetic stuck-recovery alert through all enabled channels so the
+// admin can verify recipients/webhook connectivity without waiting for a real
+// stuck run. Uses current persisted alert config (not unsaved form state).
+export const testAlertConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context as any;
+    const req = getRequest();
+    const baseUrl = new URL(req.url).origin;
+    const fakeBreach: RecoveredRunBreach = {
+      run_id: "00000000-0000-0000-0000-000000000000",
+      stage: "catalog",
+      stuck_for_minutes: 999,
+      started_at: new Date(Date.now() - 999 * 60_000).toISOString(),
+      counts_in: 0,
+      counts_out: 0,
+      warnings_count: 0,
+      errors_count: 0,
+      message: "TEST ALERT — synthetic event from admin settings panel",
+    };
+    const result = await dispatchStuckRecoveryAlerts(supabase, [fakeBreach], baseUrl);
+    return { ok: true, fired: result.fired, events: result.events };
+  });
+
 // ---- Manual weight override ----------------------------------------------
 
 export const setManualWeight = createServerFn({ method: "POST" })
