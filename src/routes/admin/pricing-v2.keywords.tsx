@@ -1084,6 +1084,18 @@ function SchedulesSection({
           )}
 
           <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {editingId && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={saveMut.isPending}
+              >
+                <XIcon className="w-4 h-4" />
+                Cancel
+              </Button>
+            )}
             <Button
               size="sm"
               onClick={handleSaveClick}
@@ -1096,6 +1108,7 @@ function SchedulesSection({
         </div>
 
         {/* List */}
+        <div ref={listRef}>
         {schedules.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : list.length === 0 ? (
