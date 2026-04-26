@@ -707,9 +707,41 @@ function SchedulesSection({
                 Sweep <strong>all enabled keywords</strong> in the library (no filter)
               </Label>
             </div>
+
+            {/* Include / Exclude mode — only meaningful when sweeping all */}
+            {(useAllKeywords || isContinuousMode) && !isContinuousMode && (
+              <div className="flex flex-wrap items-center gap-3 pl-7">
+                <span className="text-xs text-muted-foreground">Filter mode:</span>
+                <label className="inline-flex items-center gap-1.5 text-xs">
+                  <input
+                    type="radio"
+                    name="filter-mode"
+                    checked={filterMode === "include"}
+                    onChange={() => setFilterMode("include")}
+                  />
+                  No exclusions (all enabled)
+                </label>
+                <label className="inline-flex items-center gap-1.5 text-xs">
+                  <input
+                    type="radio"
+                    name="filter-mode"
+                    checked={filterMode === "exclude"}
+                    onChange={() => setFilterMode("exclude")}
+                  />
+                  Exclude selected keywords
+                </label>
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground">
               {isContinuousMode ? (
-                <>Continuous mode always sweeps every enabled keyword (currently {rows.filter((r) => r.enabled).length}).</>
+                <>Continuous mode always sweeps every enabled keyword (currently {enabledCount}).</>
+              ) : isExcludeMode ? (
+                <>
+                  Will sweep all enabled keywords <strong>except</strong> the {selectedIdsForForm.length} keyword
+                  {selectedIdsForForm.length === 1 ? "" : "s"}{" "}
+                  {editingId ? "captured when saved" : "currently selected above"} (~{effectiveKeywordCount} will run).
+                </>
               ) : useAllKeywords ? (
                 <>Will run against every enabled keyword at the time the schedule fires (currently {effectiveKeywordCount}).</>
               ) : editingId ? (
