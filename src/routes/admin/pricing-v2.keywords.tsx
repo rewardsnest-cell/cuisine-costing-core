@@ -593,6 +593,14 @@ function SchedulesSection({
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
   const formRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  function handleCancelEdit() {
+    resetForm();
+    requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   function resetForm() {
     setEditingId(null);
