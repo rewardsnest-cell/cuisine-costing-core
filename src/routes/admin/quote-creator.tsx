@@ -31,8 +31,10 @@ import {
   Files, DollarSign, ClipboardList, Plus, Download,
 } from "lucide-react";
 import { generateShoppingListPdf } from "@/lib/cqh/shopping-list-pdf";
-import { downloadShoppingListXlsx } from "@/lib/cqh/shopping-list-xlsx";
+import { downloadShoppingListXlsx, generateShoppingListXlsx } from "@/lib/cqh/shopping-list-xlsx";
 import { canonicalize, dimensionLabel, formatQty, type Dimension } from "@/lib/cqh/units";
+import { logAndDownload } from "@/lib/admin/log-download";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/admin/quote-creator")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -1067,7 +1069,7 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
   event?: any; onChanged: () => void; isApproved: boolean;
 }) {
   const total = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (items.length === 0) {
       toast.error("No items to export");
       return;
@@ -1082,12 +1084,24 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
       });
       const slug = (event?.event_name ?? event?.name ?? "shopping-list")
         .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      doc.save(`${slug || "shopping-list"}-rev${list.revision_number}.pdf`);
+      const filename = `${slug || "shopping-list"}-rev${list.revision_number}.pdf`;
+      const blob = doc.output("blob");
+      await logAndDownload({
+        content: blob,
+        filename,
+        mimeType: "application/pdf",
+        kind: "shopping_list",
+        module: "quote",
+        recordCount: items.length,
+        parameters: { revision: list.revision_number, status: list.status, total },
+        sourceId: list.id,
+        sourceLabel: event?.event_name ?? event?.name ?? null,
+      });
     } catch (e: any) {
       toast.error("PDF export failed", { description: e.message });
     }
   };
-  const exportXlsx = () => {
+  const exportXlsx = async () => {
     if (items.length === 0) {
       toast.error("No items to export");
       return;
@@ -1095,17 +1109,30 @@ function ShoppingListEditor({ list, items, dishes, event, onChanged, isApproved 
     try {
       const slug = (event?.event_name ?? event?.name ?? "shopping-list")
         .toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      downloadShoppingListXlsx(
-        items,
-        {
-          eventName: event?.event_name ?? event?.name ?? null,
-          eventReference: event?.reference_number ?? null,
-          guestCount: event?.guest_count ?? null,
-          revisionNumber: list.revision_number,
-          status: list.status,
-        },
-        `${slug || "shopping-list"}-rev${list.revision_number}.xlsx`,
-      );
+      const filename = `${slug || "shopping-list"}-rev${list.revision_number}.xlsx`;
+      const meta = {
+        eventName: event?.event_name ?? event?.name ?? null,
+        eventReference: event?.reference_number ?? null,
+        guestCount: event?.guest_count ?? null,
+        revisionNumber: list.revision_number,
+        status: list.status,
+      };
+      const wb = generateShoppingListXlsx(items, meta);
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      await logAndDownload({
+        content: blob,
+        filename,
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        kind: "shopping_list",
+        module: "quote",
+        recordCount: items.length,
+        parameters: { revision: list.revision_number, status: list.status, total, format: "xlsx" },
+        sourceId: list.id,
+        sourceLabel: event?.event_name ?? event?.name ?? null,
+      });
     } catch (e: any) {
       toast.error("Excel export failed", { description: e.message });
     }
