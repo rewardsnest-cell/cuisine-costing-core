@@ -442,7 +442,7 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info, ArrowDownToLine } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
