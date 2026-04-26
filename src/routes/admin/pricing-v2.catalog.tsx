@@ -44,7 +44,24 @@ import {
   getAlertConfig,
   saveAlertConfig,
   testAlertConfig,
+  listCatalogProducts,
 } from "@/lib/server-fns/pricing-v2-catalog.functions";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/admin/pricing-v2/catalog")({
   head: () => ({ meta: [{ title: "Pricing v2 — Stage 0 Catalog Bootstrap" }] }),
