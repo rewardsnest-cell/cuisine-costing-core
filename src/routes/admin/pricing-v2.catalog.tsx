@@ -218,7 +218,8 @@ function CatalogBootstrapPage() {
   });
 
   const replayMut = useMutation({
-    mutationFn: (run_id: string) => replayCatalogRun({ data: { run_id } }),
+    mutationFn: (vars: { run_id: string; include_successful: boolean }) =>
+      replayCatalogRun({ data: vars }),
     onSuccess: (res: any) => {
       setLastResult(res);
       if (res.run_id) setErrFilterRun(res.run_id);
@@ -226,7 +227,8 @@ function CatalogBootstrapPage() {
         res.bootstrap_completed
           ? `bootstrap COMPLETED — fetched ${res.counts_out}`
           : `in:${res.counts_in} out:${res.counts_out} warn:${res.warnings_count} err:${res.errors_count}`;
-      toast.success(`Replayed ${String(res.replay_of).slice(0, 8)}… → ${tail}`);
+      const mode = res.include_successful ? " (full)" : "";
+      toast.success(`Replayed${mode} ${String(res.replay_of).slice(0, 8)}… → ${tail}`);
       qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Replay failed"),
