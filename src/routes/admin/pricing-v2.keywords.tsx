@@ -448,6 +448,7 @@ import {
   listKeywordSchedules,
   upsertKeywordSchedule,
   deleteKeywordSchedule,
+  runKeywordScheduleNow,
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
 import {
@@ -618,6 +619,15 @@ function SchedulesSection({
       qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Delete failed"),
+  });
+
+  const runNowMut = useMutation({
+    mutationFn: (id: string) => runKeywordScheduleNow({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Queued — will run on the next cron tick (within ~1 min)");
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to start schedule"),
   });
 
   const list = schedules.data?.rows ?? [];
@@ -954,6 +964,15 @@ function SchedulesSection({
                         />
                       </td>
                       <td className="p-2 text-right whitespace-nowrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => runNowMut.mutate(s.id)}
+                          disabled={runNowMut.isPending}
+                          title="Run now"
+                        >
+                          <Play className="w-3 h-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
