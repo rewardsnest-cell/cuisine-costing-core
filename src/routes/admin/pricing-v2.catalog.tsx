@@ -1218,11 +1218,32 @@ function FixWeightDialog({
   const [weightInput, setWeightInput] = useState("");
   const [reason, setReason] = useState("");
   const [source, setSource] = useState<string>("manual_override");
+  const [sourceTouched, setSourceTouched] = useState(false);
   const [serverWarning, setServerWarning] = useState<null | {
     message: string;
     parsed_grams: number;
     ratio: number;
   }>(null);
+
+  // Suggest weight_source from available product metadata.
+  const suggestion = useMemo(() => {
+    if (!product) return null;
+    const has = (v: any) => v != null && String(v).trim() !== "";
+    // Priority: existing manual override > vendor spec > printed label > parsed size > estimated.
+    if (product.weight_source === "manual_override" && has(product.net_weight_grams)) {
+      return { value: "manual_override", reason: "Existing manual override on file" };
+    }
+    if (has(product.vendor_weight_grams) || has(product.vendor_spec_url) || has(product.vendor_sku)) {
+      return { value: "vendor", reason: "Vendor spec data available" };
+    }
+    if (has(product.label_weight_grams) || has(product.has_nutrition_label) || has(product.label_image_url)) {
+      return { value: "label", reason: "Printed label data available" };
+    }
+    if (has(product.size_raw) || has(product.parsed_size) || has(product.net_weight_grams)) {
+      return { value: "parsed", reason: `Parsed from size${has(product.size_raw) ? ` "${product.size_raw}"` : ""}` };
+    }
+    return { value: "estimated", reason: "No reliable metadata — estimate" };
+  }, [product?.product_key, product?.weight_source, product?.size_raw, product?.net_weight_grams]);
 
   // Reset fields whenever a new product is opened
   useMemo(() => {
@@ -1233,7 +1254,9 @@ function FixWeightDialog({
           : ""
       );
       setReason(product.manual_override_reason ?? "");
-      setSource(product.weight_source ?? "manual_override");
+      // Auto-apply suggestion as default; user can override.
+      setSource(suggestion?.value ?? product.weight_source ?? "manual_override");
+      setSourceTouched(false);
       setServerWarning(null);
     }
   }, [product?.product_key]);
@@ -1325,8 +1348,19 @@ function FixWeightDialog({
               </div>
             </div>
             <div>
-              <Label>Weight source</Label>
-              <Select value={source} onValueChange={setSource}>
+              <div className="flex items-center justify-between">
+                <Label>Weight source</Label>
+                {suggestion && source !== suggestion.value && (
+                  <button
+                    type="button"
+                    className="text-[11px] underline text-muted-foreground hover:text-foreground"
+                    onClick={() => { setSource(suggestion.value); setSourceTouched(false); }}
+                  >
+                    Use suggestion: {suggestion.value}
+                  </button>
+                )}
+              </div>
+              <Select value={source} onValueChange={(v) => { setSource(v); setSourceTouched(true); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual_override">manual_override</SelectItem>
@@ -1336,6 +1370,12 @@ function FixWeightDialog({
                   <SelectItem value="parsed">parsed</SelectItem>
                 </SelectContent>
               </Select>
+              {suggestion && (
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  {source === suggestion.value && !sourceTouched ? "Suggested" : "Suggested"}:{" "}
+                  <span className="font-mono">{suggestion.value}</span> — {suggestion.reason}
+                </div>
+              )}
             </div>
             <div>
               <Label>Reason</Label>
