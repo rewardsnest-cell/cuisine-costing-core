@@ -385,6 +385,12 @@ function CatalogBootstrapPage() {
               <div className="flex-1 min-w-[180px]">
                 <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
                 <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+                <Link
+                  to="/admin/pricing-v2/keywords"
+                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                >
+                  → Manage keyword library &amp; run multi-keyword sweep
+                </Link>
               </div>
               <div className="basis-full" />
               <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 px-3 py-2 max-w-xl">

@@ -33,6 +33,11 @@ const bootstrapSchema = z.object({
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
   batch_size: z.number().int().min(1).max(10000).optional(),
   keyword: z.string().trim().max(120).optional(),
+  // Optional list of keywords to sweep (in addition to or instead of `keyword`).
+  // Each keyword runs an independent Kroger search; results are merged + de-duped.
+  keywords: z.array(z.string().trim().min(1).max(120)).max(500).optional(),
+  // Per-keyword search limit (caps Kroger results per term).
+  keyword_limit: z.number().int().min(1).max(500).default(250),
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
   bypass_min_mapped_check: z.boolean().default(false),
@@ -236,6 +241,7 @@ async function executeCatalogBootstrap(
           dry_run: data.dry_run,
           batch_size: data.batch_size ?? null,
           keyword: data.keyword ?? null,
+          keywords: data.keywords ?? null,
           store_id: storeId,
           resumed_from: state.last_page_token ?? null,
           replay_of: opts.replay_of ?? null,
@@ -288,12 +294,38 @@ async function executeCatalogBootstrap(
       }
 
       // Keyword sweep is supplemental and only runs on the FIRST invocation.
-      if (data.keyword && !nextCursor) {
-        const more = await searchProducts({ storeId, term: data.keyword, limit: 250 });
+      if (!nextCursor) {
+        const terms: string[] = [];
+        if (data.keyword) terms.push(data.keyword);
+        if (data.keywords?.length) {
+          for (const k of data.keywords) {
+            const t = k.trim();
+            if (t && !terms.some((x) => x.toLowerCase() === t.toLowerCase())) terms.push(t);
+          }
+        }
         const seenK = new Set(products.map((p) => productKey(storeId, p)));
-        for (const p of more) {
-          const k = productKey(storeId, p);
-          if (!seenK.has(k)) { products.push(p); seenK.add(k); }
+        for (const term of terms) {
+          try {
+            const more = await searchProducts({ storeId, term, limit: data.keyword_limit });
+            for (const p of more) {
+              const k = productKey(storeId, p);
+              if (!seenK.has(k)) { products.push(p); seenK.add(k); }
+            }
+          } catch (e: any) {
+            warnings += 1;
+            errors.push({
+              run_id: runId,
+              stage: STAGE,
+              severity: "warning",
+              type: "KEYWORD_SEARCH_FAILED",
+              entity_type: "keyword",
+              entity_id: null,
+              entity_name: term,
+              message: `Kroger search failed for "${term}": ${e?.message ?? "unknown"}`,
+              suggested_fix: "Retry the sweep; if persistent, check Kroger API status / rate limits.",
+              debug_json: { term },
+            });
+          }
         }
       }
 
