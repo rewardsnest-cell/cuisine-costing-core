@@ -120,6 +120,15 @@ function PricingV2ControlCenter() {
           <Link to="/admin/pricing-v2/unit-rules" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
             <Scale className="w-4 h-4" /> Unit Rules
           </Link>
+          <Link to="/admin/pricing-v2/cost-queue" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <CheckCircle2 className="w-4 h-4" /> Cost Queue (S4)
+          </Link>
+          <Link to="/admin/pricing-v2/recipe-costs" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <ChefHat className="w-4 h-4" /> Recipe Costs (S5)
+          </Link>
+          <Link to="/admin/pricing-v2/menu-prices" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
+            <Receipt className="w-4 h-4" /> Menu Pricing (S6)
+          </Link>
           <Link to="/admin/pricing-v2/settings" className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-accent">
             <CalendarClock className="w-4 h-4" /> Settings
           </Link>
