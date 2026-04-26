@@ -383,6 +383,37 @@ export const listBlockedInventory = createServerFn({ method: "GET" })
     return { items: data ?? [] };
   });
 
+// ---- Per-item audit log ---------------------------------------------------
+
+export const getInventoryCostAuditLog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    inventory_item_id: z.string().uuid(),
+    limit: z.number().int().min(1).max(200).default(50),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context as any;
+    const { data: item } = await supabase
+      .from("inventory_items")
+      .select("id, name, category, pricing_status, cost_per_gram_live, last_approved_cost_per_gram")
+      .eq("id", data.inventory_item_id)
+      .maybeSingle();
+    const { data: log, error } = await supabase
+      .from("pricing_v2_cost_apply_log")
+      .select("id, queue_id, old_cost_per_gram, new_cost_per_gram, resolution_source, pct_change, applied_via, notes, created_at, applied_by")
+      .eq("inventory_item_id", data.inventory_item_id)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (error) throw new Error(error.message);
+    const { data: queue } = await supabase
+      .from("pricing_v2_cost_update_queue")
+      .select("id, status, decided_at, decision_notes, resolution_source, pct_change, old_cost_per_gram, new_computed_cost_per_gram, created_at")
+      .eq("inventory_item_id", data.inventory_item_id)
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    return { item, log: log ?? [], queue: queue ?? [] };
+  });
+
 // ---- Manual cost set (admin override) -------------------------------------
 
 export const setManualInventoryCost = createServerFn({ method: "POST" })
