@@ -232,6 +232,24 @@ async function executeCatalogBootstrap(
       }
     }
 
+    // Normalize keyword sweep inputs once and persist authoritatively.
+    const normalizedSweepKeywords: string[] = (() => {
+      const raw: string[] = [];
+      if (data.keyword) raw.push(data.keyword);
+      if (data.keywords?.length) raw.push(...data.keywords);
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const k of raw) {
+        const t = String(k ?? "").trim().toLowerCase();
+        if (!t) continue;
+        if (seen.has(t)) continue;
+        seen.add(t);
+        out.push(t);
+      }
+      return out;
+    })();
+    const isKeywordSweep = normalizedSweepKeywords.length > 0;
+
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
@@ -248,7 +266,23 @@ async function executeCatalogBootstrap(
           resumed_from: state.last_page_token ?? null,
           replay_of: opts.replay_of ?? null,
           skip_weight_normalization: data.skip_weight_normalization,
+          // Authoritative keyword-sweep block (used for traceability + UI).
+          run_type: isKeywordSweep ? "keyword_sweep" : "inventory_bootstrap",
+          run_params: isKeywordSweep
+            ? {
+                keywords: normalizedSweepKeywords,
+                keyword_limit: data.keyword_limit,
+                dry_run: data.dry_run,
+                run_type: "keyword_sweep",
+                schedule_id: data.schedule_id ?? null,
+              }
+            : null,
         },
+        notes: opts.replay_of
+          ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
+          : data.dry_run
+            ? "dry_run=true (catalog_bootstrap)"
+            : "catalog_bootstrap",
         notes: opts.replay_of
           ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
           : data.dry_run
