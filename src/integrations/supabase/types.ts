@@ -3047,6 +3047,7 @@ export type Database = {
           enabled: boolean
           expires_at: string | null
           id: string
+          keyword_filter_mode: string
           keyword_ids: string[]
           keyword_limit: number
           last_run_at: string | null
@@ -3071,6 +3072,7 @@ export type Database = {
           enabled?: boolean
           expires_at?: string | null
           id?: string
+          keyword_filter_mode?: string
           keyword_ids?: string[]
           keyword_limit?: number
           last_run_at?: string | null
@@ -3095,6 +3097,7 @@ export type Database = {
           enabled?: boolean
           expires_at?: string | null
           id?: string
+          keyword_filter_mode?: string
           keyword_ids?: string[]
           keyword_limit?: number
           last_run_at?: string | null
