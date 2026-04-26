@@ -27,7 +27,7 @@ const STAGE = "catalog" as const;
 
 // ---- Inputs ---------------------------------------------------------------
 
-const bootstrapSchema = z.object({
+export const bootstrapSchema = z.object({
   dry_run: z.boolean().default(false),
   // Per-call batch size (a single page of inventory IDs to fetch this invocation).
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
@@ -38,6 +38,8 @@ const bootstrapSchema = z.object({
   keywords: z.array(z.string().trim().min(1).max(120)).max(500).optional(),
   // Per-keyword search limit (caps Kroger results per term).
   keyword_limit: z.number().int().min(1).max(500).default(250),
+  // Optional schedule_id when this run is triggered by a recurring schedule.
+  schedule_id: z.string().uuid().optional(),
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
   bypass_min_mapped_check: z.boolean().default(false),
@@ -176,7 +178,7 @@ type ErrorRow = {
 type BootstrapInput = z.infer<typeof bootstrapSchema>;
 type ExecOpts = { triggered_by?: string; replay_of?: string | null };
 
-async function executeCatalogBootstrap(
+export async function executeCatalogBootstrap(
   supabase: any,
   userId: string | null,
   data: BootstrapInput,
@@ -230,6 +232,24 @@ async function executeCatalogBootstrap(
       }
     }
 
+    // Normalize keyword sweep inputs once and persist authoritatively.
+    const normalizedSweepKeywords: string[] = (() => {
+      const raw: string[] = [];
+      if (data.keyword) raw.push(data.keyword);
+      if (data.keywords?.length) raw.push(...data.keywords);
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const k of raw) {
+        const t = String(k ?? "").trim().toLowerCase();
+        if (!t) continue;
+        if (seen.has(t)) continue;
+        seen.add(t);
+        out.push(t);
+      }
+      return out;
+    })();
+    const isKeywordSweep = normalizedSweepKeywords.length > 0;
+
     const { data: runRow, error: runErr } = await supabase
       .from("pricing_v2_runs")
       .insert({
@@ -246,6 +266,17 @@ async function executeCatalogBootstrap(
           resumed_from: state.last_page_token ?? null,
           replay_of: opts.replay_of ?? null,
           skip_weight_normalization: data.skip_weight_normalization,
+          // Authoritative keyword-sweep block (used for traceability + UI).
+          run_type: isKeywordSweep ? "keyword_sweep" : "inventory_bootstrap",
+          run_params: isKeywordSweep
+            ? {
+                keywords: normalizedSweepKeywords,
+                keyword_limit: data.keyword_limit,
+                dry_run: data.dry_run,
+                run_type: "keyword_sweep",
+                schedule_id: data.schedule_id ?? null,
+              }
+            : null,
         },
         notes: opts.replay_of
           ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
@@ -293,22 +324,18 @@ async function executeCatalogBootstrap(
         products = await fetchProductsByIds({ storeId, productIds: slice });
       }
 
-      // Keyword sweep is supplemental and only runs on the FIRST invocation.
-      if (!nextCursor) {
-        const terms: string[] = [];
-        if (data.keyword) terms.push(data.keyword);
-        if (data.keywords?.length) {
-          for (const k of data.keywords) {
-            const t = k.trim();
-            if (t && !terms.some((x) => x.toLowerCase() === t.toLowerCase())) terms.push(t);
-          }
-        }
+      // Keyword sweep — runs ONLY when explicitly requested via keywords[].
+      // Tracks per-keyword product attribution so we can answer
+      // "which keyword found this item?" later.
+      const keywordHits: { keyword: string; product_key: string }[] = [];
+      if (isKeywordSweep && !nextCursor) {
         const seenK = new Set(products.map((p) => productKey(storeId, p)));
-        for (const term of terms) {
+        for (const term of normalizedSweepKeywords) {
           try {
             const more = await searchProducts({ storeId, term, limit: data.keyword_limit });
             for (const p of more) {
               const k = productKey(storeId, p);
+              keywordHits.push({ keyword: term, product_key: k });
               if (!seenK.has(k)) { products.push(p); seenK.add(k); }
             }
           } catch (e: any) {
@@ -328,6 +355,7 @@ async function executeCatalogBootstrap(
           }
         }
       }
+
 
       countsIn = products.length;
       pageDone = remainingAfter === 0;
@@ -485,7 +513,25 @@ async function executeCatalogBootstrap(
         }
       }
 
-      // 4) Advance bootstrap_state cursor + counters; finalize when done.
+      // 3b) Persist keyword→product attribution (sweep runs only, non-dry).
+      if (isKeywordSweep && !data.dry_run && keywordHits.length) {
+        // De-dupe (keyword, product_key) tuples in-memory to keep insert small.
+        const seenTuple = new Set<string>();
+        const rows = keywordHits.filter((h) => {
+          const k = `${h.keyword}::${h.product_key}`;
+          if (seenTuple.has(k)) return false;
+          seenTuple.add(k);
+          return true;
+        }).map((h) => ({ run_id: runId, keyword: h.keyword, product_key: h.product_key }));
+        for (let i = 0; i < rows.length; i += 500) {
+          const chunk = rows.slice(i, i + 500);
+          // Ignore duplicate-key conflicts (unique on run_id, keyword, product_key).
+          await supabase
+            .from("pricing_v2_catalog_keyword_hits")
+            .upsert(chunk, { onConflict: "run_id,keyword,product_key", ignoreDuplicates: true });
+        }
+      }
+
       let bootstrapCompleted = false;
       if (!data.dry_run) {
         // Cursor advances even if some products weren't returned by Kroger,
@@ -532,6 +578,48 @@ async function executeCatalogBootstrap(
         })
         .eq("run_id", runId);
 
+      // 6) Update keyword library stats + linked schedule (sweep + non-dry only).
+      if (isKeywordSweep && !data.dry_run) {
+        try {
+          const { data: kwRows } = await supabase
+            .from("pricing_v2_keyword_library")
+            .select("id, keyword");
+          const idsToMark: string[] = [];
+          const lookup = new Map<string, string>();
+          for (const r of kwRows ?? []) {
+            lookup.set(String(r.keyword).toLowerCase(), r.id as string);
+          }
+          // Per-keyword hit counts (unique product_keys per keyword in this run).
+          const perKw = new Map<string, Set<string>>();
+          for (const h of keywordHits) {
+            if (!perKw.has(h.keyword)) perKw.set(h.keyword, new Set());
+            perKw.get(h.keyword)!.add(h.product_key);
+          }
+          for (const term of normalizedSweepKeywords) {
+            const id = lookup.get(term);
+            if (!id) continue;
+            idsToMark.push(id);
+            const hits = perKw.get(term)?.size ?? 0;
+            await supabase
+              .from("pricing_v2_keyword_library")
+              .update({ last_run_at: new Date().toISOString(), last_hits: hits })
+              .eq("id", id);
+          }
+          // Update linked schedule run history if applicable.
+          if (data.schedule_id) {
+            await supabase
+              .from("pricing_v2_keyword_schedules")
+              .update({
+                last_run_at: new Date().toISOString(),
+                last_run_id: runId,
+              })
+              .eq("id", data.schedule_id);
+          }
+        } catch (e) {
+          console.error("[catalog-bootstrap] keyword stats update failed:", e);
+        }
+      }
+
       return {
         run_id: runId,
         dry_run: data.dry_run,
@@ -543,6 +631,9 @@ async function executeCatalogBootstrap(
         page_done: pageDone,
         bootstrap_completed: bootstrapCompleted,
         errors_preview: errors.slice(0, 50),
+        run_type: isKeywordSweep ? "keyword_sweep" : "inventory_bootstrap",
+        sweep_keywords: isKeywordSweep ? normalizedSweepKeywords : null,
+        keyword_hits_recorded: isKeywordSweep ? keywordHits.length : 0,
       };
     } catch (e: any) {
       await supabase
