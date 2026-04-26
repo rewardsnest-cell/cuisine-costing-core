@@ -480,9 +480,102 @@ function SchedulesSection({
   skipWeight: boolean;
 }) {
   const qc = useQueryClient();
+  // Per-schedule live "Start" status (queued → running → completed/failed).
+  type RunPhase = "queued" | "running" | "completed" | "failed";
+  type RunStatus = {
+    startedAt: number;
+    baselineLastRunAt: string | null;
+    phase: RunPhase;
+    endedAt?: number;
+    error?: string;
+  };
+  const [runStatusMap, setRunStatusMap] = useState<Record<string, RunStatus>>({});
+  // 1Hz tick to keep elapsed timers fresh.
+  const [, setNowTick] = useState(0);
+  const hasActiveRun = Object.values(runStatusMap).some(
+    (r) => r.phase === "queued" || r.phase === "running",
+  );
+
   const schedules = useQuery({
     queryKey: ["pricing-v2", "keyword-schedules"],
     queryFn: () => listKeywordSchedules(),
+    // Poll faster while we're tracking an in-flight Start so the user sees
+    // it transition through queued → running → completed.
+    refetchInterval: hasActiveRun ? 5000 : false,
+  });
+
+  useEffect(() => {
+    if (!hasActiveRun) return;
+    const t = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [hasActiveRun]);
+
+  // Watch the schedule list: when last_run_at advances past the baseline we
+  // captured at Start time, flip the card to "completed". Auto-clear after a
+  // few seconds so the card returns to its normal resting state.
+  useEffect(() => {
+    const list = schedules.data?.rows ?? [];
+    setRunStatusMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of list) {
+        const cur = next[s.id];
+        if (!cur) continue;
+        if (cur.phase === "queued" || cur.phase === "running") {
+          const advanced =
+            (s.last_run_at ?? null) !== (cur.baselineLastRunAt ?? null) &&
+            s.last_run_at != null;
+          if (advanced) {
+            next[s.id] = { ...cur, phase: "completed", endedAt: Date.now() };
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [schedules.data]);
+
+  // Auto-clear completed/failed entries after 10s.
+  useEffect(() => {
+    const finished = Object.entries(runStatusMap).filter(
+      ([, r]) => r.phase === "completed" || r.phase === "failed",
+    );
+    if (!finished.length) return;
+    const timers = finished.map(([id, r]) => {
+      const remaining = Math.max(0, 10_000 - (Date.now() - (r.endedAt ?? Date.now())));
+      return window.setTimeout(() => {
+        setRunStatusMap((prev) => {
+          const { [id]: _drop, ...rest } = prev;
+          return rest;
+        });
+      }, remaining);
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [runStatusMap]);
+
+  // Heuristic to surface "running": once the cron tick should have picked up
+  // the queued run (>= 60s after Start, or once next_run_at falls in the past),
+  // promote queued → running so the user sees forward motion.
+  useEffect(() => {
+    if (!hasActiveRun) return;
+    const list = schedules.data?.rows ?? [];
+    const now = Date.now();
+    setRunStatusMap((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const s of list) {
+        const cur = next[s.id];
+        if (!cur || cur.phase !== "queued") continue;
+        const elapsed = now - cur.startedAt;
+        const nextRunMs = s.next_run_at ? new Date(s.next_run_at).getTime() : Infinity;
+        if (elapsed >= 60_000 || nextRunMs <= now) {
+          next[s.id] = { ...cur, phase: "running" };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    // Re-evaluate every second alongside the timer tick.
   });
 
   // Form state — used for both "new" (no editingId) and "edit" (editingId set)
