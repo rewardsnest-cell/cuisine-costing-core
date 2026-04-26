@@ -1263,6 +1263,7 @@ function SchedulesSection({
             })}
           </div>
         )}
+        </div>
       </CardContent>
     </Card>
   );
