@@ -1141,27 +1141,118 @@ export const setManualWeight = createServerFn({ method: "POST" })
     z
       .object({
         product_key: z.string().min(1).max(200),
-        grams: z.number().positive().max(1_000_000),
+        // Either provide a raw string (preferred — gets normalized + unit-aware)
+        weight_input: z.string().min(1).max(50).optional(),
+        // …or a numeric grams value (legacy path; still validated server-side).
+        grams: z.number().positive().max(1_000_000).optional(),
         reason: z.string().min(1).max(500),
         weight_source: z
           .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
           .default("manual_override"),
+        // When true, save even if the value is inconsistent with size_raw.
+        force_override: z.boolean().default(false),
+      })
+      .refine((d) => d.weight_input != null || d.grams != null, {
+        message: "Provide weight_input or grams.",
       })
       .parse(input)
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
+
+    // 1) Normalize the input into grams (string path is preferred).
+    let grams: number;
+    let normalized_from: string | null = null;
+    let unit: string = "g";
+    if (data.weight_input) {
+      const norm = normalizeWeightInput(data.weight_input);
+      if (!norm.ok) {
+        return { ok: false as const, kind: "invalid_input" as const, message: norm.reason };
+      }
+      grams = norm.grams;
+      unit = norm.unit;
+      normalized_from = data.weight_input;
+    } else {
+      grams = data.grams!;
+    }
+
+    // 2) Load the row so we can compare against size_raw.
+    const { data: item, error: e1 } = await supabase
+      .from("pricing_v2_item_catalog")
+      .select("product_key, store_id, kroger_product_id, size_raw")
+      .eq("product_key", data.product_key)
+      .maybeSingle();
+    if (e1) throw new Error(e1.message);
+    if (!item) throw new Error("Item not found");
+
+    // 3) Try to parse size_raw (and the latest raw payload as a fallback) for
+    //    a consistency check. This is best-effort — any failure is treated as
+    //    "not comparable" rather than blocking the override.
+    let parsed: ReturnType<typeof parseWeightToGrams> | null = null;
+    try {
+      const { data: raw } = await supabase
+        .from("pricing_v2_kroger_catalog_raw")
+        .select("size_raw, payload_json")
+        .eq("store_id", item.store_id)
+        .eq("kroger_product_id", item.kroger_product_id)
+        .order("fetched_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      parsed = parseWeightToGrams({
+        size_raw: raw?.size_raw ?? item.size_raw,
+        payload_json: raw?.payload_json ?? null,
+      });
+    } catch {
+      parsed = null;
+    }
+
+    const cmp = compareWithSizeRaw(grams, parsed);
+
+    // 4) If we *can* compare and the values disagree, return a structured
+    //    inconsistency response so the UI can surface a confirm-to-override
+    //    flow instead of silently saving a bad weight.
+    if (cmp.comparable && !cmp.consistent && !data.force_override) {
+      return {
+        ok: false as const,
+        kind: "inconsistent_with_size" as const,
+        message:
+          `Entered weight (${Math.round(grams)} g) is ${(cmp.ratio * 100).toFixed(0)}% of the value parsed from "${item.size_raw ?? "size_raw"}" (~${Math.round(cmp.parsed_grams)} g). ` +
+          `Confirm to save anyway, or correct the value.`,
+        manual_grams: grams,
+        manual_unit: unit,
+        size_raw: item.size_raw,
+        parsed_grams: cmp.parsed_grams,
+        ratio: cmp.ratio,
+      };
+    }
+
+    // 5) Persist. Reason must include the override note; if forced past the
+    //    consistency check, append a marker for the audit trail.
+    const finalReason =
+      cmp.comparable && !cmp.consistent && data.force_override
+        ? `${data.reason} [override: parsed≈${Math.round(cmp.parsed_grams)} g, entered=${Math.round(grams)} g]`
+        : data.reason;
+
     const { error } = await supabase
       .from("pricing_v2_item_catalog")
       .update({
-        manual_net_weight_grams: data.grams,
-        manual_override_reason: data.reason,
-        net_weight_grams: data.grams,
+        manual_net_weight_grams: grams,
+        manual_override_reason: finalReason,
+        net_weight_grams: grams,
         weight_source: data.weight_source,
       })
       .eq("product_key", data.product_key);
     if (error) throw new Error(error.message);
-    return { ok: true };
+
+    return {
+      ok: true as const,
+      grams,
+      unit,
+      normalized_from,
+      compared: cmp.comparable
+        ? { parsed_grams: cmp.parsed_grams, ratio: cmp.ratio, consistent: cmp.consistent }
+        : null,
+    };
   });
 
 // ---- List catalog products (for per-row Fix Weight UI) -------------------
