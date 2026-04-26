@@ -442,13 +442,20 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   listKeywordSchedules,
   upsertKeywordSchedule,
   deleteKeywordSchedule,
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
+import {
+  listScheduleNotifications,
+  markScheduleNotificationsRead,
+  clearScheduleNotifications,
+  type ScheduleNotification,
+} from "@/lib/server-fns/pricing-v2-schedule-notifications.functions";
 
 type LimitMode = "forever" | "until" | "runs" | "continuous";
 
