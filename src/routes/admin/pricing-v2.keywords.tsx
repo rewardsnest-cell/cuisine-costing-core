@@ -1320,7 +1320,18 @@ function NotificationDetailDialog({
               {/* Run metadata */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <MetaField label="Schedule">
-                  {n.schedule_name ?? <span className="text-muted-foreground">—</span>}
+                  {n.schedule_id ? (
+                    <button
+                      type="button"
+                      onClick={goToSchedule}
+                      className="text-primary hover:underline truncate text-left"
+                      title="Jump to this schedule"
+                    >
+                      {n.schedule_name ?? n.schedule_id.slice(0, 8) + "…"}
+                    </button>
+                  ) : (
+                    n.schedule_name ?? <span className="text-muted-foreground">—</span>
+                  )}
                 </MetaField>
                 <MetaField label="Created">
                   {new Date(n.created_at).toLocaleString()}
