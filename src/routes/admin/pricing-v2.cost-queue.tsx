@@ -154,12 +154,12 @@ function CostQueuePage() {
                         <TableHead className="text-right">Δ</TableHead>
                         <TableHead>Source</TableHead>
                         <TableHead>Flags</TableHead>
-                        {tab === "pending" && <TableHead className="text-right">Actions</TableHead>}
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rows.length === 0 ? (
-                        <TableRow><TableCell colSpan={tab === "pending" ? 7 : 6} className="text-center text-muted-foreground py-8">
+                        <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           No entries
                         </TableCell></TableRow>
                       ) : rows.map((r) => {
@@ -184,20 +184,26 @@ function CostQueuePage() {
                                 {r.signals_count > 0 && <Badge variant="outline" className="text-xs">{r.signals_count} signals</Badge>}
                               </div>
                             </TableCell>
-                            {tab === "pending" && (
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button size="sm" variant="outline" disabled={decideMut.isPending}
-                                    onClick={() => decideMut.mutate({ id: r.id, decision: "reject" })}>
-                                    <XCircle className="w-3 h-3" /> Reject
-                                  </Button>
-                                  <Button size="sm" disabled={decideMut.isPending}
-                                    onClick={() => decideMut.mutate({ id: r.id, decision: "approve" })}>
-                                    <CheckCircle2 className="w-3 h-3" /> Approve
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            )}
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button size="sm" variant="ghost"
+                                  onClick={() => setAuditFor({ id: r.inventory_item_id, name: inv?.name ?? "" })}>
+                                  <History className="w-3 h-3" /> History
+                                </Button>
+                                {tab === "pending" && (
+                                  <>
+                                    <Button size="sm" variant="outline" disabled={decideMut.isPending}
+                                      onClick={() => decideMut.mutate({ id: r.id, decision: "reject" })}>
+                                      <XCircle className="w-3 h-3" /> Reject
+                                    </Button>
+                                    <Button size="sm" disabled={decideMut.isPending}
+                                      onClick={() => decideMut.mutate({ id: r.id, decision: "approve" })}>
+                                      <CheckCircle2 className="w-3 h-3" /> Approve
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -209,6 +215,138 @@ function CostQueuePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AuditLogDialog
+        item={auditFor}
+        open={!!auditFor}
+        onOpenChange={(v) => { if (!v) setAuditFor(null); }}
+      />
     </div>
+  );
+}
+
+function AuditLogDialog({
+  item, open, onOpenChange,
+}: {
+  item: { id: string; name: string } | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const audit = useQuery({
+    queryKey: ["pricing-v2", "audit-log", item?.id],
+    enabled: !!item?.id,
+    queryFn: () => getInventoryCostAuditLog({ data: { inventory_item_id: item!.id, limit: 100 } }),
+  });
+  const log = (audit.data?.log ?? []) as any[];
+  const queue = (audit.data?.queue ?? []) as any[];
+  const meta = audit.data?.item;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Audit log — {item?.name ?? "—"}</DialogTitle>
+          <DialogDescription>
+            All applied cost changes and review decisions for this inventory item.
+          </DialogDescription>
+        </DialogHeader>
+
+        {meta && (
+          <div className="grid grid-cols-3 gap-3 text-sm border rounded-md p-3 bg-muted/30">
+            <div>
+              <div className="text-xs text-muted-foreground">Current cost</div>
+              <div className="font-semibold tabular-nums">{fmtCpg(meta.cost_per_gram_live)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Last approved</div>
+              <div className="font-semibold tabular-nums">{fmtCpg(meta.last_approved_cost_per_gram)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Status</div>
+              <div><Badge variant={meta.pricing_status === "OK" ? "default" : "destructive"}>{meta.pricing_status}</Badge></div>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="text-sm font-semibold mb-2">Applied changes ({log.length})</div>
+          {audit.isLoading ? (
+            <div className="text-sm text-muted-foreground py-6 text-center">Loading…</div>
+          ) : log.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-6 text-center">No applied changes yet.</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>When</TableHead>
+                    <TableHead className="text-right">Old</TableHead>
+                    <TableHead className="text-right">New</TableHead>
+                    <TableHead className="text-right">Δ</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Via</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {log.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="text-xs whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtCpg(e.old_cost_per_gram)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">{fmtCpg(e.new_cost_per_gram)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(e.pct_change)}</TableCell>
+                      <TableCell>{srcBadge(e.resolution_source)}</TableCell>
+                      <TableCell><Badge variant={e.applied_via === "auto" ? "secondary" : "default"} className="text-xs">{e.applied_via}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[16rem] truncate">{e.notes ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold mb-2">Queue history ({queue.length})</div>
+          {queue.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">No queue entries.</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Old → New</TableHead>
+                    <TableHead className="text-right">Δ</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Decision notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {queue.map((q) => (
+                    <TableRow key={q.id}>
+                      <TableCell className="text-xs whitespace-nowrap">{new Date(q.created_at).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          q.status === "approved" || q.status === "auto_applied" ? "default"
+                          : q.status === "rejected" ? "destructive" : "secondary"
+                        } className="text-xs">{q.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-xs">
+                        {fmtCpg(q.old_cost_per_gram)} → <span className="font-semibold">{fmtCpg(q.new_computed_cost_per_gram)}</span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(q.pct_change)}</TableCell>
+                      <TableCell>{srcBadge(q.resolution_source)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[16rem] truncate">{q.decision_notes ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
