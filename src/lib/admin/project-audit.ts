@@ -86,10 +86,14 @@ export async function downloadFile(
 
   if (targetWindow && !targetWindow.closed) {
     try {
-      targetWindow.document.open();
-      targetWindow.document.write(buildDownloadLandingHtml(url, filename));
-      targetWindow.document.close();
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      const landingHtml = buildDownloadLandingHtml(url, filename);
+      const landingBlob = new Blob([landingHtml], { type: "text/html" });
+      const landingUrl = URL.createObjectURL(landingBlob);
+      targetWindow.location.href = landingUrl;
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(landingUrl);
+      }, 60000);
       return;
     } catch {}
   }
