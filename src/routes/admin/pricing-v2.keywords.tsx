@@ -845,7 +845,18 @@ function SchedulesSection({
                         )}
                       </td>
                       <td className="p-2 text-xs">
-                        {s.expires_at ? (
+                        {s.continuous_mode ? (
+                          <div className="space-y-0.5">
+                            <Badge variant="secondary">Continuous</Badge>
+                            <div className="text-muted-foreground">
+                              every ~{s.continuous_interval_seconds ?? 60}s · stops after{" "}
+                              {s.empty_runs_threshold ?? 2} empty
+                              {(s.consecutive_empty_runs ?? 0) > 0 && (
+                                <> ({s.consecutive_empty_runs}/{s.empty_runs_threshold ?? 2})</>
+                              )}
+                            </div>
+                          </div>
+                        ) : s.expires_at ? (
                           <>until {new Date(s.expires_at).toLocaleDateString()}</>
                         ) : s.max_runs ? (
                           <>{s.run_count ?? 0} / {s.max_runs} runs</>
