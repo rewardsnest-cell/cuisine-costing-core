@@ -450,7 +450,7 @@ import {
   type ScheduleRow,
 } from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
 
-type LimitMode = "forever" | "until" | "runs";
+type LimitMode = "forever" | "until" | "runs" | "continuous";
 
 function SchedulesSection({
   rows,
