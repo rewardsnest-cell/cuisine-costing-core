@@ -967,6 +967,15 @@ function SchedulesSection({
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => runNowMut.mutate(s.id)}
+                          disabled={runNowMut.isPending}
+                          title="Run now"
+                        >
+                          <Play className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => startEdit(s)}
                           title="Edit"
                         >
