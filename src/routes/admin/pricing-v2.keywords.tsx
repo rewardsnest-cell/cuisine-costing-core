@@ -21,6 +21,7 @@ import {
   bulkAddKeywords,
   bulkSetEnabled,
   deleteKeywords,
+  getKeywordSweepMetrics,
   type KeywordRow,
 } from "@/lib/server-fns/pricing-v2-keywords.functions";
 import { runCatalogBootstrap } from "@/lib/server-fns/pricing-v2-catalog.functions";
