@@ -44,6 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Quotes",
     items: [
       { to: "/admin/quotes",     label: "Saved Quotes",     icon: FileText,     featureKey: "admin_quotes" },
+      { to: "/admin/quick-quote", label: "Quick Quote",     icon: FlaskConical },
       { to: "/admin/quote-lab",  label: "Quote Lab",        icon: FlaskConical, featureKey: "admin_quote_lab" },
       { to: "/admin/review-inbox", label: "AI Quote Review", icon: ClipboardCheck, featureKey: "admin_quote_ai_review" },
     ],
