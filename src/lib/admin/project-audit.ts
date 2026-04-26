@@ -86,14 +86,10 @@ export async function downloadFile(
 
   if (targetWindow && !targetWindow.closed) {
     try {
-      const landingHtml = buildDownloadLandingHtml(url, filename);
-      const landingBlob = new Blob([landingHtml], { type: "text/html" });
-      const landingUrl = URL.createObjectURL(landingBlob);
-      targetWindow.location.href = landingUrl;
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-        URL.revokeObjectURL(landingUrl);
-      }, 60000);
+      targetWindow.document.open();
+      targetWindow.document.write(buildDownloadLandingHtml(url, filename));
+      targetWindow.document.close();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       return;
     } catch {}
   }
@@ -138,24 +134,15 @@ export async function downloadFile(
     return;
   }
 
-  // Open a popup pointing to a Blob URL of the landing page. Using a real URL
-  // (not about:blank + document.write) is reliable across mobile browsers and
-  // sandboxed iframes, where document.write into a blank popup often yields a
-  // blank page.
   try {
-    const landingHtml = buildDownloadLandingHtml(url, filename);
-    const landingBlob = new Blob([landingHtml], { type: "text/html" });
-    const landingUrl = URL.createObjectURL(landingBlob);
-    const popup = window.open(landingUrl, "_blank", "noopener,noreferrer");
+    const popup = window.open("", "_blank", "noopener,noreferrer");
     if (popup) {
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-        URL.revokeObjectURL(landingUrl);
-      }, 60000);
+      popup.document.open();
+      popup.document.write(buildDownloadLandingHtml(url, filename));
+      popup.document.close();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       return;
     }
-    // Popup blocked — fall through to anchor.
-    URL.revokeObjectURL(landingUrl);
   } catch {}
 
   triggerAnchor("_blank");

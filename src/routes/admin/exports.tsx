@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -802,6 +803,7 @@ function DeepAuditCard() {
   const [auditText, setAuditText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const run = async () => {
     setLoading(true);
@@ -820,12 +822,24 @@ function DeepAuditCard() {
   };
 
   const download = async () => {
-    if (!auditText) return;
+    if (!auditText || downloading) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+    const filename = `deep-audit-${stamp}.md`;
+    setDownloading(true);
+    const toastId = toast.loading(`Preparing ${filename}…`);
     try {
-      await downloadFile(auditText, `deep-audit-${stamp}.md`, "text/markdown");
+      await downloadFile(auditText, filename, "text/markdown");
+      toast.success("Deep audit downloaded", { id: toastId, description: filename });
     } catch (e: any) {
-      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+      if (e?.name === "AbortError") {
+        toast.dismiss(toastId);
+      } else {
+        const msg = e?.message || "Download failed";
+        setError(msg);
+        toast.error("Download failed", { id: toastId, description: msg });
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -869,11 +883,16 @@ function DeepAuditCard() {
           </Button>
           <Button
             onClick={download}
-            disabled={!auditText}
+            disabled={!auditText || downloading}
             variant="outline"
             className="gap-2"
           >
-            <Download className="w-4 h-4" /> Download .md
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {downloading ? "Preparing download…" : "Download .md"}
           </Button>
           {auditText && (
             <Badge variant="secondary" className="font-mono text-[10px]">
@@ -907,6 +926,7 @@ function PricingAuditCard() {
   const [auditText, setAuditText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const run = async () => {
     setLoading(true);
@@ -925,12 +945,24 @@ function PricingAuditCard() {
   };
 
   const download = async () => {
-    if (!auditText) return;
+    if (!auditText || downloading) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+    const filename = `pricing-audit-${stamp}.md`;
+    setDownloading(true);
+    const toastId = toast.loading(`Preparing ${filename}…`);
     try {
-      await downloadFile(auditText, `pricing-audit-${stamp}.md`, "text/markdown");
+      await downloadFile(auditText, filename, "text/markdown");
+      toast.success("Pricing audit downloaded", { id: toastId, description: filename });
     } catch (e: any) {
-      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+      if (e?.name === "AbortError") {
+        toast.dismiss(toastId);
+      } else {
+        const msg = e?.message || "Download failed";
+        setError(msg);
+        toast.error("Download failed", { id: toastId, description: msg });
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -966,11 +998,16 @@ function PricingAuditCard() {
           </Button>
           <Button
             onClick={download}
-            disabled={!auditText}
+            disabled={!auditText || downloading}
             variant="outline"
             className="gap-2"
           >
-            <Download className="w-4 h-4" /> Download .md
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {downloading ? "Preparing download…" : "Download .md"}
           </Button>
           {auditText && (
             <Badge variant="secondary" className="font-mono text-[10px]">
