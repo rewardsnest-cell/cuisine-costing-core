@@ -4,7 +4,11 @@
 // with admin key directly.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin as _supabaseAdmin } from "@/integrations/supabase/client.server";
+
+// Cast to any: this hook does internal inserts/updates with stage enum values
+// and new tables whose generated types may lag. Runtime is enforced by DB constraints.
+const supabaseAdmin = _supabaseAdmin as any;
 
 async function createRun(stage: string, notes: string) {
   const { data } = await supabaseAdmin
