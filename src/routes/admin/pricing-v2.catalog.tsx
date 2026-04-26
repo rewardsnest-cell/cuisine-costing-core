@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -109,6 +110,9 @@ function CatalogBootstrapPage() {
 
   const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
+  // Default ON in staging — matches the server-side default and keeps the
+  // download fast/forgiving while we're still mapping inventory items.
+  const [skipWeight, setSkipWeight] = useState<boolean>(true);
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
@@ -124,7 +128,7 @@ function CatalogBootstrapPage() {
       setGuardedPhase("dry-running");
       setGuardedDryResult(null);
       const dry = await runCatalogBootstrap({
-        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined },
+        data: { dry_run: true, batch_size: batchNum ?? 50, keyword: keyword || undefined, skip_weight_normalization: skipWeight },
       }) as RunResult;
       setLastResult(dry);
       setGuardedDryResult(dry);
@@ -151,7 +155,7 @@ function CatalogBootstrapPage() {
     try {
       setGuardedPhase("full-running");
       const res = await runCatalogBootstrap({
-        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined },
+        data: { dry_run: false, batch_size: batchNum, keyword: keyword || undefined, skip_weight_normalization: skipWeight },
       }) as RunResult;
       setLastResult(res);
       if (res.run_id) setErrFilterRun(res.run_id);
@@ -182,7 +186,7 @@ function CatalogBootstrapPage() {
   });
 
   const runMut = useMutation({
-    mutationFn: (vars: { dry_run: boolean; batch_size?: number; keyword?: string }) =>
+    mutationFn: (vars: { dry_run: boolean; batch_size?: number; keyword?: string; skip_weight_normalization?: boolean }) =>
       runCatalogBootstrap({ data: vars }),
     onSuccess: (res: any) => {
       setLastResult(res);
@@ -376,6 +380,31 @@ function CatalogBootstrapPage() {
                 <Label htmlFor="kw">Keyword sweep (optional, first batch only)</Label>
                 <Input id="kw" placeholder="e.g. flour" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
               </div>
+              <div className="basis-full" />
+              <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 px-3 py-2 max-w-xl">
+                <Switch
+                  id="skip-weight"
+                  checked={skipWeight}
+                  onCheckedChange={setSkipWeight}
+                  className="mt-0.5"
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="skip-weight" className="cursor-pointer font-medium">
+                    Skip weight normalization
+                    {skipWeight && <Badge variant="secondary" className="ml-2 text-[10px]">ON</Badge>}
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    When enabled, the bootstrap downloads raw Kroger product data and stores
+                    <code className="mx-1 px-1 rounded bg-background">size_raw</code>
+                    only — it does <strong>not</strong> attempt to parse net weight in grams,
+                    and no <code className="px-1 rounded bg-background">WEIGHT_PARSE_FAIL</code> /
+                    <code className="px-1 rounded bg-background">VOLUME_ONLY</code> errors are logged.
+                    Weights can be filled in afterward via <em>Fix Weight</em> or a reparse.
+                    Recommended for staging / first downloads.
+                  </p>
+                </div>
+              </div>
+              <div className="basis-full" />
               <Button
                 onClick={runGuarded}
                 disabled={
@@ -396,7 +425,7 @@ function CatalogBootstrapPage() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
+                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined, skip_weight_normalization: skipWeight })}
                 disabled={
                   runMut.isPending ||
                   guardedPhase !== "idle" ||
@@ -410,7 +439,7 @@ function CatalogBootstrapPage() {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50 })}
+                onClick={() => runMut.mutate({ dry_run: true, batch_size: 50, skip_weight_normalization: skipWeight })}
                 disabled={runMut.isPending || guardedPhase !== "idle"}
               >
                 Dry Run Only (50)
