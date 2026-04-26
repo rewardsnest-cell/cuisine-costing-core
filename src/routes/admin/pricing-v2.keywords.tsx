@@ -1479,6 +1479,45 @@ function NotificationDetailDialog({
               )}
             </div>
 
+            {(canRetry || canDisable || alreadyDisabled) && (
+              <div className="rounded-md border bg-muted/30 p-2 flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-semibold uppercase text-muted-foreground mr-1">
+                  Quick actions
+                </span>
+                {canRetry && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={handleRetry}
+                    disabled={retryMut.isPending}
+                    className="gap-1"
+                    title="Re-queue this schedule for the next cron tick"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${retryMut.isPending ? "animate-spin" : ""}`} />
+                    {retryMut.isPending ? "Retrying…" : "Retry run"}
+                  </Button>
+                )}
+                {canDisable && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleDisable}
+                    disabled={disableMut.isPending}
+                    className="gap-1"
+                    title="Turn this schedule off so it stops running"
+                  >
+                    <PowerOff className="w-3 h-3" />
+                    {disableMut.isPending ? "Disabling…" : "Disable schedule"}
+                  </Button>
+                )}
+                {alreadyDisabled && (
+                  <span className="text-[11px] text-muted-foreground italic">
+                    Schedule is currently disabled.
+                  </span>
+                )}
+              </div>
+            )}
+
             <DialogFooter className="gap-2 sm:justify-between">
               <Button
                 size="sm"
