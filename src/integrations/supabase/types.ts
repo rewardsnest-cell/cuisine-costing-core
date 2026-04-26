@@ -5586,6 +5586,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_files_reports_daily: {
+        Row: {
+          day: string | null
+          file_count: number | null
+          kind: string | null
+          module: string | null
+          total_bytes: number | null
+          total_records: number | null
+          unique_generators: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_cron_jobs: {
