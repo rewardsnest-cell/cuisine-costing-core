@@ -110,6 +110,9 @@ function CatalogBootstrapPage() {
 
   const [batchSize, setBatchSize] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
+  // Default ON in staging — matches the server-side default and keeps the
+  // download fast/forgiving while we're still mapping inventory items.
+  const [skipWeight, setSkipWeight] = useState<boolean>(true);
   const [lastResult, setLastResult] = useState<RunResult | null>(null);
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [resetConfirm, setResetConfirm] = useState<string>("");
