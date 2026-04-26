@@ -1276,6 +1276,19 @@ function KrogerRawExportCard() {
             )}
             Download CSV (flat)
           </Button>
+          <Button
+            onClick={handleXlsx}
+            disabled={!!busy}
+            variant="outline"
+            className="gap-2"
+          >
+            {busy === "xlsx" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            Download Excel (.xlsx)
+          </Button>
           {rowCount !== null && (
             <Badge variant="secondary" className="font-mono text-[10px] self-center">
               {rowCount.toLocaleString()} rows
@@ -1292,6 +1305,9 @@ function KrogerRawExportCard() {
         )}
         {savedCsv && (
           <ExportProgressLine label="Kroger CSV" file={savedCsv} />
+        )}
+        {savedXlsx && (
+          <ExportProgressLine label="Kroger Excel" file={savedXlsx} />
         )}
       </CardContent>
     </Card>
