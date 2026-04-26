@@ -467,29 +467,6 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info, ArrowDownToLine, RefreshCw, PowerOff } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  listKeywordSchedules,
-  upsertKeywordSchedule,
-  deleteKeywordSchedule,
-  runKeywordScheduleNow,
-  type ScheduleRow,
-} from "@/lib/server-fns/pricing-v2-keyword-schedules.functions";
-import {
-  listScheduleNotifications,
-  markScheduleNotificationsRead,
-  clearScheduleNotifications,
-  type ScheduleNotification,
-} from "@/lib/server-fns/pricing-v2-schedule-notifications.functions";
 
 type LimitMode = "forever" | "until" | "runs" | "continuous";
 
