@@ -716,7 +716,7 @@ function SchedulesSection({
         </p>
 
         {/* Form */}
-        <div className="rounded-md border p-4 space-y-4 bg-muted/20">
+        <div ref={formRef} className="rounded-md border p-4 space-y-4 bg-muted/20 scroll-mt-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="text-sm font-medium">
               {editingId ? "Edit schedule" : "New schedule"}
