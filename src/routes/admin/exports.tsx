@@ -18,7 +18,7 @@ import {
 import { PROJECT_AUDIT_MD, rowsToCsv } from "@/lib/admin/project-audit";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
-import { runDeepAudit } from "@/lib/server-fns/deep-audit.functions";
+import { runDeepAudit, runPricingAudit } from "@/lib/server-fns/deep-audit.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -657,6 +657,9 @@ function ExportsPage() {
       {/* Deep audit (live snapshot + mega prompt) */}
       <DeepAuditCard />
 
+      {/* Pricing pipeline diagnostic */}
+      <PricingAuditCard />
+
       {/* CSV exports */}
       <Card>
         <CardHeader>
@@ -891,6 +894,106 @@ function DeepAuditCard() {
             <pre className="px-3 pb-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words max-h-80 overflow-auto">
               {auditText.slice(0, 4000)}
               {auditText.length > 4000 ? "\n\n…(truncated — download for full)" : ""}
+            </pre>
+          </details>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---- Pricing Audit card --------------------------------------------------
+
+function PricingAuditCard() {
+  const runFn = useServerFn(runPricingAudit);
+  const [loading, setLoading] = useState(false);
+  const [auditText, setAuditText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+
+  const run = async () => {
+    setLoading(true);
+    setError(null);
+    setAuditText("");
+    setGeneratedAt(null);
+    try {
+      const res = await runFn();
+      setAuditText(res.text);
+      setGeneratedAt(res.generated_at);
+    } catch (e: any) {
+      setError(e?.message ?? "Pricing audit failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const download = () => {
+    const blob = new Blob([auditText], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+    a.download = `pricing-audit-${stamp}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" /> Pricing pipeline audit
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Focused diagnostic for pricing-v2: inventory ↔ Kroger mapping
+          coverage, bootstrap state, recent run outcomes, item-catalog quality,
+          a 7-day error breakdown, and ranked next actions. Answers
+          &ldquo;why aren&rsquo;t items landing in the catalog?&rdquo;
+        </p>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={run} disabled={loading} className="gap-2">
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <PlayCircle className="w-4 h-4" />
+            )}
+            {loading ? "Running pricing audit…" : "Run pricing audit"}
+          </Button>
+          <Button
+            onClick={download}
+            disabled={!auditText}
+            variant="outline"
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" /> Download .md
+          </Button>
+          {auditText && (
+            <Badge variant="secondary" className="font-mono text-[10px]">
+              {auditText.length.toLocaleString()} chars
+              {generatedAt && ` · ${new Date(generatedAt).toLocaleTimeString()}`}
+            </Badge>
+          )}
+        </div>
+
+        {auditText && (
+          <details className="rounded-md border border-border/60 bg-muted/30" open>
+            <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
+              Preview
+            </summary>
+            <pre className="px-3 pb-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words max-h-96 overflow-auto">
+              {auditText.slice(0, 8000)}
+              {auditText.length > 8000 ? "\n\n…(truncated — download for full)" : ""}
             </pre>
           </details>
         )}
