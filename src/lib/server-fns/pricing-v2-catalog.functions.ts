@@ -31,7 +31,7 @@ const bootstrapSchema = z.object({
   dry_run: z.boolean().default(false),
   // Per-call batch size (a single page of inventory IDs to fetch this invocation).
   // Bootstrap loops across multiple invocations until all inventory IDs are processed.
-  batch_size: z.number().int().min(1).max(2000).optional(),
+  batch_size: z.number().int().min(1).max(10000).optional(),
   keyword: z.string().trim().max(120).optional(),
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
