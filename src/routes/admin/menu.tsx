@@ -467,6 +467,7 @@ function AdminMenuPage() {
                       </Button>
                       <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1.5" onClick={() => setExplain({ id: r.id, name: r.name })}>
                         <Info className="w-3 h-3" /> Explain price
+                      </Button>
                     </div>
                   </div>
 
