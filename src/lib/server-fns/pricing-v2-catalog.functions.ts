@@ -71,27 +71,15 @@ export type BootstrapPreflight = {
 };
 
 async function evaluatePreflight(supabase: any): Promise<BootstrapPreflight> {
+  // Mapped-inventory gate has been removed — bootstrap ingests the entire
+  // available catalog regardless of how many inventory items are mapped.
+  // We still report the mapped count for visibility, but it never blocks.
   const storeId = await getStoreId(supabase);
   const [mapped, threshold] = await Promise.all([
     countMappedInventoryIds(supabase),
     getMinMappedThreshold(supabase),
   ]);
-  if (mapped >= threshold) {
-    return { ok: true, mapped_count: mapped, threshold, store_id: storeId, reason: null, guidance: [] };
-  }
-  return {
-    ok: false,
-    mapped_count: mapped,
-    threshold,
-    store_id: storeId,
-    reason: `Only ${mapped} inventory item${mapped === 1 ? "" : "s"} mapped to a Kroger product (minimum ${threshold}).`,
-    guidance: [
-      "Open Inventory and set 'Kroger product ID' on more items.",
-      "Or import a Kroger mapping CSV from the Inventory page.",
-      `Or lower 'min_mapped_inventory_for_bootstrap' in pricing_v2_settings (currently ${threshold}).`,
-      "You can still run a Dry-run preview — the gate only blocks the full bootstrap.",
-    ],
-  };
+  return { ok: true, mapped_count: mapped, threshold, store_id: storeId, reason: null, guidance: [] };
 }
 
 export const getBootstrapPreflight = createServerFn({ method: "POST" })
