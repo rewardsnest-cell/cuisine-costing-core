@@ -1103,6 +1103,26 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
   const total = products.data?.total ?? 0;
   const rows = products.data?.products ?? [];
 
+  const pageKeys = rows.map((p: any) => p.product_key);
+  const allOnPageSelected = pageKeys.length > 0 && pageKeys.every((k: string) => selected.has(k));
+  const someOnPageSelected = pageKeys.some((k: string) => selected.has(k));
+  const togglePage = (checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) pageKeys.forEach((k: string) => next.add(k));
+      else pageKeys.forEach((k: string) => next.delete(k));
+      return next;
+    });
+  };
+  const toggleOne = (key: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(key); else next.delete(key);
+      return next;
+    });
+  };
+  const selectedRows = rows.filter((p: any) => selected.has(p.product_key));
+
   return (
     <Card>
       <CardHeader>
@@ -1143,6 +1163,31 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Bulk action toolbar */}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{selected.size}</span>
+            <span className="text-muted-foreground">selected</span>
+            {selected.size > 0 && (
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]"
+                onClick={() => setSelected(new Set())}>
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              disabled={selected.size === 0}
+              onClick={() => setBulkOpen(true)}
+            >
+              <Wrench className="w-3 h-3 mr-1" />
+              Bulk Fix Weight ({selected.size})
+            </Button>
+          </div>
+        </div>
+
         {products.isLoading ? (
           <p className="text-sm">Loading…</p>
         ) : rows.length === 0 ? (
@@ -1152,6 +1197,13 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
             <table className="w-full text-xs">
               <thead className="text-left text-muted-foreground">
                 <tr>
+                  <th className="py-1 pr-2 w-6">
+                    <Checkbox
+                      checked={allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false}
+                      onCheckedChange={(v) => togglePage(v === true)}
+                      aria-label="Select all on page"
+                    />
+                  </th>
                   <th className="py-1 pr-2">name</th>
                   <th className="py-1 pr-2">brand</th>
                   <th className="py-1 pr-2">upc</th>
@@ -1164,6 +1216,13 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
               <tbody>
                 {rows.map((p: any) => (
                   <tr key={p.product_key} className="border-t align-top">
+                    <td className="py-1 pr-2">
+                      <Checkbox
+                        checked={selected.has(p.product_key)}
+                        onCheckedChange={(v) => toggleOne(p.product_key, v === true)}
+                        aria-label={`Select ${p.name ?? p.product_key}`}
+                      />
+                    </td>
                     <td className="py-1 pr-2 max-w-[28ch]">{p.name ?? "—"}</td>
                     <td className="py-1 pr-2 max-w-[16ch]">{p.brand ?? "—"}</td>
                     <td className="py-1 pr-2 font-mono">{p.upc ?? "—"}</td>
@@ -1203,6 +1262,18 @@ function ProductsCard({ onChanged }: { onChanged: () => void }) {
         open={!!editing}
         onOpenChange={(o) => { if (!o) setEditing(null); }}
         onSaved={() => { setEditing(null); products.refetch(); onChanged(); }}
+      />
+
+      <BulkFixWeightDialog
+        products={selectedRows}
+        allSelectedKeys={Array.from(selected)}
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        onSaved={(clear) => {
+          if (clear) setSelected(new Set());
+          products.refetch();
+          onChanged();
+        }}
       />
     </Card>
   );
