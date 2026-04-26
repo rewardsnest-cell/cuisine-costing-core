@@ -177,6 +177,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.$id.printable'
 import { Route as ApiPublicHooksSendProspectEmailRouteImport } from './routes/api/public/hooks/send-prospect-email'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
+import { Route as ApiPublicHooksPricingV2Stage456RouteImport } from './routes/api/public/hooks/pricing-v2-stage456'
 import { Route as ApiPublicHooksPricingV2KeywordSchedulesRouteImport } from './routes/api/public/hooks/pricing-v2-keyword-schedules'
 import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
 import { Route as ApiPublicHooksKrogerValidationRouteImport } from './routes/api/public/hooks/kroger-validation'
@@ -1047,6 +1048,12 @@ const ApiPublicHooksProspectFollowupsRoute =
     path: '/api/public/hooks/prospect-followups',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPricingV2Stage456Route =
+  ApiPublicHooksPricingV2Stage456RouteImport.update({
+    id: '/api/public/hooks/pricing-v2-stage456',
+    path: '/api/public/hooks/pricing-v2-stage456',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksPricingV2KeywordSchedulesRoute =
   ApiPublicHooksPricingV2KeywordSchedulesRouteImport.update({
     id: '/api/public/hooks/pricing-v2-keyword-schedules',
@@ -1250,6 +1257,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1424,6 +1432,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1601,6 +1610,7 @@ export interface FileRoutesById {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
   '/api/recipes/$id/printable': typeof ApiRecipesIdPrintableRoute
@@ -1779,6 +1789,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
@@ -1953,6 +1964,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
@@ -2129,6 +2141,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
     | '/api/recipes/$id/printable'
@@ -2194,6 +2207,7 @@ export interface RootRouteChildren {
   ApiPublicHooksKrogerValidationRoute: typeof ApiPublicHooksKrogerValidationRoute
   ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksPricingV2KeywordSchedulesRoute: typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  ApiPublicHooksPricingV2Stage456Route: typeof ApiPublicHooksPricingV2Stage456Route
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiPublicHooksSendProspectEmailRoute: typeof ApiPublicHooksSendProspectEmailRoute
   ApiRecipesIdPrintableRoute: typeof ApiRecipesIdPrintableRoute
@@ -3382,6 +3396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksProspectFollowupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/pricing-v2-stage456': {
+      id: '/api/public/hooks/pricing-v2-stage456'
+      path: '/api/public/hooks/pricing-v2-stage456'
+      fullPath: '/api/public/hooks/pricing-v2-stage456'
+      preLoaderRoute: typeof ApiPublicHooksPricingV2Stage456RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/pricing-v2-keyword-schedules': {
       id: '/api/public/hooks/pricing-v2-keyword-schedules'
       path: '/api/public/hooks/pricing-v2-keyword-schedules'
@@ -3841,6 +3862,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksPricingV2KeywordSchedulesRoute:
     ApiPublicHooksPricingV2KeywordSchedulesRoute,
+  ApiPublicHooksPricingV2Stage456Route: ApiPublicHooksPricingV2Stage456Route,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiPublicHooksSendProspectEmailRoute: ApiPublicHooksSendProspectEmailRoute,
   ApiRecipesIdPrintableRoute: ApiRecipesIdPrintableRoute,

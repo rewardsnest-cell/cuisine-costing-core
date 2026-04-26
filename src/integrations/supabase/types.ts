@@ -1942,17 +1942,23 @@ export type Database = {
           catalog_status: string
           catalog_validated_at: string | null
           category: string | null
+          category_for_median: string | null
+          cost_equivalent_of: string | null
+          cost_per_gram_live: number | null
           created_at: string
           created_source: string
           current_stock: number
           each_weight_grams: number | null
           id: string
           kroger_product_id: string | null
+          last_approved_cost_per_gram: number | null
           last_receipt_cost: number | null
           name: string
           pack_weight_grams: number | null
           par_level: number
           pending_review: boolean
+          pricing_status: Database["public"]["Enums"]["pricing_v2_inventory_status"]
+          pricing_status_updated_at: string | null
           supplier_id: string | null
           unit: string
           updated_at: string
@@ -1963,17 +1969,23 @@ export type Database = {
           catalog_status?: string
           catalog_validated_at?: string | null
           category?: string | null
+          category_for_median?: string | null
+          cost_equivalent_of?: string | null
+          cost_per_gram_live?: number | null
           created_at?: string
           created_source?: string
           current_stock?: number
           each_weight_grams?: number | null
           id?: string
           kroger_product_id?: string | null
+          last_approved_cost_per_gram?: number | null
           last_receipt_cost?: number | null
           name: string
           pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
+          pricing_status?: Database["public"]["Enums"]["pricing_v2_inventory_status"]
+          pricing_status_updated_at?: string | null
           supplier_id?: string | null
           unit?: string
           updated_at?: string
@@ -1984,22 +1996,35 @@ export type Database = {
           catalog_status?: string
           catalog_validated_at?: string | null
           category?: string | null
+          category_for_median?: string | null
+          cost_equivalent_of?: string | null
+          cost_per_gram_live?: number | null
           created_at?: string
           created_source?: string
           current_stock?: number
           each_weight_grams?: number | null
           id?: string
           kroger_product_id?: string | null
+          last_approved_cost_per_gram?: number | null
           last_receipt_cost?: number | null
           name?: string
           pack_weight_grams?: number | null
           par_level?: number
           pending_review?: boolean
+          pricing_status?: Database["public"]["Enums"]["pricing_v2_inventory_status"]
+          pricing_status_updated_at?: string | null
           supplier_id?: string | null
           unit?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_items_cost_equivalent_of_fkey"
+            columns: ["cost_equivalent_of"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_items_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -2824,6 +2849,183 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_cost_apply_log: {
+        Row: {
+          applied_by: string | null
+          applied_via: string
+          created_at: string
+          id: string
+          inventory_item_id: string
+          new_cost_per_gram: number
+          notes: string | null
+          old_cost_per_gram: number | null
+          pct_change: number | null
+          queue_id: string | null
+          resolution_source: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+        }
+        Insert: {
+          applied_by?: string | null
+          applied_via: string
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          new_cost_per_gram: number
+          notes?: string | null
+          old_cost_per_gram?: number | null
+          pct_change?: number | null
+          queue_id?: string | null
+          resolution_source: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+        }
+        Update: {
+          applied_by?: string | null
+          applied_via?: string
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          new_cost_per_gram?: number
+          notes?: string | null
+          old_cost_per_gram?: number | null
+          pct_change?: number | null
+          queue_id?: string | null
+          resolution_source?: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_cost_apply_log_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_cost_apply_log_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_cost_update_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_v2_cost_signals: {
+        Row: {
+          cost_per_gram: number
+          created_at: string
+          id: string
+          inventory_item_id: string
+          is_active: boolean
+          observed_at: string
+          run_id: string | null
+          source: string
+          source_ref: string | null
+        }
+        Insert: {
+          cost_per_gram: number
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          is_active?: boolean
+          observed_at?: string
+          run_id?: string | null
+          source: string
+          source_ref?: string | null
+        }
+        Update: {
+          cost_per_gram?: number
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          is_active?: boolean
+          observed_at?: string
+          run_id?: string | null
+          source?: string
+          source_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_cost_signals_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_cost_signals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
+      pricing_v2_cost_update_queue: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          inventory_item_id: string
+          new_computed_cost_per_gram: number
+          old_cost_per_gram: number | null
+          pct_change: number | null
+          requires_review: boolean
+          resolution_source: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+          run_id: string | null
+          signals_count: number
+          status: Database["public"]["Enums"]["pricing_v2_queue_status"]
+          warning_flags: string[]
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          inventory_item_id: string
+          new_computed_cost_per_gram: number
+          old_cost_per_gram?: number | null
+          pct_change?: number | null
+          requires_review?: boolean
+          resolution_source: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+          run_id?: string | null
+          signals_count?: number
+          status?: Database["public"]["Enums"]["pricing_v2_queue_status"]
+          warning_flags?: string[]
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          inventory_item_id?: string
+          new_computed_cost_per_gram?: number
+          old_cost_per_gram?: number | null
+          pct_change?: number | null
+          requires_review?: boolean
+          resolution_source?: Database["public"]["Enums"]["pricing_v2_resolution_source"]
+          run_id?: string | null
+          signals_count?: number
+          status?: Database["public"]["Enums"]["pricing_v2_queue_status"]
+          warning_flags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_cost_update_queue_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_cost_update_queue_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       pricing_v2_errors: {
         Row: {
           counts_in: number
@@ -3168,6 +3370,79 @@ export type Database = {
           },
         ]
       }
+      pricing_v2_menu_prices: {
+        Row: {
+          created_at: string
+          frozen: boolean
+          id: string
+          is_current: boolean
+          menu_price: number | null
+          multiplier: number
+          multiplier_source: string
+          quote_item_id: string | null
+          recipe_cost_per_serving: number | null
+          recipe_id: string | null
+          run_id: string | null
+          scope: string
+          status: Database["public"]["Enums"]["pricing_v2_menu_status"]
+          warning_flags: string[]
+        }
+        Insert: {
+          created_at?: string
+          frozen?: boolean
+          id?: string
+          is_current?: boolean
+          menu_price?: number | null
+          multiplier: number
+          multiplier_source?: string
+          quote_item_id?: string | null
+          recipe_cost_per_serving?: number | null
+          recipe_id?: string | null
+          run_id?: string | null
+          scope: string
+          status: Database["public"]["Enums"]["pricing_v2_menu_status"]
+          warning_flags?: string[]
+        }
+        Update: {
+          created_at?: string
+          frozen?: boolean
+          id?: string
+          is_current?: boolean
+          menu_price?: number | null
+          multiplier?: number
+          multiplier_source?: string
+          quote_item_id?: string | null
+          recipe_cost_per_serving?: number | null
+          recipe_id?: string | null
+          run_id?: string | null
+          scope?: string
+          status?: Database["public"]["Enums"]["pricing_v2_menu_status"]
+          warning_flags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_menu_prices_quote_item_id_fkey"
+            columns: ["quote_item_id"]
+            isOneToOne: false
+            referencedRelation: "quote_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_menu_prices_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_menu_prices_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       pricing_v2_pipeline_stages: {
         Row: {
           created_at: string
@@ -3197,6 +3472,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pricing_v2_recipe_costs: {
+        Row: {
+          blocker_reasons: string[]
+          cost_per_serving: number | null
+          created_at: string
+          id: string
+          ingredient_breakdown: Json
+          is_current: boolean
+          recipe_id: string
+          run_id: string | null
+          servings: number
+          status: Database["public"]["Enums"]["pricing_v2_recipe_status"]
+          total_cost: number | null
+          warning_flags: string[]
+        }
+        Insert: {
+          blocker_reasons?: string[]
+          cost_per_serving?: number | null
+          created_at?: string
+          id?: string
+          ingredient_breakdown?: Json
+          is_current?: boolean
+          recipe_id: string
+          run_id?: string | null
+          servings: number
+          status: Database["public"]["Enums"]["pricing_v2_recipe_status"]
+          total_cost?: number | null
+          warning_flags?: string[]
+        }
+        Update: {
+          blocker_reasons?: string[]
+          cost_per_serving?: number | null
+          created_at?: string
+          id?: string
+          ingredient_breakdown?: Json
+          is_current?: boolean
+          recipe_id?: string
+          run_id?: string | null
+          servings?: number
+          status?: Database["public"]["Enums"]["pricing_v2_recipe_status"]
+          total_cost?: number | null
+          warning_flags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_recipe_costs_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_v2_recipe_costs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
       }
       pricing_v2_runs: {
         Row: {
@@ -3304,37 +3639,46 @@ export type Database = {
       }
       pricing_v2_settings: {
         Row: {
+          auto_apply_threshold_pct: number
           default_menu_multiplier: number
+          enable_category_median_fallback: boolean
           id: number
           kroger_store_id: string
           kroger_zip: string
           min_mapped_inventory_for_bootstrap: number
           monthly_schedule_day: number
           monthly_schedule_hour: number
+          stage456_cron_enabled: boolean
           updated_at: string
           warning_threshold_pct: number
           zero_cost_blocking: boolean
         }
         Insert: {
+          auto_apply_threshold_pct?: number
           default_menu_multiplier?: number
+          enable_category_median_fallback?: boolean
           id?: number
           kroger_store_id?: string
           kroger_zip?: string
           min_mapped_inventory_for_bootstrap?: number
           monthly_schedule_day?: number
           monthly_schedule_hour?: number
+          stage456_cron_enabled?: boolean
           updated_at?: string
           warning_threshold_pct?: number
           zero_cost_blocking?: boolean
         }
         Update: {
+          auto_apply_threshold_pct?: number
           default_menu_multiplier?: number
+          enable_category_median_fallback?: boolean
           id?: number
           kroger_store_id?: string
           kroger_zip?: string
           min_mapped_inventory_for_bootstrap?: number
           monthly_schedule_day?: number
           monthly_schedule_hour?: number
+          stage456_cron_enabled?: boolean
           updated_at?: string
           warning_threshold_pct?: number
           zero_cost_blocking?: boolean
@@ -5531,6 +5875,23 @@ export type Database = {
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
       pricing_v2_bootstrap_status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
+      pricing_v2_inventory_status:
+        | "OK"
+        | "DEGRADED_FALLBACK"
+        | "BLOCKED_MISSING_COST"
+      pricing_v2_menu_status: "OK" | "WARNING" | "BLOCKED"
+      pricing_v2_queue_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "auto_applied"
+        | "superseded"
+      pricing_v2_recipe_status: "OK" | "WARNING" | "BLOCKED"
+      pricing_v2_resolution_source:
+        | "signals"
+        | "explicit_equivalence"
+        | "last_approved"
+        | "category_median"
       pricing_v2_run_status:
         | "queued"
         | "running"
@@ -5705,6 +6066,26 @@ export const Constants = {
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
       pricing_v2_bootstrap_status: ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"],
+      pricing_v2_inventory_status: [
+        "OK",
+        "DEGRADED_FALLBACK",
+        "BLOCKED_MISSING_COST",
+      ],
+      pricing_v2_menu_status: ["OK", "WARNING", "BLOCKED"],
+      pricing_v2_queue_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "auto_applied",
+        "superseded",
+      ],
+      pricing_v2_recipe_status: ["OK", "WARNING", "BLOCKED"],
+      pricing_v2_resolution_source: [
+        "signals",
+        "explicit_equivalence",
+        "last_approved",
+        "category_median",
+      ],
       pricing_v2_run_status: [
         "queued",
         "running",
