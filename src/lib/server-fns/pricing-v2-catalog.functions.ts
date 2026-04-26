@@ -1135,28 +1135,27 @@ export const testAlertConfig = createServerFn({ method: "POST" })
 
 // ---- Manual weight override ----------------------------------------------
 
+const setManualWeightSchema = z
+  .object({
+    product_key: z.string().min(1).max(200),
+    // Either provide a raw string (preferred — gets normalized + unit-aware)
+    weight_input: z.string().min(1).max(50).optional(),
+    // …or a numeric grams value (legacy path; still validated server-side).
+    grams: z.number().positive().max(1_000_000).optional(),
+    reason: z.string().min(1).max(500),
+    weight_source: z
+      .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
+      .default("manual_override"),
+    // When true, save even if the value is inconsistent with size_raw.
+    force_override: z.boolean().default(false),
+  })
+  .refine((d) => d.weight_input != null || d.grams != null, {
+    message: "Provide weight_input or grams.",
+  });
+
 export const setManualWeight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        product_key: z.string().min(1).max(200),
-        // Either provide a raw string (preferred — gets normalized + unit-aware)
-        weight_input: z.string().min(1).max(50).optional(),
-        // …or a numeric grams value (legacy path; still validated server-side).
-        grams: z.number().positive().max(1_000_000).optional(),
-        reason: z.string().min(1).max(500),
-        weight_source: z
-          .enum(["manual_override", "parsed", "label", "vendor", "estimated", "unparsed", "unknown"])
-          .default("manual_override"),
-        // When true, save even if the value is inconsistent with size_raw.
-        force_override: z.boolean().default(false),
-      })
-      .refine((d) => d.weight_input != null || d.grams != null, {
-        message: "Provide weight_input or grams.",
-      })
-      .parse(input)
-  )
+  .inputValidator((input: unknown) => setManualWeightSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context as any;
 
