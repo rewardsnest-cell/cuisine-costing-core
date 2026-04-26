@@ -5112,6 +5112,27 @@ export type Database = {
         Args: { _notes?: string; _queue_id: string }
         Returns: Json
       }
+      audit_list_rls_policies: {
+        Args: never
+        Returns: {
+          cmd: string
+          permissive: string
+          policyname: string
+          qual: string
+          roles: string[]
+          schemaname: string
+          tablename: string
+          with_check: string
+        }[]
+      }
+      audit_list_tables_with_rls: {
+        Args: never
+        Returns: {
+          policy_count: number
+          rls_enabled: boolean
+          table_name: string
+        }[]
+      }
       compute_internal_estimated_cost: {
         Args: { _historical: number; _kroger: number; _manual: number }
         Returns: Json
