@@ -161,7 +161,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/pricing-v2/recipes-normalize",  label: "Stage -1 — Recipe Normalization",      icon: Scale },
       { to: "/admin/pricing-v2/unit-rules",          label: "Unit Conversion Rules",                icon: Scale },
       { to: "/admin/pricing-v2/catalog",            label: "Stage 0 — Catalog Bootstrap",          icon: Tag },
+      { to: "/admin/pricing-v2/catalog-data",       label: "Catalog Data (Raw + Normalized)",      icon: Receipt },
       { to: "/admin/pricing-v2/keywords",           label: "Keyword Library & Sweeps",             icon: BookOpen },
+      { to: "/admin/pricing-v2/search",             label: "Kroger Search",                        icon: FileSearch },
+      { to: "/admin/pricing-v2/bulk-suggest",       label: "Bulk UPC Auto-Suggest",                icon: Sparkles },
       { to: "/admin/pricing-v2/errors",             label: "Errors",                               icon: AlertTriangle },
       { to: "/admin/pricing-v2/settings",           label: "Settings",                             icon: ShieldCheck },
     ],
@@ -170,8 +173,10 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Pricing",
     items: [
       { to: "/admin/pricing",  label: "Pricing (v2 stub)",    icon: Tag },
+      { to: "/admin/pricing/national", label: "National Pricing", icon: Globe2 },
       { to: "/admin/receipts", label: "Receipt Diagnostics",  icon: Receipt, featureKey: "admin_receipt_diagnostics" },
       { to: "/admin/receipts/queue", label: "Receipt Queue",  icon: ClipboardList, featureKey: "admin_receipt_diagnostics" },
+      { to: "/admin/receipts/review-matches", label: "Review Receipt Matches", icon: ClipboardCheck },
     ],
   },
   {
