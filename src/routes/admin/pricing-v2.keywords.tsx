@@ -442,7 +442,7 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info, ArrowDownToLine } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
@@ -959,7 +959,8 @@ function SchedulesSection({
               return (
                 <div
                   key={s.id}
-                  className={`rounded-lg border bg-card p-3 flex flex-col gap-3 transition-colors ${
+                  id={`schedule-${s.id}`}
+                  className={`rounded-lg border bg-card p-3 flex flex-col gap-3 transition-all scroll-mt-4 ${
                     isEditing ? "border-primary ring-1 ring-primary/40" : ""
                   } ${!s.enabled ? "opacity-70" : ""}`}
                 >
@@ -1277,6 +1278,28 @@ function NotificationDetailDialog({
     }
   };
 
+  const goToSchedule = () => {
+    if (!n?.schedule_id) return;
+    const id = n.schedule_id;
+    onOpenChange(false);
+    // Wait for the dialog to unmount so scrolling targets the actual page.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(`schedule-${id}`);
+        if (!el) {
+          toast.error("Schedule not found on this page (it may have been deleted).");
+          return;
+        }
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Brief flash so the user sees which card it is.
+        el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+        }, 2000);
+      }, 50);
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -1297,7 +1320,18 @@ function NotificationDetailDialog({
               {/* Run metadata */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <MetaField label="Schedule">
-                  {n.schedule_name ?? <span className="text-muted-foreground">—</span>}
+                  {n.schedule_id ? (
+                    <button
+                      type="button"
+                      onClick={goToSchedule}
+                      className="text-primary hover:underline truncate text-left"
+                      title="Jump to this schedule"
+                    >
+                      {n.schedule_name ?? n.schedule_id.slice(0, 8) + "…"}
+                    </button>
+                  ) : (
+                    n.schedule_name ?? <span className="text-muted-foreground">—</span>
+                  )}
                 </MetaField>
                 <MetaField label="Created">
                   {new Date(n.created_at).toLocaleString()}
@@ -1368,13 +1402,26 @@ function NotificationDetailDialog({
               )}
             </div>
 
-            <DialogFooter className="gap-2">
-              <Button size="sm" variant="outline" onClick={copyJson}>
-                Copy JSON
+            <DialogFooter className="gap-2 sm:justify-between">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={goToSchedule}
+                disabled={!n.schedule_id}
+                className="gap-1"
+                title={n.schedule_id ? "Jump to this schedule" : "No related schedule"}
+              >
+                <ArrowDownToLine className="w-3 h-3" />
+                Go to schedule
               </Button>
-              <Button size="sm" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={copyJson}>
+                  Copy JSON
+                </Button>
+                <Button size="sm" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+              </div>
             </DialogFooter>
           </>
         )}
