@@ -42,7 +42,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
     if (data.scope === "recipe_menu" || data.scope === "all") {
       let q = supabase
         .from("pricing_v2_recipe_costs")
-        .select("recipe_id, cost_per_serving, status, recipes!inner(id, menu_price)")
+        .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids, recipes!inner(id, menu_price)")
         .eq("is_current", true);
       if (data.recipe_ids?.length) q = q.in("recipe_id", data.recipe_ids);
       const { data: rows } = await q;
@@ -69,6 +69,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
           menu_price: menuPrice,
           status,
           warning_flags: warns,
+          contributing_inventory_item_ids: r.contributing_inventory_item_ids ?? [],
           is_current: true,
           frozen: false,
         });
@@ -90,17 +91,18 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
       const eligible = (items ?? []).filter((it: any) => draftStatuses.has(it.quotes?.status));
 
       const recipeIdsNeeded = Array.from(new Set(eligible.map((i: any) => i.recipe_id))) as string[];
-      const cpsMap = new Map<string, { cps: number | null; status: string }>();
+      const cpsMap = new Map<string, { cps: number | null; status: string; contrib: string[] }>();
       if (recipeIdsNeeded.length) {
         const { data: cosrs } = await supabase
           .from("pricing_v2_recipe_costs")
-          .select("recipe_id, cost_per_serving, status")
+          .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids")
           .in("recipe_id", recipeIdsNeeded)
           .eq("is_current", true);
         for (const r of cosrs ?? []) {
           cpsMap.set(r.recipe_id, {
             cps: r.cost_per_serving != null ? Number(r.cost_per_serving) : null,
             status: r.status,
+            contrib: r.contributing_inventory_item_ids ?? [],
           });
         }
       }
@@ -128,6 +130,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
           menu_price: menuPrice,
           status,
           warning_flags: warns,
+          contributing_inventory_item_ids: ref?.contrib ?? [],
           is_current: true,
           frozen: false,
         });
@@ -194,7 +197,7 @@ export const setRecipeMultiplierOverride = createServerFn({ method: "POST" })
     // Get current cost snapshot.
     const { data: snap } = await supabase
       .from("pricing_v2_recipe_costs")
-      .select("cost_per_serving, status")
+      .select("cost_per_serving, status, contributing_inventory_item_ids")
       .eq("recipe_id", data.recipe_id)
       .eq("is_current", true)
       .order("created_at", { ascending: false })
@@ -222,6 +225,7 @@ export const setRecipeMultiplierOverride = createServerFn({ method: "POST" })
       menu_price: menuPrice,
       status: blocked ? "BLOCKED" : "OK",
       warning_flags: blocked ? ["recipe_blocked"] : [],
+      contributing_inventory_item_ids: snap?.contributing_inventory_item_ids ?? [],
       is_current: true,
       frozen: false,
     });

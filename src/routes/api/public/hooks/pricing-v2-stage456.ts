@@ -210,6 +210,7 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
     const ings = ingByRecipe.get(recipe.id) ?? [];
     const breakdown: any[] = [];
     const blockers: string[] = []; const warns: string[] = [];
+    const contributingInv = new Set<string>();
     let total = 0; let isBlocked = ings.length === 0;
     if (ings.length === 0) blockers.push("NO_INGREDIENTS");
     for (const ing of ings) {
@@ -231,6 +232,7 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
         continue;
       }
       const ic = grams * inv.cpg; total += ic;
+      contributingInv.add(ing.inventory_item_id);
       if (inv.status === "DEGRADED_FALLBACK") warns.push(`DEGRADED_INGREDIENT:${ing.name}`);
       breakdown.push({
         name: ing.name, grams, cost_per_gram: inv.cpg, ingredient_cost: ic,
@@ -247,7 +249,9 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
       total_cost: isBlocked ? null : Math.round(total * 10000) / 10000,
       cost_per_serving: isBlocked ? null : Math.round((total / servings) * 10000) / 10000,
       servings, status, blocker_reasons: blockers, warning_flags: warns,
-      ingredient_breakdown: breakdown, is_current: true,
+      ingredient_breakdown: breakdown,
+      contributing_inventory_item_ids: Array.from(contributingInv),
+      is_current: true,
     });
   }
   for (let i = 0; i < snapshots.length; i += 100) {
@@ -264,7 +268,7 @@ async function stage6(): Promise<{ run_id?: string; ok: number; warning: number;
 
   const { data: rows } = await supabaseAdmin
     .from("pricing_v2_recipe_costs")
-    .select("recipe_id, cost_per_serving, status")
+    .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids")
     .eq("is_current", true);
 
   let ok = 0, warning = 0, blocked = 0;
@@ -280,7 +284,9 @@ async function stage6(): Promise<{ run_id?: string; ok: number; warning: number;
     snapshots.push({
       recipe_id: r.recipe_id, scope: "recipe_menu", run_id: runId,
       recipe_cost_per_serving: cps, multiplier: mult, multiplier_source: "default",
-      menu_price: menuPrice, status, warning_flags: warns, is_current: true, frozen: false,
+      menu_price: menuPrice, status, warning_flags: warns,
+      contributing_inventory_item_ids: r.contributing_inventory_item_ids ?? [],
+      is_current: true, frozen: false,
     });
   }
   if (snapshots.length) {

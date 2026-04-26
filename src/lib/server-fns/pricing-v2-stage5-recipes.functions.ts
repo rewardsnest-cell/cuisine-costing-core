@@ -87,6 +87,7 @@ export const runStage5RecipeRollup = createServerFn({ method: "POST" })
       const breakdown: any[] = [];
       const blockers: string[] = [];
       const warns: string[] = [];
+      const contributingInv = new Set<string>();
       let totalCost = 0;
       let blocked = false;
 
@@ -133,6 +134,7 @@ export const runStage5RecipeRollup = createServerFn({ method: "POST" })
         const cpg = Number(inv.cost_per_gram_live);
         const ingCost = grams * cpg;
         totalCost += ingCost;
+        contributingInv.add(ing.inventory_item_id);
         if (inv.pricing_status === "DEGRADED_FALLBACK") warns.push(`DEGRADED_INGREDIENT:${ing.name}`);
         breakdown.push({
           name: ing.name,
@@ -165,6 +167,7 @@ export const runStage5RecipeRollup = createServerFn({ method: "POST" })
         blocker_reasons: blockers,
         warning_flags: warns,
         ingredient_breakdown: breakdown,
+        contributing_inventory_item_ids: Array.from(contributingInv),
         is_current: true,
       });
     }

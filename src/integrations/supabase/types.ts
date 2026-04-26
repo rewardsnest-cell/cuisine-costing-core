@@ -3372,6 +3372,7 @@ export type Database = {
       }
       pricing_v2_menu_prices: {
         Row: {
+          contributing_inventory_item_ids: string[]
           created_at: string
           frozen: boolean
           id: string
@@ -3388,6 +3389,7 @@ export type Database = {
           warning_flags: string[]
         }
         Insert: {
+          contributing_inventory_item_ids?: string[]
           created_at?: string
           frozen?: boolean
           id?: string
@@ -3404,6 +3406,7 @@ export type Database = {
           warning_flags?: string[]
         }
         Update: {
+          contributing_inventory_item_ids?: string[]
           created_at?: string
           frozen?: boolean
           id?: string
@@ -3476,6 +3479,7 @@ export type Database = {
       pricing_v2_recipe_costs: {
         Row: {
           blocker_reasons: string[]
+          contributing_inventory_item_ids: string[]
           cost_per_serving: number | null
           created_at: string
           id: string
@@ -3490,6 +3494,7 @@ export type Database = {
         }
         Insert: {
           blocker_reasons?: string[]
+          contributing_inventory_item_ids?: string[]
           cost_per_serving?: number | null
           created_at?: string
           id?: string
@@ -3504,6 +3509,7 @@ export type Database = {
         }
         Update: {
           blocker_reasons?: string[]
+          contributing_inventory_item_ids?: string[]
           cost_per_serving?: number | null
           created_at?: string
           id?: string
