@@ -1083,7 +1083,6 @@ function SchedulesSection({
             </p>
           )}
 
-          <div className="flex justify-end">
           <div className="flex justify-end gap-2">
             {editingId && (
               <Button
