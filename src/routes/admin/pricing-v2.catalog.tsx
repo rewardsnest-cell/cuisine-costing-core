@@ -701,7 +701,21 @@ function CatalogBootstrapPage() {
                         <td className="pr-2 text-right font-mono">{r.products_fetched ?? r.counts_out ?? 0}</td>
                         <td className="pr-2 text-right">{r.warnings_count}</td>
                         <td className="pr-2 text-right">{r.errors_count}</td>
-                        <td className="text-muted-foreground truncate max-w-[24ch]" title={r.notes ?? ""}>{r.notes}</td>
+                        <td className="text-muted-foreground truncate max-w-[24ch]" title={r.notes ?? ""}>
+                          {(() => {
+                            const rp = r.params?.run_params;
+                            if (rp?.run_type === "keyword_sweep" && Array.isArray(rp.keywords)) {
+                              const sample = rp.keywords.slice(0, 3).join(", ");
+                              const more = Math.max(0, rp.keywords.length - 3);
+                              return (
+                                <Link to="/admin/pricing-v2/keywords" className="underline">
+                                  Keyword sweep: {sample}{more > 0 ? ` +${more}` : ""}
+                                </Link>
+                              );
+                            }
+                            return r.notes;
+                          })()}
+                        </td>
                         <td>
                           <div className="flex items-center gap-1 justify-end">
                             {(r.status === "failed" || r.status === "running") && (
