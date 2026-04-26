@@ -1074,12 +1074,86 @@ function PricingAuditCard() {
 // ---- Kroger raw API data card --------------------------------------------
 
 function KrogerRawExportCard() {
-  const [busy, setBusy] = useState<null | "csv" | "json">(null);
+  const [busy, setBusy] = useState<null | "csv" | "json" | "xlsx">(null);
   const [error, setError] = useState<string | null>(null);
   const [progressMsg, setProgressMsg] = useState<string>("");
   const [savedCsv, setSavedCsv] = useState<SavedExportFile | null>(null);
   const [savedJson, setSavedJson] = useState<SavedExportFile | null>(null);
+  const [savedXlsx, setSavedXlsx] = useState<SavedExportFile | null>(null);
   const [rowCount, setRowCount] = useState<number | null>(null);
+
+  function flattenRows(rows: any[]) {
+    return rows.map((r) => {
+      const p = r.payload_json ?? {};
+      const item0 = Array.isArray(p.items) ? p.items[0] : null;
+      return {
+        id: r.id,
+        fetched_at: r.fetched_at,
+        store_id: r.store_id,
+        kroger_product_id: r.kroger_product_id,
+        upc: r.upc,
+        name: r.name,
+        brand: r.brand,
+        size_raw: r.size_raw,
+        sold_by: item0?.soldBy ?? null,
+        price_regular: item0?.price?.regular ?? null,
+        price_promo: item0?.price?.promo ?? null,
+        probe_keyword: p._probe_keyword ?? null,
+        probe_fetched_at: p._probe_fetched_at ?? null,
+      };
+    });
+  }
+
+  const handleXlsx = async () => {
+    setBusy("xlsx");
+    setError(null);
+    setSavedXlsx(null);
+    try {
+      const rows = await loadAllRaw();
+      const flat = flattenRows(rows);
+      setProgressMsg(`Building workbook (${flat.length} rows)…`);
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      const wsFlat = XLSX.utils.json_to_sheet(flat);
+      XLSX.utils.book_append_sheet(wb, wsFlat, "Products (flat)");
+      // Second sheet: raw payloads as JSON strings (Excel-safe)
+      const rawSheet = XLSX.utils.json_to_sheet(
+        rows.map((r) => ({
+          id: r.id,
+          kroger_product_id: r.kroger_product_id,
+          name: r.name,
+          payload_json: JSON.stringify(r.payload_json ?? {}),
+        })),
+      );
+      XLSX.utils.book_append_sheet(wb, rawSheet, "Raw payloads");
+      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      setProgressMsg(`Uploading ${flat.length} rows…`);
+      const filename = `kroger_raw_${new Date().toISOString().split("T")[0]}.xlsx`;
+      const saved = await saveExportFile(
+        blob,
+        filename,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      setSavedXlsx(saved);
+      setProgressMsg("");
+      // Local download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e: any) {
+      setError(e?.message || "Kroger Excel export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   async function loadAllRaw() {
     const PAGE = 1000;
