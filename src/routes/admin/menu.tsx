@@ -503,6 +503,13 @@ function AdminMenuPage() {
           })}
         </div>
       )}
+
+      <ExplainPriceDrawer
+        recipeId={explain?.id ?? null}
+        recipeName={explain?.name}
+        open={!!explain}
+        onOpenChange={(v) => { if (!v) setExplain(null); }}
+      />
     </div>
   );
 }
