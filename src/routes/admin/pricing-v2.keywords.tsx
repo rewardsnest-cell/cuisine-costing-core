@@ -593,14 +593,9 @@ function SchedulesSection({
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
   const formRef = useRef<HTMLDivElement | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-
-  function handleCancelEdit() {
-    resetForm();
-    requestAnimationFrame(() => {
-      listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
+  // Remember where the user was scrolled when they opened the edit form, so
+  // we can return them there after Save or Cancel.
+  const savedScrollYRef = useRef<number | null>(null);
 
   function resetForm() {
     setEditingId(null);
@@ -614,9 +609,22 @@ function SchedulesSection({
     setEmptyRunsThreshold(2);
     setFilterMode("include");
     setEditKeywordIds([]);
+    // Restore the scroll position captured when edit started.
+    const y = savedScrollYRef.current;
+    if (y != null) {
+      savedScrollYRef.current = null;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: y, behavior: "smooth" });
+      });
+    }
   }
 
   function startEdit(s: ScheduleRow) {
+    // Capture current scroll position only on the first edit-open (don't
+    // overwrite if already editing and user clicks edit on another row).
+    if (savedScrollYRef.current == null) {
+      savedScrollYRef.current = window.scrollY;
+    }
     setEditingId(s.id);
     setName(s.name);
     setCadence(s.cadence_hours);
@@ -1083,18 +1091,7 @@ function SchedulesSection({
             </p>
           )}
 
-          <div className="flex justify-end gap-2">
-            {editingId && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCancelEdit}
-                disabled={saveMut.isPending}
-              >
-                <XIcon className="w-4 h-4" />
-                Cancel
-              </Button>
-            )}
+          <div className="flex justify-end">
             <Button
               size="sm"
               onClick={handleSaveClick}
@@ -1107,7 +1104,6 @@ function SchedulesSection({
         </div>
 
         {/* List */}
-        <div ref={listRef}>
         {schedules.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : list.length === 0 ? (
@@ -1262,7 +1258,6 @@ function SchedulesSection({
             })}
           </div>
         )}
-        </div>
       </CardContent>
     </Card>
   );
