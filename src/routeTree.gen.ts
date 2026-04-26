@@ -160,6 +160,7 @@ import { Route as AdminPricingV2RecipesNormalizeRouteImport } from './routes/adm
 import { Route as AdminPricingV2ErrorsRouteImport } from './routes/admin/pricing-v2.errors'
 import { Route as AdminPricingV2CatalogDataRouteImport } from './routes/admin/pricing-v2.catalog-data'
 import { Route as AdminPricingV2CatalogRouteImport } from './routes/admin/pricing-v2.catalog'
+import { Route as AdminPricingV2BulkSuggestRouteImport } from './routes/admin/pricing-v2.bulk-suggest'
 import { Route as AdminMenuModulesPreviewRouteImport } from './routes/admin/menu-modules.preview'
 import { Route as AdminLeadsImportRouteImport } from './routes/admin/leads.import'
 import { Route as AdminLeadsIdRouteImport } from './routes/admin/leads.$id'
@@ -952,6 +953,12 @@ const AdminPricingV2CatalogRoute = AdminPricingV2CatalogRouteImport.update({
   path: '/pricing-v2/catalog',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPricingV2BulkSuggestRoute =
+  AdminPricingV2BulkSuggestRouteImport.update({
+    id: '/pricing-v2/bulk-suggest',
+    path: '/pricing-v2/bulk-suggest',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminMenuModulesPreviewRoute = AdminMenuModulesPreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
@@ -1194,6 +1201,7 @@ export interface FileRoutesByFullPath {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/bulk-suggest': typeof AdminPricingV2BulkSuggestRoute
   '/admin/pricing-v2/catalog': typeof AdminPricingV2CatalogRoute
   '/admin/pricing-v2/catalog-data': typeof AdminPricingV2CatalogDataRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
@@ -1365,6 +1373,7 @@ export interface FileRoutesByTo {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/bulk-suggest': typeof AdminPricingV2BulkSuggestRoute
   '/admin/pricing-v2/catalog': typeof AdminPricingV2CatalogRoute
   '/admin/pricing-v2/catalog-data': typeof AdminPricingV2CatalogDataRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
@@ -1539,6 +1548,7 @@ export interface FileRoutesById {
   '/admin/leads/$id': typeof AdminLeadsIdRoute
   '/admin/leads/import': typeof AdminLeadsImportRoute
   '/admin/menu-modules/preview': typeof AdminMenuModulesPreviewRoute
+  '/admin/pricing-v2/bulk-suggest': typeof AdminPricingV2BulkSuggestRoute
   '/admin/pricing-v2/catalog': typeof AdminPricingV2CatalogRoute
   '/admin/pricing-v2/catalog-data': typeof AdminPricingV2CatalogDataRoute
   '/admin/pricing-v2/errors': typeof AdminPricingV2ErrorsRoute
@@ -1714,6 +1724,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/bulk-suggest'
     | '/admin/pricing-v2/catalog'
     | '/admin/pricing-v2/catalog-data'
     | '/admin/pricing-v2/errors'
@@ -1885,6 +1896,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/bulk-suggest'
     | '/admin/pricing-v2/catalog'
     | '/admin/pricing-v2/catalog-data'
     | '/admin/pricing-v2/errors'
@@ -2058,6 +2070,7 @@ export interface FileRouteTypes {
     | '/admin/leads/$id'
     | '/admin/leads/import'
     | '/admin/menu-modules/preview'
+    | '/admin/pricing-v2/bulk-suggest'
     | '/admin/pricing-v2/catalog'
     | '/admin/pricing-v2/catalog-data'
     | '/admin/pricing-v2/errors'
@@ -3224,6 +3237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPricingV2CatalogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pricing-v2/bulk-suggest': {
+      id: '/admin/pricing-v2/bulk-suggest'
+      path: '/pricing-v2/bulk-suggest'
+      fullPath: '/admin/pricing-v2/bulk-suggest'
+      preLoaderRoute: typeof AdminPricingV2BulkSuggestRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu-modules/preview': {
       id: '/admin/menu-modules/preview'
       path: '/preview'
@@ -3579,6 +3599,7 @@ interface AdminRouteChildren {
   AdminIngredientsReviewUnlinkedRoute: typeof AdminIngredientsReviewUnlinkedRoute
   AdminLeadsIdRoute: typeof AdminLeadsIdRoute
   AdminLeadsImportRoute: typeof AdminLeadsImportRoute
+  AdminPricingV2BulkSuggestRoute: typeof AdminPricingV2BulkSuggestRoute
   AdminPricingV2CatalogRoute: typeof AdminPricingV2CatalogRoute
   AdminPricingV2CatalogDataRoute: typeof AdminPricingV2CatalogDataRoute
   AdminPricingV2ErrorsRoute: typeof AdminPricingV2ErrorsRoute
@@ -3665,6 +3686,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIngredientsReviewUnlinkedRoute: AdminIngredientsReviewUnlinkedRoute,
   AdminLeadsIdRoute: AdminLeadsIdRoute,
   AdminLeadsImportRoute: AdminLeadsImportRoute,
+  AdminPricingV2BulkSuggestRoute: AdminPricingV2BulkSuggestRoute,
   AdminPricingV2CatalogRoute: AdminPricingV2CatalogRoute,
   AdminPricingV2CatalogDataRoute: AdminPricingV2CatalogDataRoute,
   AdminPricingV2ErrorsRoute: AdminPricingV2ErrorsRoute,
