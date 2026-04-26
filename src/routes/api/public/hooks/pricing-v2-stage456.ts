@@ -210,6 +210,7 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
     const ings = ingByRecipe.get(recipe.id) ?? [];
     const breakdown: any[] = [];
     const blockers: string[] = []; const warns: string[] = [];
+    const contributingInv = new Set<string>();
     let total = 0; let isBlocked = ings.length === 0;
     if (ings.length === 0) blockers.push("NO_INGREDIENTS");
     for (const ing of ings) {
