@@ -75,6 +75,37 @@ function CostQueuePage() {
   const rows = useMemo(() => (queue.data?.rows ?? []) as any[], [queue.data]);
   const blockedItems = useMemo(() => (blocked.data?.items ?? []) as any[], [blocked.data]);
 
+  // Clear selection when switching tabs / data reloads.
+  function changeTab(v: string) {
+    setTab(v as any);
+    setSelected(new Set());
+  }
+  function toggleAllPending(checked: boolean) {
+    if (!checked) { setSelected(new Set()); return; }
+    setSelected(new Set(rows.map((r: any) => r.id as string)));
+  }
+  async function runBulk(decision: "approve" | "reject") {
+    const ids = Array.from(selected);
+    if (!ids.length) { toast.error("Select rows first"); return; }
+    setBulkBusy(decision);
+    let ok = 0, fail = 0;
+    // Sequential to keep UI responsive and avoid hammering the server fn.
+    for (const id of ids) {
+      try {
+        await decideCostUpdate({ data: { queue_id: id, decision } });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setBulkBusy(null);
+    setSelected(new Set());
+    qc.invalidateQueries({ queryKey: ["pricing-v2", "cost-queue"] });
+    toast[fail ? "warning" : "success"](
+      `${decision === "approve" ? "Approved" : "Rejected"} ${ok}${fail ? ` · ${fail} failed` : ""}`,
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
