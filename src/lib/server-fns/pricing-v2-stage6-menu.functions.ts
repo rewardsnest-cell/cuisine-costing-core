@@ -197,7 +197,7 @@ export const setRecipeMultiplierOverride = createServerFn({ method: "POST" })
     // Get current cost snapshot.
     const { data: snap } = await supabase
       .from("pricing_v2_recipe_costs")
-      .select("cost_per_serving, status")
+      .select("cost_per_serving, status, contributing_inventory_item_ids")
       .eq("recipe_id", data.recipe_id)
       .eq("is_current", true)
       .order("created_at", { ascending: false })
@@ -225,6 +225,7 @@ export const setRecipeMultiplierOverride = createServerFn({ method: "POST" })
       menu_price: menuPrice,
       status: blocked ? "BLOCKED" : "OK",
       warning_flags: blocked ? ["recipe_blocked"] : [],
+      contributing_inventory_item_ids: snap?.contributing_inventory_item_ids ?? [],
       is_current: true,
       frozen: false,
     });
