@@ -1278,6 +1278,28 @@ function NotificationDetailDialog({
     }
   };
 
+  const goToSchedule = () => {
+    if (!n?.schedule_id) return;
+    const id = n.schedule_id;
+    onOpenChange(false);
+    // Wait for the dialog to unmount so scrolling targets the actual page.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(`schedule-${id}`);
+        if (!el) {
+          toast.error("Schedule not found on this page (it may have been deleted).");
+          return;
+        }
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Brief flash so the user sees which card it is.
+        el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+        }, 2000);
+      }, 50);
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
