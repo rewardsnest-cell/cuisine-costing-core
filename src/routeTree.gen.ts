@@ -182,6 +182,7 @@ import { Route as ApiRecipesIdPrintableRouteImport } from './routes/api/recipes.
 import { Route as ApiPublicHooksSendProspectEmailRouteImport } from './routes/api/public/hooks/send-prospect-email'
 import { Route as ApiPublicHooksProspectFollowupsRouteImport } from './routes/api/public/hooks/prospect-followups'
 import { Route as ApiPublicHooksPricingV2Stage456RouteImport } from './routes/api/public/hooks/pricing-v2-stage456'
+import { Route as ApiPublicHooksPricingV2KrogerProbeRouteImport } from './routes/api/public/hooks/pricing-v2-kroger-probe'
 import { Route as ApiPublicHooksPricingV2KeywordSchedulesRouteImport } from './routes/api/public/hooks/pricing-v2-keyword-schedules'
 import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api/public/hooks/outlook-poll-inbox'
 import { Route as ApiPublicHooksKrogerValidationRouteImport } from './routes/api/public/hooks/kroger-validation'
@@ -1080,6 +1081,12 @@ const ApiPublicHooksPricingV2Stage456Route =
     path: '/api/public/hooks/pricing-v2-stage456',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPricingV2KrogerProbeRoute =
+  ApiPublicHooksPricingV2KrogerProbeRouteImport.update({
+    id: '/api/public/hooks/pricing-v2-kroger-probe',
+    path: '/api/public/hooks/pricing-v2-kroger-probe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksPricingV2KeywordSchedulesRoute =
   ApiPublicHooksPricingV2KeywordSchedulesRouteImport.update({
     id: '/api/public/hooks/pricing-v2-keyword-schedules',
@@ -1287,6 +1294,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-kroger-probe': typeof ApiPublicHooksPricingV2KrogerProbeRoute
   '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1466,6 +1474,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-kroger-probe': typeof ApiPublicHooksPricingV2KrogerProbeRoute
   '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1648,6 +1657,7 @@ export interface FileRoutesById {
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
   '/api/public/hooks/outlook-poll-inbox': typeof ApiPublicHooksOutlookPollInboxRoute
   '/api/public/hooks/pricing-v2-keyword-schedules': typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  '/api/public/hooks/pricing-v2-kroger-probe': typeof ApiPublicHooksPricingV2KrogerProbeRoute
   '/api/public/hooks/pricing-v2-stage456': typeof ApiPublicHooksPricingV2Stage456Route
   '/api/public/hooks/prospect-followups': typeof ApiPublicHooksProspectFollowupsRoute
   '/api/public/hooks/send-prospect-email': typeof ApiPublicHooksSendProspectEmailRoute
@@ -1831,6 +1841,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-kroger-probe'
     | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2010,6 +2021,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-kroger-probe'
     | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2191,6 +2203,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/kroger-validation'
     | '/api/public/hooks/outlook-poll-inbox'
     | '/api/public/hooks/pricing-v2-keyword-schedules'
+    | '/api/public/hooks/pricing-v2-kroger-probe'
     | '/api/public/hooks/pricing-v2-stage456'
     | '/api/public/hooks/prospect-followups'
     | '/api/public/hooks/send-prospect-email'
@@ -2257,6 +2270,7 @@ export interface RootRouteChildren {
   ApiPublicHooksKrogerValidationRoute: typeof ApiPublicHooksKrogerValidationRoute
   ApiPublicHooksOutlookPollInboxRoute: typeof ApiPublicHooksOutlookPollInboxRoute
   ApiPublicHooksPricingV2KeywordSchedulesRoute: typeof ApiPublicHooksPricingV2KeywordSchedulesRoute
+  ApiPublicHooksPricingV2KrogerProbeRoute: typeof ApiPublicHooksPricingV2KrogerProbeRoute
   ApiPublicHooksPricingV2Stage456Route: typeof ApiPublicHooksPricingV2Stage456Route
   ApiPublicHooksProspectFollowupsRoute: typeof ApiPublicHooksProspectFollowupsRoute
   ApiPublicHooksSendProspectEmailRoute: typeof ApiPublicHooksSendProspectEmailRoute
@@ -3481,6 +3495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPricingV2Stage456RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/pricing-v2-kroger-probe': {
+      id: '/api/public/hooks/pricing-v2-kroger-probe'
+      path: '/api/public/hooks/pricing-v2-kroger-probe'
+      fullPath: '/api/public/hooks/pricing-v2-kroger-probe'
+      preLoaderRoute: typeof ApiPublicHooksPricingV2KrogerProbeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/pricing-v2-keyword-schedules': {
       id: '/api/public/hooks/pricing-v2-keyword-schedules'
       path: '/api/public/hooks/pricing-v2-keyword-schedules'
@@ -3948,6 +3969,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksOutlookPollInboxRoute: ApiPublicHooksOutlookPollInboxRoute,
   ApiPublicHooksPricingV2KeywordSchedulesRoute:
     ApiPublicHooksPricingV2KeywordSchedulesRoute,
+  ApiPublicHooksPricingV2KrogerProbeRoute:
+    ApiPublicHooksPricingV2KrogerProbeRoute,
   ApiPublicHooksPricingV2Stage456Route: ApiPublicHooksPricingV2Stage456Route,
   ApiPublicHooksProspectFollowupsRoute: ApiPublicHooksProspectFollowupsRoute,
   ApiPublicHooksSendProspectEmailRoute: ApiPublicHooksSendProspectEmailRoute,
