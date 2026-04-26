@@ -597,6 +597,7 @@ function SchedulesSection({
           skip_weight_normalization: s.skip_weight_normalization,
           enabled: !s.enabled,
           use_all_keywords: !!s.use_all_keywords,
+          keyword_filter_mode: s.keyword_filter_mode === "exclude" ? "exclude" : "include",
           expires_at: s.expires_at ?? null,
           max_runs: s.max_runs ?? null,
           continuous_mode: !!s.continuous_mode,
