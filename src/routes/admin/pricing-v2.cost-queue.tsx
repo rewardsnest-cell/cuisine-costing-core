@@ -39,6 +39,8 @@ function srcBadge(s: string) {
 function CostQueuePage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"pending" | "auto_applied" | "approved" | "rejected" | "blocked">("pending");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState<null | "approve" | "reject">(null);
 
   const queue = useQuery({
     queryKey: ["pricing-v2", "cost-queue", tab],
