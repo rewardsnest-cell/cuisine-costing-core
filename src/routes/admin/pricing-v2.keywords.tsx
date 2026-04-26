@@ -713,8 +713,28 @@ function SchedulesSection({
           continuous_interval_seconds: s.continuous_interval_seconds ?? 60,
         },
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
-    onError: (e: any) => toast.error(e?.message ?? "Update failed"),
+    onMutate: async (s: ScheduleRow) => {
+      const key = ["pricing-v2", "keyword-schedules"];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ rows: ScheduleRow[] }>(key);
+      if (previous?.rows) {
+        qc.setQueryData<{ rows: ScheduleRow[] }>(key, {
+          ...previous,
+          rows: previous.rows.map((r) =>
+            r.id === s.id ? { ...r, enabled: !s.enabled } : r,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (e: any, _s, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(["pricing-v2", "keyword-schedules"], ctx.previous);
+      }
+      toast.error(e?.message ?? "Update failed");
+    },
+    onSettled: () =>
+      qc.invalidateQueries({ queryKey: ["pricing-v2", "keyword-schedules"] }),
   });
 
   const delMut = useMutation({
