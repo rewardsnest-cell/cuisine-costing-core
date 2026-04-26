@@ -1214,31 +1214,67 @@ function FixWeightDialog({
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
 }) {
-  const [grams, setGrams] = useState("");
+  const [weightInput, setWeightInput] = useState("");
   const [reason, setReason] = useState("");
   const [source, setSource] = useState<string>("manual_override");
+  const [serverWarning, setServerWarning] = useState<null | {
+    message: string;
+    parsed_grams: number;
+    ratio: number;
+  }>(null);
 
   // Reset fields whenever a new product is opened
   useMemo(() => {
     if (product) {
-      setGrams(product.net_weight_grams != null ? String(Math.round(Number(product.net_weight_grams))) : "");
+      setWeightInput(
+        product.net_weight_grams != null
+          ? `${Math.round(Number(product.net_weight_grams))} g`
+          : ""
+      );
       setReason(product.manual_override_reason ?? "");
       setSource(product.weight_source ?? "manual_override");
+      setServerWarning(null);
     }
   }, [product?.product_key]);
 
+  // Live, client-side normalization preview.
+  const norm = useMemo(() => normalizeWeightInput(weightInput), [weightInput]);
+  const clientError = !weightInput.trim() ? null : norm.ok ? null : norm.reason;
+
+  const submit = (force: boolean) => {
+    if (!norm.ok) {
+      toast.error(norm.reason);
+      return;
+    }
+    save.mutate({ force });
+  };
+
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: ({ force }: { force: boolean }) =>
       setManualWeight({
         data: {
           product_key: product.product_key,
-          grams: Number(grams),
+          weight_input: weightInput.trim(),
           reason,
           weight_source: source as any,
+          force_override: force,
         },
       }),
-    onSuccess: () => {
-      toast.success("Weight saved");
+    onSuccess: (r: any) => {
+      if (r?.ok === false && r?.kind === "invalid_input") {
+        toast.error(r.message);
+        return;
+      }
+      if (r?.ok === false && r?.kind === "inconsistent_with_size") {
+        setServerWarning({
+          message: r.message,
+          parsed_grams: r.parsed_grams,
+          ratio: r.ratio,
+        });
+        return;
+      }
+      toast.success("Weight saved and normalized to grams");
+      setServerWarning(null);
       onSaved();
     },
     onError: (e: any) => toast.error(e?.message ?? "Save failed"),
@@ -1251,7 +1287,10 @@ function FixWeightDialog({
           <DialogTitle>Fix Weight</DialogTitle>
           <DialogDescription>
             Manually set <span className="font-mono">net_weight_grams</span> and{" "}
-            <span className="font-mono">weight_source</span> for this product. A reason is required for the audit trail.
+            <span className="font-mono">weight_source</span> for this product. Enter a value with units
+            (e.g. <span className="font-mono">454 g</span>, <span className="font-mono">1.5 lb</span>,{" "}
+            <span className="font-mono">16 oz</span>) — it will be normalized to grams. A reason is required
+            for the audit trail.
           </DialogDescription>
         </DialogHeader>
         {product && (
@@ -1265,13 +1304,24 @@ function FixWeightDialog({
               </div>
             </div>
             <div>
-              <Label>Net weight (grams)</Label>
+              <Label>Net weight (any unit)</Label>
               <Input
-                value={grams}
-                onChange={(e) => setGrams(e.target.value.replace(/[^\d.]/g, ""))}
-                inputMode="decimal"
-                placeholder="e.g. 454"
+                value={weightInput}
+                onChange={(e) => { setWeightInput(e.target.value); setServerWarning(null); }}
+                placeholder="e.g. 454 g, 1.5 lb, 16 oz, 0.45 kg"
               />
+              <div className="mt-1 text-[11px] min-h-4">
+                {clientError ? (
+                  <span className="text-destructive">{clientError}</span>
+                ) : norm.ok ? (
+                  <span className="text-muted-foreground">
+                    → <span className="font-mono">{Math.round(norm.grams)} g</span>
+                    {norm.unit !== "g" && (
+                      <span className="text-muted-foreground"> (from {norm.raw_value} {norm.unit})</span>
+                    )}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div>
               <Label>Weight source</Label>
@@ -1295,16 +1345,39 @@ function FixWeightDialog({
                 placeholder="Why this override (e.g. weighed package on scale, vendor spec sheet, etc.)"
               />
             </div>
+            {serverWarning && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Inconsistent with product size</AlertTitle>
+                <AlertDescription className="text-xs">
+                  {serverWarning.message}
+                  <div className="mt-1 font-mono">
+                    parsed ≈ {Math.round(serverWarning.parsed_grams)} g · entered ={" "}
+                    {norm.ok ? Math.round(norm.grams) : "?"} g · ratio = {(serverWarning.ratio * 100).toFixed(0)}%
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button
-            onClick={() => save.mutate()}
-            disabled={!product || !grams || !reason || save.isPending}
-          >
-            {save.isPending ? "Saving…" : "Save"}
-          </Button>
+          {serverWarning ? (
+            <Button
+              variant="destructive"
+              onClick={() => submit(true)}
+              disabled={!product || !norm.ok || !reason || save.isPending}
+            >
+              {save.isPending ? "Saving…" : "Save anyway"}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => submit(false)}
+              disabled={!product || !norm.ok || !reason || save.isPending}
+            >
+              {save.isPending ? "Saving…" : "Save"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
