@@ -924,17 +924,14 @@ function PricingAuditCard() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([auditText], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+  const download = async () => {
+    if (!auditText) return;
     const stamp = (generatedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
-    a.download = `pricing-audit-${stamp}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      await downloadFile(auditText, `pricing-audit-${stamp}.md`, "text/markdown");
+    } catch (e: any) {
+      if (e?.name !== "AbortError") setError(e?.message || "Download failed");
+    }
   };
 
   return (
