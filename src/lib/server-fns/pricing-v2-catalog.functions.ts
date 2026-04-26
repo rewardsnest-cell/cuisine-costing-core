@@ -595,6 +595,9 @@ export const replayCatalogRun = createServerFn({ method: "POST" })
       // Bypass the preflight gate on replay — operator already triggered the
       // original attempt; failing the gate now would mask the real failure.
       bypass_min_mapped_check: true,
+      // Preserve the original run's weight-normalization choice so replays
+      // are bit-for-bit reproducible.
+      skip_weight_normalization: typeof p.skip_weight_normalization === "boolean" ? p.skip_weight_normalization : true,
     });
 
     // Optionally rewind the cursor so successful stages are re-executed.
