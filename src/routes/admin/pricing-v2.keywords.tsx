@@ -898,7 +898,17 @@ function SchedulesSection({
                       </td>
                       <td className="p-2 text-xs">
                         {s.use_all_keywords ? (
-                          <Badge variant="secondary">All enabled keywords</Badge>
+                          s.keyword_filter_mode === "exclude" && (s.keyword_ids ?? []).length > 0 ? (
+                            <div className="space-y-0.5">
+                              <Badge variant="secondary">All enabled · excluding {(s.keyword_ids ?? []).length}</Badge>
+                              <div className="text-muted-foreground">
+                                excl: {sample.join(", ")}
+                                {more > 0 && <> +{more}</>}
+                              </div>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary">All enabled keywords</Badge>
+                          )
                         ) : (
                           <>
                             <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>
