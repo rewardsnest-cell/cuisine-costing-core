@@ -2792,6 +2792,38 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_v2_catalog_keyword_hits: {
+        Row: {
+          created_at: string
+          id: string
+          keyword: string
+          product_key: string
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          keyword: string
+          product_key: string
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          keyword?: string
+          product_key?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_catalog_keyword_hits_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
       pricing_v2_errors: {
         Row: {
           counts_in: number
@@ -3002,6 +3034,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pricing_v2_keyword_schedules: {
+        Row: {
+          cadence_hours: number
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          keyword_ids: string[]
+          keyword_limit: number
+          last_run_at: string | null
+          last_run_id: string | null
+          name: string
+          next_run_at: string
+          skip_weight_normalization: boolean
+          updated_at: string
+        }
+        Insert: {
+          cadence_hours: number
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          keyword_ids?: string[]
+          keyword_limit?: number
+          last_run_at?: string | null
+          last_run_id?: string | null
+          name: string
+          next_run_at?: string
+          skip_weight_normalization?: boolean
+          updated_at?: string
+        }
+        Update: {
+          cadence_hours?: number
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          keyword_ids?: string[]
+          keyword_limit?: number
+          last_run_at?: string | null
+          last_run_id?: string | null
+          name?: string
+          next_run_at?: string
+          skip_weight_normalization?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_v2_keyword_schedules_last_run_id_fkey"
+            columns: ["last_run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_v2_runs"
+            referencedColumns: ["run_id"]
+          },
+        ]
       }
       pricing_v2_kroger_catalog_raw: {
         Row: {
