@@ -1176,12 +1176,14 @@ function SchedulesSection({
                     </div>
                   </div>
 
+                  {runStatus && <RunStatusRow status={runStatus} />}
+
                   <div className="flex items-center justify-end gap-1 pt-1 border-t">
                     <Button
                       size="sm"
                       variant="outline"
                       className="h-7 px-2 text-xs gap-1"
-                      onClick={() => runNowMut.mutate(s.id)}
+                      onClick={() => handleStart(s)}
                       disabled={runNowMut.isPending}
                       title="Run on the next cron tick"
                     >
