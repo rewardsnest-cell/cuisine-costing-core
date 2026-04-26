@@ -442,8 +442,16 @@ function KeywordRowView({
 
 // ----- Schedules -----------------------------------------------------------
 
-import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser } from "lucide-react";
+import { CalendarClock, Save, Pencil, X as XIcon, Bell, CheckCheck, Eraser, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   listKeywordSchedules,
   upsertKeywordSchedule,
@@ -1066,6 +1074,7 @@ function SchedulesSection({
 function NotificationsBell() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<ScheduleNotification | null>(null);
   const notifs = useQuery({
     queryKey: ["pricing-v2", "schedule-notifications"],
     queryFn: () => listScheduleNotifications({ data: { limit: 50, unread_only: false } }),
@@ -1088,91 +1097,269 @@ function NotificationsBell() {
   const unread = notifs.data?.unread_count ?? 0;
   const rows = notifs.data?.rows ?? [];
 
+  const openDetail = (n: ScheduleNotification) => {
+    setDetail(n);
+    setOpen(false);
+    if (!n.read_at) markRead.mutate({ ids: [n.id] });
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button size="sm" variant="ghost" className="relative h-8 w-8 p-0" aria-label="Schedule notifications">
-          <Bell className="w-4 h-4" />
-          {unread > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
-              {unread > 99 ? "99+" : unread}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
-        <div className="flex items-center justify-between px-3 py-2 border-b">
-          <div className="text-sm font-medium">
-            Notifications {unread > 0 && <span className="text-muted-foreground font-normal">· {unread} unread</span>}
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="ghost" className="relative h-8 w-8 p-0" aria-label="Schedule notifications">
+            <Bell className="w-4 h-4" />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-96 p-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b">
+            <div className="text-sm font-medium">
+              Notifications {unread > 0 && <span className="text-muted-foreground font-normal">· {unread} unread</span>}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => markRead.mutate({ all: true })}
+                disabled={markRead.isPending || unread === 0}
+                title="Mark all as read"
+              >
+                <CheckCheck className="w-3 h-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => clearRead.mutate()}
+                disabled={clearRead.isPending || rows.every((r) => !r.read_at)}
+                title="Clear read notifications"
+              >
+                <Eraser className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={() => markRead.mutate({ all: true })}
-              disabled={markRead.isPending || unread === 0}
-              title="Mark all as read"
-            >
-              <CheckCheck className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={() => clearRead.mutate()}
-              disabled={clearRead.isPending || rows.every((r) => !r.read_at)}
-              title="Clear read notifications"
-            >
-              <Eraser className="w-3 h-3" />
-            </Button>
-          </div>
-        </div>
-        <div className="max-h-96 overflow-auto divide-y">
-          {notifs.isLoading ? (
-            <p className="p-4 text-xs text-muted-foreground">Loading…</p>
-          ) : rows.length === 0 ? (
-            <p className="p-4 text-xs text-muted-foreground">No notifications yet.</p>
-          ) : (
-            rows.map((n: ScheduleNotification) => {
-              const isUnread = !n.read_at;
-              const dot =
-                n.severity === "error"
-                  ? "bg-destructive"
-                  : n.severity === "warning"
-                  ? "bg-yellow-500"
-                  : n.severity === "success"
-                  ? "bg-green-500"
-                  : "bg-muted-foreground";
-              return (
-                <button
-                  key={n.id}
-                  onClick={() => isUnread && markRead.mutate({ ids: [n.id] })}
-                  className={`w-full text-left px-3 py-2.5 hover:bg-muted/50 ${
-                    isUnread ? "bg-primary/5" : ""
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className={`mt-1.5 inline-block w-2 h-2 rounded-full shrink-0 ${dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">{n.title}</div>
-                      {n.message && (
-                        <div className="text-[11px] text-muted-foreground line-clamp-2">{n.message}</div>
-                      )}
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(n.created_at).toLocaleString()}
-                        {n.run_id && (
-                          <span className="font-mono ml-1">· {n.run_id.slice(0, 8)}…</span>
+          <div className="max-h-96 overflow-auto divide-y">
+            {notifs.isLoading ? (
+              <p className="p-4 text-xs text-muted-foreground">Loading…</p>
+            ) : rows.length === 0 ? (
+              <p className="p-4 text-xs text-muted-foreground">No notifications yet.</p>
+            ) : (
+              rows.map((n: ScheduleNotification) => {
+                const isUnread = !n.read_at;
+                const dot =
+                  n.severity === "error"
+                    ? "bg-destructive"
+                    : n.severity === "warning"
+                    ? "bg-yellow-500"
+                    : n.severity === "success"
+                    ? "bg-green-500"
+                    : "bg-muted-foreground";
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => openDetail(n)}
+                    className={`w-full text-left px-3 py-2.5 hover:bg-muted/50 ${
+                      isUnread ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className={`mt-1.5 inline-block w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">{n.title}</div>
+                        {n.message && (
+                          <div className="text-[11px] text-muted-foreground line-clamp-2">{n.message}</div>
                         )}
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {new Date(n.created_at).toLocaleString()}
+                          {n.run_id && (
+                            <span className="font-mono ml-1">· {n.run_id.slice(0, 8)}…</span>
+                          )}
+                        </div>
                       </div>
+                      <Info className="w-3 h-3 text-muted-foreground shrink-0 mt-1" />
                     </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <NotificationDetailDialog
+        notification={detail}
+        onOpenChange={(o) => !o && setDetail(null)}
+      />
+    </>
   );
 }
+
+// ----- Notification detail modal --------------------------------------------
+
+function NotificationDetailDialog({
+  notification: n,
+  onOpenChange,
+}: {
+  notification: ScheduleNotification | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const open = !!n;
+
+  const severityBadge = (sev: ScheduleNotification["severity"]) => {
+    const variant: Record<typeof sev, string> = {
+      error: "bg-destructive text-destructive-foreground",
+      warning: "bg-yellow-500 text-white",
+      success: "bg-green-500 text-white",
+      info: "bg-muted text-foreground",
+    } as any;
+    return (
+      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${variant[sev]}`}>
+        {sev}
+      </span>
+    );
+  };
+
+  const eventLabel = (et: ScheduleNotification["event_type"]) =>
+    et === "auto_disabled" ? "Auto-disabled" : et === "run_error" ? "Run failed" : "Run succeeded";
+
+  // Pull common metadata fields if present
+  const meta = (n?.metadata ?? {}) as Record<string, any>;
+  const errorMessage: string | undefined =
+    meta.error_message ?? meta.error ?? meta.last_error ?? (n?.severity === "error" ? n?.message ?? undefined : undefined);
+  const reason: string | undefined = meta.reason ?? meta.disabled_reason;
+  const knownKeys = new Set(["error_message", "error", "last_error", "reason", "disabled_reason"]);
+  const otherMeta = Object.entries(meta).filter(([k]) => !knownKeys.has(k));
+
+  const copyJson = async () => {
+    if (!n) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(n, null, 2));
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        {n && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-2 flex-wrap">
+                {severityBadge(n.severity)}
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                  {eventLabel(n.event_type)}
+                </span>
+              </div>
+              <DialogTitle className="text-base">{n.title}</DialogTitle>
+              {n.message && <DialogDescription>{n.message}</DialogDescription>}
+            </DialogHeader>
+
+            <div className="space-y-4 text-xs">
+              {/* Run metadata */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <MetaField label="Schedule">
+                  {n.schedule_name ?? <span className="text-muted-foreground">—</span>}
+                </MetaField>
+                <MetaField label="Created">
+                  {new Date(n.created_at).toLocaleString()}
+                </MetaField>
+                <MetaField label="Schedule ID">
+                  <span className="font-mono text-[11px] break-all">
+                    {n.schedule_id ?? "—"}
+                  </span>
+                </MetaField>
+                <MetaField label="Run ID">
+                  <span className="font-mono text-[11px] break-all">
+                    {n.run_id ?? "—"}
+                  </span>
+                </MetaField>
+                <MetaField label="Status">
+                  {n.read_at ? `Read ${new Date(n.read_at).toLocaleString()}` : "Unread"}
+                </MetaField>
+                <MetaField label="Notification ID">
+                  <span className="font-mono text-[11px] break-all">{n.id}</span>
+                </MetaField>
+              </div>
+
+              {/* Reason (auto-disable) */}
+              {reason && (
+                <div>
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                    Reason
+                  </div>
+                  <div className="rounded border bg-muted/40 p-2 text-foreground whitespace-pre-wrap">
+                    {String(reason)}
+                  </div>
+                </div>
+              )}
+
+              {/* Error message */}
+              {errorMessage && (
+                <div>
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                    Error message
+                  </div>
+                  <pre className="rounded border bg-destructive/5 border-destructive/20 p-2 text-[11px] text-destructive-foreground whitespace-pre-wrap break-words max-h-64 overflow-auto">
+                    {String(errorMessage)}
+                  </pre>
+                </div>
+              )}
+
+              {/* Additional metadata */}
+              {otherMeta.length > 0 && (
+                <div>
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">
+                    Run metadata
+                  </div>
+                  <div className="rounded border bg-muted/30 divide-y">
+                    {otherMeta.map(([k, v]) => (
+                      <div key={k} className="grid grid-cols-3 gap-2 px-2 py-1.5">
+                        <div className="text-muted-foreground font-mono text-[11px]">{k}</div>
+                        <div className="col-span-2 font-mono text-[11px] break-all whitespace-pre-wrap">
+                          {typeof v === "object" ? JSON.stringify(v, null, 2) : String(v)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!errorMessage && !reason && otherMeta.length === 0 && (
+                <p className="text-muted-foreground italic">No additional metadata.</p>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button size="sm" variant="outline" onClick={copyJson}>
+                Copy JSON
+              </Button>
+              <Button size="sm" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+        {label}
+      </div>
+      <div className="text-xs">{children}</div>
+    </div>
+  );
+}
+
