@@ -477,6 +477,8 @@ function SchedulesSection({
   const [limitMode, setLimitMode] = useState<LimitMode>("forever");
   const [untilDate, setUntilDate] = useState(""); // yyyy-mm-dd
   const [maxRuns, setMaxRuns] = useState<number>(10);
+  const [continuousIntervalSec, setContinuousIntervalSec] = useState<number>(60);
+  const [emptyRunsThreshold, setEmptyRunsThreshold] = useState<number>(2);
   // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
@@ -489,6 +491,8 @@ function SchedulesSection({
     setLimitMode("forever");
     setUntilDate("");
     setMaxRuns(10);
+    setContinuousIntervalSec(60);
+    setEmptyRunsThreshold(2);
     setEditKeywordIds([]);
   }
 
@@ -498,7 +502,13 @@ function SchedulesSection({
     setCadence(s.cadence_hours);
     setUseAllKeywords(!!s.use_all_keywords);
     setEditKeywordIds(s.keyword_ids ?? []);
-    if (s.expires_at) {
+    setContinuousIntervalSec(s.continuous_interval_seconds ?? 60);
+    setEmptyRunsThreshold(s.empty_runs_threshold ?? 2);
+    if (s.continuous_mode) {
+      setLimitMode("continuous");
+      setUntilDate("");
+      setMaxRuns(10);
+    } else if (s.expires_at) {
       setLimitMode("until");
       setUntilDate(new Date(s.expires_at).toISOString().slice(0, 10));
       setMaxRuns(10);
