@@ -486,6 +486,7 @@ function SchedulesSection({
   const [maxRuns, setMaxRuns] = useState<number>(10);
   const [continuousIntervalSec, setContinuousIntervalSec] = useState<number>(60);
   const [emptyRunsThreshold, setEmptyRunsThreshold] = useState<number>(2);
+  const [filterMode, setFilterMode] = useState<"include" | "exclude">("include");
   // Snapshot of keyword_ids being edited (for non-"all" mode). When creating
   // new, we use the live `currentSelection` from the parent.
   const [editKeywordIds, setEditKeywordIds] = useState<string[]>([]);
@@ -500,6 +501,7 @@ function SchedulesSection({
     setMaxRuns(10);
     setContinuousIntervalSec(60);
     setEmptyRunsThreshold(2);
+    setFilterMode("include");
     setEditKeywordIds([]);
   }
 
@@ -511,6 +513,7 @@ function SchedulesSection({
     setEditKeywordIds(s.keyword_ids ?? []);
     setContinuousIntervalSec(s.continuous_interval_seconds ?? 60);
     setEmptyRunsThreshold(s.empty_runs_threshold ?? 2);
+    setFilterMode(s.keyword_filter_mode === "exclude" ? "exclude" : "include");
     if (s.continuous_mode) {
       setLimitMode("continuous");
       setUntilDate("");
@@ -534,11 +537,21 @@ function SchedulesSection({
     mutationFn: () => {
       const isContinuous = limitMode === "continuous";
       const effectiveUseAll = useAllKeywords || isContinuous;
-      const keyword_ids = effectiveUseAll
-        ? []
-        : editingId
-        ? editKeywordIds
-        : currentSelection;
+      // Continuous mode is sweep-all-with-no-filter; force include mode.
+      const effectiveFilterMode: "include" | "exclude" = isContinuous ? "include" : filterMode;
+      // In exclude mode the keyword_ids are the *exclusion* list and we keep them
+      // even when sweeping all. In include mode they are the inclusion list and
+      // are dropped when sweeping all.
+      const keyword_ids =
+        effectiveFilterMode === "exclude"
+          ? editingId
+            ? editKeywordIds
+            : currentSelection
+          : effectiveUseAll
+          ? []
+          : editingId
+          ? editKeywordIds
+          : currentSelection;
       const expires_at =
         limitMode === "until" && untilDate
           ? new Date(`${untilDate}T23:59:59`).toISOString()
@@ -554,6 +567,7 @@ function SchedulesSection({
           skip_weight_normalization: skipWeight,
           enabled: true,
           use_all_keywords: effectiveUseAll,
+          keyword_filter_mode: effectiveFilterMode,
           expires_at,
           max_runs,
           continuous_mode: isContinuous,
@@ -583,6 +597,7 @@ function SchedulesSection({
           skip_weight_normalization: s.skip_weight_normalization,
           enabled: !s.enabled,
           use_all_keywords: !!s.use_all_keywords,
+          keyword_filter_mode: s.keyword_filter_mode === "exclude" ? "exclude" : "include",
           expires_at: s.expires_at ?? null,
           max_runs: s.max_runs ?? null,
           continuous_mode: !!s.continuous_mode,
@@ -607,16 +622,19 @@ function SchedulesSection({
 
   const list = schedules.data?.rows ?? [];
   const kwById = new Map(rows.map((r) => [r.id, r.keyword]));
-  const effectiveKeywordCount = useAllKeywords
-    ? rows.filter((r) => r.enabled).length
-    : editingId
-    ? editKeywordIds.length
-    : currentSelection.length;
+  const enabledCount = rows.filter((r) => r.enabled).length;
+  const selectedIdsForForm = editingId ? editKeywordIds : currentSelection;
   const isContinuousMode = limitMode === "continuous";
+  const isExcludeMode = filterMode === "exclude" && !isContinuousMode;
+  const effectiveKeywordCount = isExcludeMode
+    ? Math.max(0, enabledCount - selectedIdsForForm.length)
+    : useAllKeywords
+    ? enabledCount
+    : selectedIdsForForm.length;
   const canSave =
     !!name.trim() &&
     !saveMut.isPending &&
-    (useAllKeywords || isContinuousMode || effectiveKeywordCount > 0) &&
+    (useAllKeywords || isContinuousMode || isExcludeMode || effectiveKeywordCount > 0) &&
     (limitMode !== "until" || !!untilDate) &&
     (limitMode !== "runs" || maxRuns > 0) &&
     (limitMode !== "continuous" || (continuousIntervalSec >= 10 && emptyRunsThreshold >= 1));
@@ -689,9 +707,41 @@ function SchedulesSection({
                 Sweep <strong>all enabled keywords</strong> in the library (no filter)
               </Label>
             </div>
+
+            {/* Include / Exclude mode — only meaningful when sweeping all */}
+            {(useAllKeywords || isContinuousMode) && !isContinuousMode && (
+              <div className="flex flex-wrap items-center gap-3 pl-7">
+                <span className="text-xs text-muted-foreground">Filter mode:</span>
+                <label className="inline-flex items-center gap-1.5 text-xs">
+                  <input
+                    type="radio"
+                    name="filter-mode"
+                    checked={filterMode === "include"}
+                    onChange={() => setFilterMode("include")}
+                  />
+                  No exclusions (all enabled)
+                </label>
+                <label className="inline-flex items-center gap-1.5 text-xs">
+                  <input
+                    type="radio"
+                    name="filter-mode"
+                    checked={filterMode === "exclude"}
+                    onChange={() => setFilterMode("exclude")}
+                  />
+                  Exclude selected keywords
+                </label>
+              </div>
+            )}
+
             <p className="text-xs text-muted-foreground">
               {isContinuousMode ? (
-                <>Continuous mode always sweeps every enabled keyword (currently {rows.filter((r) => r.enabled).length}).</>
+                <>Continuous mode always sweeps every enabled keyword (currently {enabledCount}).</>
+              ) : isExcludeMode ? (
+                <>
+                  Will sweep all enabled keywords <strong>except</strong> the {selectedIdsForForm.length} keyword
+                  {selectedIdsForForm.length === 1 ? "" : "s"}{" "}
+                  {editingId ? "captured when saved" : "currently selected above"} (~{effectiveKeywordCount} will run).
+                </>
               ) : useAllKeywords ? (
                 <>Will run against every enabled keyword at the time the schedule fires (currently {effectiveKeywordCount}).</>
               ) : editingId ? (
@@ -848,7 +898,17 @@ function SchedulesSection({
                       </td>
                       <td className="p-2 text-xs">
                         {s.use_all_keywords ? (
-                          <Badge variant="secondary">All enabled keywords</Badge>
+                          s.keyword_filter_mode === "exclude" && (s.keyword_ids ?? []).length > 0 ? (
+                            <div className="space-y-0.5">
+                              <Badge variant="secondary">All enabled · excluding {(s.keyword_ids ?? []).length}</Badge>
+                              <div className="text-muted-foreground">
+                                excl: {sample.join(", ")}
+                                {more > 0 && <> +{more}</>}
+                              </div>
+                            </div>
+                          ) : (
+                            <Badge variant="secondary">All enabled keywords</Badge>
+                          )
                         ) : (
                           <>
                             <span className="text-muted-foreground">{(s.keyword_ids ?? []).length}: </span>

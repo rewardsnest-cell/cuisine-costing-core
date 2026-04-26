@@ -80,11 +80,18 @@ export const Route = createFileRoute("/api/public/hooks/pricing-v2-keyword-sched
             try {
               // Continuous mode always sweeps all enabled keywords.
               const sweepAll = sched.continuous_mode || sched.use_all_keywords;
+              const filterMode: "include" | "exclude" =
+                sched.keyword_filter_mode === "exclude" ? "exclude" : "include";
               let kwQuery = supabaseAdmin
                 .from("pricing_v2_keyword_library")
                 .select("keyword, enabled")
                 .eq("enabled", true);
-              if (!sweepAll) {
+              if (sweepAll) {
+                // In "exclude" mode, omit listed keyword_ids from the sweep.
+                if (filterMode === "exclude" && (sched.keyword_ids ?? []).length > 0) {
+                  kwQuery = kwQuery.not("id", "in", `(${sched.keyword_ids.join(",")})`);
+                }
+              } else {
                 kwQuery = kwQuery.in("id", sched.keyword_ids ?? []);
               }
               const { data: kwRows } = await kwQuery;
