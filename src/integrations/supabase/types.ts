@@ -3041,45 +3041,57 @@ export type Database = {
           created_at: string
           created_by: string | null
           enabled: boolean
+          expires_at: string | null
           id: string
           keyword_ids: string[]
           keyword_limit: number
           last_run_at: string | null
           last_run_id: string | null
+          max_runs: number | null
           name: string
           next_run_at: string
+          run_count: number
           skip_weight_normalization: boolean
           updated_at: string
+          use_all_keywords: boolean
         }
         Insert: {
           cadence_hours: number
           created_at?: string
           created_by?: string | null
           enabled?: boolean
+          expires_at?: string | null
           id?: string
           keyword_ids?: string[]
           keyword_limit?: number
           last_run_at?: string | null
           last_run_id?: string | null
+          max_runs?: number | null
           name: string
           next_run_at?: string
+          run_count?: number
           skip_weight_normalization?: boolean
           updated_at?: string
+          use_all_keywords?: boolean
         }
         Update: {
           cadence_hours?: number
           created_at?: string
           created_by?: string | null
           enabled?: boolean
+          expires_at?: string | null
           id?: string
           keyword_ids?: string[]
           keyword_limit?: number
           last_run_at?: string | null
           last_run_id?: string | null
+          max_runs?: number | null
           name?: string
           next_run_at?: string
+          run_count?: number
           skip_weight_normalization?: boolean
           updated_at?: string
+          use_all_keywords?: boolean
         }
         Relationships: [
           {
