@@ -35,6 +35,10 @@ const bootstrapSchema = z.object({
   // Skip the mapped-inventory preflight gate. Defaults to false; a dry-run
   // ignores the gate automatically so admins can preview without mapping.
   bypass_min_mapped_check: z.boolean().default(false),
+  // When true, bootstrap stores raw size only and skips parseWeightToGrams.
+  // net_weight_grams is left null and weight_source = 'unparsed'. Defaults
+  // to true in staging so download isn't blocked by parser failures.
+  skip_weight_normalization: z.boolean().default(true),
 });
 
 // ---- Mapped-inventory preflight ------------------------------------------
