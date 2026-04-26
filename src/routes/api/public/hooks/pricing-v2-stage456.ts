@@ -232,6 +232,7 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
         continue;
       }
       const ic = grams * inv.cpg; total += ic;
+      contributingInv.add(ing.inventory_item_id);
       if (inv.status === "DEGRADED_FALLBACK") warns.push(`DEGRADED_INGREDIENT:${ing.name}`);
       breakdown.push({
         name: ing.name, grams, cost_per_gram: inv.cpg, ingredient_cost: ic,
@@ -248,7 +249,9 @@ async function stage5(): Promise<{ run_id?: string; ok: number; warning: number;
       total_cost: isBlocked ? null : Math.round(total * 10000) / 10000,
       cost_per_serving: isBlocked ? null : Math.round((total / servings) * 10000) / 10000,
       servings, status, blocker_reasons: blockers, warning_flags: warns,
-      ingredient_breakdown: breakdown, is_current: true,
+      ingredient_breakdown: breakdown,
+      contributing_inventory_item_ids: Array.from(contributingInv),
+      is_current: true,
     });
   }
   for (let i = 0; i < snapshots.length; i += 100) {
