@@ -541,6 +541,10 @@ function SchedulesSection({
       setUntilDate("");
       setMaxRuns(10);
     }
+    // Bring the form into view so the user sees their edit immediately.
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   const saveMut = useMutation({
