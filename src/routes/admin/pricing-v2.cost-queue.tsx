@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Play, CheckCircle2, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Play, CheckCircle2, XCircle, AlertTriangle, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
 import {
   runStage4ComputeCosts,
   listCostUpdateQueue,
   decideCostUpdate,
   listBlockedInventory,
+  getInventoryCostAuditLog,
 } from "@/lib/server-fns/pricing-v2-stage4-costs.functions";
 
 export const Route = createFileRoute("/admin/pricing-v2/cost-queue")({
