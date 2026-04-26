@@ -163,15 +163,6 @@ function KeywordsPage() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Sweep failed"),
   });
-    onSuccess: (res: any) => {
-      const inCount = res?.counts_in ?? 0;
-      const outCount = res?.counts_out ?? 0;
-      toast.success(`Sweep complete — fetched ${inCount}, persisted ${outCount}`);
-      qc.invalidateQueries({ queryKey: ["pricing-v2", "keywords", "library"] });
-      qc.invalidateQueries({ queryKey: ["pricing-v2", "catalog", "runs"] });
-    },
-    onError: (e: any) => toast.error(e?.message ?? "Sweep failed"),
-  });
 
   const selectedEnabledCount = rows.filter((r) => selected.has(r.id) && r.enabled).length;
 
