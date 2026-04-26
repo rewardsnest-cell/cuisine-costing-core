@@ -400,7 +400,7 @@ function CatalogBootstrapPage() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined })}
+                onClick={() => runMut.mutate({ dry_run: false, batch_size: batchNum, keyword: keyword || undefined, skip_weight_normalization: skipWeight })}
                 disabled={
                   runMut.isPending ||
                   guardedPhase !== "idle" ||
