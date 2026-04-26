@@ -631,6 +631,9 @@ async function executeCatalogBootstrap(
         page_done: pageDone,
         bootstrap_completed: bootstrapCompleted,
         errors_preview: errors.slice(0, 50),
+        run_type: isKeywordSweep ? "keyword_sweep" : "inventory_bootstrap",
+        sweep_keywords: isKeywordSweep ? normalizedSweepKeywords : null,
+        keyword_hits_recorded: isKeywordSweep ? keywordHits.length : 0,
       };
     } catch (e: any) {
       await supabase
