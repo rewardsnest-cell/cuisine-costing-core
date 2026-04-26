@@ -250,6 +250,7 @@ async function executeCatalogBootstrap(
           store_id: storeId,
           resumed_from: state.last_page_token ?? null,
           replay_of: opts.replay_of ?? null,
+          skip_weight_normalization: data.skip_weight_normalization,
         },
         notes: opts.replay_of
           ? `replay of ${opts.replay_of}${data.dry_run ? " (dry_run)" : ""}`
