@@ -186,7 +186,7 @@ function CatalogBootstrapPage() {
   });
 
   const runMut = useMutation({
-    mutationFn: (vars: { dry_run: boolean; batch_size?: number; keyword?: string }) =>
+    mutationFn: (vars: { dry_run: boolean; batch_size?: number; keyword?: string; skip_weight_normalization?: boolean }) =>
       runCatalogBootstrap({ data: vars }),
     onSuccess: (res: any) => {
       setLastResult(res);
