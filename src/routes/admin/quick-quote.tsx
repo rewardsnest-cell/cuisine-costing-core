@@ -28,6 +28,7 @@ function QuickQuotePage() {
   const [loading, setLoading] = useState(true);
   const [markup, setMarkup] = useState(3.0);
   const [saving, setSaving] = useState(false);
+  const [explain, setExplain] = useState<{ id: string; name: string } | null>(null);
 
   const [form, setForm] = useState({
     clientName: "",
