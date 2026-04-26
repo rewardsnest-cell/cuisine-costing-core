@@ -374,6 +374,9 @@ function AdminMenuPage() {
                             <Switch checked={r.is_premium} onCheckedChange={(v) => updateRecipe(r.id, { is_premium: v })} disabled={savingId === r.id} />
                             <span className="text-muted-foreground">Prem</span>
                           </label>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => setExplain({ id: r.id, name: r.name })}>
+                            <Info className="w-3 h-3" /> Explain
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
