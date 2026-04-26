@@ -91,17 +91,18 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
       const eligible = (items ?? []).filter((it: any) => draftStatuses.has(it.quotes?.status));
 
       const recipeIdsNeeded = Array.from(new Set(eligible.map((i: any) => i.recipe_id))) as string[];
-      const cpsMap = new Map<string, { cps: number | null; status: string }>();
+      const cpsMap = new Map<string, { cps: number | null; status: string; contrib: string[] }>();
       if (recipeIdsNeeded.length) {
         const { data: cosrs } = await supabase
           .from("pricing_v2_recipe_costs")
-          .select("recipe_id, cost_per_serving, status")
+          .select("recipe_id, cost_per_serving, status, contributing_inventory_item_ids")
           .in("recipe_id", recipeIdsNeeded)
           .eq("is_current", true);
         for (const r of cosrs ?? []) {
           cpsMap.set(r.recipe_id, {
             cps: r.cost_per_serving != null ? Number(r.cost_per_serving) : null,
             status: r.status,
+            contrib: r.contributing_inventory_item_ids ?? [],
           });
         }
       }
@@ -129,6 +130,7 @@ export const runStage6MenuPricing = createServerFn({ method: "POST" })
           menu_price: menuPrice,
           status,
           warning_flags: warns,
+          contributing_inventory_item_ids: ref?.contrib ?? [],
           is_current: true,
           frozen: false,
         });
