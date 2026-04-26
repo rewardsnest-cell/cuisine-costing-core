@@ -944,7 +944,7 @@ function SchedulesSection({
               {editingId ? "Edit schedule" : "New schedule"}
             </div>
             {editingId && (
-              <Button size="sm" variant="ghost" onClick={resetForm}>
+              <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
                 <XIcon className="w-3 h-3" /> Cancel edit
               </Button>
             )}
