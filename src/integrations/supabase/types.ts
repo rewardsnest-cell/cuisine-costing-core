@@ -200,6 +200,44 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_click_events: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          id: string
+          referrer: string | null
+          shop_item_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          shop_item_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          shop_item_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_click_events_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_earnings: {
         Row: {
           amount: number
@@ -4336,40 +4374,61 @@ export type Database = {
       recipe_shop_items: {
         Row: {
           benefit: string | null
+          campaign_end: string | null
+          campaign_start: string | null
+          category: string
+          clicks_count: number
           created_at: string
           id: string
           image_url: string | null
           is_affiliate: boolean
+          is_sponsored: boolean
           name: string
+          onelink_enabled: boolean
           position: number
           program_id: string | null
           recipe_id: string
+          status: string
           updated_at: string
           url: string | null
         }
         Insert: {
           benefit?: string | null
+          campaign_end?: string | null
+          campaign_start?: string | null
+          category?: string
+          clicks_count?: number
           created_at?: string
           id?: string
           image_url?: string | null
           is_affiliate?: boolean
+          is_sponsored?: boolean
           name: string
+          onelink_enabled?: boolean
           position?: number
           program_id?: string | null
           recipe_id: string
+          status?: string
           updated_at?: string
           url?: string | null
         }
         Update: {
           benefit?: string | null
+          campaign_end?: string | null
+          campaign_start?: string | null
+          category?: string
+          clicks_count?: number
           created_at?: string
           id?: string
           image_url?: string | null
           is_affiliate?: boolean
+          is_sponsored?: boolean
           name?: string
+          onelink_enabled?: boolean
           position?: number
           program_id?: string | null
           recipe_id?: string
+          status?: string
           updated_at?: string
           url?: string | null
         }
