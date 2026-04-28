@@ -21,6 +21,7 @@ import { logAndDownload } from "@/lib/admin/log-download";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import { runDeepAudit, runPricingAudit } from "@/lib/server-fns/deep-audit.functions";
+import { generatePricingV2FeasibilityReport } from "@/lib/server-fns/pricing-v2-feasibility-report.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
@@ -664,6 +665,9 @@ function ExportsPage() {
 
       {/* Kroger raw API data */}
       <KrogerRawExportCard />
+
+      {/* Pricing v2 — Data Feasibility & Rule Design */}
+      <PricingV2FeasibilityCard />
 
       {/* CSV exports */}
       <Card>
@@ -1313,3 +1317,106 @@ function KrogerRawExportCard() {
     </Card>
   );
 }
+
+// ----------------------------------------------------------------------
+// Pricing v2 — Data Feasibility & Rule Design
+// Read-only analytical report. Does NOT modify or normalize raw data.
+// ----------------------------------------------------------------------
+function PricingV2FeasibilityCard() {
+  const generate = useServerFn(generatePricingV2FeasibilityReport);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<any | null>(null);
+  const [saved, setSaved] = useState<SavedExportFile | null>(null);
+
+  const handleRun = async () => {
+    setBusy(true);
+    setError(null);
+    setSaved(null);
+    try {
+      const res = await generate();
+      setSummary(res.summary);
+      const savedFile = await saveExportFile(
+        res.markdown,
+        res.filename,
+        "text/markdown;charset=utf-8",
+      );
+      setSaved(savedFile);
+      await logAndDownload({
+        content: res.markdown,
+        filename: res.filename,
+        mimeType: "text/markdown;charset=utf-8",
+        kind: "admin_export",
+        module: "exports",
+        parameters: { type: "pricing_v2_feasibility_report" },
+      });
+      toast.success("Feasibility report generated");
+    } catch (e: any) {
+      setError(e?.message || "Failed to generate report");
+      toast.error(e?.message || "Failed to generate report");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" />
+          Pricing v2 — Data Feasibility &amp; Rule Design
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Read-only analysis of <code className="font-mono text-xs">pricing_v2_kroger_catalog_raw</code>.
+          Reports what percentage of the raw Kroger catalog can be safely
+          normalized, broken down by representation type, keyword category,
+          and feasibility tier. <strong>No normalization, conversions, totals,
+          or pricing decisions are performed.</strong>
+        </p>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleRun} disabled={busy} className="gap-2">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
+            Generate report (Markdown)
+          </Button>
+          {summary && (
+            <Badge variant="secondary" className="font-mono text-[10px] self-center">
+              {Number(summary.total).toLocaleString()} rows · {summary.distinct_keywords} keywords
+            </Badge>
+          )}
+        </div>
+
+        {summary && (
+          <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+            <div className="font-semibold text-sm">Quick summary</div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div><span className="text-muted-foreground">Weight-only:</span> {summary.representation.weight_only}</div>
+              <div><span className="text-muted-foreground">Count-only:</span> {summary.representation.count_only}</div>
+              <div><span className="text-muted-foreground">Count+weight:</span> {summary.representation.count_and_weight}</div>
+              <div><span className="text-muted-foreground">Volume:</span> {summary.representation.volume}</div>
+              <div><span className="text-muted-foreground">Ambiguous:</span> {summary.representation.ambiguous} ({summary.ambiguous_pct})</div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1 border-t">
+              <div><span className="text-muted-foreground">Tier 1:</span> {summary.tiers.tier_1}</div>
+              <div><span className="text-muted-foreground">Tier 2:</span> {summary.tiers.tier_2}</div>
+              <div><span className="text-muted-foreground">Tier 3:</span> {summary.tiers.tier_3}</div>
+              <div><span className="text-muted-foreground">Tier 4:</span> {summary.tiers.tier_4}</div>
+              <div><span className="text-muted-foreground">Tier 5:</span> {summary.tiers.tier_5}</div>
+            </div>
+          </div>
+        )}
+
+        {saved && <ExportProgressLine label="Feasibility report" file={saved} />}
+      </CardContent>
+    </Card>
+  );
+}
+
