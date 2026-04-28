@@ -21,6 +21,7 @@ import { logAndDownload } from "@/lib/admin/log-download";
 import { ROUTE_DESCRIPTIONS } from "@/lib/admin/page-descriptions";
 import { runE2eAudit } from "@/lib/server-fns/e2e-audit.functions";
 import { runDeepAudit, runPricingAudit } from "@/lib/server-fns/deep-audit.functions";
+import { generatePricingV2FeasibilityReport } from "@/lib/server-fns/pricing-v2-feasibility-report.functions";
 import jsPDF from "jspdf";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
