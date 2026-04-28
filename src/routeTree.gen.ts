@@ -149,6 +149,7 @@ import { Route as AdminSalesHubEventsRouteImport } from './routes/admin/sales-hu
 import { Route as AdminSalesHubDailyRouteImport } from './routes/admin/sales-hub.daily'
 import { Route as AdminSaleFlyersIdRouteImport } from './routes/admin/sale-flyers.$id'
 import { Route as AdminRecipesNewRouteImport } from './routes/admin/recipes.new'
+import { Route as AdminRecipesAiCreateRouteImport } from './routes/admin/recipes.ai-create'
 import { Route as AdminRecipeHubIdRouteImport } from './routes/admin/recipe-hub.$id'
 import { Route as AdminReceiptsReviewMatchesRouteImport } from './routes/admin/receipts.review-matches'
 import { Route as AdminReceiptsQueueRouteImport } from './routes/admin/receipts.queue'
@@ -905,6 +906,11 @@ const AdminRecipesNewRoute = AdminRecipesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AdminRecipesRoute,
 } as any)
+const AdminRecipesAiCreateRoute = AdminRecipesAiCreateRouteImport.update({
+  id: '/ai-create',
+  path: '/ai-create',
+  getParentRoute: () => AdminRecipesRoute,
+} as any)
 const AdminRecipeHubIdRoute = AdminRecipeHubIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1287,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
+  '/admin/recipes/ai-create': typeof AdminRecipesAiCreateRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
@@ -1469,6 +1476,7 @@ export interface FileRoutesByTo {
   '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
+  '/admin/recipes/ai-create': typeof AdminRecipesAiCreateRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
@@ -1654,6 +1662,7 @@ export interface FileRoutesById {
   '/admin/receipts/queue': typeof AdminReceiptsQueueRoute
   '/admin/receipts/review-matches': typeof AdminReceiptsReviewMatchesRoute
   '/admin/recipe-hub/$id': typeof AdminRecipeHubIdRoute
+  '/admin/recipes/ai-create': typeof AdminRecipesAiCreateRoute
   '/admin/recipes/new': typeof AdminRecipesNewRoute
   '/admin/sale-flyers/$id': typeof AdminSaleFlyersIdRoute
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
@@ -1840,6 +1849,7 @@ export interface FileRouteTypes {
     | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
+    | '/admin/recipes/ai-create'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/sales-hub/daily'
@@ -2022,6 +2032,7 @@ export interface FileRouteTypes {
     | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
+    | '/admin/recipes/ai-create'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/sales-hub/daily'
@@ -2206,6 +2217,7 @@ export interface FileRouteTypes {
     | '/admin/receipts/queue'
     | '/admin/receipts/review-matches'
     | '/admin/recipe-hub/$id'
+    | '/admin/recipes/ai-create'
     | '/admin/recipes/new'
     | '/admin/sale-flyers/$id'
     | '/admin/sales-hub/daily'
@@ -3290,6 +3302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecipesNewRouteImport
       parentRoute: typeof AdminRecipesRoute
     }
+    '/admin/recipes/ai-create': {
+      id: '/admin/recipes/ai-create'
+      path: '/ai-create'
+      fullPath: '/admin/recipes/ai-create'
+      preLoaderRoute: typeof AdminRecipesAiCreateRouteImport
+      parentRoute: typeof AdminRecipesRoute
+    }
     '/admin/recipe-hub/$id': {
       id: '/admin/recipe-hub/$id'
       path: '/$id'
@@ -3674,11 +3693,13 @@ const AdminRecipeHubRouteWithChildren = AdminRecipeHubRoute._addFileChildren(
 )
 
 interface AdminRecipesRouteChildren {
+  AdminRecipesAiCreateRoute: typeof AdminRecipesAiCreateRoute
   AdminRecipesNewRoute: typeof AdminRecipesNewRoute
   AdminRecipesIdEditRoute: typeof AdminRecipesIdEditRoute
 }
 
 const AdminRecipesRouteChildren: AdminRecipesRouteChildren = {
+  AdminRecipesAiCreateRoute: AdminRecipesAiCreateRoute,
   AdminRecipesNewRoute: AdminRecipesNewRoute,
   AdminRecipesIdEditRoute: AdminRecipesIdEditRoute,
 }
