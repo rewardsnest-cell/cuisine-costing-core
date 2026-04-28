@@ -665,6 +665,9 @@ function ExportsPage() {
       {/* Kroger raw API data */}
       <KrogerRawExportCard />
 
+      {/* Pricing v2 — Data Feasibility & Rule Design */}
+      <PricingV2FeasibilityCard />
+
       {/* CSV exports */}
       <Card>
         <CardHeader>
