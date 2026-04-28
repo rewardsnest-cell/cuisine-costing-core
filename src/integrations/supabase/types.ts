@@ -3603,6 +3603,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_v2_product_enrichment_off: {
+        Row: {
+          enrichment_confidence: string
+          fetched_at: string
+          ingredients_present: boolean | null
+          nutrition_present: boolean | null
+          off_brands: string | null
+          off_categories: string | null
+          off_product_name: string | null
+          off_quantity: string | null
+          off_source: string
+          off_status: string
+          raw_payload: Json | null
+          upc_normalized: string
+        }
+        Insert: {
+          enrichment_confidence: string
+          fetched_at?: string
+          ingredients_present?: boolean | null
+          nutrition_present?: boolean | null
+          off_brands?: string | null
+          off_categories?: string | null
+          off_product_name?: string | null
+          off_quantity?: string | null
+          off_source?: string
+          off_status: string
+          raw_payload?: Json | null
+          upc_normalized: string
+        }
+        Update: {
+          enrichment_confidence?: string
+          fetched_at?: string
+          ingredients_present?: boolean | null
+          nutrition_present?: boolean | null
+          off_brands?: string | null
+          off_categories?: string | null
+          off_product_name?: string | null
+          off_quantity?: string | null
+          off_source?: string
+          off_status?: string
+          raw_payload?: Json | null
+          upc_normalized?: string
+        }
+        Relationships: []
+      }
       pricing_v2_recipe_costs: {
         Row: {
           blocker_reasons: string[]
