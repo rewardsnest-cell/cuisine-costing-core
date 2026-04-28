@@ -147,6 +147,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/admin/users",            label: "Users",                  icon: Users },
       { to: "/admin/integrations",     label: "Integrations",           icon: Plug,        featureKey: "admin_integrations" },
       { to: "/admin/cron-secrets",     label: "Cron Secrets",           icon: KeyRound,    featureKey: "admin_cron_secrets" },
+      { to: "/admin/credentials",      label: "Credentials Vault",      icon: Lock },
       { to: "/admin/cron-runs",        label: "Cron Runs",              icon: Clock },
       { to: "/admin/brand-config",     label: "Brand Management",       icon: Palette,     featureKey: "admin_brand_management" },
       { to: "/admin/brand-assets",     label: "Brand Assets",           icon: Palette },
