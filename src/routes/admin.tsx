@@ -54,6 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/admin/recipe-hub",        label: "Recipe Hub",                 icon: ChefHat,         featureKey: "admin_recipe_hub" },
       { to: "/admin/recipes",           label: "Recipes",                    icon: ChefHat },
+      { to: "/admin/recipes/ai-create", label: "Create Recipe (AI)",         icon: Sparkles },
       { to: "/admin/import-recipes",    label: "Import Recipes",             icon: FileText },
       { to: "/admin/generate-recipe-photos", label: "Generate Recipe Photos", icon: Sparkles },
       { to: "/admin/menu",              label: "Public Menu Control",        icon: UtensilsCrossed, featureKey: "admin_menu_control" },
