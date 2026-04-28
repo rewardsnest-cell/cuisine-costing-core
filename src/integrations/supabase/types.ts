@@ -4538,9 +4538,53 @@ export type Database = {
           },
         ]
       }
+      recipe_tool_suggestions: {
+        Row: {
+          affiliate_url: string | null
+          created_at: string
+          id: string
+          name: string
+          reason: string | null
+          recipe_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          reason?: string | null
+          recipe_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          reason?: string | null
+          recipe_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_tool_suggestions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           active: boolean
+          ai_generated: boolean
+          ai_generation_meta: Json | null
+          ai_inputs: Json | null
           allergens: string[] | null
           calculated_cost_per_person: number | null
           category: string | null
@@ -4555,6 +4599,7 @@ export type Database = {
           cta_type: string | null
           cuisine: string | null
           description: string | null
+          feed_summary: string | null
           hook: string | null
           id: string
           image_url: string | null
@@ -4584,6 +4629,8 @@ export type Database = {
           score_video: number
           seasonal_tags: string[] | null
           selling_price_per_person: number | null
+          seo_description: string | null
+          seo_title: string | null
           serving_size: string | null
           serving_suggestions: string | null
           servings: number
@@ -4592,6 +4639,7 @@ export type Database = {
           source_competitor_quote_id: string | null
           status: Database["public"]["Enums"]["recipe_status"]
           storage_instructions: string | null
+          tone: string | null
           total_cost: number | null
           updated_at: string
           use_case: string | null
@@ -4600,6 +4648,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          ai_generated?: boolean
+          ai_generation_meta?: Json | null
+          ai_inputs?: Json | null
           allergens?: string[] | null
           calculated_cost_per_person?: number | null
           category?: string | null
@@ -4614,6 +4665,7 @@ export type Database = {
           cta_type?: string | null
           cuisine?: string | null
           description?: string | null
+          feed_summary?: string | null
           hook?: string | null
           id?: string
           image_url?: string | null
@@ -4643,6 +4695,8 @@ export type Database = {
           score_video?: number
           seasonal_tags?: string[] | null
           selling_price_per_person?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
           serving_size?: string | null
           serving_suggestions?: string | null
           servings?: number
@@ -4651,6 +4705,7 @@ export type Database = {
           source_competitor_quote_id?: string | null
           status?: Database["public"]["Enums"]["recipe_status"]
           storage_instructions?: string | null
+          tone?: string | null
           total_cost?: number | null
           updated_at?: string
           use_case?: string | null
@@ -4659,6 +4714,9 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          ai_generated?: boolean
+          ai_generation_meta?: Json | null
+          ai_inputs?: Json | null
           allergens?: string[] | null
           calculated_cost_per_person?: number | null
           category?: string | null
@@ -4673,6 +4731,7 @@ export type Database = {
           cta_type?: string | null
           cuisine?: string | null
           description?: string | null
+          feed_summary?: string | null
           hook?: string | null
           id?: string
           image_url?: string | null
@@ -4702,6 +4761,8 @@ export type Database = {
           score_video?: number
           seasonal_tags?: string[] | null
           selling_price_per_person?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
           serving_size?: string | null
           serving_suggestions?: string | null
           servings?: number
@@ -4710,6 +4771,7 @@ export type Database = {
           source_competitor_quote_id?: string | null
           status?: Database["public"]["Enums"]["recipe_status"]
           storage_instructions?: string | null
+          tone?: string | null
           total_cost?: number | null
           updated_at?: string
           use_case?: string | null
