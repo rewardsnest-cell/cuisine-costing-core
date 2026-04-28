@@ -1424,3 +1424,103 @@ function PricingV2FeasibilityCard() {
   );
 }
 
+
+function PricingV2OffEnrichmentCard() {
+  const generate = useServerFn(generatePricingV2OffEnrichmentExport);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<any | null>(null);
+  const [lastRun, setLastRun] = useState<string | null>(null);
+
+  const handleRun = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await generate();
+      setSummary(res.summary);
+      setLastRun(res.summary.last_run_at);
+
+      // Decode base64 to Blob and trigger download + log.
+      const bin = atob(res.base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      await logAndDownload({
+        content: blob,
+        filename: res.filename,
+        mimeType: blob.type,
+        kind: "admin_export",
+        module: "exports",
+        parameters: { type: "pricing_v2_off_enrichment" },
+      });
+      toast.success("OFF enrichment export ready");
+    } catch (e: any) {
+      setError(e?.message || "Failed to generate export");
+      toast.error(e?.message || "Failed to generate export");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display flex items-center gap-2">
+          <Database className="w-5 h-5 text-primary" />
+          Pricing v2 — Open Food Facts UPC Enrichment
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Read-only enrichment of <code className="font-mono text-xs">pricing_v2_kroger_catalog_raw</code>{" "}
+          using the public Open Food Facts API. Adds descriptive product context
+          (brand, category, quantity hints) side-by-side with Kroger fields —{" "}
+          <strong>no merging, no overwriting, no normalization, no pricing impact.</strong>{" "}
+          Results are cached for 30 days.
+        </p>
+
+        {error && (
+          <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button onClick={handleRun} disabled={busy} className="gap-2">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Generate enrichment export (Excel)
+          </Button>
+          {lastRun && (
+            <Badge variant="secondary" className="font-mono text-[10px]">
+              Last run: {new Date(lastRun).toLocaleString()}
+            </Badge>
+          )}
+        </div>
+
+        {summary && (
+          <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+            <div className="font-semibold text-sm">Run summary</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div><span className="text-muted-foreground">Raw rows:</span> {Number(summary.total_raw_rows).toLocaleString()}</div>
+              <div><span className="text-muted-foreground">Distinct UPCs:</span> {Number(summary.total_upcs).toLocaleString()}</div>
+              <div><span className="text-muted-foreground">Found:</span> {summary.found}</div>
+              <div><span className="text-muted-foreground">Not found:</span> {summary.not_found}</div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1 border-t">
+              <div><span className="text-muted-foreground">High:</span> {summary.confidence.high}</div>
+              <div><span className="text-muted-foreground">Medium:</span> {summary.confidence.medium}</div>
+              <div><span className="text-muted-foreground">Low:</span> {summary.confidence.low}</div>
+              <div><span className="text-muted-foreground">None:</span> {summary.confidence.none}</div>
+            </div>
+            <div className="text-muted-foreground pt-1 border-t">
+              Newly fetched this run: {summary.newly_fetched}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
