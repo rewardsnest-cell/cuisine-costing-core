@@ -99,6 +99,9 @@ function TermsPage() {
                 are clearly labeled.
               </p>
             </section>
+
+            <section className="space-y-2">
+              <h2 className="font-display text-2xl font-semibold">6. User Accounts</h2>
               <p className="text-muted-foreground leading-relaxed">
                 If you create an account, you are responsible for maintaining the
                 confidentiality of your credentials and for all activity under your account.
