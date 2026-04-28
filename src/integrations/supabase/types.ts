@@ -1226,6 +1226,95 @@ export type Database = {
           },
         ]
       }
+      credential_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          credential_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          credential_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          credential_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_audit_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credentials_vault: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          notes: string | null
+          rotated_at: string | null
+          secret_ciphertext: string
+          secret_preview: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          url: string | null
+          username: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          rotated_at?: string | null
+          secret_ciphertext: string
+          secret_preview?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          url?: string | null
+          username?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          rotated_at?: string | null
+          secret_ciphertext?: string
+          secret_preview?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          url?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       cron_secrets: {
         Row: {
           created_at: string
@@ -5773,6 +5862,17 @@ export type Database = {
         Args: { density_g_per_ml?: number; from_unit: string; to_unit: string }
         Returns: number
       }
+      create_credential: {
+        Args: {
+          _category: string
+          _label: string
+          _notes: string
+          _secret: string
+          _url: string
+          _username: string
+        }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -5922,6 +6022,12 @@ export type Database = {
         Args: { _notes?: string; _queue_id: string }
         Returns: Json
       }
+      reveal_credential: { Args: { _id: string }; Returns: string }
+      revoke_credential: { Args: { _id: string }; Returns: undefined }
+      rotate_credential_secret: {
+        Args: { _id: string; _new_secret: string }
+        Returns: undefined
+      }
       run_kroger_validation: {
         Args: { _triggered_by?: string }
         Returns: string
@@ -5930,6 +6036,17 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       snooze_outreach_task: {
         Args: { p_days?: number; p_task_id: string }
+        Returns: undefined
+      }
+      update_credential_metadata: {
+        Args: {
+          _category: string
+          _id: string
+          _label: string
+          _notes: string
+          _url: string
+          _username: string
+        }
         Returns: undefined
       }
       verify_cron_secret: {
