@@ -1,75 +1,84 @@
-## Goal
+# AI Recipe Creation System (Admin Only)
 
-Build a single **Admin → Files & Reports** hub that captures every generated artifact (quotes, audits, pricing audits, newsletter guides, shopping lists, recipe cards, etc.) into one database, so you can browse, filter, download again, and compare runs over time.
+A new admin page that turns prompts, ingredient lists, images, videos, or copycat inspiration into complete, editable recipe drafts using AI.
 
-## What already exists (we'll build on it, not replace)
+## Location & Access
+- Route: `/admin/recipes/ai-create` (admin gate via existing `useAuth().isAdmin` pattern)
+- Nav: under **Menu & Content** in `src/routes/admin.tsx`, labeled **Create Recipe (AI)**
 
-- Table `public.user_downloads` already stores logged files with: `kind`, `module`, `filename`, `storage_path`, `public_url`, `mime_type`, `size_bytes`, `record_count`, `parameters` (JSONB snapshot of options), `generated_by_email`, `created_at`, plus source linkage (`source_id`, `source_label`).
-- Helper `saveAndLogDownload()` in `src/lib/downloads/save-download.ts` already uploads the blob to storage AND inserts a row.
-- An admin page `src/routes/admin/downloads.tsx` already lists `user_downloads` with filters by kind/module/user.
-- Table `public.project_audit_exports` separately stores Deep Audit markdown content.
+## Database Changes
+Migration adds the missing fields to `recipes`:
+- `seo_title text`, `seo_description text`, `feed_summary text`
+- `tone text` (preset used)
+- `ai_generated boolean default false`
+- `ai_inputs jsonb` (raw inputs used: prompt/dish/ingredients/image refs/video URL/copycat)
+- `ai_generation_meta jsonb` (model, tokens, timestamps, admin id, regen history)
 
-The gap: **the audit/pricing-audit downloads use `downloadFile()` (browser-only) and are NOT logged**, so they never show up in the hub. Quotes PDFs and a few other generators also bypass logging.
+New table `recipe_tool_suggestions`:
+- `id, recipe_id, name, reason, status (suggested|added|dismissed), affiliate_url, created_at`
+- RLS: admin-only read/write via existing `has_role(auth.uid(),'admin')`
 
-## Plan
+New storage bucket `recipe-ai-uploads` (private) for admin reference image/video uploads. RLS: admin-only.
 
-### 1. Wire every "Run / Download" action into the central log
+## Server Functions (TanStack `createServerFn`)
+File: `src/lib/server-fns/ai-recipe-create.functions.ts` — all gated with `requireSupabaseAuth` + admin check (matching `access-control.functions.ts` pattern).
 
-For each generator, switch from raw `downloadFile()` / browser anchor to `saveAndLogDownload()` so a row + storage copy is created every time. Coverage pass:
+1. **`generateRecipe`** — input: `{ promptText?, dishName?, ingredientsList?, imageUrls?: string[], videoUrl?, copycatNotes?, tone, category? }`. Calls Lovable AI Gateway (`google/gemini-2.5-pro` for multimodal, `google/gemini-3-flash-preview` text-only) using **tool calling for structured output**: returns `{ title, category, ingredients[], steps[], notes{substitutions, storage, reheating}, seo_title, seo_description, feed_summary, suggested_tools[] }`. System prompt enforces the chef persona, safety, and no-trademark rules.
+2. **`generateRecipeImage`** — wraps existing `generate-recipe-photos.ts` pattern with the AI-create system's neutral-bg prompt; uploads to `recipe-photos` bucket.
+3. **`regenerateSection`** — input: `{ draftId, section: 'title'|'ingredients'|'steps'|'notes'|'seo'|'feed'|'tools', tone? }`. Regenerates only that field.
+4. **`bulkGenerateRecipes`** — input: `{ count(1-10), variationType: 'flavor'|'protein'|'method', baseInputs, category, tone }`. Loops `generateRecipe` and creates N drafts.
+5. **`saveDraft`** / **`publishRecipe`** — writes to `recipes` (status='draft'|'published') + `recipe_ingredients`. Publish validates title, ingredients, instructions, image_url present.
+6. **`updateToolSuggestion`** — add affiliate URL or dismiss.
 
-- Deep Audit (`src/routes/admin/exports.tsx` → `DeepAuditCard`) — kind `audit_export`, module `audit`, parameters = `{ promptVersion, scope }`.
-- Pricing Audit (`exports.tsx` → `PricingAuditCard`) — kind `audit_export`, module `pricing`.
-- Quote PDFs (`src/lib/generate-quote-pdf.ts` callers in `quote.tsx`, `admin/quotes.$id.tsx`, `q.$reference.tsx`) — kind `quote_pdf`, module `quote`, `source_id = quote.id`, parameters snapshot of totals/line counts.
-- Newsletter Guide (`admin/newsletter-guide.tsx`) — kind `newsletter_guide`.
-- Shopping list PDF/XLSX (`src/lib/cqh/shopping-list-*.ts`) — kind `shopping_list`.
-- Recipe cards (`RecipeScaler.tsx`) — kind `recipe_card`.
-- Pricing code inventory + intelligence exports — kind `admin_export`, module `pricing`.
+All write operations use `supabaseAdmin` and log generation meta (admin user id, timestamp, tone, inputs).
 
-Every call passes a real `parameters` JSON (filters, date ranges, scope) and `record_count` so reports are meaningful.
+## Frontend Page
+`src/routes/admin/recipes.ai-create.tsx` — single-page workflow with two columns:
 
-### 2. Also persist Deep Audit markdown into `project_audit_exports`
+**Left column — Inputs**
+- Tabs / accordion for input sources: Free text, Dish name, Ingredients (textarea, one per line), Image upload (multi, to `recipe-ai-uploads`), Video URL, Copycat inspiration (with flavor notes field)
+- **Tone** select: Friendly & Casual / Confident & Bold / Cozy & Comforting / Straightforward & Practical / Viral / Feed-Optimized
+- **Bulk Mode** toggle → reveals count (1–10), variation type, category
+- Action buttons: `Generate Recipe`, `Generate Bulk Drafts`
 
-Keep the existing audit history table populated whenever a Deep Audit runs (insert row with `prompt_version`, `output_filename`, `output_content`, `executed_by`). This lets us diff two audit runs later.
+**Right column — Draft Editor** (appears after generation)
+- Editable fields for: Title, Category select, Ingredients table (`name | qty | unit`, add/remove rows), Numbered Steps (sortable list), Notes (substitutions / storage / reheating), SEO Title, SEO Description (160-char counter), Feed Summary
+- Image panel: shows generated image with `Regenerate Image` and `Upload Custom` buttons
+- Per-section `Regenerate` buttons (calls `regenerateSection`)
+- Tone selector here too — change + regenerate text-only outputs
+- Sidebar card: **Suggested tools for this recipe** with `Add affiliate link` (input modal) and `Dismiss` per item
+- Footer actions: `Save Draft`, `Publish Recipe` (disabled until required fields met)
 
-### 3. New unified admin page: **Files & Reports** (`/admin/files-reports`)
+**Bulk Mode view**
+- After bulk generation, shows a list of N draft cards; click one to open the editor view above
 
-A single hub with three tabs:
+## AI Prompt Strategy
+System prompt (server-side only, never client) establishes:
+- Persona: professional home chef + recipe developer + food content designer
+- Rules: home-kitchen friendly, plain language, no jargon, no trademarks, no unsafe instructions, one action per step with timing cues
+- Tone modifier appended based on selected preset
+- Output format enforced via OpenAI tool-call JSON schema (matches DB shape)
 
-**Tab A — All files** (extends current `/admin/downloads`)
-- Grouped by module (Audit, Pricing, Quotes, Recipes, Newsletter, Shopping, Other) with counts.
-- Filters: module, kind, generator (user), date range, search by filename/source label.
-- Each row: download (re-uses `public_url` or re-signed storage URL), open parameters drawer, delete.
-- Bulk select → "Compare selected" (≥2 rows of same kind) opens compare view.
+For multimodal inputs (images/video URL), sent as `image_url` content parts in the user message to `google/gemini-2.5-pro`.
 
-**Tab B — Reports**
-- Daily/weekly chart: file count by module.
-- "Top generators" table (by `generated_by_email`).
-- Avg `record_count` per kind, total storage MB.
-- Latest audit summary card (links to most recent Deep + Pricing audit).
+## Security & Compliance
+- Admin role check on every server fn (defense in depth alongside RLS)
+- All AI calls server-side; `LOVABLE_API_KEY` already configured
+- Affiliate links are never auto-added — admin must explicitly add per suggestion
+- Uploaded reference media stored in private bucket; only generated finished image goes to public `recipe-photos` bucket
 
-**Tab C — Compare runs**
-- Pick 2 rows of the same `kind`. For text artifacts (audits, SQL appendix, CSVs) show side-by-side with a basic line diff. For numeric artifacts (quotes, pricing audits) show a parameter diff + record_count delta.
+## Files to Create
+- `supabase/migrations/<timestamp>_ai_recipe_create.sql` — columns, table, bucket, RLS
+- `src/lib/server-fns/ai-recipe-create.functions.ts`
+- `src/routes/admin/recipes.ai-create.tsx`
+- `src/components/admin/ai-recipe/InputPanel.tsx`
+- `src/components/admin/ai-recipe/DraftEditor.tsx`
+- `src/components/admin/ai-recipe/ToolSuggestions.tsx`
+- `src/components/admin/ai-recipe/BulkResults.tsx`
 
-### 4. Sidebar + dashboard links
+## Files to Edit
+- `src/routes/admin.tsx` — add nav link under Menu & Content
 
-- Add "Files & Reports" entry under the Overview/Operations group in `src/routes/admin.tsx` `NAV_GROUPS`.
-- Add a dashboard tile on `/admin` linking to it.
-- Redirect existing `/admin/downloads` to the new page (keep route as alias) so old links keep working.
-
-### 5. Storage + DB hygiene
-
-- No schema migration needed — `user_downloads` already has every column we need.
-- Migration adds: small view `v_files_reports_daily` (date_trunc('day'), module, kind, count, sum bytes) for the Reports tab to query cheaply.
-- Add a nightly retention setting (kept in `app_settings`) to optionally prune file blobs older than N days while keeping the metadata row.
-
-## Technical notes
-
-- All generator changes are in client components — `saveAndLogDownload` returns `{ persisted, publicUrl }` and falls back to a local download if the user is anonymous, so user-facing UX (the recent loading-spinner + toast pattern) is preserved.
-- New page is a TanStack Start route file `src/routes/admin/files-reports.tsx` using `Route.useSearch()` for filter state (consistent with other admin pages) and `errorComponent` + `notFoundComponent`.
-- Compare diff uses a tiny in-repo line-diff helper (no new heavy dep); for parameter diff, JSON.stringify with sorted keys.
-- The view `v_files_reports_daily` is read with `supabase.from('v_files_reports_daily').select(...)`; RLS via `has_role(auth.uid(),'admin')`.
-
-## Files touched
-
-- New: `src/routes/admin/files-reports.tsx`, `src/lib/admin/files-reports/diff.ts`, migration adding the view.
-- Edit: `exports.tsx` (audit + pricing audit cards), `newsletter-guide.tsx`, `quote.tsx`, `admin/quotes.$id.tsx`, `q.$reference.tsx`, `RecipeScaler.tsx`, `cqh/shopping-list-*.ts` callers, `pricing-code-inventory.tsx`, `intelligence.tsx`, `admin.tsx` (nav), `admin/index.tsx` (tile), `admin/downloads.tsx` (redirect).
+## Out of Scope (Phase 2)
+- Server-side video transcription (Phase 1 sends URL + admin-provided notes; AI uses URL as reference only)
+- Auto-publishing to social feeds
