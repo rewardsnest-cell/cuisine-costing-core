@@ -6,6 +6,7 @@ import { RecipeEmailCTA } from "@/components/recipes/RecipeEmailCTA";
 import { RecipeScaler } from "@/components/recipes/RecipeScaler";
 import { RecipeShareButton } from "@/components/recipes/RecipeShareButton";
 import { usePricingVisibility } from "@/lib/use-pricing-visibility";
+import { InlineAffiliateDisclosure } from "@/components/AffiliateDisclosure";
 
 const SITE = "https://www.vpsfinest.com";
 
@@ -339,11 +340,7 @@ function RecipeDetailPage() {
             <p className="text-sm text-muted-foreground mb-3">Tools, appliances, and specialty ingredients we use for this recipe.</p>
             {shopItems.some((it: any) => it.is_affiliate) && (
               <div className="mb-5">
-                {/* Lazy-import to avoid pulling icons into routes that don't render shop items */}
-                {(() => {
-                  const { InlineAffiliateDisclosure } = require("@/components/AffiliateDisclosure");
-                  return <InlineAffiliateDisclosure />;
-                })()}
+                <InlineAffiliateDisclosure />
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
