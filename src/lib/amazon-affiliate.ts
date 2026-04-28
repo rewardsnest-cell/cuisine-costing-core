@@ -24,6 +24,40 @@ const AMAZON_HOSTS_WITH_TAG = new Set([
   "www.amazon.ca",
 ]);
 
+/**
+ * Amazon OneLink — international redirect.
+ *
+ * When a visitor outside the US clicks an amazon.com affiliate link, OneLink
+ * (configured in Associates Central) automatically redirects them to their
+ * local Amazon storefront and credits the same associate. We don't need to
+ * change the URL ourselves; we just need to make sure:
+ *   1. The link points at a OneLink-supported host (amazon.com works best).
+ *   2. The `tag` parameter is present so OneLink can map it to the regional
+ *      associate ID.
+ *
+ * `withOneLinkRedirect` normalizes a regional Amazon URL back to amazon.com
+ * by ASIN so OneLink can do its job. If the URL is already amazon.com or we
+ * can't extract an ASIN, the original URL is returned untouched.
+ */
+export function withOneLinkRedirect(rawUrl: string | null | undefined): string {
+  const input = (rawUrl ?? "").trim();
+  if (!input) return "";
+  if (!isTaggableAmazonUrl(input)) return input;
+  try {
+    const u = new URL(input);
+    // If already on amazon.com, nothing to do.
+    if (u.hostname === "amazon.com" || u.hostname === "www.amazon.com") return input;
+    const asin = extractAmazonAsin(input);
+    if (!asin) return input;
+    const out = new URL(`https://www.amazon.com/dp/${asin}`);
+    const tag = u.searchParams.get("tag");
+    if (tag) out.searchParams.set("tag", tag);
+    return out.toString();
+  } catch {
+    return input;
+  }
+}
+
 /** Returns true if the URL is an Amazon product URL we can tag. */
 export function isTaggableAmazonUrl(rawUrl: string | null | undefined): boolean {
   if (!rawUrl) return false;

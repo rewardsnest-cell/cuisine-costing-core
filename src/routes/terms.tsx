@@ -87,6 +87,19 @@ function TermsPage() {
               </p>
             </section>
 
+            <section className="space-y-2" id="affiliate-disclosure">
+              <h2 className="font-display text-2xl font-semibold">5a. Affiliate Disclosure</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">As an Amazon Associate, VPS Finest earns
+                from qualifying purchases.</strong> Some links on our website (especially in
+                recipe and how-to pages) are affiliate links. If you click an affiliate link
+                and make a purchase, we may earn a small commission at no additional cost to
+                you. We only recommend tools and products we genuinely use or trust, and our
+                editorial choices are never influenced by commission rates. Sponsored items
+                are clearly labeled.
+              </p>
+            </section>
+
             <section className="space-y-2">
               <h2 className="font-display text-2xl font-semibold">6. User Accounts</h2>
               <p className="text-muted-foreground leading-relaxed">

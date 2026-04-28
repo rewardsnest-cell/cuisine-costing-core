@@ -4,6 +4,7 @@ import { useState } from "react";
 import logo from "@/assets/vpsfinest-logo.png";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { ServiceAreaBadges } from "@/components/ServiceAreaBadges";
+import { FooterAffiliateDisclosure } from "@/components/AffiliateDisclosure";
 import { useBrandAsset } from "@/lib/brand-assets";
 import { useBrandName } from "@/lib/brand-config";
 
@@ -114,6 +115,7 @@ export function PublicFooter() {
 
         <div className="mt-12 pt-6 border-t border-background/10 space-y-4">
           <ServiceAreaBadges tone="light" />
+          <FooterAffiliateDisclosure />
           <p className="text-xs text-background/50 text-center">
             © {new Date().getFullYear()} {brandDisplay} Catering. Aurora, Ohio.
           </p>
