@@ -158,6 +158,13 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Pricing Engine",
+    phaseNote: "Single source of truth — Grocery Pricing API → ingredient cache → recipe cost",
+    items: [
+      { to: "/admin/pricing-engine", label: "Pricing Engine", icon: Tag, exact: true },
+    ],
+  },
+  {
     label: "Pricing v2",
     items: [
       { to: "/admin/pricing-v2",                    label: "Control Center",                       icon: LayoutDashboard, exact: true },
