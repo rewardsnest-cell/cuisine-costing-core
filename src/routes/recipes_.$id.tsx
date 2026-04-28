@@ -336,28 +336,53 @@ function RecipeDetailPage() {
         {shopItems.length > 0 && (
           <section id="shop" className="mb-12">
             <h2 className="font-display text-2xl font-semibold text-primary mb-2">Shop this recipe</h2>
-            <p className="text-sm text-muted-foreground mb-5">Tools, appliances, and specialty ingredients we use for this recipe.</p>
+            <p className="text-sm text-muted-foreground mb-3">Tools, appliances, and specialty ingredients we use for this recipe.</p>
+            {shopItems.some((it: any) => it.is_affiliate) && (
+              <div className="mb-5">
+                {/* Lazy-import to avoid pulling icons into routes that don't render shop items */}
+                {(() => {
+                  const { InlineAffiliateDisclosure } = require("@/components/AffiliateDisclosure");
+                  return <InlineAffiliateDisclosure />;
+                })()}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {shopItems.map((it: any) => (
-                <a
-                  key={it.id}
-                  href={it.url || "#"}
-                  target="_blank"
-                  rel={it.is_affiliate ? "sponsored noopener noreferrer" : "noopener noreferrer"}
-                  className="group block border border-border rounded-xl overflow-hidden hover:border-primary transition bg-card"
-                >
-                  {it.image_url && (
-                    <div className="aspect-square bg-secondary overflow-hidden">
-                      <img src={it.image_url} alt={it.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              {shopItems.map((it: any) => {
+                // Route through the tracking redirect for affiliate links so we
+                // get accurate click counts. Plain (non-affiliate) links go direct.
+                const href = it.is_affiliate && it.url
+                  ? `/api/public/affiliate-click/${it.id}`
+                  : (it.url || "#");
+                return (
+                  <a
+                    key={it.id}
+                    href={href}
+                    target="_blank"
+                    rel={it.is_affiliate ? "sponsored noopener noreferrer nofollow" : "noopener noreferrer"}
+                    className="group block border border-border rounded-xl overflow-hidden hover:border-primary transition bg-card"
+                  >
+                    {it.image_url && (
+                      <div className="aspect-square bg-secondary overflow-hidden">
+                        <img src={it.image_url} alt={it.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <p className="font-medium text-foreground group-hover:text-primary transition-colors">{it.name}</p>
+                      {it.benefit && <p className="text-sm text-muted-foreground mt-1">{it.benefit}</p>}
+                      <div className="mt-2 flex items-center gap-2">
+                        {it.is_affiliate && (
+                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Affiliate link</span>
+                        )}
+                        {it.is_sponsored && (
+                          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
+                            Sponsored
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div className="p-4">
-                    <p className="font-medium text-foreground group-hover:text-primary transition-colors">{it.name}</p>
-                    {it.benefit && <p className="text-sm text-muted-foreground mt-1">{it.benefit}</p>}
-                    {it.is_affiliate && <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">Affiliate link</p>}
-                  </div>
-                </a>
-              ))}
+                  </a>
+                );
+              })}
             </div>
           </section>
         )}

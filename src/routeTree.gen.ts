@@ -188,6 +188,7 @@ import { Route as ApiPublicHooksOutlookPollInboxRouteImport } from './routes/api
 import { Route as ApiPublicHooksKrogerValidationRouteImport } from './routes/api/public/hooks/kroger-validation'
 import { Route as ApiPublicHooksKrogerDailyIngestRouteImport } from './routes/api/public/hooks/kroger-daily-ingest'
 import { Route as ApiPublicHooksCateringFollowupsRouteImport } from './routes/api/public/hooks/catering-followups'
+import { Route as ApiPublicAffiliateClickIdRouteImport } from './routes/api/public/affiliate-click.$id'
 import { Route as AdminRecipesIdEditRouteImport } from './routes/admin/recipes.$id.edit'
 
 const WeddingsRoute = WeddingsRouteImport.update({
@@ -1117,6 +1118,12 @@ const ApiPublicHooksCateringFollowupsRoute =
     path: '/api/public/hooks/catering-followups',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAffiliateClickIdRoute =
+  ApiPublicAffiliateClickIdRouteImport.update({
+    id: '/api/public/affiliate-click/$id',
+    path: '/api/public/affiliate-click/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRecipesIdEditRoute = AdminRecipesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -1289,6 +1296,7 @@ export interface FileRoutesByFullPath {
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/affiliate-click/$id': typeof ApiPublicAffiliateClickIdRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
@@ -1469,6 +1477,7 @@ export interface FileRoutesByTo {
   '/admin/competitor-quotes': typeof AdminCompetitorQuotesIndexRoute
   '/admin/pricing-v2': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/affiliate-click/$id': typeof ApiPublicAffiliateClickIdRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
@@ -1652,6 +1661,7 @@ export interface FileRoutesById {
   '/admin/competitor-quotes/': typeof AdminCompetitorQuotesIndexRoute
   '/admin/pricing-v2/': typeof AdminPricingV2IndexRoute
   '/admin/recipes/$id/edit': typeof AdminRecipesIdEditRoute
+  '/api/public/affiliate-click/$id': typeof ApiPublicAffiliateClickIdRoute
   '/api/public/hooks/catering-followups': typeof ApiPublicHooksCateringFollowupsRoute
   '/api/public/hooks/kroger-daily-ingest': typeof ApiPublicHooksKrogerDailyIngestRoute
   '/api/public/hooks/kroger-validation': typeof ApiPublicHooksKrogerValidationRoute
@@ -1836,6 +1846,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/'
     | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/affiliate-click/$id'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/kroger-validation'
@@ -2016,6 +2027,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes'
     | '/admin/pricing-v2'
     | '/admin/recipes/$id/edit'
+    | '/api/public/affiliate-click/$id'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/kroger-validation'
@@ -2198,6 +2210,7 @@ export interface FileRouteTypes {
     | '/admin/competitor-quotes/'
     | '/admin/pricing-v2/'
     | '/admin/recipes/$id/edit'
+    | '/api/public/affiliate-click/$id'
     | '/api/public/hooks/catering-followups'
     | '/api/public/hooks/kroger-daily-ingest'
     | '/api/public/hooks/kroger-validation'
@@ -2265,6 +2278,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicAffiliateClickIdRoute: typeof ApiPublicAffiliateClickIdRoute
   ApiPublicHooksCateringFollowupsRoute: typeof ApiPublicHooksCateringFollowupsRoute
   ApiPublicHooksKrogerDailyIngestRoute: typeof ApiPublicHooksKrogerDailyIngestRoute
   ApiPublicHooksKrogerValidationRoute: typeof ApiPublicHooksKrogerValidationRoute
@@ -3537,6 +3551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCateringFollowupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/affiliate-click/$id': {
+      id: '/api/public/affiliate-click/$id'
+      path: '/api/public/affiliate-click/$id'
+      fullPath: '/api/public/affiliate-click/$id'
+      preLoaderRoute: typeof ApiPublicAffiliateClickIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recipes/$id/edit': {
       id: '/admin/recipes/$id/edit'
       path: '/$id/edit'
@@ -3963,6 +3984,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicAffiliateClickIdRoute: ApiPublicAffiliateClickIdRoute,
   ApiPublicHooksCateringFollowupsRoute: ApiPublicHooksCateringFollowupsRoute,
   ApiPublicHooksKrogerDailyIngestRoute: ApiPublicHooksKrogerDailyIngestRoute,
   ApiPublicHooksKrogerValidationRoute: ApiPublicHooksKrogerValidationRoute,
