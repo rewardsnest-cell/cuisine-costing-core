@@ -2827,6 +2827,212 @@ export type Database = {
           },
         ]
       }
+      pe_ingredient_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          ingredient_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pe_ingredient_aliases_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "pe_ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pe_ingredient_prices: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          currency: string
+          discovered_field_path: string | null
+          ingredient_id: string
+          is_manual_override: boolean
+          last_error: string | null
+          last_updated: string | null
+          override_note: string | null
+          price_per_base_unit: number | null
+          raw_sample_json: Json | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          discovered_field_path?: string | null
+          ingredient_id: string
+          is_manual_override?: boolean
+          last_error?: string | null
+          last_updated?: string | null
+          override_note?: string | null
+          price_per_base_unit?: number | null
+          raw_sample_json?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          discovered_field_path?: string | null
+          ingredient_id?: string
+          is_manual_override?: boolean
+          last_error?: string | null
+          last_updated?: string | null
+          override_note?: string | null
+          price_per_base_unit?: number | null
+          raw_sample_json?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pe_ingredient_prices_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: true
+            referencedRelation: "pe_ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pe_ingredients: {
+        Row: {
+          base_unit: string
+          canonical_name: string
+          category: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_unit: string
+          canonical_name: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_unit?: string
+          canonical_name?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pe_price_history: {
+        Row: {
+          changed_by: string | null
+          confidence_score: number | null
+          currency: string
+          discovered_field_path: string | null
+          id: string
+          ingredient_id: string
+          is_manual_override: boolean
+          override_note: string | null
+          price_per_base_unit: number | null
+          recorded_at: string
+          source: string
+        }
+        Insert: {
+          changed_by?: string | null
+          confidence_score?: number | null
+          currency?: string
+          discovered_field_path?: string | null
+          id?: string
+          ingredient_id: string
+          is_manual_override?: boolean
+          override_note?: string | null
+          price_per_base_unit?: number | null
+          recorded_at?: string
+          source: string
+        }
+        Update: {
+          changed_by?: string | null
+          confidence_score?: number | null
+          currency?: string
+          discovered_field_path?: string | null
+          id?: string
+          ingredient_id?: string
+          is_manual_override?: boolean
+          override_note?: string | null
+          price_per_base_unit?: number | null
+          recorded_at?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pe_price_history_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "pe_ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pe_price_overrides_audit: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          ingredient_id: string
+          new_price: number | null
+          note: string
+          previous_price: number | null
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          new_price?: number | null
+          note: string
+          previous_price?: number | null
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          new_price?: number | null
+          note?: string
+          previous_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pe_price_overrides_audit_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "pe_ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_v2_alert_config: {
         Row: {
           banner_enabled: boolean
