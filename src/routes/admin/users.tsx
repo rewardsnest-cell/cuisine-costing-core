@@ -6,7 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass } from "lucide-react";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+
+const ALL_ROLES = ["admin", "moderator", "employee", "sales", "social_media", "marketing", "user"] as const;
+type AppRole = (typeof ALL_ROLES)[number];
 import { useConfirm } from "@/components/ConfirmDialog";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 import { UserNavOverridesPanel } from "@/components/admin/UserNavOverridesPanel";
