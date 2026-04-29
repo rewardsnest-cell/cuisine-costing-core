@@ -455,7 +455,7 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
     }
 
     // AI pass for the ambiguous pairs.
-    if (data.use_ai && ambiguousPairs.length > 0) {
+    if (useAi && ambiguousPairs.length > 0) {
       const apiKey = process.env.LOVABLE_API_KEY;
       if (apiKey) {
         // Batch in groups of 40 pairs to keep prompts small.
