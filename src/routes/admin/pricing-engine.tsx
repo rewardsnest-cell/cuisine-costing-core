@@ -279,7 +279,8 @@ function PricesPanel() {
     setBusy(true);
     try {
       const r = await refresh({ data: {} });
-      toast.success(`Refreshed ${r.processed} ingredients`);
+      if (r.processed === 0) toast.warning("No ingredients found. Add ingredients or use the starter set first.");
+      else toast.success(`Refreshed ${r.processed} ingredients`);
       load();
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   };
@@ -317,6 +318,7 @@ function PricesPanel() {
         </Button>
       </CardHeader>
       <CardContent>
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Ingredient</TableHead><TableHead>Base Unit</TableHead>
@@ -367,6 +369,7 @@ function PricesPanel() {
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
 
       <Dialog open={!!overrideTarget} onOpenChange={(o) => !o && setOverrideTarget(null)}>
