@@ -51,6 +51,30 @@ function UserManagementPage() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, EventLite[] | "loading" | undefined>>({});
   const [navOpen, setNavOpen] = useState<Record<string, boolean>>({});
+  const [rolesOpen, setRolesOpen] = useState<Record<string, boolean>>({});
+  const [savingRole, setSavingRole] = useState<string | null>(null);
+
+  const toggleRole = async (userId: string, role: AppRole, currentlyHas: boolean) => {
+    const key = `${userId}:${role}`;
+    if (role === "admin" && currentlyHas) {
+      const ok = await askConfirm({
+        title: "Revoke admin access?",
+        description: "This user will lose admin privileges immediately.",
+        confirmText: "Revoke",
+      });
+      if (!ok) return;
+    }
+    setSavingRole(key);
+    if (currentlyHas) {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+      if (error && !error.message.includes("duplicate")) toast.error(error.message);
+    }
+    await fetchData();
+    setSavingRole(null);
+  };
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
