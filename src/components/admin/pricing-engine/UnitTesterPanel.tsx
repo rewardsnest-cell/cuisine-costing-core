@@ -215,10 +215,18 @@ function BatchTester() {
           Header row required. <code>tolerance</code> defaults to <code>0.001</code> if omitted.
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button onClick={run}>Run tests</Button>
         <Button variant="outline" onClick={() => setCsv(SAMPLE_CSV)}>
           Load sample
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setCsv(autoFillExpected(csv))}
+          title="Compute expected values for every row using convertQty"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-fill expected
         </Button>
         {ran && (
           <div className="ml-auto flex items-center gap-2 text-sm">
