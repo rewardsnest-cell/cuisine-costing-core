@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -236,7 +236,7 @@ function Stat({
   tone,
 }: {
   label: string;
-  value: React.ReactNode;
+  value: ReactNode;
   tone?: "ok" | "warn" | "error";
 }) {
   const toneClass =
@@ -262,7 +262,7 @@ function QuickLink({
   desc,
 }: {
   to: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   label: string;
   desc: string;
 }) {
