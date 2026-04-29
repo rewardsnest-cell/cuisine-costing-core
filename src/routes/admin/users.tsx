@@ -273,35 +273,27 @@ function UserManagementPage() {
                     )}
                   </div>
                 </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setRolesOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
-                      className="gap-1"
-                    >
-                      {rolesOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                      <ShieldCheck className="w-3 h-3" /> Roles
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setNavOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
-                      className="gap-1"
-                    >
-                      {navOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                      <Compass className="w-3 h-3" /> Navigation
-                    </Button>
-                    {hasAdmin ? (
-                      <Button variant="outline" size="sm" onClick={() => revokeAdmin(profile.user_id)} className="gap-1 text-destructive hover:text-destructive">
-                        <Trash2 className="w-3 h-3" /> Revoke Admin
-                      </Button>
+                {isOpen && (
+                  <div className="pl-2 border-l-2 border-border space-y-1">
+                    {events === "loading" ? (
+                      <p className="text-xs text-muted-foreground">Loading events...</p>
+                    ) : !events || events.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No events for this user.</p>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => grantAdmin(profile.user_id)} className="gap-1">
-                        <UserPlus className="w-3 h-3" /> Grant Admin
-                      </Button>
+                      events.map((ev) => (
+                        <div key={ev.id} className="flex items-center justify-between text-xs py-1">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{ev.event_type || "Event"} <span className="font-mono text-muted-foreground">· {ev.reference_number || ev.id.slice(0, 8)}</span></p>
+                            <p className="text-muted-foreground">{ev.event_date || "TBD"} · {ev.status} · ${Number(ev.total ?? 0).toFixed(2)}</p>
+                          </div>
+                          {ev.reference_number && (
+                            <Link to="/event/$reference" params={{ reference: ev.reference_number }} className="text-primary hover:underline">View</Link>
+                          )}
+                        </div>
+                      ))
                     )}
                   </div>
-                </div>
+                )}
                 {rolesOpen[profile.user_id] && (
                   <div className="pl-2 border-l-2 border-primary/40 space-y-2">
                     <p className="text-xs font-semibold text-foreground">Assigned Roles</p>
@@ -328,6 +320,7 @@ function UserManagementPage() {
                     <p className="text-xs text-muted-foreground">Click a role to grant or revoke it. Changes save immediately.</p>
                   </div>
                 )}
+                {navOpen[profile.user_id] && (
                   <div className="pl-2 border-l-2 border-primary/40 space-y-2">
                     <p className="text-xs font-semibold text-foreground">Sidebar Navigation</p>
                     <UserNavOverridesPanel userId={profile.user_id} />
