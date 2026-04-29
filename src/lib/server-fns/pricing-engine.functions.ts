@@ -14,6 +14,10 @@ import {
   pickBestPrice,
   confidenceFromScore,
 } from "@/lib/server/pricing-engine/price-discovery";
+import {
+  pickCanonicalInventoryId,
+  consolidateInventoryItems,
+} from "@/lib/server/pricing-engine/canonical-inventory";
 
 const STALE_AFTER_DAYS = 7;
 
