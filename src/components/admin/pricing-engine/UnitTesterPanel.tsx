@@ -134,6 +134,37 @@ function SingleTester() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const base = canonicalBaseFor(from);
+            if (base) setTo(base);
+          }}
+          disabled={!canonicalBaseFor(from) || canonicalBaseFor(from) === normalizeUnit(to)}
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-convert to base
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (result.actual !== null) setExpected(formatNum(result.actual));
+          }}
+          disabled={result.actual === null}
+        >
+          Auto-fill expected
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Auto-convert picks the canonical base unit for the From dimension
+          (weight → lb, volume → fl oz, count → each).
+        </span>
+      </div>
+
       <div className="rounded-md border bg-muted/30 p-4">
         {result.error ? (
           <div className="text-sm text-destructive">{result.error}</div>
