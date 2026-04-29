@@ -79,6 +79,7 @@ export function LifecyclePanel() {
   const setStatus    = useServerFn(quoteSetStatus);
   const getFull      = useServerFn(quoteGetFull);
   const markSent     = useServerFn(quoteMarkSent);
+  const ocrFiles     = useServerFn(quoteOcrFiles);
 
   const [loading, setLoading] = useState(true);
   const [events, setEvents]     = useState<Event[]>([]);
