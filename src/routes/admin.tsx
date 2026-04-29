@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/LoadingState";
 import { useFeatureVisibilityMap, type FeatureVisibility } from "@/lib/feature-visibility";
+import { useNavOverrides } from "@/lib/access/use-nav-overrides";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -237,18 +238,23 @@ function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { map: visibilityMap } = useFeatureVisibilityMap();
+  const { isAllowed: isNavAllowed } = useNavOverrides();
 
-  // Filter groups + items down to what the current visibility flags allow.
-  // Routes themselves are NOT removed — only nav links are gated.
+  // Filter groups + items down to what the current visibility flags allow,
+  // then apply per-user nav overrides on top. Routes themselves are NOT
+  // removed — only nav links are gated.
   const visibleGroups = useMemo(() => {
     return NAV_GROUPS
       .filter((g) => isNavGroupVisible(g, visibilityMap))
+      .filter((g) => isNavAllowed(`group:${g.label}`))
       .map((g) => ({
         ...g,
-        items: g.items.filter((it) => isNavItemVisible(it, visibilityMap)),
+        items: g.items
+          .filter((it) => isNavItemVisible(it, visibilityMap))
+          .filter((it) => isNavAllowed(it.to)),
       }))
       .filter((g) => g.items.length > 0);
-  }, [visibilityMap]);
+  }, [visibilityMap, isNavAllowed]);
 
   const visibleItems = useMemo(
     () => visibleGroups.flatMap((g) => g.items),
