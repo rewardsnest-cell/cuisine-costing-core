@@ -632,23 +632,25 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
     for (const lid of data.losing_ids) {
       const losing = byId.get(lid)!;
 
-      // pe_ingredient_prices: there's likely a unique constraint per (ingredient_id, source/keyword).
-      // Best-effort move: try update; on conflict, delete the losing row to avoid PK collisions.
-      const { data: priceRows } = await supabaseAdmin
+      // pe_ingredient_prices: PK is ingredient_id (one price row per ingredient).
+      // If canonical already has a row, drop the losing row; otherwise re-point it.
+      const { data: canonHasPrice } = await supabaseAdmin
         .from("pe_ingredient_prices")
-        .select("id")
-        .eq("ingredient_id", lid);
-      for (const pr of priceRows ?? []) {
+        .select("ingredient_id")
+        .eq("ingredient_id", data.canonical_id)
+        .maybeSingle();
+      if (canonHasPrice) {
+        const { error: delPriceErr } = await supabaseAdmin
+          .from("pe_ingredient_prices")
+          .delete()
+          .eq("ingredient_id", lid);
+        if (!delPriceErr) prices_repointed++;
+      } else {
         const { error: upErr } = await supabaseAdmin
           .from("pe_ingredient_prices")
           .update({ ingredient_id: data.canonical_id })
-          .eq("id", pr.id);
-        if (upErr) {
-          // probable unique violation — drop the duplicate price row
-          await supabaseAdmin.from("pe_ingredient_prices").delete().eq("id", pr.id);
-        } else {
-          prices_repointed++;
-        }
+          .eq("ingredient_id", lid);
+        if (!upErr) prices_repointed++;
       }
 
       // pe_price_history
