@@ -424,6 +424,12 @@ export function LifecyclePanel() {
         onPaid={async () => { setPayDialogFor(null); await refresh(); }}
         markPaid={markPaid}
       />
+      <IngestDialog
+        event={ingestDialogFor}
+        onClose={() => setIngestDialogFor(null)}
+        onCreated={async () => { setIngestDialogFor(null); await refresh(); }}
+        ingestFn={ingest}
+      />
     </div>
   );
 }
