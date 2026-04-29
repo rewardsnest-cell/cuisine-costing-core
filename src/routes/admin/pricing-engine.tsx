@@ -64,6 +64,7 @@ function PricingEnginePage() {
         <TabsContent value="status" className="mt-4"><StatusPanel /></TabsContent>
         <TabsContent value="ingredients" className="mt-4"><IngredientsPanel /></TabsContent>
         <TabsContent value="prices" className="mt-4"><PricesPanel /></TabsContent>
+        <TabsContent value="cleanup" className="mt-4"><IngredientCleanupPanel /></TabsContent>
         <TabsContent value="import" className="mt-4"><CsvImportPanel /></TabsContent>
         <TabsContent value="units" className="mt-4"><UnitTesterPanel /></TabsContent>
         <TabsContent value="history" className="mt-4"><HistoryPanel /></TabsContent>
