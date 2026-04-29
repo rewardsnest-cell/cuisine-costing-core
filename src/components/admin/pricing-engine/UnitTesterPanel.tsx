@@ -9,6 +9,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { convertQty, normalizeUnit, ALLOWED_BASE_UNITS } from "@/lib/server/pricing-engine/units";
+import { Wand2 } from "lucide-react";
+
+const WEIGHT_UNITS = ["lb", "lbs", "pound", "pounds", "oz", "ounce", "ounces", "g", "gram", "grams", "kg", "kilogram", "kilograms"];
+const VOLUME_UNITS = ["fl oz", "floz", "fluid ounce", "fluid ounces", "cup", "cups", "c", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons", "pt", "pint", "pints", "qt", "quart", "quarts", "gal", "gallon", "gallons", "ml", "milliliter", "milliliters", "l", "liter", "liters", "litre"];
+const COUNT_UNITS = ["each", "ea", "piece", "pieces", "whole", "unit", "units", "clove", "cloves", "slice", "slices", "head", "heads", "bunch", "bunches", "sprig", "sprigs"];
+
+function dimensionOf(u: string): "weight" | "volume" | "count" | null {
+  const n = normalizeUnit(u);
+  if (WEIGHT_UNITS.includes(n)) return "weight";
+  if (VOLUME_UNITS.includes(n)) return "volume";
+  if (COUNT_UNITS.includes(n)) return "count";
+  return null;
+}
+
+function canonicalBaseFor(u: string): string | null {
+  const dim = dimensionOf(u);
+  if (dim === "weight") return "lb";
+  if (dim === "volume") return "fl oz";
+  if (dim === "count") return "each";
+  return null;
+}
 
 type BatchRow = {
   qty: number;
