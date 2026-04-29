@@ -538,3 +538,266 @@ function InspectorPanel() {
     </Card>
   );
 }
+
+// -------------------- CSV Import --------------------
+type ParsedCsvRow = {
+  ingredient: string;
+  price: number;
+  unit: string | null;
+  note: string | null;
+  _line: number;
+  _error?: string;
+};
+
+function parseCsv(text: string): { rows: ParsedCsvRow[]; headerError?: string } {
+  // Minimal CSV parser supporting quoted fields with commas and "" escapes.
+  const lines = text.replace(/\r\n/g, "\n").split("\n").filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return { rows: [], headerError: "Empty file" };
+
+  const splitLine = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = ""; let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') { inQuotes = false; }
+        else { cur += c; }
+      } else {
+        if (c === ",") { out.push(cur); cur = ""; }
+        else if (c === '"') { inQuotes = true; }
+        else { cur += c; }
+      }
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  };
+
+  const headers = splitLine(lines[0]).map((h) => h.toLowerCase().replace(/^"|"$/g, ""));
+  const idx = (name: string) => headers.indexOf(name);
+  const iIng = idx("ingredient");
+  const iPrice = idx("price");
+  const iUnit = idx("unit");
+  const iNote = idx("note");
+  if (iIng < 0 || iPrice < 0) {
+    return { rows: [], headerError: 'Required headers missing. Need at least "ingredient" and "price".' };
+  }
+
+  const rows: ParsedCsvRow[] = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cells = splitLine(lines[li]);
+    const ingredient = (cells[iIng] ?? "").replace(/^"|"$/g, "").trim();
+    const priceRaw = (cells[iPrice] ?? "").replace(/[^\d.\-]/g, "");
+    const price = parseFloat(priceRaw);
+    const unit = iUnit >= 0 ? (cells[iUnit] ?? "").trim() || null : null;
+    const note = iNote >= 0 ? (cells[iNote] ?? "").trim() || null : null;
+
+    const row: ParsedCsvRow = { ingredient, price, unit, note, _line: li + 1 };
+    if (!ingredient) row._error = "Missing ingredient";
+    else if (!Number.isFinite(price) || price <= 0) row._error = "Invalid price";
+    rows.push(row);
+  }
+  return { rows };
+}
+
+const SAMPLE_CSV =
+  "ingredient,price,unit,note\n" +
+  "Chicken Breast,3.49,lb,Costco bulk pricing\n" +
+  "Olive Oil,18.99,l,Restaurant Depot 1L bottle\n" +
+  "Garlic,0.35,each,\n";
+
+function CsvImportPanel() {
+  const importFn = useServerFn(peImportPricesCsv);
+  const [csvText, setCsvText] = useState("");
+  const [parsed, setParsed] = useState<ParsedCsvRow[]>([]);
+  const [headerError, setHeaderError] = useState<string | null>(null);
+  const [defaultNote, setDefaultNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<any | null>(null);
+
+  const onFile = async (file: File) => {
+    const text = await file.text();
+    setCsvText(text);
+    handleParse(text);
+  };
+
+  const handleParse = (text: string) => {
+    const { rows, headerError: err } = parseCsv(text);
+    setParsed(rows);
+    setHeaderError(err ?? null);
+    setResult(null);
+  };
+
+  const validRows = parsed.filter((r) => !r._error);
+  const invalidRows = parsed.filter((r) => r._error);
+
+  const submit = async (dryRun: boolean) => {
+    if (validRows.length === 0) { toast.error("No valid rows to import"); return; }
+    setBusy(true);
+    try {
+      const r = await importFn({ data: {
+        rows: validRows.map((row) => ({
+          ingredient: row.ingredient,
+          price: row.price,
+          unit: row.unit,
+          note: row.note,
+        })),
+        default_note: defaultNote.trim() || undefined,
+        dry_run: dryRun,
+      }});
+      setResult(r);
+      if (dryRun) toast.success(`Dry run: ${r.summary.ok} rows would import, ${r.summary.not_found} not found, ${r.summary.bad_unit} bad unit`);
+      else toast.success(`Imported ${r.summary.applied} prices`);
+    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  };
+
+  const downloadSample = () => {
+    const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "pricing-engine-sample.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>CSV Price Import</CardTitle>
+        <CardDescription>
+          Upload a CSV to bulk-update ingredient prices. Each row is treated as a manual override
+          and recorded in the price history + override audit log. Required columns:{" "}
+          <code>ingredient</code>, <code>price</code>. Optional: <code>unit</code> (auto-converts
+          to base unit), <code>note</code>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" asChild>
+            <label className="cursor-pointer">
+              <Upload className="w-4 h-4 mr-1" /> Choose CSV file
+              <input type="file" accept=".csv,text/csv" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+            </label>
+          </Button>
+          <Button variant="ghost" onClick={downloadSample}>
+            <Download className="w-4 h-4 mr-1" /> Download sample
+          </Button>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap text-sm">Default note:</Label>
+            <Input className="w-64" placeholder="e.g. Aug 2026 Restaurant Depot run"
+              value={defaultNote} onChange={(e) => setDefaultNote(e.target.value)} />
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs text-muted-foreground">
+            Or paste CSV directly:
+          </Label>
+          <Textarea rows={6} className="font-mono text-xs" placeholder={SAMPLE_CSV}
+            value={csvText}
+            onChange={(e) => { setCsvText(e.target.value); handleParse(e.target.value); }} />
+        </div>
+
+        {headerError && (
+          <div className="flex items-start gap-2 text-destructive text-sm">
+            <AlertTriangle className="w-4 h-4 mt-0.5" /> {headerError}
+          </div>
+        )}
+
+        {parsed.length > 0 && (
+          <>
+            <div className="flex items-center gap-3 text-sm">
+              <Badge variant="outline" className="text-emerald-600 border-emerald-600">
+                <FileSpreadsheet className="w-3 h-3 mr-1" />
+                {validRows.length} valid
+              </Badge>
+              {invalidRows.length > 0 && (
+                <Badge variant="destructive">{invalidRows.length} invalid</Badge>
+              )}
+              <div className="flex-1" />
+              <Button variant="outline" disabled={busy || validRows.length === 0} onClick={() => submit(true)}>
+                Dry run
+              </Button>
+              <Button disabled={busy || validRows.length === 0} onClick={() => submit(false)}>
+                <Upload className="w-4 h-4 mr-1" /> Import {validRows.length} rows
+              </Button>
+            </div>
+
+            <div className="max-h-64 overflow-auto border rounded">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead>Ingredient</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead>Issue</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {parsed.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-xs text-muted-foreground">{r._line}</TableCell>
+                      <TableCell className="text-sm">{r.ingredient || "—"}</TableCell>
+                      <TableCell className="text-sm">{Number.isFinite(r.price) ? `$${r.price.toFixed(2)}` : "—"}</TableCell>
+                      <TableCell className="text-xs">{r.unit ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{r.note ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-destructive">{r._error ?? ""}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        {result && (
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                <div><div className="text-xs text-muted-foreground">Total rows</div><div className="font-semibold">{result.summary.total}</div></div>
+                <div><div className="text-xs text-muted-foreground">Matched</div><div className="font-semibold text-emerald-600">{result.summary.ok}</div></div>
+                <div><div className="text-xs text-muted-foreground">Not found</div><div className="font-semibold text-amber-600">{result.summary.not_found}</div></div>
+                <div><div className="text-xs text-muted-foreground">Bad unit</div><div className="font-semibold text-amber-600">{result.summary.bad_unit}</div></div>
+                <div><div className="text-xs text-muted-foreground">{result.summary.dry_run ? "Would apply" : "Applied"}</div><div className="font-semibold">{result.summary.applied}</div></div>
+              </div>
+              <div className="max-h-64 overflow-auto border rounded">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>Input</TableHead><TableHead>Matched</TableHead>
+                    <TableHead>Price → Base</TableHead><TableHead>Status</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {result.results.map((r: any, i: number) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs">
+                          {r.input_ingredient} — ${r.input_price}
+                          {r.input_unit ? `/${r.input_unit}` : ""}
+                        </TableCell>
+                        <TableCell className="text-xs">{r.matched_canonical_name ?? "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          {r.price_per_base_unit != null
+                            ? `$${Number(r.price_per_base_unit).toFixed(4)} / ${r.base_unit}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {r.status === "ok" && <Badge variant="outline" className="text-emerald-600 border-emerald-600">ok</Badge>}
+                          {r.status === "not_found" && <Badge variant="destructive">not found</Badge>}
+                          {r.status === "bad_unit" && <Badge variant="destructive">bad unit</Badge>}
+                          {r.status === "ambiguous" && <Badge variant="destructive">ambiguous</Badge>}
+                          {r.status === "error" && <Badge variant="destructive">error</Badge>}
+                          {r.message && <span className="ml-2 text-muted-foreground">{r.message}</span>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
