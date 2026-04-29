@@ -1,84 +1,79 @@
-# AI Recipe Creation System (Admin Only)
 
-A new admin page that turns prompts, ingredient lists, images, videos, or copycat inspiration into complete, editable recipe drafts using AI.
+# VPSFinest Admin Quote — Mega Prompt Implementation
 
-## Location & Access
-- Route: `/admin/recipes/ai-create` (admin gate via existing `useAuth().isAdmin` pattern)
-- Nav: under **Menu & Content** in `src/routes/admin.tsx`, labeled **Create Recipe (AI)**
+This builds on the existing Customer ↔ Event ↔ Quote ↔ Invoice ↔ Receipt lifecycle (already wired in `/admin/exports`) and adds the missing pieces from the mega-prompt spec:
 
-## Database Changes
-Migration adds the missing fields to `recipes`:
-- `seo_title text`, `seo_description text`, `feed_summary text`
-- `tone text` (preset used)
-- `ai_generated boolean default false`
-- `ai_inputs jsonb` (raw inputs used: prompt/dish/ingredients/image refs/video URL/copycat)
-- `ai_generation_meta jsonb` (model, tokens, timestamps, admin id, regen history)
+1. **Structured menu sections** on quote items (Appetizers, Entrées, Sides, Desserts, Beverages, Staffing, Rentals).
+2. **Unstructured input ingestion** — paste handwritten notes / email / pasted text and extract a draft quote with Lovable AI (Gemini), never inventing prices.
+3. **Branded VPSFinest quote PDF** — premium layout with logo, customer + event details, sectioned menu, pricing summary, assumptions, terms.
+4. **DRAFT → SENT → APPROVED → EXPIRED** lifecycle with hard gates (only APPROVED quotes can invoice — already enforced; add SENT + EXPIRED transitions).
+5. **Send to Client** — emails the branded PDF to the customer on the linked event and marks quote SENT.
 
-New table `recipe_tool_suggestions`:
-- `id, recipe_id, name, reason, status (suggested|added|dismissed), affiliate_url, created_at`
-- RLS: admin-only read/write via existing `has_role(auth.uid(),'admin')`
+---
 
-New storage bucket `recipe-ai-uploads` (private) for admin reference image/video uploads. RLS: admin-only.
+## What's already in place (no change needed)
 
-## Server Functions (TanStack `createServerFn`)
-File: `src/lib/server-fns/ai-recipe-create.functions.ts` — all gated with `requireSupabaseAuth` + admin check (matching `access-control.functions.ts` pattern).
+- `cqh_events` carries the customer record (name/email/phone/org/billing/location).
+- `quotes.cqh_event_id` + DB triggers prevent orphan quotes.
+- `invoices` requires `quote_state = 'approved'` (DB-enforced).
+- `customer_payment_receipts` requires `balance_due = 0`.
+- `LifecyclePanel` UI lists Events, Quotes, Invoices, Receipts and exposes Approve / Invoice / Mark Paid / Receipt / Package export.
 
-1. **`generateRecipe`** — input: `{ promptText?, dishName?, ingredientsList?, imageUrls?: string[], videoUrl?, copycatNotes?, tone, category? }`. Calls Lovable AI Gateway (`google/gemini-2.5-pro` for multimodal, `google/gemini-3-flash-preview` text-only) using **tool calling for structured output**: returns `{ title, category, ingredients[], steps[], notes{substitutions, storage, reheating}, seo_title, seo_description, feed_summary, suggested_tools[] }`. System prompt enforces the chef persona, safety, and no-trademark rules.
-2. **`generateRecipeImage`** — wraps existing `generate-recipe-photos.ts` pattern with the AI-create system's neutral-bg prompt; uploads to `recipe-photos` bucket.
-3. **`regenerateSection`** — input: `{ draftId, section: 'title'|'ingredients'|'steps'|'notes'|'seo'|'feed'|'tools', tone? }`. Regenerates only that field.
-4. **`bulkGenerateRecipes`** — input: `{ count(1-10), variationType: 'flavor'|'protein'|'method', baseInputs, category, tone }`. Loops `generateRecipe` and creates N drafts.
-5. **`saveDraft`** / **`publishRecipe`** — writes to `recipes` (status='draft'|'published') + `recipe_ingredients`. Publish validates title, ingredients, instructions, image_url present.
-6. **`updateToolSuggestion`** — add affiliate URL or dismiss.
+---
 
-All write operations use `supabaseAdmin` and log generation meta (admin user id, timestamp, tone, inputs).
+## Changes by area
 
-## Frontend Page
-`src/routes/admin/recipes.ai-create.tsx` — single-page workflow with two columns:
+### 1. Database migration
 
-**Left column — Inputs**
-- Tabs / accordion for input sources: Free text, Dish name, Ingredients (textarea, one per line), Image upload (multi, to `recipe-ai-uploads`), Video URL, Copycat inspiration (with flavor notes field)
-- **Tone** select: Friendly & Casual / Confident & Bold / Cozy & Comforting / Straightforward & Practical / Viral / Feed-Optimized
-- **Bulk Mode** toggle → reveals count (1–10), variation type, category
-- Action buttons: `Generate Recipe`, `Generate Bulk Drafts`
+- Add column `quote_items.section text` with values `appetizer | entree | side | dessert | beverage | staffing | rental | other` (default `other`, indexed).
+- Extend `quote_state` enum with `draft`, `sent`, `expired`. Keep existing values (`approved`, `invoiced`, `paid`) so the invoice/receipt triggers continue to work unchanged.
+- Add `quotes.sent_at timestamptz`, `quotes.expires_at date` (default `created_at + 30 days`), `quotes.sent_to_email text`.
+- Add trigger `trg_quote_expire_check` that marks `quote_state = 'expired'` when `expires_at < CURRENT_DATE` and state is still `draft`/`sent` (run on read-time helper view; safer than a cron — done via a SQL function `mark_expired_quotes()` callable by the app).
 
-**Right column — Draft Editor** (appears after generation)
-- Editable fields for: Title, Category select, Ingredients table (`name | qty | unit`, add/remove rows), Numbered Steps (sortable list), Notes (substitutions / storage / reheating), SEO Title, SEO Description (160-char counter), Feed Summary
-- Image panel: shows generated image with `Regenerate Image` and `Upload Custom` buttons
-- Per-section `Regenerate` buttons (calls `regenerateSection`)
-- Tone selector here too — change + regenerate text-only outputs
-- Sidebar card: **Suggested tools for this recipe** with `Add affiliate link` (input modal) and `Dismiss` per item
-- Footer actions: `Save Draft`, `Publish Recipe` (disabled until required fields met)
+### 2. Server functions (`src/lib/server-fns/event-lifecycle.functions.ts`)
 
-**Bulk Mode view**
-- After bulk generation, shows a list of N draft cards; click one to open the editor view above
+Add:
+- `quoteIngestUnstructured` — input: `{ cqh_event_id, raw_text, source_label? }`. Calls Lovable AI (`google/gemini-2.5-flash`) with a strict system prompt: extract `{ menu: [{section, name, qty, per_guest, price?}], staffing[], rentals[], dietary_notes, missing_fields[] }`. Creates a `quote` in `draft` with `quote_items` carrying the new `section`. Never fills prices that weren't in the input — leaves `unit_price = 0` and adds an entry to `missing_fields`.
+- `quoteSetStatus` — transitions `draft → sent → approved → expired`, with guards (cannot un-send, cannot revive expired).
+- `quoteSendToClient` — generates the branded PDF (server-side via the same `jspdf` helper), uploads to `site-assets/quotes/`, sends an email to `cqh_events.customer_email` using the existing `lib/email/send.ts`, then sets state to `sent` and stamps `sent_at`/`sent_to_email`.
+- `quoteRenderPdfData` — read-only helper returning the structured data the PDF needs (so the client can re-download without re-emailing).
 
-## AI Prompt Strategy
-System prompt (server-side only, never client) establishes:
-- Persona: professional home chef + recipe developer + food content designer
-- Rules: home-kitchen friendly, plain language, no jargon, no trademarks, no unsafe instructions, one action per step with timing cues
-- Tone modifier appended based on selected preset
-- Output format enforced via OpenAI tool-call JSON schema (matches DB shape)
+### 3. Branded VPSFinest quote PDF (`src/lib/admin/vpsfinest-quote-pdf.ts` — new)
 
-For multimodal inputs (images/video URL), sent as `image_url` content parts in the user message to `google/gemini-2.5-pro`.
+Reuses `BRAND` and `drawBrandedHeader/Footer` from `src/lib/pdf-brand.ts`. Layout:
+- Cover band with VPS Finest logo (`src/assets/vpsfinest-logo.png` per Core memory) + "Catering Proposal" + quote number + date.
+- Client & Event block (name, email/phone, event name, date, location, guest count).
+- Menu sections rendered as separate `autoTable` blocks in spec order: Appetizers, Entrées, Sides, Desserts, Beverages, Staffing & Service, Rentals & Equipment. Sections with no items are skipped.
+- Pricing Summary: subtotal / fees / tax / total. Items with `unit_price = 0` are flagged as **"Estimate pending"** rather than $0.
+- Assumptions & Notes (menu subject to availability, guest count confirmation, pricing subject to final approval).
+- Terms & Next Steps (deposit, final payment, expiration date from `quotes.expires_at`, approval instructions).
 
-## Security & Compliance
-- Admin role check on every server fn (defense in depth alongside RLS)
-- All AI calls server-side; `LOVABLE_API_KEY` already configured
-- Affiliate links are never auto-added — admin must explicitly add per suggestion
-- Uploaded reference media stored in private bucket; only generated finished image goes to public `recipe-photos` bucket
+### 4. UI — `src/components/admin/exports/LifecyclePanel.tsx`
 
-## Files to Create
-- `supabase/migrations/<timestamp>_ai_recipe_create.sql` — columns, table, bucket, RLS
-- `src/lib/server-fns/ai-recipe-create.functions.ts`
-- `src/routes/admin/recipes.ai-create.tsx`
-- `src/components/admin/ai-recipe/InputPanel.tsx`
-- `src/components/admin/ai-recipe/DraftEditor.tsx`
-- `src/components/admin/ai-recipe/ToolSuggestions.tsx`
-- `src/components/admin/ai-recipe/BulkResults.tsx`
+- New **"Ingest Notes → Draft Quote"** dialog on each event row (textarea + paste area + optional file upload — text only for now). Submits to `quoteIngestUnstructured`.
+- **Quote row actions** widened: `Edit Items` (opens a drawer to edit `quote_items` with a `section` selector), `Download PDF`, `Send to Client`, `Approve`, `Invoice`, `Mark Paid`, `Receipt`. Buttons disable per current `quote_state`.
+- Status badge shows `DRAFT / SENT / APPROVED / EXPIRED / INVOICED / PAID` with color.
 
-## Files to Edit
-- `src/routes/admin.tsx` — add nav link under Menu & Content
+### 5. Hard guards (per spec)
 
-## Out of Scope (Phase 2)
-- Server-side video transcription (Phase 1 sends URL + admin-provided notes; AI uses URL as reference only)
-- Auto-publishing to social feeds
+- Quote row insert without `cqh_event_id` already blocks (existing trigger).
+- Server functions reject status transitions that skip stages.
+- AI ingest is wrapped to `temperature: 0` and a system prompt that explicitly forbids inventing prices.
+- The `Send to Client` button is hidden unless the event has a `customer_email`.
+
+---
+
+## File list
+
+- **Migration**: `supabase/migrations/<ts>_quote_mega_prompt.sql` — enum values, columns, helper function.
+- **Created**: `src/lib/admin/vpsfinest-quote-pdf.ts` (branded PDF builder).
+- **Edited**: `src/lib/server-fns/event-lifecycle.functions.ts` (new server fns: ingest, set status, send to client, render data).
+- **Edited**: `src/components/admin/exports/LifecyclePanel.tsx` (ingest dialog, edit-items drawer, download PDF, send-to-client button, expanded status badges).
+
+---
+
+## Out of scope (future layers, per the spec's "Internal Note")
+
+- OCR of handwritten image uploads — the ingest dialog accepts pasted text only in this iteration. We can add image/PDF upload + OCR in a follow-up that calls `document--parse_document`-style server logic.
+- Auto-pricing from recipes / Kroger costing — left to the existing pricing engine; quotes generated from notes start with `unit_price = 0` until an admin fills them.
+- CRM sync.
