@@ -14,6 +14,7 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { UnitTesterPanel } from "@/components/admin/pricing-engine/UnitTesterPanel";
 import {
   peListIngredients,
   peUpsertIngredient,
@@ -46,11 +47,12 @@ function PricingEnginePage() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
           <TabsTrigger value="import">CSV Import</TabsTrigger>
+          <TabsTrigger value="units">Unit Tester</TabsTrigger>
           <TabsTrigger value="history">Price History</TabsTrigger>
           <TabsTrigger value="inspector">Recipe Cost Inspector</TabsTrigger>
         </TabsList>
@@ -59,6 +61,7 @@ function PricingEnginePage() {
         <TabsContent value="ingredients" className="mt-4"><IngredientsPanel /></TabsContent>
         <TabsContent value="prices" className="mt-4"><PricesPanel /></TabsContent>
         <TabsContent value="import" className="mt-4"><CsvImportPanel /></TabsContent>
+        <TabsContent value="units" className="mt-4"><UnitTesterPanel /></TabsContent>
         <TabsContent value="history" className="mt-4"><HistoryPanel /></TabsContent>
         <TabsContent value="inspector" className="mt-4"><InspectorPanel /></TabsContent>
       </Tabs>
