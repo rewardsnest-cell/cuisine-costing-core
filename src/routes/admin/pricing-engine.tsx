@@ -265,6 +265,7 @@ function IngredientsPanel() {
 function PricesPanel() {
   const listPrices = useServerFn(peListPrices);
   const refresh = useServerFn(peRefreshPrices);
+  const seedStarter = useServerFn(peSeedStarterIngredients);
   const overrideFn = useServerFn(peManualOverride);
   const [rows, setRows] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
@@ -291,6 +292,16 @@ function PricesPanel() {
     setBusy(true);
     try { await refresh({ data: { ingredient_ids: [id] } }); toast.success("Refreshed"); load(); }
     catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  };
+
+  const seedAndLoad = async () => {
+    setBusy(true);
+    try {
+      const r = await seedStarter();
+      toast.success(`Starter ingredients ready (${r.inserted_or_updated} ingredients)`);
+      await load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(false); }
   };
 
   const submitOverride = async () => {
@@ -366,7 +377,12 @@ function PricesPanel() {
             ))}
             {rows.length === 0 && (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                Add ingredients first.
+                <div className="flex flex-col items-center gap-3">
+                  <span>No ingredients yet. Add the starter set first, then refresh prices.</span>
+                  <Button variant="outline" onClick={seedAndLoad} disabled={busy}>
+                    <Plus className="w-4 h-4 mr-1" />Add Starter Set
+                  </Button>
+                </div>
               </TableCell></TableRow>
             )}
           </TableBody>
