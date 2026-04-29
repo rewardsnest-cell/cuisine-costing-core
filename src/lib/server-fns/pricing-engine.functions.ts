@@ -306,7 +306,401 @@ export const peSyncIngredientsFromRecipes = createServerFn({ method: "POST" })
     };
   });
 
+// ---------- Duplicate Detection & Merging ----------
+
+// Normalize a name for fuzzy comparison: lowercase, strip punctuation,
+// collapse whitespace, drop common parenthetical notes, singularize plurals.
+function normalizeForMatch(s: string): string {
+  let t = s.toLowerCase().trim();
+  t = t.replace(/\([^)]*\)/g, " "); // drop parentheticals
+  t = t.replace(/[^a-z0-9\s]/g, " "); // strip punctuation
+  t = t.replace(/\s+/g, " ").trim();
+  // crude singularization on each token
+  t = t
+    .split(" ")
+    .map((w) => {
+      if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+      if (w.length > 3 && w.endsWith("es") && !w.endsWith("ses")) return w.slice(0, -2);
+      if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+      return w;
+    })
+    .join(" ");
+  // strip common filler words that don't change identity
+  const STOP = new Set(["fresh", "raw", "whole", "large", "small", "medium", "organic", "the", "a", "an"]);
+  t = t.split(" ").filter((w) => !STOP.has(w)).join(" ");
+  return t.trim();
+}
+
+function tokenJaccard(a: string, b: string): number {
+  const A = new Set(a.split(" ").filter(Boolean));
+  const B = new Set(b.split(" ").filter(Boolean));
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return inter / (A.size + B.size - inter);
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const v0: number[] = new Array(b.length + 1);
+  const v1: number[] = new Array(b.length + 1);
+  for (let i = 0; i <= b.length; i++) v0[i] = i;
+  for (let i = 0; i < a.length; i++) {
+    v1[0] = i + 1;
+    for (let j = 0; j < b.length; j++) {
+      const cost = a[i] === b[j] ? 0 : 1;
+      v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
+    }
+    for (let j = 0; j <= b.length; j++) v0[j] = v1[j];
+  }
+  return v1[b.length];
+}
+
+function similarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const maxLen = Math.max(a.length, b.length);
+  const lev = 1 - levenshtein(a, b) / maxLen;
+  const jac = tokenJaccard(a, b);
+  // weighted: tokens matter more for multi-word names
+  return 0.55 * lev + 0.45 * jac;
+}
+
+type DupCandidate = {
+  canonical_id: string;
+  canonical_name: string;
+  base_unit: string;
+  members: { id: string; name: string; base_unit: string; score: number; source: "fuzzy" | "ai" }[];
+  confidence: number; // 0..1, lowest member score
+};
+
+// Union-Find for clustering
+class UF {
+  parent: Map<string, string> = new Map();
+  find(x: string): string {
+    if (!this.parent.has(x)) this.parent.set(x, x);
+    let r = this.parent.get(x)!;
+    while (r !== this.parent.get(r)!) r = this.parent.get(r)!;
+    this.parent.set(x, r);
+    return r;
+  }
+  union(a: string, b: string) {
+    const ra = this.find(a), rb = this.find(b);
+    if (ra !== rb) this.parent.set(ra, rb);
+  }
+}
+
+export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      use_ai: z.boolean().default(true),
+      min_confidence: z.number().min(0).max(1).default(0.85),
+    }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    const { data: ings, error } = await supabaseAdmin
+      .from("pe_ingredients")
+      .select("id, canonical_name, base_unit");
+    if (error) throw new Error(error.message);
+    const items = (ings ?? []) as { id: string; canonical_name: string; base_unit: string }[];
+
+    // Pre-compute normalized strings.
+    const norm = items.map((i) => ({ ...i, n: normalizeForMatch(i.canonical_name) }));
+
+    const uf = new UF();
+    const edgeScore = new Map<string, { score: number; source: "fuzzy" | "ai" }>();
+    const ek = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+    const FUZZY_HIGH = 0.85; // auto-cluster
+    const FUZZY_LOW = 0.6;   // candidate range to send to AI
+    const ambiguousPairs: { a: typeof norm[0]; b: typeof norm[0]; fuzzy: number }[] = [];
+
+    for (let i = 0; i < norm.length; i++) {
+      for (let j = i + 1; j < norm.length; j++) {
+        const A = norm[i], B = norm[j];
+        if (A.base_unit !== B.base_unit) continue; // never merge across base units
+        // Cheap pre-filter: at least 2 chars in common at start
+        if (A.n[0] !== B.n[0] && Math.abs(A.n.length - B.n.length) > 6) continue;
+        const s = similarity(A.n, B.n);
+        if (s >= FUZZY_HIGH) {
+          uf.union(A.id, B.id);
+          const k = ek(A.id, B.id);
+          edgeScore.set(k, { score: s, source: "fuzzy" });
+        } else if (s >= FUZZY_LOW) {
+          ambiguousPairs.push({ a: A, b: B, fuzzy: s });
+        }
+      }
+    }
+
+    // AI pass for the ambiguous pairs.
+    if (data.use_ai && ambiguousPairs.length > 0) {
+      const apiKey = process.env.LOVABLE_API_KEY;
+      if (apiKey) {
+        // Batch in groups of 40 pairs to keep prompts small.
+        const BATCH = 40;
+        for (let i = 0; i < ambiguousPairs.length; i += BATCH) {
+          const batch = ambiguousPairs.slice(i, i + BATCH);
+          const pairs = batch.map((p, idx) => ({
+            id: idx,
+            a: p.a.canonical_name,
+            b: p.b.canonical_name,
+          }));
+          try {
+            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      "You determine if two cooking-ingredient names refer to the SAME ingredient. " +
+                      "Examples of same: 'scallions' = 'green onions', 'cilantro' = 'fresh coriander', 'EVOO' = 'extra virgin olive oil'. " +
+                      "Different ingredients (e.g. butter vs ghee, cilantro vs parsley) must NOT be merged. " +
+                      "Return a confidence 0..1 for each pair via the tool call.",
+                  },
+                  {
+                    role: "user",
+                    content: `Pairs to evaluate:\n${JSON.stringify(pairs, null, 2)}`,
+                  },
+                ],
+                tools: [
+                  {
+                    type: "function",
+                    function: {
+                      name: "rate_pairs",
+                      description: "Return same-ingredient confidence per pair id.",
+                      parameters: {
+                        type: "object",
+                        properties: {
+                          ratings: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                id: { type: "number" },
+                                same: { type: "boolean" },
+                                confidence: { type: "number" },
+                              },
+                              required: ["id", "same", "confidence"],
+                            },
+                          },
+                        },
+                        required: ["ratings"],
+                      },
+                    },
+                  },
+                ],
+                tool_choice: { type: "function", function: { name: "rate_pairs" } },
+              }),
+            });
+            if (resp.ok) {
+              const j: any = await resp.json();
+              const args = j.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+              if (args) {
+                const parsed = JSON.parse(args);
+                for (const r of parsed.ratings ?? []) {
+                  if (r.same && r.confidence >= 0.8) {
+                    const p = batch[r.id];
+                    if (!p) continue;
+                    uf.union(p.a.id, p.b.id);
+                    edgeScore.set(ek(p.a.id, p.b.id), { score: r.confidence, source: "ai" });
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error("AI dedup batch failed:", e);
+          }
+        }
+      }
+    }
+
+    // Build clusters (size > 1).
+    const clusters = new Map<string, typeof norm>();
+    for (const it of norm) {
+      const root = uf.find(it.id);
+      if (!clusters.has(root)) clusters.set(root, []);
+      clusters.get(root)!.push(it);
+    }
+
+    // Pull alias / price counts so we can pick the "best" canonical (most usage).
+    const dupClusters: DupCandidate[] = [];
+    for (const [_, members] of clusters.entries()) {
+      if (members.length < 2) continue;
+
+      // Score each member by usage to pick canonical.
+      const ids = members.map((m) => m.id);
+      const [{ data: priceCounts }, { data: aliasCounts }] = await Promise.all([
+        supabaseAdmin.from("pe_ingredient_prices").select("ingredient_id").in("ingredient_id", ids),
+        supabaseAdmin.from("pe_ingredient_aliases").select("ingredient_id").in("ingredient_id", ids),
+      ]);
+      const usage = new Map<string, number>();
+      for (const r of priceCounts ?? []) usage.set(r.ingredient_id, (usage.get(r.ingredient_id) ?? 0) + 3);
+      for (const r of aliasCounts ?? []) usage.set(r.ingredient_id, (usage.get(r.ingredient_id) ?? 0) + 1);
+
+      const ranked = [...members].sort((a, b) => {
+        const ua = usage.get(a.id) ?? 0, ub = usage.get(b.id) ?? 0;
+        if (ub !== ua) return ub - ua;
+        // prefer shorter, more "canonical-looking" name
+        return a.canonical_name.length - b.canonical_name.length;
+      });
+      const canonical = ranked[0];
+      const others = ranked.slice(1);
+
+      const memberPayload = others.map((m) => {
+        const e = edgeScore.get(ek(canonical.id, m.id));
+        return {
+          id: m.id,
+          name: m.canonical_name,
+          base_unit: m.base_unit,
+          score: e?.score ?? similarity(canonical.n, m.n),
+          source: e?.source ?? ("fuzzy" as const),
+        };
+      });
+
+      const conf = memberPayload.reduce((min, m) => Math.min(min, m.score), 1);
+      dupClusters.push({
+        canonical_id: canonical.id,
+        canonical_name: canonical.canonical_name,
+        base_unit: canonical.base_unit,
+        members: memberPayload,
+        confidence: conf,
+      });
+    }
+
+    dupClusters.sort((a, b) => b.confidence - a.confidence);
+
+    return {
+      scanned: items.length,
+      ai_pairs_evaluated: data.use_ai ? ambiguousPairs.length : 0,
+      clusters: dupClusters,
+      auto_mergeable: dupClusters.filter((c) => c.confidence >= data.min_confidence).length,
+    };
+  });
+
+export const peMergeIngredients = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      canonical_id: z.string().uuid(),
+      losing_ids: z.array(z.string().uuid()).min(1).max(50),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    if (data.losing_ids.includes(data.canonical_id)) {
+      throw new Error("Canonical id cannot be in losing_ids");
+    }
+
+    // Fetch all ingredients to validate same base_unit + capture losing names.
+    const allIds = [data.canonical_id, ...data.losing_ids];
+    const { data: rows, error: rowErr } = await supabaseAdmin
+      .from("pe_ingredients")
+      .select("id, canonical_name, base_unit")
+      .in("id", allIds);
+    if (rowErr) throw new Error(rowErr.message);
+    const byId = new Map((rows ?? []).map((r) => [r.id, r]));
+    const canonical = byId.get(data.canonical_id);
+    if (!canonical) throw new Error("Canonical ingredient not found");
+
+    for (const lid of data.losing_ids) {
+      const r = byId.get(lid);
+      if (!r) throw new Error(`Losing ingredient ${lid} not found`);
+      if (r.base_unit !== canonical.base_unit) {
+        throw new Error(
+          `Cannot merge ${r.canonical_name} (${r.base_unit}) into ${canonical.canonical_name} (${canonical.base_unit}): base units differ`,
+        );
+      }
+    }
+
+    let prices_repointed = 0;
+    let history_repointed = 0;
+    let audit_repointed = 0;
+    let aliases_added = 0;
+
+    // Repoint child rows to canonical.
+    for (const lid of data.losing_ids) {
+      const losing = byId.get(lid)!;
+
+      // pe_ingredient_prices: PK is ingredient_id (one price row per ingredient).
+      // If canonical already has a row, drop the losing row; otherwise re-point it.
+      const { data: canonHasPrice } = await supabaseAdmin
+        .from("pe_ingredient_prices")
+        .select("ingredient_id")
+        .eq("ingredient_id", data.canonical_id)
+        .maybeSingle();
+      if (canonHasPrice) {
+        const { error: delPriceErr } = await supabaseAdmin
+          .from("pe_ingredient_prices")
+          .delete()
+          .eq("ingredient_id", lid);
+        if (!delPriceErr) prices_repointed++;
+      } else {
+        const { error: upErr } = await supabaseAdmin
+          .from("pe_ingredient_prices")
+          .update({ ingredient_id: data.canonical_id })
+          .eq("ingredient_id", lid);
+        if (!upErr) prices_repointed++;
+      }
+
+      // pe_price_history
+      const { error: histErr, count: histCount } = await supabaseAdmin
+        .from("pe_price_history")
+        .update({ ingredient_id: data.canonical_id }, { count: "exact" })
+        .eq("ingredient_id", lid);
+      if (!histErr && histCount) history_repointed += histCount;
+
+      // pe_price_overrides_audit
+      const { error: auditErr, count: auditCount } = await supabaseAdmin
+        .from("pe_price_overrides_audit")
+        .update({ ingredient_id: data.canonical_id }, { count: "exact" })
+        .eq("ingredient_id", lid);
+      if (!auditErr && auditCount) audit_repointed += auditCount;
+
+      // Aliases: re-point existing aliases, then add the losing canonical_name itself as an alias.
+      await supabaseAdmin
+        .from("pe_ingredient_aliases")
+        .update({ ingredient_id: data.canonical_id })
+        .eq("ingredient_id", lid);
+
+      const aliasName = losing.canonical_name.toLowerCase().trim();
+      const { error: aliasErr } = await supabaseAdmin
+        .from("pe_ingredient_aliases")
+        .upsert(
+          { ingredient_id: data.canonical_id, alias: aliasName },
+          { onConflict: "alias", ignoreDuplicates: true },
+        );
+      if (!aliasErr) aliases_added++;
+    }
+
+    // Finally delete the losing ingredients (cascades clean up any orphans).
+    const { error: delErr } = await supabaseAdmin
+      .from("pe_ingredients")
+      .delete()
+      .in("id", data.losing_ids);
+    if (delErr) throw new Error(`Delete failed: ${delErr.message}`);
+
+    return {
+      merged_count: data.losing_ids.length,
+      prices_repointed,
+      history_repointed,
+      audit_repointed,
+      aliases_added,
+    };
+  });
+
 // ---------- PriceService ----------
+
 
 export const peListPrices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

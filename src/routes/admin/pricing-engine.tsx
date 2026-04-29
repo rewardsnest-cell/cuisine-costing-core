@@ -15,6 +15,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UnitTesterPanel } from "@/components/admin/pricing-engine/UnitTesterPanel";
+import { IngredientCleanupPanel } from "@/components/admin/pricing-engine/IngredientCleanupPanel";
 import {
   peListIngredients,
   peUpsertIngredient,
@@ -53,6 +54,7 @@ function PricingEnginePage() {
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
+          <TabsTrigger value="cleanup">Auto-match &amp; Clean</TabsTrigger>
           <TabsTrigger value="import">CSV Import</TabsTrigger>
           <TabsTrigger value="units">Unit Tester</TabsTrigger>
           <TabsTrigger value="history">Price History</TabsTrigger>
@@ -62,6 +64,7 @@ function PricingEnginePage() {
         <TabsContent value="status" className="mt-4"><StatusPanel /></TabsContent>
         <TabsContent value="ingredients" className="mt-4"><IngredientsPanel /></TabsContent>
         <TabsContent value="prices" className="mt-4"><PricesPanel /></TabsContent>
+        <TabsContent value="cleanup" className="mt-4"><IngredientCleanupPanel /></TabsContent>
         <TabsContent value="import" className="mt-4"><CsvImportPanel /></TabsContent>
         <TabsContent value="units" className="mt-4"><UnitTesterPanel /></TabsContent>
         <TabsContent value="history" className="mt-4"><HistoryPanel /></TabsContent>
