@@ -141,7 +141,9 @@ const createQuoteSchema = z.object({
     name: z.string().min(1).max(300),
     quantity: z.number().int().positive().default(1),
     unit_price: z.number().min(0).default(0),
+    section: z.enum(["appetizer","entree","side","dessert","beverage","staffing","rental","other"]).default("other"),
   })).min(0).max(200).default([]),
+  initial_state: z.enum(["draft","structured"]).default("draft"),
 });
 
 export const lifecycleCreateQuote = createServerFn({ method: "POST" })
