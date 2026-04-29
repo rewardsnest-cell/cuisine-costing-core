@@ -15,37 +15,10 @@ interface AuthContext {
 
 const AuthCtx = createContext<AuthContext | null>(null);
 
-// Best-effort synchronous read of a persisted Supabase session from
-// localStorage. Lets us hydrate `user`/`session` on the very first render so
-// the admin gate doesn't flash a "Checking your session…" loader on every
-// screen for already-signed-in users.
-function readPersistedSession(): Session | null {
-  if (typeof window === "undefined") return null;
-  try {
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
-      const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw);
-      // supabase-js stores either { currentSession } (legacy) or the session itself
-      const candidate = parsed?.currentSession ?? parsed;
-      if (candidate?.access_token && candidate?.user) {
-        return candidate as Session;
-      }
-    }
-  } catch {
-    // ignore — fall through to async getSession
-  }
-  return null;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const initialSession = readPersistedSession();
-  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
-  const [session, setSession] = useState<Session | null>(initialSession);
-  // Only show the loader when we don't already have a cached session.
-  const [loading, setLoading] = useState(!initialSession);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEmployee, setIsEmployee] = useState(false);
 
