@@ -4556,6 +4556,7 @@ export type Database = {
           quantity: number
           quote_id: string
           recipe_id: string | null
+          section: string
           total_price: number
           unit_price: number
         }
@@ -4565,6 +4566,7 @@ export type Database = {
           quantity?: number
           quote_id: string
           recipe_id?: string | null
+          section?: string
           total_price?: number
           unit_price?: number
         }
@@ -4574,6 +4576,7 @@ export type Database = {
           quantity?: number
           quote_id?: string
           recipe_id?: string | null
+          section?: string
           total_price?: number
           unit_price?: number
         }
@@ -4607,6 +4610,7 @@ export type Database = {
           dietary_preferences: Json | null
           event_date: string | null
           event_type: string | null
+          expires_at: string | null
           guest_count: number
           id: string
           is_test: boolean
@@ -4615,6 +4619,8 @@ export type Database = {
           notes: string | null
           quote_state: Database["public"]["Enums"]["quote_state"]
           reference_number: string | null
+          sent_at: string | null
+          sent_to_email: string | null
           source: string | null
           status: string
           subtotal: number | null
@@ -4637,6 +4643,7 @@ export type Database = {
           dietary_preferences?: Json | null
           event_date?: string | null
           event_type?: string | null
+          expires_at?: string | null
           guest_count?: number
           id?: string
           is_test?: boolean
@@ -4645,6 +4652,8 @@ export type Database = {
           notes?: string | null
           quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
           source?: string | null
           status?: string
           subtotal?: number | null
@@ -4667,6 +4676,7 @@ export type Database = {
           dietary_preferences?: Json | null
           event_date?: string | null
           event_type?: string | null
+          expires_at?: string | null
           guest_count?: number
           id?: string
           is_test?: boolean
@@ -4675,6 +4685,8 @@ export type Database = {
           notes?: string | null
           quote_state?: Database["public"]["Enums"]["quote_state"]
           reference_number?: string | null
+          sent_at?: string | null
+          sent_to_email?: string | null
           source?: string | null
           status?: string
           subtotal?: number | null
@@ -6577,6 +6589,7 @@ export type Database = {
         }
         Returns: string
       }
+      mark_expired_quotes: { Args: never; Returns: number }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -6733,6 +6746,9 @@ export type Database = {
         | "approved"
         | "invoiced"
         | "paid"
+        | "draft"
+        | "sent"
+        | "expired"
       recipe_ingredient_norm_status:
         | "normalized"
         | "blocked_missing_weight"
@@ -6932,6 +6948,9 @@ export const Constants = {
         "approved",
         "invoiced",
         "paid",
+        "draft",
+        "sent",
+        "expired",
       ],
       recipe_ingredient_norm_status: [
         "normalized",

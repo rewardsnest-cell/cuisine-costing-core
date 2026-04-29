@@ -26,7 +26,19 @@ import {
   lifecycleMarkInvoicePaid,
   lifecycleGenerateReceipt,
   lifecycleEventPackage,
+  quoteIngestUnstructured,
+  quoteSetStatus,
+  quoteGetFull,
+  quoteMarkSent,
 } from "@/lib/server-fns/event-lifecycle.functions";
+import {
+  generateVpsfinestQuotePDF,
+  type QuoteSection,
+  SECTION_LABEL,
+  SECTION_ORDER,
+} from "@/lib/admin/vpsfinest-quote-pdf";
+import { sendTransactionalEmail } from "@/lib/email/send";
+import { Wand2, Mail } from "lucide-react";
 
 type Event = {
   id: string; name: string; event_date: string | null; guest_count: number | null;
@@ -60,6 +72,10 @@ export function LifecyclePanel() {
   const markPaid     = useServerFn(lifecycleMarkInvoicePaid);
   const genReceipt   = useServerFn(lifecycleGenerateReceipt);
   const eventPackage = useServerFn(lifecycleEventPackage);
+  const ingest       = useServerFn(quoteIngestUnstructured);
+  const setStatus    = useServerFn(quoteSetStatus);
+  const getFull      = useServerFn(quoteGetFull);
+  const markSent     = useServerFn(quoteMarkSent);
 
   const [loading, setLoading] = useState(true);
   const [events, setEvents]     = useState<Event[]>([]);
@@ -70,6 +86,7 @@ export function LifecyclePanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [ingestDialogFor, setIngestDialogFor] = useState<Event | null>(null);
   const [payDialogFor, setPayDialogFor] = useState<Invoice | null>(null);
 
   const refresh = async () => {
@@ -134,6 +151,72 @@ export function LifecyclePanel() {
       URL.revokeObjectURL(url);
       toast.success("Event package downloaded");
     } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
+
+  const buildPdfFor = async (quoteId: string) => {
+    const r = await getFull({ data: { quote_id: quoteId } });
+    const q: any = r.quote;
+    const ev: any = q.cqh_events;
+    const items = (q.quote_items ?? []).map((it: any) => ({
+      section: (it.section ?? "other") as QuoteSection,
+      name: it.name, quantity: it.quantity, unit_price: Number(it.unit_price ?? 0),
+    }));
+    return {
+      doc: generateVpsfinestQuotePDF({
+        referenceNumber: q.reference_number,
+        issueDate: q.created_at,
+        expiresAt: q.expires_at,
+        clientName: ev?.customer_name, clientOrg: ev?.customer_org,
+        clientEmail: ev?.customer_email, clientPhone: ev?.customer_phone,
+        eventName: ev?.name, eventDate: q.event_date,
+        eventLocationName: ev?.event_location_name, eventLocationAddr: ev?.event_location_addr,
+        guestCount: q.guest_count, items, taxRate: Number(q.tax_rate ?? 0.08),
+        notes: q.notes,
+      }),
+      quote: q, event: ev,
+    };
+  };
+
+  const onDownloadPdf = async (q: Quote) => {
+    setBusy(q.id);
+    try {
+      const { doc, quote } = await buildPdfFor(q.id);
+      doc.save(`vpsfinest-quote-${quote.reference_number ?? q.id.slice(0, 8)}.pdf`);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
+
+  const onSendToClient = async (q: Quote) => {
+    setBusy(q.id);
+    try {
+      const { doc, quote, event } = await buildPdfFor(q.id);
+      if (!event?.customer_email) throw new Error("Customer email is missing on the event");
+      doc.save(`vpsfinest-quote-${quote.reference_number ?? q.id.slice(0, 8)}.pdf`);
+      // Best-effort email notification — non-fatal if email infra isn't set up yet.
+      const emailRes = await sendTransactionalEmail({
+        templateName: "quote-ready",
+        recipientEmail: event.customer_email,
+        idempotencyKey: `quote-sent-${q.id}`,
+        templateData: {
+          name: event.customer_name ?? "",
+          quoteNumber: quote.reference_number ?? "",
+          eventName: event.name ?? "",
+        },
+      }).catch(() => ({ ok: false }));
+      await markSent({ data: { quote_id: q.id, sent_to_email: event.customer_email } });
+      toast.success(emailRes.ok
+        ? "PDF downloaded · email sent · quote marked SENT"
+        : "PDF downloaded · quote marked SENT (email template not configured)");
+      await refresh();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
+
+  const onMarkExpired = async (q: Quote) => {
+    setBusy(q.id);
+    try { await setStatus({ data: { quote_id: q.id, to_state: "expired" } }); toast.success("Marked expired"); await refresh(); }
+    catch (e: any) { toast.error(e.message); }
     finally { setBusy(null); }
   };
 
@@ -204,6 +287,9 @@ export function LifecyclePanel() {
                       <TableCell className="text-sm">{e.guest_count ?? "—"}</TableCell>
                       <TableCell><Badge variant="outline">{evQuotes.length}</Badge></TableCell>
                       <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => setIngestDialogFor(e)}>
+                          <Wand2 className="w-4 h-4" /><span className="ml-1">Ingest</span>
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => onExportPackage(e.id)}
                           disabled={busy === e.id}>
                           {busy === e.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -255,7 +341,12 @@ export function LifecyclePanel() {
                           <div className="text-xs text-muted-foreground">{ev.customer_name}</div>
                         </> : <span className="text-destructive text-xs">unlinked</span>}
                       </TableCell>
-                      <TableCell><Badge variant="outline">{q.quote_state}</Badge></TableCell>
+                      <TableCell><Badge variant={
+                        q.quote_state === "paid" ? "default" :
+                        q.quote_state === "expired" ? "destructive" :
+                        q.quote_state === "approved" || q.quote_state === "invoiced" ? "default" :
+                        "outline"
+                      }>{q.quote_state}</Badge></TableCell>
                       <TableCell className="text-sm">${Number(q.total ?? 0).toFixed(2)}</TableCell>
                       <TableCell className="text-xs">
                         {inv
@@ -270,7 +361,15 @@ export function LifecyclePanel() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {q.quote_state !== "approved" && q.quote_state !== "invoiced" && q.quote_state !== "paid" && (
+                          <Button size="sm" variant="ghost" onClick={() => onDownloadPdf(q)} disabled={busy === q.id}>
+                            <FileText className="w-3 h-3 mr-1" /> PDF
+                          </Button>
+                          {(q.quote_state === "draft" || q.quote_state === "structured") && ev?.customer_email && (
+                            <Button size="sm" variant="outline" onClick={() => onSendToClient(q)} disabled={busy === q.id}>
+                              <Mail className="w-3 h-3 mr-1" /> Send
+                            </Button>
+                          )}
+                          {!["approved","invoiced","paid","expired"].includes(q.quote_state) && (
                             <Button size="sm" variant="outline" onClick={() => onApprove(q)} disabled={busy === q.id || !q.cqh_event_id}>
                               <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
                             </Button>
@@ -288,6 +387,11 @@ export function LifecyclePanel() {
                           {inv && inv.status === "paid" && !rcpt && (
                             <Button size="sm" onClick={() => onReceipt(inv)} disabled={busy === inv.id}>
                               <PackageCheck className="w-3 h-3 mr-1" /> Receipt
+                            </Button>
+                          )}
+                          {(q.quote_state === "draft" || q.quote_state === "sent") && (
+                            <Button size="sm" variant="ghost" onClick={() => onMarkExpired(q)} disabled={busy === q.id}>
+                              Expire
                             </Button>
                           )}
                         </div>
@@ -319,6 +423,12 @@ export function LifecyclePanel() {
         onClose={() => setPayDialogFor(null)}
         onPaid={async () => { setPayDialogFor(null); await refresh(); }}
         markPaid={markPaid}
+      />
+      <IngestDialog
+        event={ingestDialogFor}
+        onClose={() => setIngestDialogFor(null)}
+        onCreated={async () => { setIngestDialogFor(null); await refresh(); }}
+        ingestFn={ingest}
       />
     </div>
   );
@@ -562,3 +672,53 @@ function PayInvoiceDialog({ invoice, onClose, onPaid, markPaid }: any) {
     </Dialog>
   );
 }
+
+function IngestDialog({ event, onClose, onCreated, ingestFn }: any) {
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("pasted notes");
+  const [saving, setSaving] = useState(false);
+  if (!event) return null;
+  const submit = async () => {
+    if (text.trim().length < 10) { toast.error("Paste at least a few lines of notes"); return; }
+    setSaving(true);
+    try {
+      const r = await ingestFn({ data: {
+        cqh_event_id: event.id, raw_text: text.trim(), source_label: source.trim() || null,
+      }});
+      const missing = r.missing_fields?.length ? ` · Needs follow-up: ${r.missing_fields.join(", ")}` : "";
+      toast.success(`Draft quote ${r.quote.reference_number} created${missing}`);
+      onCreated();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open={!!event} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Ingest Notes → Draft Quote</DialogTitle></DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="font-medium">{event.name}</div>
+            <div className="text-xs text-muted-foreground">{event.customer_name} · {event.event_date ?? "no date"}</div>
+          </div>
+          <div><Label>Source label</Label>
+            <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="email, handwritten, call notes…" /></div>
+          <div><Label>Unstructured input</Label>
+            <Textarea rows={10} value={text} onChange={(e) => setText(e.target.value)}
+              placeholder="Paste handwritten notes, an email thread, or pasted text. Prices are never invented — leave them blank if not stated." /></div>
+          <p className="text-xs text-muted-foreground">
+            AI categorizes items into appetizers / entrées / sides / desserts / beverages / staffing / rentals.
+            Items without a stated price are flagged "Estimate pending" on the PDF.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+            Generate Draft
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
