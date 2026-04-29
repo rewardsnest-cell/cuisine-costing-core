@@ -100,6 +100,56 @@ export const peDeleteIngredient = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const STARTER_INGREDIENTS = [
+  { canonical_name: "Chicken Breast", base_unit: "lb", category: "protein", aliases: ["chicken", "boneless chicken breast"] },
+  { canonical_name: "Ground Beef", base_unit: "lb", category: "protein", aliases: ["beef", "hamburger meat"] },
+  { canonical_name: "Olive Oil", base_unit: "ml", category: "pantry", aliases: ["extra virgin olive oil", "evoo"] },
+  { canonical_name: "Garlic", base_unit: "each", category: "produce", aliases: ["garlic clove", "garlic cloves"] },
+  { canonical_name: "Onion", base_unit: "lb", category: "produce", aliases: ["yellow onion", "onions"] },
+  { canonical_name: "Tomato", base_unit: "lb", category: "produce", aliases: ["tomatoes", "roma tomato"] },
+  { canonical_name: "Rice", base_unit: "lb", category: "dry goods", aliases: ["white rice", "long grain rice"] },
+  { canonical_name: "Flour", base_unit: "lb", category: "dry goods", aliases: ["all purpose flour", "ap flour"] },
+  { canonical_name: "Sugar", base_unit: "lb", category: "dry goods", aliases: ["granulated sugar", "white sugar"] },
+  { canonical_name: "Milk", base_unit: "ml", category: "dairy", aliases: ["whole milk", "2% milk"] },
+] as const;
+
+export const peSeedStarterIngredients = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const ingredientRows = STARTER_INGREDIENTS.map(({ aliases: _aliases, ...row }) => ({
+      ...row,
+      notes: "Starter ingredient for Pricing v3 bootstrap",
+    }));
+    const { error: upsertError } = await supabaseAdmin
+      .from("pe_ingredients")
+      .upsert(ingredientRows, { onConflict: "canonical_name" });
+    if (upsertError) throw new Error(upsertError.message);
+
+    const names = STARTER_INGREDIENTS.map((i) => i.canonical_name);
+    const { data: ingredients, error: listError } = await supabaseAdmin
+      .from("pe_ingredients")
+      .select("id, canonical_name")
+      .in("canonical_name", names);
+    if (listError) throw new Error(listError.message);
+
+    const idByName = new Map((ingredients ?? []).map((i) => [i.canonical_name, i.id]));
+    const aliasRows = STARTER_INGREDIENTS.flatMap((ing) => {
+      const ingredient_id = idByName.get(ing.canonical_name);
+      return ingredient_id
+        ? ing.aliases.map((alias) => ({ ingredient_id, alias: alias.toLowerCase().trim() }))
+        : [];
+    });
+    if (aliasRows.length > 0) {
+      const { error: aliasError } = await supabaseAdmin
+        .from("pe_ingredient_aliases")
+        .upsert(aliasRows, { onConflict: "alias" });
+      if (aliasError) throw new Error(aliasError.message);
+    }
+
+    return { inserted_or_updated: ingredientRows.length, aliases: aliasRows.length };
+  });
+
 // ---------- PriceService ----------
 
 export const peListPrices = createServerFn({ method: "GET" })
