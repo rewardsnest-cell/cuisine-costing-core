@@ -341,7 +341,12 @@ export function LifecyclePanel() {
                           <div className="text-xs text-muted-foreground">{ev.customer_name}</div>
                         </> : <span className="text-destructive text-xs">unlinked</span>}
                       </TableCell>
-                      <TableCell><Badge variant="outline">{q.quote_state}</Badge></TableCell>
+                      <TableCell><Badge variant={
+                        q.quote_state === "paid" ? "default" :
+                        q.quote_state === "expired" ? "destructive" :
+                        q.quote_state === "approved" || q.quote_state === "invoiced" ? "default" :
+                        "outline"
+                      }>{q.quote_state}</Badge></TableCell>
                       <TableCell className="text-sm">${Number(q.total ?? 0).toFixed(2)}</TableCell>
                       <TableCell className="text-xs">
                         {inv
@@ -356,7 +361,15 @@ export function LifecyclePanel() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {q.quote_state !== "approved" && q.quote_state !== "invoiced" && q.quote_state !== "paid" && (
+                          <Button size="sm" variant="ghost" onClick={() => onDownloadPdf(q)} disabled={busy === q.id}>
+                            <FileText className="w-3 h-3 mr-1" /> PDF
+                          </Button>
+                          {(q.quote_state === "draft" || q.quote_state === "structured") && ev?.customer_email && (
+                            <Button size="sm" variant="outline" onClick={() => onSendToClient(q)} disabled={busy === q.id}>
+                              <Mail className="w-3 h-3 mr-1" /> Send
+                            </Button>
+                          )}
+                          {!["approved","invoiced","paid","expired"].includes(q.quote_state) && (
                             <Button size="sm" variant="outline" onClick={() => onApprove(q)} disabled={busy === q.id || !q.cqh_event_id}>
                               <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
                             </Button>
@@ -374,6 +387,11 @@ export function LifecyclePanel() {
                           {inv && inv.status === "paid" && !rcpt && (
                             <Button size="sm" onClick={() => onReceipt(inv)} disabled={busy === inv.id}>
                               <PackageCheck className="w-3 h-3 mr-1" /> Receipt
+                            </Button>
+                          )}
+                          {(q.quote_state === "draft" || q.quote_state === "sent") && (
+                            <Button size="sm" variant="ghost" onClick={() => onMarkExpired(q)} disabled={busy === q.id}>
+                              Expire
                             </Button>
                           )}
                         </div>
