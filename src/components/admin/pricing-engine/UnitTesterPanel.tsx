@@ -159,9 +159,26 @@ function SingleTester() {
         >
           Auto-fill expected
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const ref = expectedNum ?? result.actual;
+            if (ref !== null && Number.isFinite(ref)) {
+              setTolerance(formatNum(suggestTolerance(ref)));
+            }
+          }}
+          disabled={result.actual === null && (expectedNum === null || !Number.isFinite(expectedNum))}
+          title="Set tolerance to ~5 significant digits of the result magnitude"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-set tolerance
+        </Button>
         <span className="text-xs text-muted-foreground">
           Auto-convert picks the canonical base unit for the From dimension
-          (weight → lb, volume → fl oz, count → each).
+          (weight → lb, volume → fl oz, count → each). Auto-set tolerance scales
+          to the result magnitude (≈5 significant digits).
         </span>
       </div>
 
@@ -227,6 +244,14 @@ function BatchTester() {
         >
           <Wand2 className="mr-1 h-3.5 w-3.5" />
           Auto-fill expected
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setCsv(autoSetTolerance(csv))}
+          title="Set each row's tolerance to ~5 significant digits of its expected/actual value"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-set tolerance
         </Button>
         {ran && (
           <div className="ml-auto flex items-center gap-2 text-sm">
@@ -350,6 +375,73 @@ function formatNum(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
   if (Math.abs(n) >= 1000 || (Math.abs(n) > 0 && Math.abs(n) < 0.001)) return n.toExponential(4);
   return Number(n.toFixed(6)).toString();
+}
+
+/**
+ * Suggest a tolerance based on the magnitude of the expected/actual value.
+ * Targets ~5 significant digits of precision: tolerance ≈ |value| * 1e-5.
+ * Floor: 1e-6 (sub-milligram noise). Ceiling: 0.5 (avoid absurd tolerances on huge numbers).
+ * For value === 0, returns 1e-6.
+ */
+function suggestTolerance(value: number): number {
+  const v = Math.abs(value);
+  if (!Number.isFinite(v)) return 0.001;
+  if (v === 0) return 1e-6;
+  const raw = v * 1e-5;
+  const clamped = Math.min(0.5, Math.max(1e-6, raw));
+  // Round to 2 significant digits for a clean display value
+  const mag = Math.pow(10, Math.floor(Math.log10(clamped)) - 1);
+  return Math.round(clamped / mag) * mag;
+}
+
+/**
+ * Recompute the `tolerance` column of a CSV using suggestTolerance() against
+ * each row's expected value (or computed actual when expected is missing).
+ */
+function autoSetTolerance(text: string): string {
+  const rawLines = text.split(/\r?\n/);
+  let headerCols: string[] | null = null;
+  let iQty = -1, iFrom = -1, iTo = -1, iExp = -1, iTol = -1;
+  const out: string[] = [];
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) {
+      out.push(raw);
+      continue;
+    }
+    if (!headerCols) {
+      headerCols = line.toLowerCase().split(",").map((s) => s.trim());
+      iQty = headerCols.indexOf("qty");
+      iFrom = headerCols.indexOf("from");
+      iTo = headerCols.indexOf("to");
+      iExp = headerCols.indexOf("expected");
+      iTol = headerCols.indexOf("tolerance");
+      if (iTol < 0) {
+        headerCols.push("tolerance");
+        iTol = headerCols.length - 1;
+      }
+      out.push(headerCols.join(","));
+      continue;
+    }
+    const cols = line.split(",").map((s) => s.trim());
+    while (cols.length < headerCols.length) cols.push("");
+    let ref: number | null = null;
+    if (iExp >= 0 && cols[iExp] !== "" && Number.isFinite(Number(cols[iExp]))) {
+      ref = Number(cols[iExp]);
+    } else {
+      const qty = Number(cols[iQty]);
+      const from = cols[iFrom] ?? "";
+      const to = cols[iTo] ?? "";
+      if (Number.isFinite(qty) && from && to) {
+        const a = convertQty(qty, from, to);
+        if (a !== null) ref = a;
+      }
+    }
+    if (ref !== null) cols[iTol] = formatNum(suggestTolerance(ref));
+    out.push(cols.join(","));
+  }
+  return out.join("\n");
 }
 
 /**
