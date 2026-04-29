@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
+import { UserNavOverridesPanel } from "@/components/admin/UserNavOverridesPanel";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
@@ -45,6 +46,7 @@ function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, EventLite[] | "loading" | undefined>>({});
+  const [navOpen, setNavOpen] = useState<Record<string, boolean>>({});
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
