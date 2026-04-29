@@ -19,6 +19,7 @@ import {
   peListIngredients,
   peUpsertIngredient,
   peDeleteIngredient,
+  peSeedStarterIngredients,
   peListPrices,
   peRefreshPrices,
   peManualOverride,
@@ -47,7 +48,7 @@ function PricingEnginePage() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="flex h-auto w-full flex-wrap items-stretch justify-start gap-1 overflow-visible rounded-md p-1">
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
@@ -121,9 +122,11 @@ function IngredientsPanel() {
   const list = useServerFn(peListIngredients);
   const upsert = useServerFn(peUpsertIngredient);
   const del = useServerFn(peDeleteIngredient);
+  const seedStarter = useServerFn(peSeedStarterIngredients);
   const [data, setData] = useState<{ ingredients: any[]; aliases: any[] }>({ ingredients: [], aliases: [] });
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const load = async () => {
     try { setData(await list()); } catch (e: any) { toast.error(e.message); }
@@ -157,6 +160,16 @@ function IngredientsPanel() {
     catch (e: any) { toast.error(e.message); }
   };
 
+  const seed = async () => {
+    setSeeding(true);
+    try {
+      const r = await seedStarter();
+      toast.success(`Starter ingredients ready (${r.inserted_or_updated} ingredients, ${r.aliases} aliases)`);
+      await load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSeeding(false); }
+  };
+
   return (
     <Card>
       <CardHeader className="flex-row justify-between items-center">
@@ -164,9 +177,17 @@ function IngredientsPanel() {
           <CardTitle>Canonical Ingredients</CardTitle>
           <CardDescription>Define one row per real ingredient with its base unit. Aliases map alternate names to the same ingredient.</CardDescription>
         </div>
-        <Button onClick={startNew}><Plus className="w-4 h-4 mr-1" />New</Button>
+        <div className="flex flex-wrap gap-2">
+          {data.ingredients.length === 0 && (
+            <Button variant="outline" onClick={seed} disabled={seeding}>
+              <Plus className="w-4 h-4 mr-1" />Add Starter Set
+            </Button>
+          )}
+          <Button onClick={startNew}><Plus className="w-4 h-4 mr-1" />New</Button>
+        </div>
       </CardHeader>
       <CardContent>
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Name</TableHead><TableHead>Base Unit</TableHead><TableHead>Category</TableHead>
@@ -187,11 +208,12 @@ function IngredientsPanel() {
             ))}
             {data.ingredients.length === 0 && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No ingredients yet — click <strong>New</strong> to add the first one.
+                No ingredients yet — add the starter set, import prices by CSV, or click <strong>New</strong> to add one manually.
               </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -243,6 +265,7 @@ function IngredientsPanel() {
 function PricesPanel() {
   const listPrices = useServerFn(peListPrices);
   const refresh = useServerFn(peRefreshPrices);
+  const seedStarter = useServerFn(peSeedStarterIngredients);
   const overrideFn = useServerFn(peManualOverride);
   const [rows, setRows] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
@@ -259,7 +282,8 @@ function PricesPanel() {
     setBusy(true);
     try {
       const r = await refresh({ data: {} });
-      toast.success(`Refreshed ${r.processed} ingredients`);
+      if (r.processed === 0) toast.warning("No ingredients found. Add ingredients or use the starter set first.");
+      else toast.success(`Refreshed ${r.processed} ingredients`);
       load();
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   };
@@ -268,6 +292,16 @@ function PricesPanel() {
     setBusy(true);
     try { await refresh({ data: { ingredient_ids: [id] } }); toast.success("Refreshed"); load(); }
     catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  };
+
+  const seedAndLoad = async () => {
+    setBusy(true);
+    try {
+      const r = await seedStarter();
+      toast.success(`Starter ingredients ready (${r.inserted_or_updated} ingredients)`);
+      await load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(false); }
   };
 
   const submitOverride = async () => {
@@ -297,6 +331,7 @@ function PricesPanel() {
         </Button>
       </CardHeader>
       <CardContent>
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Ingredient</TableHead><TableHead>Base Unit</TableHead>
@@ -342,11 +377,17 @@ function PricesPanel() {
             ))}
             {rows.length === 0 && (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                Add ingredients first.
+                <div className="flex flex-col items-center gap-3">
+                  <span>No ingredients yet. Add the starter set first, then refresh prices.</span>
+                  <Button variant="outline" onClick={seedAndLoad} disabled={busy}>
+                    <Plus className="w-4 h-4 mr-1" />Add Starter Set
+                  </Button>
+                </div>
               </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
 
       <Dialog open={!!overrideTarget} onOpenChange={(o) => !o && setOverrideTarget(null)}>
