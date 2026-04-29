@@ -1097,9 +1097,17 @@ export type Database = {
       }
       cqh_events: {
         Row: {
+          billing_address: string | null
           created_at: string
           created_by: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_notes: string | null
+          customer_org: string | null
+          customer_phone: string | null
           event_date: string | null
+          event_location_addr: string | null
+          event_location_name: string | null
           guest_count: number | null
           id: string
           name: string
@@ -1107,9 +1115,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_address?: string | null
           created_at?: string
           created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_org?: string | null
+          customer_phone?: string | null
           event_date?: string | null
+          event_location_addr?: string | null
+          event_location_name?: string | null
           guest_count?: number | null
           id?: string
           name: string
@@ -1117,9 +1133,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_address?: string | null
           created_at?: string
           created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_org?: string | null
+          customer_phone?: string | null
           event_date?: string | null
+          event_location_addr?: string | null
+          event_location_name?: string | null
           guest_count?: number | null
           id?: string
           name?: string
@@ -1347,6 +1371,70 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      customer_payment_receipts: {
+        Row: {
+          amount: number
+          cqh_event_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          paid_at: string
+          payment_method: string | null
+          quote_id: string
+          receipt_number: string | null
+          reference_note: string | null
+        }
+        Insert: {
+          amount: number
+          cqh_event_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          paid_at?: string
+          payment_method?: string | null
+          quote_id: string
+          receipt_number?: string | null
+          reference_note?: string | null
+        }
+        Update: {
+          amount?: number
+          cqh_event_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          paid_at?: string
+          payment_method?: string | null
+          quote_id?: string
+          receipt_number?: string | null
+          reference_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payment_receipts_cqh_event_id_fkey"
+            columns: ["cqh_event_id"]
+            isOneToOne: false
+            referencedRelation: "cqh_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payment_receipts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_payment_receipts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       decision_logs: {
         Row: {
@@ -2157,6 +2245,132 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          description: string | null
+          id: string
+          invoice_id: string
+          name: string
+          position: number
+          quantity: number
+          source_quote_item_id: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          invoice_id: string
+          name: string
+          position?: number
+          quantity?: number
+          source_quote_item_id?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          name?: string
+          position?: number
+          quantity?: number
+          source_quote_item_id?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_source_quote_item_id_fkey"
+            columns: ["source_quote_item_id"]
+            isOneToOne: false
+            referencedRelation: "quote_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          balance_due: number | null
+          cqh_event_id: string
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          issue_date: string
+          notes: string | null
+          quote_id: string
+          status: string
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          balance_due?: number | null
+          cqh_event_id: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          notes?: string | null
+          quote_id: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          balance_due?: number | null
+          cqh_event_id?: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          notes?: string | null
+          quote_id?: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_cqh_event_id_fkey"
+            columns: ["cqh_event_id"]
+            isOneToOne: false
+            referencedRelation: "cqh_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -6516,6 +6730,9 @@ export type Database = {
         | "info_collected"
         | "structured"
         | "awaiting_pricing"
+        | "approved"
+        | "invoiced"
+        | "paid"
       recipe_ingredient_norm_status:
         | "normalized"
         | "blocked_missing_weight"
@@ -6712,6 +6929,9 @@ export const Constants = {
         "info_collected",
         "structured",
         "awaiting_pricing",
+        "approved",
+        "invoiced",
+        "paid",
       ],
       recipe_ingredient_norm_status: [
         "normalized",
