@@ -425,3 +425,206 @@ export const peComputeRecipeCost = createServerFn({ method: "POST" })
       complete: !anyMissing,
     };
   });
+
+// ---------- CSV Import ----------
+// Accepted columns (case-insensitive, header row required):
+//   ingredient (required)        — canonical name OR alias
+//   price (required)             — numeric, USD
+//   unit (optional)              — unit the price is per (e.g. lb, oz, kg, each).
+//                                  If omitted, price is assumed to already be per ingredient base unit.
+//   note (optional)              — audit note (defaults to "CSV import <timestamp>")
+
+const csvImportSchema = z.object({
+  rows: z
+    .array(
+      z.object({
+        ingredient: z.string().min(1).max(200),
+        price: z.number().positive().max(99999),
+        unit: z.string().max(32).optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
+      }),
+    )
+    .min(1)
+    .max(2000),
+  default_note: z.string().max(500).optional(),
+  dry_run: z.boolean().optional(),
+});
+
+type CsvImportResultRow = {
+  input_ingredient: string;
+  input_price: number;
+  input_unit: string | null;
+  matched_ingredient_id: string | null;
+  matched_canonical_name: string | null;
+  base_unit: string | null;
+  price_per_base_unit: number | null;
+  status: "ok" | "not_found" | "ambiguous" | "bad_unit" | "error";
+  message: string | null;
+};
+
+export const peImportPricesCsv = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => csvImportSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    // Build lookup maps once
+    const [ingRes, aliasRes] = await Promise.all([
+      supabaseAdmin.from("pe_ingredients").select("id, canonical_name, base_unit"),
+      supabaseAdmin.from("pe_ingredient_aliases").select("ingredient_id, alias"),
+    ]);
+    if (ingRes.error) throw new Error(ingRes.error.message);
+    if (aliasRes.error) throw new Error(aliasRes.error.message);
+
+    const byCanonical = new Map<string, { id: string; canonical_name: string; base_unit: string }>();
+    for (const ing of ingRes.data ?? []) {
+      byCanonical.set(ing.canonical_name.toLowerCase().trim(), ing);
+    }
+    const byAlias = new Map<string, string>(); // alias -> ingredient_id
+    for (const a of aliasRes.data ?? []) {
+      byAlias.set(a.alias.toLowerCase().trim(), a.ingredient_id);
+    }
+    const ingById = new Map((ingRes.data ?? []).map((i) => [i.id, i]));
+
+    const results: CsvImportResultRow[] = [];
+    const toUpsert: any[] = [];
+    const toHistory: any[] = [];
+    const toAudit: any[] = [];
+    const defaultNote = data.default_note?.trim() || `CSV import ${new Date().toISOString()}`;
+
+    // Cache previous prices to populate audit "previous_price" column
+    const previousPriceMap = new Map<string, number | null>();
+    {
+      const ids = (ingRes.data ?? []).map((i) => i.id);
+      if (ids.length > 0) {
+        const { data: prev } = await supabaseAdmin
+          .from("pe_ingredient_prices")
+          .select("ingredient_id, price_per_base_unit")
+          .in("ingredient_id", ids);
+        for (const p of prev ?? []) {
+          previousPriceMap.set(
+            p.ingredient_id,
+            p.price_per_base_unit != null ? Number(p.price_per_base_unit) : null,
+          );
+        }
+      }
+    }
+
+    for (const row of data.rows) {
+      const key = row.ingredient.toLowerCase().trim();
+      const direct = byCanonical.get(key);
+      const aliasId = byAlias.get(key);
+      const ing = direct ?? (aliasId ? ingById.get(aliasId) : undefined);
+
+      if (!ing) {
+        results.push({
+          input_ingredient: row.ingredient,
+          input_price: row.price,
+          input_unit: row.unit ?? null,
+          matched_ingredient_id: null,
+          matched_canonical_name: null,
+          base_unit: null,
+          price_per_base_unit: null,
+          status: "not_found",
+          message: "No canonical ingredient or alias matched. Add it on the Ingredients tab first.",
+        });
+        continue;
+      }
+
+      // Convert price to per-base-unit if a source unit is provided.
+      // If the user gives "$2.50/lb" and base_unit is "oz", we need price per oz:
+      //   price_per_base = price_per_unit × (1 unit_in_base_units)^-1
+      //   (1 of unit  ->  X of base)  =>  price/base = price/unit * (unit/base)
+      //   Easier: 1 base_unit = convertQty(1, base_unit, unit) of unit
+      //           => price_per_base = price_per_unit * convertQty(1, base_unit, unit)
+      let pricePerBase = row.price;
+      if (row.unit && row.unit.trim().length > 0) {
+        const conv = convertQty(1, ing.base_unit, row.unit.trim());
+        if (conv == null) {
+          results.push({
+            input_ingredient: row.ingredient,
+            input_price: row.price,
+            input_unit: row.unit,
+            matched_ingredient_id: ing.id,
+            matched_canonical_name: ing.canonical_name,
+            base_unit: ing.base_unit,
+            price_per_base_unit: null,
+            status: "bad_unit",
+            message: `Cannot convert ${row.unit} → ${ing.base_unit} (different dimension).`,
+          });
+          continue;
+        }
+        pricePerBase = row.price * conv;
+      }
+
+      const note = row.note?.trim() || defaultNote;
+      const nowIso = new Date().toISOString();
+
+      toUpsert.push({
+        ingredient_id: ing.id,
+        price_per_base_unit: pricePerBase,
+        currency: "USD",
+        source: "csv_import",
+        is_manual_override: true,
+        override_note: note,
+        status: "ok",
+        last_error: null,
+        last_updated: nowIso,
+      });
+      toHistory.push({
+        ingredient_id: ing.id,
+        price_per_base_unit: pricePerBase,
+        currency: "USD",
+        source: "csv_import",
+        is_manual_override: true,
+        override_note: note,
+        changed_by: context.userId,
+      });
+      toAudit.push({
+        ingredient_id: ing.id,
+        previous_price: previousPriceMap.get(ing.id) ?? null,
+        new_price: pricePerBase,
+        note,
+        admin_user_id: context.userId,
+      });
+
+      results.push({
+        input_ingredient: row.ingredient,
+        input_price: row.price,
+        input_unit: row.unit ?? null,
+        matched_ingredient_id: ing.id,
+        matched_canonical_name: ing.canonical_name,
+        base_unit: ing.base_unit,
+        price_per_base_unit: pricePerBase,
+        status: "ok",
+        message: null,
+      });
+    }
+
+    if (!data.dry_run && toUpsert.length > 0) {
+      const { error: upErr } = await supabaseAdmin
+        .from("pe_ingredient_prices")
+        .upsert(toUpsert);
+      if (upErr) throw new Error(`Price upsert failed: ${upErr.message}`);
+
+      const { error: histErr } = await supabaseAdmin
+        .from("pe_price_history")
+        .insert(toHistory);
+      if (histErr) throw new Error(`History insert failed: ${histErr.message}`);
+
+      const { error: auditErr } = await supabaseAdmin
+        .from("pe_price_overrides_audit")
+        .insert(toAudit);
+      if (auditErr) throw new Error(`Audit insert failed: ${auditErr.message}`);
+    }
+
+    const summary = {
+      total: results.length,
+      applied: data.dry_run ? 0 : toUpsert.length,
+      ok: results.filter((r) => r.status === "ok").length,
+      not_found: results.filter((r) => r.status === "not_found").length,
+      bad_unit: results.filter((r) => r.status === "bad_unit").length,
+      dry_run: !!data.dry_run,
+    };
+    return { summary, results };
+  });
