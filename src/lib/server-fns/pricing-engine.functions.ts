@@ -1492,3 +1492,70 @@ export const peOverview = createServerFn({ method: "GET" })
       recent_changes: recent,
     };
   });
+
+// ---------- Match Settings ----------
+
+const matchSettingsSchema = z.object({
+  link_threshold: z.number().min(0).max(1),
+  auto_merge_threshold: z.number().min(0).max(1),
+  ignore_tokens: z.array(z.string().min(1).max(40)).max(200),
+  require_unit_match: z.boolean(),
+  use_ai_default: z.boolean(),
+}).refine((v) => v.auto_merge_threshold >= v.link_threshold, {
+  message: "Auto-merge threshold must be ≥ link threshold",
+  path: ["auto_merge_threshold"],
+});
+
+export const peGetMatchSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("pe_match_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      settings: data ?? {
+        id: 1,
+        link_threshold: 0.7,
+        auto_merge_threshold: 0.85,
+        ignore_tokens: DEFAULT_IGNORE_TOKENS,
+        require_unit_match: true,
+        use_ai_default: true,
+      },
+      defaults: {
+        ignore_tokens: DEFAULT_IGNORE_TOKENS,
+      },
+    };
+  });
+
+export const peSaveMatchSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => matchSettingsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    // Normalize tokens: lowercase, trim, dedupe.
+    const tokens = Array.from(
+      new Set(
+        data.ignore_tokens
+          .map((t) => t.toLowerCase().trim())
+          .filter((t) => t.length > 0),
+      ),
+    );
+    const { data: row, error } = await supabaseAdmin
+      .from("pe_match_settings")
+      .upsert({
+        id: 1,
+        link_threshold: data.link_threshold,
+        auto_merge_threshold: data.auto_merge_threshold,
+        ignore_tokens: tokens,
+        require_unit_match: data.require_unit_match,
+        use_ai_default: data.use_ai_default,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return { ok: true, settings: row };
+  });
