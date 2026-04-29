@@ -1067,6 +1067,8 @@ export const peImportPricesCsv = createServerFn({ method: "POST" })
   .inputValidator((d) => csvImportSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    const { ensureUnitSynonymsLoaded } = await import("@/lib/server/pricing-engine/load-synonyms");
+    await ensureUnitSynonymsLoaded();
 
     // Build lookup maps once
     const [ingRes, aliasRes] = await Promise.all([
