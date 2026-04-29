@@ -24,9 +24,10 @@ import {
   peGetPriceHistory,
   peStatus,
   peComputeRecipeCost,
+  peImportPricesCsv,
 } from "@/lib/server-fns/pricing-engine.functions";
 import { ALLOWED_BASE_UNITS } from "@/lib/server/pricing-engine/units";
-import { RefreshCw, Plus, Trash2, AlertTriangle, CheckCircle2, Edit3 } from "lucide-react";
+import { RefreshCw, Plus, Trash2, AlertTriangle, CheckCircle2, Edit3, Upload, Download, FileSpreadsheet } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pricing-engine")({
   head: () => ({ meta: [{ title: "Pricing Engine — VPS Finest" }] }),
