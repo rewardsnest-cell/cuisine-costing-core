@@ -9,6 +9,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { convertQty, normalizeUnit, ALLOWED_BASE_UNITS } from "@/lib/server/pricing-engine/units";
+import { Wand2 } from "lucide-react";
+
+const WEIGHT_UNITS = ["lb", "lbs", "pound", "pounds", "oz", "ounce", "ounces", "g", "gram", "grams", "kg", "kilogram", "kilograms"];
+const VOLUME_UNITS = ["fl oz", "floz", "fluid ounce", "fluid ounces", "cup", "cups", "c", "tbsp", "tablespoon", "tablespoons", "tsp", "teaspoon", "teaspoons", "pt", "pint", "pints", "qt", "quart", "quarts", "gal", "gallon", "gallons", "ml", "milliliter", "milliliters", "l", "liter", "liters", "litre"];
+const COUNT_UNITS = ["each", "ea", "piece", "pieces", "whole", "unit", "units", "clove", "cloves", "slice", "slices", "head", "heads", "bunch", "bunches", "sprig", "sprigs"];
+
+function dimensionOf(u: string): "weight" | "volume" | "count" | null {
+  const n = normalizeUnit(u);
+  if (WEIGHT_UNITS.includes(n)) return "weight";
+  if (VOLUME_UNITS.includes(n)) return "volume";
+  if (COUNT_UNITS.includes(n)) return "count";
+  return null;
+}
+
+function canonicalBaseFor(u: string): string | null {
+  const dim = dimensionOf(u);
+  if (dim === "weight") return "lb";
+  if (dim === "volume") return "fl oz";
+  if (dim === "count") return "each";
+  return null;
+}
 
 type BatchRow = {
   qty: number;
@@ -113,6 +134,37 @@ function SingleTester() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const base = canonicalBaseFor(from);
+            if (base) setTo(base);
+          }}
+          disabled={!canonicalBaseFor(from) || canonicalBaseFor(from) === normalizeUnit(to)}
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-convert to base
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (result.actual !== null) setExpected(formatNum(result.actual));
+          }}
+          disabled={result.actual === null}
+        >
+          Auto-fill expected
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Auto-convert picks the canonical base unit for the From dimension
+          (weight → lb, volume → fl oz, count → each).
+        </span>
+      </div>
+
       <div className="rounded-md border bg-muted/30 p-4">
         {result.error ? (
           <div className="text-sm text-destructive">{result.error}</div>
@@ -163,10 +215,18 @@ function BatchTester() {
           Header row required. <code>tolerance</code> defaults to <code>0.001</code> if omitted.
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button onClick={run}>Run tests</Button>
         <Button variant="outline" onClick={() => setCsv(SAMPLE_CSV)}>
           Load sample
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setCsv(autoFillExpected(csv))}
+          title="Compute expected values for every row using convertQty"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-fill expected
         </Button>
         {ran && (
           <div className="ml-auto flex items-center gap-2 text-sm">
@@ -290,4 +350,54 @@ function formatNum(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
   if (Math.abs(n) >= 1000 || (Math.abs(n) > 0 && Math.abs(n) < 0.001)) return n.toExponential(4);
   return Number(n.toFixed(6)).toString();
+}
+
+/**
+ * Recompute the `expected` column of a CSV by running convertQty on each row.
+ * Preserves header order, comments, and existing `tolerance` values.
+ */
+function autoFillExpected(text: string): string {
+  const rawLines = text.split(/\r?\n/);
+  let headerCols: string[] | null = null;
+  let iQty = -1, iFrom = -1, iTo = -1, iExp = -1, iTol = -1;
+  const out: string[] = [];
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) {
+      out.push(raw);
+      continue;
+    }
+    if (!headerCols) {
+      headerCols = line.toLowerCase().split(",").map((s) => s.trim());
+      iQty = headerCols.indexOf("qty");
+      iFrom = headerCols.indexOf("from");
+      iTo = headerCols.indexOf("to");
+      iExp = headerCols.indexOf("expected");
+      iTol = headerCols.indexOf("tolerance");
+      // Ensure expected/tolerance columns exist
+      if (iExp < 0) {
+        headerCols.push("expected");
+        iExp = headerCols.length - 1;
+      }
+      if (iTol < 0) {
+        headerCols.push("tolerance");
+        iTol = headerCols.length - 1;
+      }
+      out.push(headerCols.join(","));
+      continue;
+    }
+    const cols = line.split(",").map((s) => s.trim());
+    while (cols.length < headerCols.length) cols.push("");
+    const qty = Number(cols[iQty]);
+    const from = cols[iFrom] ?? "";
+    const to = cols[iTo] ?? "";
+    if (Number.isFinite(qty) && from && to) {
+      const actual = convertQty(qty, from, to);
+      cols[iExp] = actual === null ? "" : formatNum(actual);
+    }
+    if (!cols[iTol]) cols[iTol] = "0.001";
+    out.push(cols.join(","));
+  }
+  return out.join("\n");
 }
