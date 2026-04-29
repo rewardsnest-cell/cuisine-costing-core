@@ -29,8 +29,44 @@ const COUNT: Record<string, number> = {
   bunch: 1, bunches: 1, sprig: 1, sprigs: 1,
 };
 
+// ---- Custom synonym registry (loaded from pe_unit_synonyms) ----
+// Each synonym maps to { dimension, factor, canonical } where factor is
+// expressed in the dimension's base unit (lb / fl oz / each).
+type SynonymEntry = { dimension: "weight" | "volume" | "count"; factor: number; canonical: string };
+const CUSTOM_SYNONYMS: Record<string, SynonymEntry> = {};
+
+export function registerUnitSynonyms(rows: Array<{ synonym: string; canonical: string; dimension: string; factor: number | string }>) {
+  for (const k of Object.keys(CUSTOM_SYNONYMS)) delete CUSTOM_SYNONYMS[k];
+  for (const r of rows) {
+    const key = normalizeUnit(r.synonym);
+    if (!key) continue;
+    const dim = r.dimension as SynonymEntry["dimension"];
+    if (dim !== "weight" && dim !== "volume" && dim !== "count") continue;
+    const factor = Number(r.factor);
+    if (!Number.isFinite(factor) || factor <= 0) continue;
+    CUSTOM_SYNONYMS[key] = { dimension: dim, factor, canonical: normalizeUnit(r.canonical) };
+  }
+}
+
+export function listRegisteredSynonyms(): Array<{ synonym: string } & SynonymEntry> {
+  return Object.entries(CUSTOM_SYNONYMS).map(([synonym, v]) => ({ synonym, ...v }));
+}
+
 export function normalizeUnit(u: string | null | undefined): string {
   return (u ?? "").toLowerCase().trim().replace(/\.$/, "");
+}
+
+function lookupCustom(u: string): SynonymEntry | null {
+  return CUSTOM_SYNONYMS[u] ?? null;
+}
+
+function dimensionAndFactor(u: string): { dim: "weight" | "volume" | "count"; toBase: number } | null {
+  if (u in WEIGHT_TO_LB) return { dim: "weight", toBase: WEIGHT_TO_LB[u] };
+  if (u in VOLUME_TO_FLOZ) return { dim: "volume", toBase: VOLUME_TO_FLOZ[u] };
+  if (u in COUNT) return { dim: "count", toBase: COUNT[u] };
+  const c = lookupCustom(u);
+  if (c) return { dim: c.dimension, toBase: c.factor };
+  return null;
 }
 
 /**
@@ -43,16 +79,10 @@ export function convertQty(qty: number, fromUnit: string, toUnit: string): numbe
   if (!from || !to) return null;
   if (from === to) return qty;
 
-  if (from in WEIGHT_TO_LB && to in WEIGHT_TO_LB) {
-    return (qty * WEIGHT_TO_LB[from]) / WEIGHT_TO_LB[to];
-  }
-  if (from in VOLUME_TO_FLOZ && to in VOLUME_TO_FLOZ) {
-    return (qty * VOLUME_TO_FLOZ[from]) / VOLUME_TO_FLOZ[to];
-  }
-  if (from in COUNT && to in COUNT) {
-    return (qty * COUNT[from]) / COUNT[to];
-  }
-  return null;
+  const f = dimensionAndFactor(from);
+  const t = dimensionAndFactor(to);
+  if (!f || !t || f.dim !== t.dim) return null;
+  return (qty * f.toBase) / t.toBase;
 }
 
 export const ALLOWED_BASE_UNITS = [
