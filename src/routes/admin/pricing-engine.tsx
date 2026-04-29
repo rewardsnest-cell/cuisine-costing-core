@@ -15,6 +15,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UnitTesterPanel } from "@/components/admin/pricing-engine/UnitTesterPanel";
+import { UnitSynonymsPanel } from "@/components/admin/pricing-engine/UnitSynonymsPanel";
 import { IngredientCleanupPanel } from "@/components/admin/pricing-engine/IngredientCleanupPanel";
 import {
   peListIngredients,
