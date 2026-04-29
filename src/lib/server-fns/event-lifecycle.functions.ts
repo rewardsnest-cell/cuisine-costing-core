@@ -641,7 +641,7 @@ export const quoteSetStatus = createServerFn({ method: "POST" })
     if (!allowed.includes(data.to_state) && q.quote_state !== data.to_state) {
       throw new Error(`Cannot transition ${q.quote_state} → ${data.to_state}`);
     }
-    const patch: Record<string, unknown> = { quote_state: data.to_state };
+    const patch: { quote_state: "draft"|"sent"|"approved"|"expired"; status?: string } = { quote_state: data.to_state };
     if (data.to_state === "approved") patch.status = "approved";
     const { error: upErr } = await supabaseAdmin.from("quotes").update(patch).eq("id", q.id);
     if (upErr) throw new Error(upErr.message);
