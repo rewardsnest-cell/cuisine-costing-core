@@ -72,6 +72,10 @@ export function LifecyclePanel() {
   const markPaid     = useServerFn(lifecycleMarkInvoicePaid);
   const genReceipt   = useServerFn(lifecycleGenerateReceipt);
   const eventPackage = useServerFn(lifecycleEventPackage);
+  const ingest       = useServerFn(quoteIngestUnstructured);
+  const setStatus    = useServerFn(quoteSetStatus);
+  const getFull      = useServerFn(quoteGetFull);
+  const markSent     = useServerFn(quoteMarkSent);
 
   const [loading, setLoading] = useState(true);
   const [events, setEvents]     = useState<Event[]>([]);
@@ -82,6 +86,7 @@ export function LifecyclePanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
+  const [ingestDialogFor, setIngestDialogFor] = useState<Event | null>(null);
   const [payDialogFor, setPayDialogFor] = useState<Invoice | null>(null);
 
   const refresh = async () => {
