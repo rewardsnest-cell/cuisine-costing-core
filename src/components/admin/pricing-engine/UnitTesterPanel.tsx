@@ -245,6 +245,14 @@ function BatchTester() {
           <Wand2 className="mr-1 h-3.5 w-3.5" />
           Auto-fill expected
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setCsv(autoSetTolerance(csv))}
+          title="Set each row's tolerance to ~5 significant digits of its expected/actual value"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-set tolerance
+        </Button>
         {ran && (
           <div className="ml-auto flex items-center gap-2 text-sm">
             <Badge variant="default">{passing} pass</Badge>
