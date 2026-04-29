@@ -627,10 +627,128 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
     let history_repointed = 0;
     let audit_repointed = 0;
     let aliases_added = 0;
+    let references_repointed = 0;
+    let recipe_links_repointed = 0;
+    let inventory_items_consolidated = 0;
+    let recipes_recomputed = 0;
+    const warnings: string[] = [];
 
-    // Repoint child rows to canonical.
+    // ----- Step 1: figure out which ingredient_reference rows correspond to the
+    // canonical and the losing ingredients (matched by canonical_name + every alias).
+    // pe_ingredients does NOT have a direct FK to ingredient_reference / inventory,
+    // so we resolve the link by name. This is how recipes (which use
+    // recipe_ingredients.inventory_item_id) get recomputed after a merge.
+    const normName = (s: string) => s.toLowerCase().trim().replace(/\s+/g, " ");
+
+    const namesForIngredient = async (ingId: string, canonicalName: string) => {
+      const out = new Set<string>([normName(canonicalName)]);
+      const { data: aliasRows } = await supabaseAdmin
+        .from("pe_ingredient_aliases")
+        .select("alias")
+        .eq("ingredient_id", ingId);
+      for (const r of aliasRows ?? []) out.add(normName(r.alias as string));
+      return Array.from(out);
+    };
+
+    const canonicalNames = await namesForIngredient(data.canonical_id, canonical.canonical_name);
+
+    // Resolve canonical inventory_item_id (if any) so we can collapse duplicate
+    // inventory rows under one stable id that recipe_ingredients can point to.
+    const { data: canonRefs } = await supabaseAdmin
+      .from("ingredient_reference")
+      .select("id, inventory_item_id, canonical_normalized")
+      .in("canonical_normalized", canonicalNames);
+    const canonicalInventoryId =
+      (canonRefs ?? []).find((r) => r.inventory_item_id)?.inventory_item_id ?? null;
+
+    // Track every recipe whose cost needs recomputation.
+    const recipeIdsToRecompute = new Set<string>();
+
+    // ----- Step 2: per losing ingredient, repoint references + recipe_ingredients.
     for (const lid of data.losing_ids) {
       const losing = byId.get(lid)!;
+      const losingNames = await namesForIngredient(lid, losing.canonical_name);
+
+      const { data: losingRefs } = await supabaseAdmin
+        .from("ingredient_reference")
+        .select("id, inventory_item_id, canonical_normalized")
+        .in("canonical_normalized", losingNames);
+
+      for (const ref of losingRefs ?? []) {
+        // Collapse the inventory_item_id pointer onto the canonical inventory item
+        // so recipe_ingredients all converge on a single row.
+        if (
+          ref.inventory_item_id &&
+          canonicalInventoryId &&
+          ref.inventory_item_id !== canonicalInventoryId
+        ) {
+          // Find every recipe currently linked to the losing inventory item BEFORE
+          // we re-point them, so we can queue cost recomputation.
+          const { data: affectedRecipes } = await supabaseAdmin
+            .from("recipe_ingredients")
+            .select("recipe_id")
+            .eq("inventory_item_id", ref.inventory_item_id);
+          for (const r of affectedRecipes ?? []) {
+            if (r.recipe_id) recipeIdsToRecompute.add(r.recipe_id as string);
+          }
+
+          // Re-point recipe_ingredients onto the canonical inventory item.
+          const { error: riErr, count: riCount } = await supabaseAdmin
+            .from("recipe_ingredients")
+            .update(
+              { inventory_item_id: canonicalInventoryId },
+              { count: "exact" },
+            )
+            .eq("inventory_item_id", ref.inventory_item_id);
+          if (riErr) {
+            warnings.push(
+              `recipe_ingredients re-point failed for ${losing.canonical_name}: ${riErr.message}`,
+            );
+          } else if (riCount) {
+            recipe_links_repointed += riCount;
+          }
+          inventory_items_consolidated++;
+        }
+
+        // Update the reference row itself: name → canonical, inventory_item_id →
+        // canonical (or keep the losing one if canonical had none, so we don't
+        // orphan recipes that already linked to it).
+        const newInventoryId =
+          canonicalInventoryId ?? ref.inventory_item_id ?? null;
+        const { error: refUpErr } = await supabaseAdmin
+          .from("ingredient_reference")
+          .update({
+            canonical_name: canonical.canonical_name,
+            canonical_normalized: normName(canonical.canonical_name),
+            inventory_item_id: newInventoryId,
+          })
+          .eq("id", ref.id);
+        if (refUpErr) {
+          // Most likely a unique-constraint collision with the canonical reference
+          // row — in that case the losing reference row is now redundant and we
+          // can safely delete it (its recipes are already re-pointed above).
+          await supabaseAdmin.from("ingredient_reference").delete().eq("id", ref.id);
+        }
+        references_repointed++;
+      }
+
+      // Also catch recipes that reference the losing inventory_item_id directly
+      // (e.g. older links where the ingredient_reference row was already missing).
+      // We only do this if we have a canonical inventory id to point them at.
+      if (canonicalInventoryId) {
+        const { data: orphanRecipes } = await supabaseAdmin
+          .from("recipe_ingredients")
+          .select("recipe_id, inventory_item_id")
+          .in(
+            "inventory_item_id",
+            (losingRefs ?? [])
+              .map((r) => r.inventory_item_id)
+              .filter((x): x is string => !!x && x !== canonicalInventoryId),
+          );
+        for (const r of orphanRecipes ?? []) {
+          if (r.recipe_id) recipeIdsToRecompute.add(r.recipe_id as string);
+        }
+      }
 
       // pe_ingredient_prices: PK is ingredient_id (one price row per ingredient).
       // If canonical already has a row, drop the losing row; otherwise re-point it.
@@ -683,12 +801,25 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
       if (!aliasErr) aliases_added++;
     }
 
-    // Finally delete the losing ingredients (cascades clean up any orphans).
+    // ----- Step 3: delete the losing pe_ingredients (cascades clean orphans).
     const { error: delErr } = await supabaseAdmin
       .from("pe_ingredients")
       .delete()
       .in("id", data.losing_ids);
     if (delErr) throw new Error(`Delete failed: ${delErr.message}`);
+
+    // ----- Step 4: recompute affected recipe costs so any stale per-unit prices
+    // pulled from the now-canonical ingredient flow back into recipe totals.
+    for (const recipeId of recipeIdsToRecompute) {
+      const { error: rpcErr } = await supabaseAdmin.rpc("recompute_recipe_cost", {
+        _recipe_id: recipeId,
+      });
+      if (rpcErr) {
+        warnings.push(`recompute_recipe_cost failed for ${recipeId}: ${rpcErr.message}`);
+      } else {
+        recipes_recomputed++;
+      }
+    }
 
     return {
       merged_count: data.losing_ids.length,
@@ -696,6 +827,11 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
       history_repointed,
       audit_repointed,
       aliases_added,
+      references_repointed,
+      recipe_links_repointed,
+      inventory_items_consolidated,
+      recipes_recomputed,
+      warnings,
     };
   });
 

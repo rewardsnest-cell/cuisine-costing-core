@@ -100,6 +100,8 @@ export function IngredientCleanupPanel() {
     let merged = 0,
       prices = 0,
       aliases = 0,
+      recipeLinks = 0,
+      recipesRecomputed = 0,
       failed = 0;
     for (const w of work) {
       try {
@@ -107,6 +109,8 @@ export function IngredientCleanupPanel() {
         merged += r.merged_count;
         prices += r.prices_repointed;
         aliases += r.aliases_added;
+        recipeLinks += (r as any).recipe_links_repointed ?? 0;
+        recipesRecomputed += (r as any).recipes_recomputed ?? 0;
       } catch (e: any) {
         failed++;
         console.error("merge failed for", w.c.canonical_name, e);
@@ -114,9 +118,8 @@ export function IngredientCleanupPanel() {
     }
     setMerging(false);
     toast.success(
-      `Merged ${merged} duplicates · ${prices} price rows moved · ${aliases} aliases added${failed ? ` · ${failed} failures` : ""}`,
+      `Merged ${merged} duplicates · ${prices} price rows · ${recipeLinks} recipe links re-pointed · ${recipesRecomputed} recipes recosted${aliases ? ` · ${aliases} aliases added` : ""}${failed ? ` · ${failed} failures` : ""}`,
     );
-    // re-scan to refresh
     await scan();
   };
 
