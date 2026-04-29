@@ -79,16 +79,10 @@ export function convertQty(qty: number, fromUnit: string, toUnit: string): numbe
   if (!from || !to) return null;
   if (from === to) return qty;
 
-  if (from in WEIGHT_TO_LB && to in WEIGHT_TO_LB) {
-    return (qty * WEIGHT_TO_LB[from]) / WEIGHT_TO_LB[to];
-  }
-  if (from in VOLUME_TO_FLOZ && to in VOLUME_TO_FLOZ) {
-    return (qty * VOLUME_TO_FLOZ[from]) / VOLUME_TO_FLOZ[to];
-  }
-  if (from in COUNT && to in COUNT) {
-    return (qty * COUNT[from]) / COUNT[to];
-  }
-  return null;
+  const f = dimensionAndFactor(from);
+  const t = dimensionAndFactor(to);
+  if (!f || !t || f.dim !== t.dim) return null;
+  return (qty * f.toBase) / t.toBase;
 }
 
 export const ALLOWED_BASE_UNITS = [
