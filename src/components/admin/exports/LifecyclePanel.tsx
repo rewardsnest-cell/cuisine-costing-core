@@ -30,7 +30,10 @@ import {
   quoteSetStatus,
   quoteGetFull,
   quoteMarkSent,
+  quoteOcrFiles,
 } from "@/lib/server-fns/event-lifecycle.functions";
+import { extractTextFromFile, fileTypeLabel } from "@/lib/cqh/extract-text";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import {
   generateVpsfinestQuotePDF,
   type QuoteSection,
