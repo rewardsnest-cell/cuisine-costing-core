@@ -266,6 +266,12 @@ function UserManagementPage() {
                     )}
                   </div>
                 )}
+                {navOpen[profile.user_id] && (
+                  <div className="pl-2 border-l-2 border-primary/40 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Sidebar Navigation</p>
+                    <UserNavOverridesPanel userId={profile.user_id} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
