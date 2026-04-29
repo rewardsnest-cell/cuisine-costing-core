@@ -20,6 +20,7 @@ import {
   peUpsertIngredient,
   peDeleteIngredient,
   peSeedStarterIngredients,
+  peSyncIngredientsFromRecipes,
   peListPrices,
   peRefreshPrices,
   peManualOverride,
@@ -29,7 +30,7 @@ import {
   peImportPricesCsv,
 } from "@/lib/server-fns/pricing-engine.functions";
 import { ALLOWED_BASE_UNITS } from "@/lib/server/pricing-engine/units";
-import { RefreshCw, Plus, Trash2, AlertTriangle, CheckCircle2, Edit3, Upload, Download, FileSpreadsheet } from "lucide-react";
+import { RefreshCw, Plus, Trash2, AlertTriangle, CheckCircle2, Edit3, Upload, Download, FileSpreadsheet, ChefHat } from "lucide-react";
 
 export const Route = createFileRoute("/admin/pricing-engine")({
   head: () => ({ meta: [{ title: "Pricing Engine — VPS Finest" }] }),
@@ -123,10 +124,12 @@ function IngredientsPanel() {
   const upsert = useServerFn(peUpsertIngredient);
   const del = useServerFn(peDeleteIngredient);
   const seedStarter = useServerFn(peSeedStarterIngredients);
+  const syncFromRecipes = useServerFn(peSyncIngredientsFromRecipes);
   const [data, setData] = useState<{ ingredients: any[]; aliases: any[] }>({ ingredients: [], aliases: [] });
   const [editing, setEditing] = useState<any | null>(null);
   const [open, setOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const load = async () => {
     try { setData(await list()); } catch (e: any) { toast.error(e.message); }
@@ -170,6 +173,19 @@ function IngredientsPanel() {
     finally { setSeeding(false); }
   };
 
+  const syncRecipes = async () => {
+    if (!confirm("Pull every distinct ingredient from your recipes into the pricing engine? Existing rows are kept untouched; only net‑new ingredients are added.")) return;
+    setSyncing(true);
+    try {
+      const r = await syncFromRecipes();
+      toast.success(
+        `Synced from recipes — scanned ${r.scanned}, ${r.unique} unique, ${r.inserted} new added, ${r.skipped_existing} already existed.`,
+      );
+      await load();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSyncing(false); }
+  };
+
   return (
     <Card>
       <CardHeader className="flex-row justify-between items-center">
@@ -178,6 +194,10 @@ function IngredientsPanel() {
           <CardDescription>Define one row per real ingredient with its base unit. Aliases map alternate names to the same ingredient.</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={syncRecipes} disabled={syncing}>
+            <ChefHat className="w-4 h-4 mr-1" />
+            {syncing ? "Syncing…" : "Sync from Recipes"}
+          </Button>
           {data.ingredients.length === 0 && (
             <Button variant="outline" onClick={seed} disabled={seeding}>
               <Plus className="w-4 h-4 mr-1" />Add Starter Set
