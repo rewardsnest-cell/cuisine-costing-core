@@ -310,7 +310,9 @@ export const peSyncIngredientsFromRecipes = createServerFn({ method: "POST" })
 
 // Normalize a name for fuzzy comparison: lowercase, strip punctuation,
 // collapse whitespace, drop common parenthetical notes, singularize plurals.
-function normalizeForMatch(s: string): string {
+const DEFAULT_IGNORE_TOKENS = ["fresh", "raw", "whole", "large", "small", "medium", "organic", "the", "a", "an"];
+
+function normalizeForMatch(s: string, ignoreTokens: string[] = DEFAULT_IGNORE_TOKENS): string {
   let t = s.toLowerCase().trim();
   t = t.replace(/\([^)]*\)/g, " "); // drop parentheticals
   t = t.replace(/[^a-z0-9\s]/g, " "); // strip punctuation
@@ -325,8 +327,8 @@ function normalizeForMatch(s: string): string {
       return w;
     })
     .join(" ");
-  // strip common filler words that don't change identity
-  const STOP = new Set(["fresh", "raw", "whole", "large", "small", "medium", "organic", "the", "a", "an"]);
+  // strip configurable filler words that don't change identity
+  const STOP = new Set(ignoreTokens.map((x) => x.toLowerCase().trim()).filter(Boolean));
   t = t.split(" ").filter((w) => !STOP.has(w)).join(" ");
   return t.trim();
 }
@@ -395,12 +397,28 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({
-      use_ai: z.boolean().default(true),
-      min_confidence: z.number().min(0).max(1).default(0.85),
+      use_ai: z.boolean().optional(),
+      min_confidence: z.number().min(0).max(1).optional(),
+      link_threshold: z.number().min(0).max(1).optional(),
+      ignore_tokens: z.array(z.string()).optional(),
+      require_unit_match: z.boolean().optional(),
     }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+
+    // Load configured match settings, fall back to per-call overrides, then defaults.
+    const { data: settings } = await supabaseAdmin
+      .from("pe_match_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    const useAi = data.use_ai ?? settings?.use_ai_default ?? true;
+    const autoMergeThreshold = data.min_confidence ?? Number(settings?.auto_merge_threshold ?? 0.85);
+    const linkThreshold = data.link_threshold ?? Number(settings?.link_threshold ?? 0.7);
+    const ignoreTokens = (data.ignore_tokens ?? (settings?.ignore_tokens as string[] | null) ?? DEFAULT_IGNORE_TOKENS);
+    const requireUnitMatch = data.require_unit_match ?? settings?.require_unit_match ?? true;
 
     const { data: ings, error } = await supabaseAdmin
       .from("pe_ingredients")
@@ -408,21 +426,21 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const items = (ings ?? []) as { id: string; canonical_name: string; base_unit: string }[];
 
-    // Pre-compute normalized strings.
-    const norm = items.map((i) => ({ ...i, n: normalizeForMatch(i.canonical_name) }));
+    // Pre-compute normalized strings using configured ignore tokens.
+    const norm = items.map((i) => ({ ...i, n: normalizeForMatch(i.canonical_name, ignoreTokens) }));
 
     const uf = new UF();
     const edgeScore = new Map<string, { score: number; source: "fuzzy" | "ai" }>();
     const ek = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
-    const FUZZY_HIGH = 0.85; // auto-cluster
-    const FUZZY_LOW = 0.6;   // candidate range to send to AI
+    const FUZZY_HIGH = autoMergeThreshold; // auto-cluster (pure fuzzy)
+    const FUZZY_LOW = Math.max(0, linkThreshold - 0.1); // send borderline pairs to AI
     const ambiguousPairs: { a: typeof norm[0]; b: typeof norm[0]; fuzzy: number }[] = [];
 
     for (let i = 0; i < norm.length; i++) {
       for (let j = i + 1; j < norm.length; j++) {
         const A = norm[i], B = norm[j];
-        if (A.base_unit !== B.base_unit) continue; // never merge across base units
+        if (requireUnitMatch && A.base_unit !== B.base_unit) continue; // skip unit mismatches when required
         // Cheap pre-filter: at least 2 chars in common at start
         if (A.n[0] !== B.n[0] && Math.abs(A.n.length - B.n.length) > 6) continue;
         const s = similarity(A.n, B.n);
@@ -437,7 +455,7 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
     }
 
     // AI pass for the ambiguous pairs.
-    if (data.use_ai && ambiguousPairs.length > 0) {
+    if (useAi && ambiguousPairs.length > 0) {
       const apiKey = process.env.LOVABLE_API_KEY;
       if (apiKey) {
         // Batch in groups of 40 pairs to keep prompts small.
@@ -581,9 +599,16 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
 
     return {
       scanned: items.length,
-      ai_pairs_evaluated: data.use_ai ? ambiguousPairs.length : 0,
+      ai_pairs_evaluated: useAi ? ambiguousPairs.length : 0,
       clusters: dupClusters,
-      auto_mergeable: dupClusters.filter((c) => c.confidence >= data.min_confidence).length,
+      auto_mergeable: dupClusters.filter((c) => c.confidence >= autoMergeThreshold).length,
+      settings_used: {
+        link_threshold: linkThreshold,
+        auto_merge_threshold: autoMergeThreshold,
+        ignore_tokens: ignoreTokens,
+        require_unit_match: requireUnitMatch,
+        use_ai: useAi,
+      },
     };
   });
 
@@ -1466,4 +1491,71 @@ export const peOverview = createServerFn({ method: "GET" })
         : null,
       recent_changes: recent,
     };
+  });
+
+// ---------- Match Settings ----------
+
+const matchSettingsSchema = z.object({
+  link_threshold: z.number().min(0).max(1),
+  auto_merge_threshold: z.number().min(0).max(1),
+  ignore_tokens: z.array(z.string().min(1).max(40)).max(200),
+  require_unit_match: z.boolean(),
+  use_ai_default: z.boolean(),
+}).refine((v) => v.auto_merge_threshold >= v.link_threshold, {
+  message: "Auto-merge threshold must be ≥ link threshold",
+  path: ["auto_merge_threshold"],
+});
+
+export const peGetMatchSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("pe_match_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return {
+      settings: data ?? {
+        id: 1,
+        link_threshold: 0.7,
+        auto_merge_threshold: 0.85,
+        ignore_tokens: DEFAULT_IGNORE_TOKENS,
+        require_unit_match: true,
+        use_ai_default: true,
+      },
+      defaults: {
+        ignore_tokens: DEFAULT_IGNORE_TOKENS,
+      },
+    };
+  });
+
+export const peSaveMatchSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => matchSettingsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    // Normalize tokens: lowercase, trim, dedupe.
+    const tokens = Array.from(
+      new Set(
+        data.ignore_tokens
+          .map((t) => t.toLowerCase().trim())
+          .filter((t) => t.length > 0),
+      ),
+    );
+    const { data: row, error } = await supabaseAdmin
+      .from("pe_match_settings")
+      .upsert({
+        id: 1,
+        link_threshold: data.link_threshold,
+        auto_merge_threshold: data.auto_merge_threshold,
+        ignore_tokens: tokens,
+        require_unit_match: data.require_unit_match,
+        use_ai_default: data.use_ai_default,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return { ok: true, settings: row };
   });

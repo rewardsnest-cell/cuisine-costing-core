@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Sparkles, Merge, AlertTriangle, Loader2, ChevronDown, ChevronRight } fr
 import {
   peFindIngredientDuplicates,
   peMergeIngredients,
+  peGetMatchSettings,
 } from "@/lib/server-fns/pricing-engine.functions";
 
 type Cluster = {
@@ -25,6 +26,7 @@ type Cluster = {
 export function IngredientCleanupPanel() {
   const findFn = useServerFn(peFindIngredientDuplicates);
   const mergeFn = useServerFn(peMergeIngredients);
+  const getSettings = useServerFn(peGetMatchSettings);
   const [scanning, setScanning] = useState(false);
   const [merging, setMerging] = useState(false);
   const [useAI, setUseAI] = useState(true);
@@ -34,6 +36,20 @@ export function IngredientCleanupPanel() {
   // selected losing-member ids per canonical id
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  // Hydrate defaults from saved Match Settings on mount.
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await getSettings();
+        const row = r.settings as any;
+        if (row?.auto_merge_threshold != null) setThreshold(Number(row.auto_merge_threshold));
+        if (typeof row?.use_ai_default === "boolean") setUseAI(row.use_ai_default);
+      } catch {
+        // ignore — fall back to local defaults
+      }
+    })();
+  }, []);
 
   const scan = async () => {
     setScanning(true);

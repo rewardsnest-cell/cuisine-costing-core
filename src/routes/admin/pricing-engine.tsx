@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { UnitTesterPanel } from "@/components/admin/pricing-engine/UnitTesterPanel";
 import { UnitSynonymsPanel } from "@/components/admin/pricing-engine/UnitSynonymsPanel";
 import { IngredientCleanupPanel } from "@/components/admin/pricing-engine/IngredientCleanupPanel";
+import { MatchSettingsPanel } from "@/components/admin/pricing-engine/MatchSettingsPanel";
 import {
   peListIngredients,
   peUpsertIngredient,
@@ -56,6 +57,7 @@ function PricingEnginePage() {
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
           <TabsTrigger value="cleanup">Auto-match &amp; Clean</TabsTrigger>
+          <TabsTrigger value="match-settings">Match Settings</TabsTrigger>
           <TabsTrigger value="import">CSV Import</TabsTrigger>
           <TabsTrigger value="units">Unit Tester</TabsTrigger>
           <TabsTrigger value="synonyms">Unit Synonyms</TabsTrigger>
@@ -67,6 +69,7 @@ function PricingEnginePage() {
         <TabsContent value="ingredients" className="mt-4"><IngredientsPanel /></TabsContent>
         <TabsContent value="prices" className="mt-4"><PricesPanel /></TabsContent>
         <TabsContent value="cleanup" className="mt-4"><IngredientCleanupPanel /></TabsContent>
+        <TabsContent value="match-settings" className="mt-4"><MatchSettingsPanel /></TabsContent>
         <TabsContent value="import" className="mt-4"><CsvImportPanel /></TabsContent>
         <TabsContent value="units" className="mt-4"><UnitTesterPanel /></TabsContent>
         <TabsContent value="synonyms" className="mt-4"><UnitSynonymsPanel /></TabsContent>

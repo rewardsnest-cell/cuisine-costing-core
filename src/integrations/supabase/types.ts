@@ -2945,6 +2945,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pe_match_settings: {
+        Row: {
+          auto_merge_threshold: number
+          id: number
+          ignore_tokens: string[]
+          link_threshold: number
+          require_unit_match: boolean
+          updated_at: string
+          use_ai_default: boolean
+        }
+        Insert: {
+          auto_merge_threshold?: number
+          id?: number
+          ignore_tokens?: string[]
+          link_threshold?: number
+          require_unit_match?: boolean
+          updated_at?: string
+          use_ai_default?: boolean
+        }
+        Update: {
+          auto_merge_threshold?: number
+          id?: number
+          ignore_tokens?: string[]
+          link_threshold?: number
+          require_unit_match?: boolean
+          updated_at?: string
+          use_ai_default?: boolean
+        }
+        Relationships: []
+      }
       pe_price_history: {
         Row: {
           changed_by: string | null
