@@ -672,3 +672,53 @@ function PayInvoiceDialog({ invoice, onClose, onPaid, markPaid }: any) {
     </Dialog>
   );
 }
+
+function IngestDialog({ event, onClose, onCreated, ingestFn }: any) {
+  const [text, setText] = useState("");
+  const [source, setSource] = useState("pasted notes");
+  const [saving, setSaving] = useState(false);
+  if (!event) return null;
+  const submit = async () => {
+    if (text.trim().length < 10) { toast.error("Paste at least a few lines of notes"); return; }
+    setSaving(true);
+    try {
+      const r = await ingestFn({ data: {
+        cqh_event_id: event.id, raw_text: text.trim(), source_label: source.trim() || null,
+      }});
+      const missing = r.missing_fields?.length ? ` · Needs follow-up: ${r.missing_fields.join(", ")}` : "";
+      toast.success(`Draft quote ${r.quote.reference_number} created${missing}`);
+      onCreated();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open={!!event} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Ingest Notes → Draft Quote</DialogTitle></DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="font-medium">{event.name}</div>
+            <div className="text-xs text-muted-foreground">{event.customer_name} · {event.event_date ?? "no date"}</div>
+          </div>
+          <div><Label>Source label</Label>
+            <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="email, handwritten, call notes…" /></div>
+          <div><Label>Unstructured input</Label>
+            <Textarea rows={10} value={text} onChange={(e) => setText(e.target.value)}
+              placeholder="Paste handwritten notes, an email thread, or pasted text. Prices are never invented — leave them blank if not stated." /></div>
+          <p className="text-xs text-muted-foreground">
+            AI categorizes items into appetizers / entrées / sides / desserts / beverages / staffing / rentals.
+            Items without a stated price are flagged "Estimate pending" on the PDF.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+            Generate Draft
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
