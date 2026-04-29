@@ -219,6 +219,8 @@ export function LifecyclePanel() {
     catch (e: any) { toast.error(e.message); }
     finally { setBusy(null); }
   };
+
+  if (loading) {
     return <Card><CardContent className="p-6 flex items-center gap-2 text-muted-foreground">
       <Loader2 className="w-4 h-4 animate-spin" /> Loading lifecycle…
     </CardContent></Card>;
