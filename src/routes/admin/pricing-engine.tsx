@@ -19,6 +19,7 @@ import {
   peListIngredients,
   peUpsertIngredient,
   peDeleteIngredient,
+  peSeedStarterIngredients,
   peListPrices,
   peRefreshPrices,
   peManualOverride,
@@ -47,7 +48,7 @@ function PricingEnginePage() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="flex h-auto w-full flex-wrap items-stretch justify-start gap-1 overflow-visible rounded-md p-1">
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
