@@ -6,7 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass } from "lucide-react";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+
+const ALL_ROLES = ["admin", "moderator", "employee", "sales", "social_media", "marketing", "user"] as const;
+type AppRole = (typeof ALL_ROLES)[number];
 import { useConfirm } from "@/components/ConfirmDialog";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
 import { UserNavOverridesPanel } from "@/components/admin/UserNavOverridesPanel";
@@ -47,6 +51,30 @@ function UserManagementPage() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, EventLite[] | "loading" | undefined>>({});
   const [navOpen, setNavOpen] = useState<Record<string, boolean>>({});
+  const [rolesOpen, setRolesOpen] = useState<Record<string, boolean>>({});
+  const [savingRole, setSavingRole] = useState<string | null>(null);
+
+  const toggleRole = async (userId: string, role: AppRole, currentlyHas: boolean) => {
+    const key = `${userId}:${role}`;
+    if (role === "admin" && currentlyHas) {
+      const ok = await askConfirm({
+        title: "Revoke admin access?",
+        description: "This user will lose admin privileges immediately.",
+        confirmText: "Revoke",
+      });
+      if (!ok) return;
+    }
+    setSavingRole(key);
+    if (currentlyHas) {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+      if (error && !error.message.includes("duplicate")) toast.error(error.message);
+    }
+    await fetchData();
+    setSavingRole(null);
+  };
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
@@ -228,6 +256,15 @@ function UserManagementPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => setRolesOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
+                      className="gap-1"
+                    >
+                      {rolesOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <ShieldCheck className="w-3 h-3" /> Roles
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setNavOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
                       className="gap-1"
                     >
@@ -264,6 +301,32 @@ function UserManagementPage() {
                         </div>
                       ))
                     )}
+                  </div>
+                )}
+                {rolesOpen[profile.user_id] && (
+                  <div className="pl-2 border-l-2 border-primary/40 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Assigned Roles</p>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_ROLES.map((role) => {
+                        const has = userRoles.some((r) => r.role === role);
+                        const saving = savingRole === `${profile.user_id}:${role}`;
+                        return (
+                          <Button
+                            key={role}
+                            type="button"
+                            variant={has ? "default" : "outline"}
+                            size="sm"
+                            disabled={saving}
+                            onClick={() => toggleRole(profile.user_id, role, has)}
+                            className="gap-1 h-7 text-xs"
+                          >
+                            {has && <Check className="w-3 h-3" />}
+                            {role}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Click a role to grant or revoke it. Changes save immediately.</p>
                   </div>
                 )}
                 {navOpen[profile.user_id] && (
