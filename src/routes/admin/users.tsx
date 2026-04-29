@@ -256,6 +256,15 @@ function UserManagementPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => setRolesOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
+                      className="gap-1"
+                    >
+                      {rolesOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <ShieldCheck className="w-3 h-3" /> Roles
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setNavOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
                       className="gap-1"
                     >
