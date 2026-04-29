@@ -351,3 +351,53 @@ function formatNum(n: number | null): string {
   if (Math.abs(n) >= 1000 || (Math.abs(n) > 0 && Math.abs(n) < 0.001)) return n.toExponential(4);
   return Number(n.toFixed(6)).toString();
 }
+
+/**
+ * Recompute the `expected` column of a CSV by running convertQty on each row.
+ * Preserves header order, comments, and existing `tolerance` values.
+ */
+function autoFillExpected(text: string): string {
+  const rawLines = text.split(/\r?\n/);
+  let headerCols: string[] | null = null;
+  let iQty = -1, iFrom = -1, iTo = -1, iExp = -1, iTol = -1;
+  const out: string[] = [];
+
+  for (const raw of rawLines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) {
+      out.push(raw);
+      continue;
+    }
+    if (!headerCols) {
+      headerCols = line.toLowerCase().split(",").map((s) => s.trim());
+      iQty = headerCols.indexOf("qty");
+      iFrom = headerCols.indexOf("from");
+      iTo = headerCols.indexOf("to");
+      iExp = headerCols.indexOf("expected");
+      iTol = headerCols.indexOf("tolerance");
+      // Ensure expected/tolerance columns exist
+      if (iExp < 0) {
+        headerCols.push("expected");
+        iExp = headerCols.length - 1;
+      }
+      if (iTol < 0) {
+        headerCols.push("tolerance");
+        iTol = headerCols.length - 1;
+      }
+      out.push(headerCols.join(","));
+      continue;
+    }
+    const cols = line.split(",").map((s) => s.trim());
+    while (cols.length < headerCols.length) cols.push("");
+    const qty = Number(cols[iQty]);
+    const from = cols[iFrom] ?? "";
+    const to = cols[iTo] ?? "";
+    if (Number.isFinite(qty) && from && to) {
+      const actual = convertQty(qty, from, to);
+      cols[iExp] = actual === null ? "" : formatNum(actual);
+    }
+    if (!cols[iTol]) cols[iTol] = "0.001";
+    out.push(cols.join(","));
+  }
+  return out.join("\n");
+}
