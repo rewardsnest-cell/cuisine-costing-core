@@ -117,7 +117,7 @@ const CSV_EXPORTS: CsvSpec[] = [
 type ExportPhase = "generating" | "uploading" | "ready" | "error";
 type ExportProgress = { phase: ExportPhase; message?: string };
 
-function ExportsPage() {
+export function LegacyExportsPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
