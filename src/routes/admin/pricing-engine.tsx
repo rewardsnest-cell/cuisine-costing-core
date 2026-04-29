@@ -187,6 +187,7 @@ function IngredientsPanel() {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Name</TableHead><TableHead>Base Unit</TableHead><TableHead>Category</TableHead>
@@ -212,6 +213,7 @@ function IngredientsPanel() {
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
