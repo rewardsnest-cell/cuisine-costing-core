@@ -858,6 +858,7 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
       inventory_items_consolidated,
       recipes_recomputed,
       warnings,
+      canonical_inventory_pick: canonicalPickReport,
     };
   });
 
