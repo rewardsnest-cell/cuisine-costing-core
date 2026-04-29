@@ -159,9 +159,26 @@ function SingleTester() {
         >
           Auto-fill expected
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const ref = expectedNum ?? result.actual;
+            if (ref !== null && Number.isFinite(ref)) {
+              setTolerance(formatNum(suggestTolerance(ref)));
+            }
+          }}
+          disabled={result.actual === null && (expectedNum === null || !Number.isFinite(expectedNum))}
+          title="Set tolerance to ~5 significant digits of the result magnitude"
+        >
+          <Wand2 className="mr-1 h-3.5 w-3.5" />
+          Auto-set tolerance
+        </Button>
         <span className="text-xs text-muted-foreground">
           Auto-convert picks the canonical base unit for the From dimension
-          (weight → lb, volume → fl oz, count → each).
+          (weight → lb, volume → fl oz, count → each). Auto-set tolerance scales
+          to the result magnitude (≈5 significant digits).
         </span>
       </div>
 
