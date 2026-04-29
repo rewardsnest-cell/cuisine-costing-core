@@ -30,7 +30,10 @@ import {
   quoteSetStatus,
   quoteGetFull,
   quoteMarkSent,
+  quoteOcrFiles,
 } from "@/lib/server-fns/event-lifecycle.functions";
+import { extractTextFromFile, fileTypeLabel } from "@/lib/cqh/extract-text";
+import { pdfFileToImageBlobs } from "@/lib/pdf-to-images";
 import {
   generateVpsfinestQuotePDF,
   type QuoteSection,
@@ -76,6 +79,7 @@ export function LifecyclePanel() {
   const setStatus    = useServerFn(quoteSetStatus);
   const getFull      = useServerFn(quoteGetFull);
   const markSent     = useServerFn(quoteMarkSent);
+  const ocrFiles     = useServerFn(quoteOcrFiles);
 
   const [loading, setLoading] = useState(true);
   const [events, setEvents]     = useState<Event[]>([]);
@@ -429,6 +433,7 @@ export function LifecyclePanel() {
         onClose={() => setIngestDialogFor(null)}
         onCreated={async () => { setIngestDialogFor(null); await refresh(); }}
         ingestFn={ingest}
+        ocrFn={ocrFiles}
       />
     </div>
   );
@@ -673,17 +678,88 @@ function PayInvoiceDialog({ invoice, onClose, onPaid, markPaid }: any) {
   );
 }
 
-function IngestDialog({ event, onClose, onCreated, ingestFn }: any) {
+function IngestDialog({ event, onClose, onCreated, ingestFn, ocrFn }: any) {
   const [text, setText] = useState("");
   const [source, setSource] = useState("pasted notes");
+  const [files, setFiles] = useState<File[]>([]);
+  const [extracting, setExtracting] = useState(false);
+  const [progress, setProgress] = useState<string>("");
   const [saving, setSaving] = useState(false);
   if (!event) return null;
+
+  // Reset on event change
+  useEffect(() => {
+    if (event) { setText(""); setFiles([]); setProgress(""); setSource("pasted notes"); }
+  }, [event?.id]);
+
+  const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error ?? new Error("read failed"));
+    r.readAsDataURL(blob);
+  });
+
+  const extractFromFiles = async (): Promise<string> => {
+    if (files.length === 0) return "";
+    const chunks: string[] = [];
+    for (const f of files) {
+      const label = fileTypeLabel(f);
+      setProgress(`Reading ${f.name} (${label})…`);
+      const name = f.name.toLowerCase();
+      const isImage = f.type.startsWith("image/");
+      const isPdf = f.type === "application/pdf" || name.endsWith(".pdf");
+
+      if (isImage) {
+        const dataUrl = await blobToDataUrl(f);
+        setProgress(`OCR'ing ${f.name}…`);
+        const r = await ocrFn({ data: { images: [{ data_url: dataUrl, mime_type: f.type || "image/jpeg" }], hint: source || null } });
+        chunks.push(`# Source: ${f.name}\n${r.text}`);
+      } else if (isPdf) {
+        setProgress(`Rendering ${f.name}…`);
+        let blobs: Blob[] = [];
+        try { blobs = await pdfFileToImageBlobs(f, { maxPages: 6 }); }
+        catch (e: any) { throw new Error(`Failed to render PDF ${f.name}: ${e?.message ?? e}`); }
+        if (blobs.length === 0) throw new Error(`PDF ${f.name} produced no pages`);
+        const images = await Promise.all(blobs.map(async (b) => ({
+          data_url: await blobToDataUrl(b), mime_type: "image/jpeg",
+        })));
+        setProgress(`OCR'ing ${blobs.length} page(s) of ${f.name}…`);
+        const r = await ocrFn({ data: { images, hint: source || null } });
+        chunks.push(`# Source: ${f.name} (${blobs.length} pages)\n${r.text}`);
+      } else {
+        // docx / xlsx / csv / txt / md → client text extraction (no AI)
+        const t = await extractTextFromFile(f);
+        if (t.trim()) chunks.push(`# Source: ${f.name}\n${t.trim()}`);
+      }
+    }
+    return chunks.join("\n\n");
+  };
+
   const submit = async () => {
-    if (text.trim().length < 10) { toast.error("Paste at least a few lines of notes"); return; }
+    setExtracting(true);
+    let combined = text.trim();
+    try {
+      if (files.length > 0) {
+        const extracted = await extractFromFiles();
+        combined = [combined, extracted].filter(Boolean).join("\n\n");
+      }
+    } catch (e: any) {
+      setExtracting(false); setProgress("");
+      toast.error(e.message || "File extraction failed");
+      return;
+    }
+    setExtracting(false); setProgress("");
+
+    if (combined.length < 10) {
+      toast.error("Add notes or upload files with readable content"); return;
+    }
+
     setSaving(true);
     try {
       const r = await ingestFn({ data: {
-        cqh_event_id: event.id, raw_text: text.trim(), source_label: source.trim() || null,
+        cqh_event_id: event.id,
+        raw_text: combined.slice(0, 20000),
+        source_label: (source.trim() || (files.length ? `upload: ${files.map((f) => f.name).join(", ")}` : "pasted notes")).slice(0, 120),
       }});
       const missing = r.missing_fields?.length ? ` · Needs follow-up: ${r.missing_fields.join(", ")}` : "";
       toast.success(`Draft quote ${r.quote.reference_number} created${missing}`);
@@ -691,6 +767,9 @@ function IngestDialog({ event, onClose, onCreated, ingestFn }: any) {
     } catch (e: any) { toast.error(e.message); }
     finally { setSaving(false); }
   };
+
+  const busy = extracting || saving;
+
   return (
     <Dialog open={!!event} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
@@ -702,19 +781,44 @@ function IngestDialog({ event, onClose, onCreated, ingestFn }: any) {
           </div>
           <div><Label>Source label</Label>
             <Input value={source} onChange={(e) => setSource(e.target.value)} placeholder="email, handwritten, call notes…" /></div>
-          <div><Label>Unstructured input</Label>
-            <Textarea rows={10} value={text} onChange={(e) => setText(e.target.value)}
+          <div>
+            <Label>Upload files (optional)</Label>
+            <Input
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.pdf,.docx,.xlsx,.xls,.csv,.tsv,.txt,.md,.rtf"
+              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              disabled={busy}
+            />
+            {files.length > 0 && (
+              <ul className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                {files.map((f, i) => (
+                  <li key={i}>• {f.name} <span className="opacity-70">({fileTypeLabel(f)}, {(f.size / 1024).toFixed(1)} KB)</span></li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Images & PDFs are OCR'd via AI. Word/Excel/CSV/TXT are read directly. Up to 6 PDF pages per file.
+            </p>
+          </div>
+          <div><Label>Pasted text (optional, combined with uploads)</Label>
+            <Textarea rows={8} value={text} onChange={(e) => setText(e.target.value)}
               placeholder="Paste handwritten notes, an email thread, or pasted text. Prices are never invented — leave them blank if not stated." /></div>
+          {progress && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" /> {progress}
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             AI categorizes items into appetizers / entrées / sides / desserts / beverages / staffing / rentals.
             Items without a stated price are flagged "Estimate pending" on the PDF.
           </p>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
-            Generate Draft
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={busy || (!text.trim() && files.length === 0)}>
+            {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+            {extracting ? "Extracting…" : saving ? "Generating…" : "Generate Draft"}
           </Button>
         </DialogFooter>
       </DialogContent>

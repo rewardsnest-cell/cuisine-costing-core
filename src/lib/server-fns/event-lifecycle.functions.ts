@@ -747,3 +747,74 @@ export const quoteMarkSent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============================================================
+// OCR helper: extract plain text from uploaded images / page renders
+// using Lovable AI (Gemini vision). The client converts PDFs to image
+// pages before calling this; for plain images it sends them directly.
+// ============================================================
+
+const ocrSchema = z.object({
+  images: z
+    .array(
+      z.object({
+        // data URL or raw base64 — we normalize to a data URL below
+        data_url: z.string().min(32).max(15_000_000),
+        mime_type: z.string().default("image/jpeg"),
+      }),
+    )
+    .min(1)
+    .max(12),
+  hint: z.string().max(500).optional().nullable(),
+});
+
+export const quoteOcrFiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ocrSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const system = `You are an OCR + transcription assistant for a catering coordinator.
+Read the uploaded image(s) — they may be photos of handwritten notes, scanned documents,
+emailed PDFs rendered as page images, menus, or quote sheets.
+Output ONLY the verbatim text content as plain text. Preserve line breaks, lists, prices,
+quantities, and section headings exactly as they appear. Never invent prices or items.
+If multiple pages are provided, separate them with a "--- PAGE N ---" marker.
+Do not summarize, translate, or restructure.`;
+
+    const userContent: any[] = [
+      { type: "text", text: data.hint ? `Context hint: ${data.hint}\n\nPages follow.` : "Pages follow." },
+    ];
+    for (const img of data.images) {
+      const url = img.data_url.startsWith("data:")
+        ? img.data_url
+        : `data:${img.mime_type};base64,${img.data_url}`;
+      userContent.push({ type: "image_url", image_url: { url } });
+    }
+
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userContent },
+        ],
+      }),
+    });
+
+    if (aiRes.status === 429) throw new Error("AI rate limit exceeded — please try again in a minute.");
+    if (aiRes.status === 402) throw new Error("Lovable AI credits exhausted — top up to continue.");
+    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status} ${await aiRes.text()}`);
+
+    const json = await aiRes.json();
+    const text = json?.choices?.[0]?.message?.content;
+    if (typeof text !== "string" || !text.trim()) {
+      throw new Error("OCR returned no text — try a clearer scan or paste the notes manually.");
+    }
+    return { text: text.trim() };
+  });
+
