@@ -599,9 +599,16 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
 
     return {
       scanned: items.length,
-      ai_pairs_evaluated: data.use_ai ? ambiguousPairs.length : 0,
+      ai_pairs_evaluated: useAi ? ambiguousPairs.length : 0,
       clusters: dupClusters,
-      auto_mergeable: dupClusters.filter((c) => c.confidence >= data.min_confidence).length,
+      auto_mergeable: dupClusters.filter((c) => c.confidence >= autoMergeThreshold).length,
+      settings_used: {
+        link_threshold: linkThreshold,
+        auto_merge_threshold: autoMergeThreshold,
+        ignore_tokens: ignoreTokens,
+        require_unit_match: requireUnitMatch,
+        use_ai: useAi,
+      },
     };
   });
 
