@@ -54,6 +54,7 @@ function PricingEnginePage() {
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
+          <TabsTrigger value="cleanup">Auto-match &amp; Clean</TabsTrigger>
           <TabsTrigger value="import">CSV Import</TabsTrigger>
           <TabsTrigger value="units">Unit Tester</TabsTrigger>
           <TabsTrigger value="history">Price History</TabsTrigger>
