@@ -150,6 +150,162 @@ export const peSeedStarterIngredients = createServerFn({ method: "POST" })
     return { inserted_or_updated: ingredientRows.length, aliases: aliasRows.length };
   });
 
+// Map a raw recipe unit string -> one of pe_ingredients.base_unit values.
+// Falls back to "each" for unknown / count-style units.
+function inferBaseUnit(rawUnit: string | null | undefined): string {
+  const u = (rawUnit ?? "").toLowerCase().trim().replace(/\.$/, "");
+  if (!u) return "each";
+  // weight
+  if (["lb", "lbs", "pound", "pounds"].includes(u)) return "lb";
+  if (["oz", "ounce", "ounces"].includes(u)) return "oz";
+  if (["g", "gram", "grams"].includes(u)) return "g";
+  if (["kg", "kilogram", "kilograms"].includes(u)) return "kg";
+  // volume
+  if (["ml", "milliliter", "milliliters"].includes(u)) return "ml";
+  if (["l", "liter", "liters", "litre"].includes(u)) return "l";
+  if (["fl oz", "floz", "fluid ounce", "fluid ounces"].includes(u)) return "fl oz";
+  if (["cup", "cups", "c"].includes(u)) return "cup";
+  if (["tbsp", "tablespoon", "tablespoons"].includes(u)) return "tbsp";
+  if (["tsp", "teaspoon", "teaspoons"].includes(u)) return "tsp";
+  // everything else (each, clove, head, slice, piece, pinch, dash, can, jar, bag, ...)
+  return "each";
+}
+
+function titleCase(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .map((w) => (w.length === 0 ? w : w[0].toUpperCase() + w.slice(1)))
+    .join(" ");
+}
+
+/**
+ * Pull every distinct ingredient name from recipe_ingredients,
+ * dedupe case/whitespace-insensitively, infer a sensible base unit
+ * from the most-common recipe unit, and upsert into pe_ingredients.
+ *
+ * Existing rows (matched by canonical_name) are NOT overwritten —
+ * their base_unit / category / notes are preserved.
+ */
+export const peSyncIngredientsFromRecipes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    // 1. Pull all (name, unit) pairs from recipe_ingredients.
+    const { data: rows, error } = await supabaseAdmin
+      .from("recipe_ingredients")
+      .select("name, unit")
+      .not("name", "is", null);
+    if (error) throw new Error(`Failed to read recipe ingredients: ${error.message}`);
+
+    const scanned = rows?.length ?? 0;
+
+    // 2. Group by normalized key, count unit occurrences, keep a display name.
+    type Bucket = { display: string; unitCounts: Map<string, number> };
+    const buckets = new Map<string, Bucket>();
+    for (const r of rows ?? []) {
+      const raw = (r.name ?? "").toString().trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase().replace(/\s+/g, " ");
+      if (key.length > 120) continue;
+      let b = buckets.get(key);
+      if (!b) {
+        b = { display: titleCase(raw), unitCounts: new Map() };
+        buckets.set(key, b);
+      }
+      const u = (r.unit ?? "").toString();
+      b.unitCounts.set(u, (b.unitCounts.get(u) ?? 0) + 1);
+    }
+
+    if (buckets.size === 0) {
+      return { scanned, unique: 0, inserted: 0, skipped_existing: 0, aliases: 0 };
+    }
+
+    // 3. Find which canonical_names already exist so we don't overwrite them.
+    const allDisplayNames = Array.from(buckets.values()).map((b) => b.display);
+    const { data: existing, error: existErr } = await supabaseAdmin
+      .from("pe_ingredients")
+      .select("canonical_name")
+      .in("canonical_name", allDisplayNames);
+    if (existErr) throw new Error(`Existence check failed: ${existErr.message}`);
+    const existingSet = new Set((existing ?? []).map((e) => e.canonical_name.toLowerCase()));
+
+    // 4. Build insert rows for net-new ingredients only.
+    const toInsert: { canonical_name: string; base_unit: string; category: string | null; notes: string }[] = [];
+    const aliasInserts: { canonical_name: string; alias: string }[] = [];
+
+    for (const [key, b] of buckets.entries()) {
+      if (existingSet.has(b.display.toLowerCase())) continue;
+      // pick most-common unit -> infer base_unit
+      let topUnit = "";
+      let topCount = -1;
+      for (const [u, c] of b.unitCounts.entries()) {
+        if (c > topCount) {
+          topCount = c;
+          topUnit = u;
+        }
+      }
+      toInsert.push({
+        canonical_name: b.display,
+        base_unit: inferBaseUnit(topUnit),
+        category: null,
+        notes: "Imported from recipes",
+      });
+      // record the lowercase raw name as an alias if it differs from display
+      if (key !== b.display.toLowerCase()) {
+        aliasInserts.push({ canonical_name: b.display, alias: key });
+      }
+    }
+
+    let inserted = 0;
+    if (toInsert.length > 0) {
+      // Insert in batches of 200 to stay friendly to PostgREST.
+      const CHUNK = 200;
+      for (let i = 0; i < toInsert.length; i += CHUNK) {
+        const slice = toInsert.slice(i, i + CHUNK);
+        const { error: insErr } = await supabaseAdmin
+          .from("pe_ingredients")
+          .upsert(slice, { onConflict: "canonical_name", ignoreDuplicates: true });
+        if (insErr) throw new Error(`Insert failed: ${insErr.message}`);
+        inserted += slice.length;
+      }
+    }
+
+    // 5. Attach aliases (lower-case raw recipe name) for the newly created rows.
+    let aliasCount = 0;
+    if (aliasInserts.length > 0) {
+      const newNames = Array.from(new Set(aliasInserts.map((a) => a.canonical_name)));
+      const { data: newRows } = await supabaseAdmin
+        .from("pe_ingredients")
+        .select("id, canonical_name")
+        .in("canonical_name", newNames);
+      const idByName = new Map((newRows ?? []).map((r) => [r.canonical_name, r.id]));
+      const aliasRows = aliasInserts
+        .map((a) => {
+          const ingredient_id = idByName.get(a.canonical_name);
+          return ingredient_id ? { ingredient_id, alias: a.alias } : null;
+        })
+        .filter(Boolean) as { ingredient_id: string; alias: string }[];
+      if (aliasRows.length > 0) {
+        const { error: aliasErr } = await supabaseAdmin
+          .from("pe_ingredient_aliases")
+          .upsert(aliasRows, { onConflict: "alias", ignoreDuplicates: true });
+        if (!aliasErr) aliasCount = aliasRows.length;
+      }
+    }
+
+    return {
+      scanned,
+      unique: buckets.size,
+      inserted,
+      skipped_existing: buckets.size - inserted,
+      aliases: aliasCount,
+    };
+  });
+
 // ---------- PriceService ----------
 
 export const peListPrices = createServerFn({ method: "GET" })
