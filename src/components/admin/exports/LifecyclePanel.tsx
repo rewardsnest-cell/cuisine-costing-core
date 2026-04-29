@@ -287,6 +287,9 @@ export function LifecyclePanel() {
                       <TableCell className="text-sm">{e.guest_count ?? "—"}</TableCell>
                       <TableCell><Badge variant="outline">{evQuotes.length}</Badge></TableCell>
                       <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => setIngestDialogFor(e)}>
+                          <Wand2 className="w-4 h-4" /><span className="ml-1">Ingest</span>
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => onExportPackage(e.id)}
                           disabled={busy === e.id}>
                           {busy === e.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
