@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -28,19 +28,7 @@ import jsPDF from "jspdf";
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 import { saveExportFile, type SavedExportFile } from "@/lib/admin/export-storage";
 
-export const Route = createFileRoute("/admin/exports")({
-  head: () => ({
-    meta: [
-      { title: "Exports & Reports — Admin" },
-      {
-        name: "description",
-        content:
-          "Download a project audit (Markdown or PDF) and export your operational data as CSV.",
-      },
-    ],
-  }),
-  component: ExportsPage,
-});
+
 
 type CsvSpec = {
   key: string;
