@@ -310,7 +310,9 @@ export const peSyncIngredientsFromRecipes = createServerFn({ method: "POST" })
 
 // Normalize a name for fuzzy comparison: lowercase, strip punctuation,
 // collapse whitespace, drop common parenthetical notes, singularize plurals.
-function normalizeForMatch(s: string): string {
+const DEFAULT_IGNORE_TOKENS = ["fresh", "raw", "whole", "large", "small", "medium", "organic", "the", "a", "an"];
+
+function normalizeForMatch(s: string, ignoreTokens: string[] = DEFAULT_IGNORE_TOKENS): string {
   let t = s.toLowerCase().trim();
   t = t.replace(/\([^)]*\)/g, " "); // drop parentheticals
   t = t.replace(/[^a-z0-9\s]/g, " "); // strip punctuation
@@ -325,8 +327,8 @@ function normalizeForMatch(s: string): string {
       return w;
     })
     .join(" ");
-  // strip common filler words that don't change identity
-  const STOP = new Set(["fresh", "raw", "whole", "large", "small", "medium", "organic", "the", "a", "an"]);
+  // strip configurable filler words that don't change identity
+  const STOP = new Set(ignoreTokens.map((x) => x.toLowerCase().trim()).filter(Boolean));
   t = t.split(" ").filter((w) => !STOP.has(w)).join(" ");
   return t.trim();
 }
@@ -395,12 +397,28 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({
-      use_ai: z.boolean().default(true),
-      min_confidence: z.number().min(0).max(1).default(0.85),
+      use_ai: z.boolean().optional(),
+      min_confidence: z.number().min(0).max(1).optional(),
+      link_threshold: z.number().min(0).max(1).optional(),
+      ignore_tokens: z.array(z.string()).optional(),
+      require_unit_match: z.boolean().optional(),
     }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+
+    // Load configured match settings, fall back to per-call overrides, then defaults.
+    const { data: settings } = await supabaseAdmin
+      .from("pe_match_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    const useAi = data.use_ai ?? settings?.use_ai_default ?? true;
+    const autoMergeThreshold = data.min_confidence ?? Number(settings?.auto_merge_threshold ?? 0.85);
+    const linkThreshold = data.link_threshold ?? Number(settings?.link_threshold ?? 0.7);
+    const ignoreTokens = (data.ignore_tokens ?? (settings?.ignore_tokens as string[] | null) ?? DEFAULT_IGNORE_TOKENS);
+    const requireUnitMatch = data.require_unit_match ?? settings?.require_unit_match ?? true;
 
     const { data: ings, error } = await supabaseAdmin
       .from("pe_ingredients")
@@ -408,21 +426,21 @@ export const peFindIngredientDuplicates = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const items = (ings ?? []) as { id: string; canonical_name: string; base_unit: string }[];
 
-    // Pre-compute normalized strings.
-    const norm = items.map((i) => ({ ...i, n: normalizeForMatch(i.canonical_name) }));
+    // Pre-compute normalized strings using configured ignore tokens.
+    const norm = items.map((i) => ({ ...i, n: normalizeForMatch(i.canonical_name, ignoreTokens) }));
 
     const uf = new UF();
     const edgeScore = new Map<string, { score: number; source: "fuzzy" | "ai" }>();
     const ek = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
-    const FUZZY_HIGH = 0.85; // auto-cluster
-    const FUZZY_LOW = 0.6;   // candidate range to send to AI
+    const FUZZY_HIGH = autoMergeThreshold; // auto-cluster (pure fuzzy)
+    const FUZZY_LOW = Math.max(0, linkThreshold - 0.1); // send borderline pairs to AI
     const ambiguousPairs: { a: typeof norm[0]; b: typeof norm[0]; fuzzy: number }[] = [];
 
     for (let i = 0; i < norm.length; i++) {
       for (let j = i + 1; j < norm.length; j++) {
         const A = norm[i], B = norm[j];
-        if (A.base_unit !== B.base_unit) continue; // never merge across base units
+        if (requireUnitMatch && A.base_unit !== B.base_unit) continue; // skip unit mismatches when required
         // Cheap pre-filter: at least 2 chars in common at start
         if (A.n[0] !== B.n[0] && Math.abs(A.n.length - B.n.length) > 6) continue;
         const s = similarity(A.n, B.n);
