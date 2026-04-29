@@ -684,19 +684,65 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
 
     const canonicalNames = await namesForIngredient(data.canonical_id, canonical.canonical_name);
 
-    // Resolve canonical inventory_item_id (if any) so we can collapse duplicate
-    // inventory rows under one stable id that recipe_ingredients can point to.
-    const { data: canonRefs } = await supabaseAdmin
+    // Resolve canonical inventory_item_id deterministically. Gather every
+    // inventory_item_id reachable from any reference row on the canonical OR
+    // any losing ingredient, then rank them with a stable scoring rubric so
+    // the same inputs always pick the same winner. The other inventory rows
+    // get consolidated INTO the winner via cost_equivalent_of so historical
+    // receipts and FKs are preserved.
+    const allLosingNames: string[] = [];
+    for (const lid of data.losing_ids) {
+      const losing = byId.get(lid)!;
+      const ns = await namesForIngredient(lid, losing.canonical_name);
+      allLosingNames.push(...ns);
+    }
+    const allRefNames = Array.from(new Set([...canonicalNames, ...allLosingNames]));
+
+    const { data: allRefs } = await supabaseAdmin
       .from("ingredient_reference")
-      .select("id, inventory_item_id, canonical_normalized")
-      .in("canonical_normalized", canonicalNames);
-    const canonicalInventoryId =
-      (canonRefs ?? []).find((r) => r.inventory_item_id)?.inventory_item_id ?? null;
+      .select("inventory_item_id")
+      .in("canonical_normalized", allRefNames);
+
+    const candidateInvIds = Array.from(
+      new Set(
+        (allRefs ?? [])
+          .map((r) => r.inventory_item_id)
+          .filter((x): x is string => !!x),
+      ),
+    );
+
+    const pick = await pickCanonicalInventoryId(
+      supabaseAdmin,
+      candidateInvIds,
+      data.preferred_inventory_id ?? null,
+    );
+    const canonicalInventoryId = pick.canonical_id;
+    const canonicalPickReport = {
+      chosen_inventory_id: canonicalInventoryId,
+      considered: pick.candidates,
+    };
 
     // Track every recipe whose cost needs recomputation.
     const recipeIdsToRecompute = new Set<string>();
 
-    // ----- Step 2: per losing ingredient, repoint references + recipe_ingredients.
+    // Pre-pass: if multiple inventory candidates exist, consolidate every
+    // non-canonical one INTO the canonical id BEFORE we rewrite reference
+    // rows. This guarantees recipe_ingredients converge on a single row.
+    if (canonicalInventoryId && pick.losing_ids.length > 0) {
+      const cons = await consolidateInventoryItems(
+        supabaseAdmin,
+        canonicalInventoryId,
+        pick.losing_ids,
+      );
+      recipe_links_repointed += cons.recipe_links_repointed;
+      references_repointed += cons.references_repointed;
+      inventory_items_consolidated += cons.inventory_items_consolidated;
+      for (const rid of cons.affected_recipe_ids) recipeIdsToRecompute.add(rid);
+      for (const w of cons.warnings) warnings.push(w);
+    }
+
+    // ----- Step 2: per losing ingredient, repoint reference rows by name.
+    // (Inventory pointers are already collapsed by the pre-pass above.)
     for (const lid of data.losing_ids) {
       const losing = byId.get(lid)!;
       const losingNames = await namesForIngredient(lid, losing.canonical_name);
@@ -707,41 +753,6 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
         .in("canonical_normalized", losingNames);
 
       for (const ref of losingRefs ?? []) {
-        // Collapse the inventory_item_id pointer onto the canonical inventory item
-        // so recipe_ingredients all converge on a single row.
-        if (
-          ref.inventory_item_id &&
-          canonicalInventoryId &&
-          ref.inventory_item_id !== canonicalInventoryId
-        ) {
-          // Find every recipe currently linked to the losing inventory item BEFORE
-          // we re-point them, so we can queue cost recomputation.
-          const { data: affectedRecipes } = await supabaseAdmin
-            .from("recipe_ingredients")
-            .select("recipe_id")
-            .eq("inventory_item_id", ref.inventory_item_id);
-          for (const r of affectedRecipes ?? []) {
-            if (r.recipe_id) recipeIdsToRecompute.add(r.recipe_id as string);
-          }
-
-          // Re-point recipe_ingredients onto the canonical inventory item.
-          const { error: riErr, count: riCount } = await supabaseAdmin
-            .from("recipe_ingredients")
-            .update(
-              { inventory_item_id: canonicalInventoryId },
-              { count: "exact" },
-            )
-            .eq("inventory_item_id", ref.inventory_item_id);
-          if (riErr) {
-            warnings.push(
-              `recipe_ingredients re-point failed for ${losing.canonical_name}: ${riErr.message}`,
-            );
-          } else if (riCount) {
-            recipe_links_repointed += riCount;
-          }
-          inventory_items_consolidated++;
-        }
-
         // Update the reference row itself: name → canonical, inventory_item_id →
         // canonical (or keep the losing one if canonical had none, so we don't
         // orphan recipes that already linked to it).
@@ -764,23 +775,6 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
         references_repointed++;
       }
 
-      // Also catch recipes that reference the losing inventory_item_id directly
-      // (e.g. older links where the ingredient_reference row was already missing).
-      // We only do this if we have a canonical inventory id to point them at.
-      if (canonicalInventoryId) {
-        const { data: orphanRecipes } = await supabaseAdmin
-          .from("recipe_ingredients")
-          .select("recipe_id, inventory_item_id")
-          .in(
-            "inventory_item_id",
-            (losingRefs ?? [])
-              .map((r) => r.inventory_item_id)
-              .filter((x): x is string => !!x && x !== canonicalInventoryId),
-          );
-        for (const r of orphanRecipes ?? []) {
-          if (r.recipe_id) recipeIdsToRecompute.add(r.recipe_id as string);
-        }
-      }
 
       // pe_ingredient_prices: PK is ingredient_id (one price row per ingredient).
       // If canonical already has a row, drop the losing row; otherwise re-point it.
