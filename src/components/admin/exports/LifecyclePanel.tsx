@@ -154,7 +154,71 @@ export function LifecyclePanel() {
     finally { setBusy(null); }
   };
 
-  if (loading) {
+  const buildPdfFor = async (quoteId: string) => {
+    const r = await getFull({ data: { quote_id: quoteId } });
+    const q: any = r.quote;
+    const ev: any = q.cqh_events;
+    const items = (q.quote_items ?? []).map((it: any) => ({
+      section: (it.section ?? "other") as QuoteSection,
+      name: it.name, quantity: it.quantity, unit_price: Number(it.unit_price ?? 0),
+    }));
+    return {
+      doc: generateVpsfinestQuotePDF({
+        referenceNumber: q.reference_number,
+        issueDate: q.created_at,
+        expiresAt: q.expires_at,
+        clientName: ev?.customer_name, clientOrg: ev?.customer_org,
+        clientEmail: ev?.customer_email, clientPhone: ev?.customer_phone,
+        eventName: ev?.name, eventDate: q.event_date,
+        eventLocationName: ev?.event_location_name, eventLocationAddr: ev?.event_location_addr,
+        guestCount: q.guest_count, items, taxRate: Number(q.tax_rate ?? 0.08),
+        notes: q.notes,
+      }),
+      quote: q, event: ev,
+    };
+  };
+
+  const onDownloadPdf = async (q: Quote) => {
+    setBusy(q.id);
+    try {
+      const { doc, quote } = await buildPdfFor(q.id);
+      doc.save(`vpsfinest-quote-${quote.reference_number ?? q.id.slice(0, 8)}.pdf`);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
+
+  const onSendToClient = async (q: Quote) => {
+    setBusy(q.id);
+    try {
+      const { doc, quote, event } = await buildPdfFor(q.id);
+      if (!event?.customer_email) throw new Error("Customer email is missing on the event");
+      doc.save(`vpsfinest-quote-${quote.reference_number ?? q.id.slice(0, 8)}.pdf`);
+      // Best-effort email notification — non-fatal if email infra isn't set up yet.
+      const emailRes = await sendTransactionalEmail({
+        templateName: "quote-ready",
+        recipientEmail: event.customer_email,
+        idempotencyKey: `quote-sent-${q.id}`,
+        templateData: {
+          name: event.customer_name ?? "",
+          quoteNumber: quote.reference_number ?? "",
+          eventName: event.name ?? "",
+        },
+      }).catch(() => ({ ok: false }));
+      await markSent({ data: { quote_id: q.id, sent_to_email: event.customer_email } });
+      toast.success(emailRes.ok
+        ? "PDF downloaded · email sent · quote marked SENT"
+        : "PDF downloaded · quote marked SENT (email template not configured)");
+      await refresh();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
+
+  const onMarkExpired = async (q: Quote) => {
+    setBusy(q.id);
+    try { await setStatus({ data: { quote_id: q.id, to_state: "expired" } }); toast.success("Marked expired"); await refresh(); }
+    catch (e: any) { toast.error(e.message); }
+    finally { setBusy(null); }
+  };
     return <Card><CardContent className="p-6 flex items-center gap-2 text-muted-foreground">
       <Loader2 className="w-4 h-4 animate-spin" /> Loading lifecycle…
     </CardContent></Card>;
