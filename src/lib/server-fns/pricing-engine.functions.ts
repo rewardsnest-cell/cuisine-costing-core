@@ -628,3 +628,104 @@ export const peImportPricesCsv = createServerFn({ method: "POST" })
     };
     return { summary, results };
   });
+
+// ---------- Overview ----------
+
+export const peOverview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+
+    // Stats (mirrors peStatus)
+    const { data: prices } = await supabaseAdmin
+      .from("pe_ingredient_prices")
+      .select("status, last_updated, confidence_score, is_manual_override");
+    const { count: ingredientCount } = await supabaseAdmin
+      .from("pe_ingredients")
+      .select("*", { count: "exact", head: true });
+
+    const now = Date.now();
+    const stats = {
+      total_ingredients: ingredientCount ?? 0,
+      priced: 0,
+      missing: 0,
+      errored: 0,
+      stale: 0,
+      manual: 0,
+      avg_confidence: 0,
+      api_key_configured: !!process.env.RAPIDAPI_KEY,
+    };
+    let confSum = 0;
+    let confN = 0;
+    for (const p of prices ?? []) {
+      if (p.status === "ok") stats.priced++;
+      if (p.status === "price_missing") stats.missing++;
+      if (p.status === "error") stats.errored++;
+      if (p.is_manual_override) stats.manual++;
+      const ageDays = p.last_updated
+        ? (now - new Date(p.last_updated).getTime()) / 86_400_000
+        : null;
+      if (ageDays != null && ageDays > STALE_AFTER_DAYS) stats.stale++;
+      if (p.confidence_score != null) {
+        confSum += Number(p.confidence_score);
+        confN++;
+      }
+    }
+    stats.avg_confidence = confN > 0 ? Math.round((confSum / confN) * 1000) / 1000 : 0;
+    stats.missing += Math.max(0, (ingredientCount ?? 0) - (prices?.length ?? 0));
+
+    // Last CSV import — most recent history row sourced from csv_import
+    const { data: lastCsvRows } = await supabaseAdmin
+      .from("pe_price_history")
+      .select("recorded_at, changed_by")
+      .eq("source", "csv_import")
+      .order("recorded_at", { ascending: false })
+      .limit(1);
+    const lastCsv = lastCsvRows?.[0] ?? null;
+
+    let csvBatchCount = 0;
+    if (lastCsv?.recorded_at) {
+      // Count rows imported within ±2 minutes of the last import (approx batch)
+      const ts = new Date(lastCsv.recorded_at).getTime();
+      const start = new Date(ts - 120_000).toISOString();
+      const end = new Date(ts + 120_000).toISOString();
+      const { count } = await supabaseAdmin
+        .from("pe_price_history")
+        .select("*", { count: "exact", head: true })
+        .eq("source", "csv_import")
+        .gte("recorded_at", start)
+        .lte("recorded_at", end);
+      csvBatchCount = count ?? 0;
+    }
+
+    // Recent price changes — last 10 across all sources, joined with ingredient name
+    const { data: recentRaw } = await supabaseAdmin
+      .from("pe_price_history")
+      .select(
+        "id, ingredient_id, price_per_base_unit, currency, source, is_manual_override, recorded_at",
+      )
+      .order("recorded_at", { ascending: false })
+      .limit(10);
+    const ids = Array.from(new Set((recentRaw ?? []).map((r) => r.ingredient_id)));
+    let nameMap = new Map<string, { name: string; base_unit: string }>();
+    if (ids.length > 0) {
+      const { data: ings } = await supabaseAdmin
+        .from("pe_ingredients")
+        .select("id, canonical_name, base_unit")
+        .in("id", ids);
+      nameMap = new Map((ings ?? []).map((i) => [i.id, { name: i.canonical_name, base_unit: i.base_unit }]));
+    }
+    const recent = (recentRaw ?? []).map((r) => ({
+      ...r,
+      ingredient_name: nameMap.get(r.ingredient_id)?.name ?? "(unknown)",
+      base_unit: nameMap.get(r.ingredient_id)?.base_unit ?? "",
+    }));
+
+    return {
+      stats,
+      last_csv_import: lastCsv
+        ? { recorded_at: lastCsv.recorded_at, batch_count: csvBatchCount }
+        : null,
+      recent_changes: recent,
+    };
+  });

@@ -89,6 +89,7 @@ import { Route as AdminQuoteCreatorRouteImport } from './routes/admin/quote-crea
 import { Route as AdminQuickQuoteRouteImport } from './routes/admin/quick-quote'
 import { Route as AdminPurchaseOrdersRouteImport } from './routes/admin/purchase-orders'
 import { Route as AdminPricingVisibilityRouteImport } from './routes/admin/pricing-visibility'
+import { Route as AdminPricingV3RouteImport } from './routes/admin/pricing-v3'
 import { Route as AdminPricingEngineRouteImport } from './routes/admin/pricing-engine'
 import { Route as AdminPricingCodeInventoryRouteImport } from './routes/admin/pricing-code-inventory'
 import { Route as AdminPricingRouteImport } from './routes/admin/pricing'
@@ -598,6 +599,11 @@ const AdminPurchaseOrdersRoute = AdminPurchaseOrdersRouteImport.update({
 const AdminPricingVisibilityRoute = AdminPricingVisibilityRouteImport.update({
   id: '/pricing-visibility',
   path: '/pricing-visibility',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPricingV3Route = AdminPricingV3RouteImport.update({
+  id: '/pricing-v3',
+  path: '/pricing-v3',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPricingEngineRoute = AdminPricingEngineRouteImport.update({
@@ -1222,6 +1228,7 @@ export interface FileRoutesByFullPath {
   '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-engine': typeof AdminPricingEngineRoute
+  '/admin/pricing-v3': typeof AdminPricingV3Route
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -1406,6 +1413,7 @@ export interface FileRoutesByTo {
   '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-engine': typeof AdminPricingEngineRoute
+  '/admin/pricing-v3': typeof AdminPricingV3Route
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -1593,6 +1601,7 @@ export interface FileRoutesById {
   '/admin/pricing': typeof AdminPricingRouteWithChildren
   '/admin/pricing-code-inventory': typeof AdminPricingCodeInventoryRoute
   '/admin/pricing-engine': typeof AdminPricingEngineRoute
+  '/admin/pricing-v3': typeof AdminPricingV3Route
   '/admin/pricing-visibility': typeof AdminPricingVisibilityRoute
   '/admin/purchase-orders': typeof AdminPurchaseOrdersRoute
   '/admin/quick-quote': typeof AdminQuickQuoteRoute
@@ -1781,6 +1790,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-engine'
+    | '/admin/pricing-v3'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -1965,6 +1975,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-engine'
+    | '/admin/pricing-v3'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -2151,6 +2162,7 @@ export interface FileRouteTypes {
     | '/admin/pricing'
     | '/admin/pricing-code-inventory'
     | '/admin/pricing-engine'
+    | '/admin/pricing-v3'
     | '/admin/pricing-visibility'
     | '/admin/purchase-orders'
     | '/admin/quick-quote'
@@ -2892,6 +2904,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing-visibility'
       fullPath: '/admin/pricing-visibility'
       preLoaderRoute: typeof AdminPricingVisibilityRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pricing-v3': {
+      id: '/admin/pricing-v3'
+      path: '/pricing-v3'
+      fullPath: '/admin/pricing-v3'
+      preLoaderRoute: typeof AdminPricingV3RouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pricing-engine': {
@@ -3812,6 +3831,7 @@ interface AdminRouteChildren {
   AdminPricingRoute: typeof AdminPricingRouteWithChildren
   AdminPricingCodeInventoryRoute: typeof AdminPricingCodeInventoryRoute
   AdminPricingEngineRoute: typeof AdminPricingEngineRoute
+  AdminPricingV3Route: typeof AdminPricingV3Route
   AdminPricingVisibilityRoute: typeof AdminPricingVisibilityRoute
   AdminPurchaseOrdersRoute: typeof AdminPurchaseOrdersRoute
   AdminQuickQuoteRoute: typeof AdminQuickQuoteRoute
@@ -3906,6 +3926,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPricingRoute: AdminPricingRouteWithChildren,
   AdminPricingCodeInventoryRoute: AdminPricingCodeInventoryRoute,
   AdminPricingEngineRoute: AdminPricingEngineRoute,
+  AdminPricingV3Route: AdminPricingV3Route,
   AdminPricingVisibilityRoute: AdminPricingVisibilityRoute,
   AdminPurchaseOrdersRoute: AdminPurchaseOrdersRoute,
   AdminQuickQuoteRoute: AdminQuickQuoteRoute,
