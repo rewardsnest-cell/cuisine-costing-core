@@ -182,7 +182,7 @@ export const lifecycleCreateQuote = createServerFn({ method: "POST" })
         tax_rate: taxRate,
         total,
         status: "draft",
-        quote_state: "structured",
+        quote_state: data.initial_state,
         user_id: context.userId,
         source: "lifecycle",
       })
@@ -197,6 +197,7 @@ export const lifecycleCreateQuote = createServerFn({ method: "POST" })
         quantity: it.quantity,
         unit_price: it.unit_price,
         total_price: +(it.quantity * it.unit_price).toFixed(2),
+        section: it.section,
       }));
       const { error: liErr } = await supabaseAdmin.from("quote_items").insert(rows);
       if (liErr) throw new Error(`Quote line items failed: ${liErr.message}`);
