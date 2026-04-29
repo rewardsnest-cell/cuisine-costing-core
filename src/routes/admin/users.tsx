@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
+import { Users, Shield, UserPlus, Trash2, Clock, Check, X, Search, ChevronDown, ChevronRight, CalendarDays, Compass } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { CreateTestAdminButton } from "@/components/admin/CreateTestAdminButton";
+import { UserNavOverridesPanel } from "@/components/admin/UserNavOverridesPanel";
 
 import { PageHelpCard } from "@/components/admin/PageHelpCard";
 
@@ -45,6 +46,7 @@ function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Record<string, EventLite[] | "loading" | undefined>>({});
+  const [navOpen, setNavOpen] = useState<Record<string, boolean>>({});
 
   const fetchData = async () => {
     const [{ data: profilesData }, { data: rolesData }, { data: requestsData }] = await Promise.all([
@@ -223,6 +225,15 @@ function UserManagementPage() {
                       {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                       <CalendarDays className="w-3 h-3" /> Events
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNavOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
+                      className="gap-1"
+                    >
+                      {navOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <Compass className="w-3 h-3" /> Navigation
+                    </Button>
                     {hasAdmin ? (
                       <Button variant="outline" size="sm" onClick={() => revokeAdmin(profile.user_id)} className="gap-1 text-destructive hover:text-destructive">
                         <Trash2 className="w-3 h-3" /> Revoke Admin
@@ -253,6 +264,12 @@ function UserManagementPage() {
                         </div>
                       ))
                     )}
+                  </div>
+                )}
+                {navOpen[profile.user_id] && (
+                  <div className="pl-2 border-l-2 border-primary/40 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Sidebar Navigation</p>
+                    <UserNavOverridesPanel userId={profile.user_id} />
                   </div>
                 )}
               </CardContent>
