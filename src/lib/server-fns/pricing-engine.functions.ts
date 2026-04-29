@@ -711,9 +711,9 @@ export const peOverview = createServerFn({ method: "GET" })
     if (ids.length > 0) {
       const { data: ings } = await supabaseAdmin
         .from("pe_ingredients")
-        .select("id, name, base_unit")
+        .select("id, canonical_name, base_unit")
         .in("id", ids);
-      nameMap = new Map((ings ?? []).map((i) => [i.id, { name: i.name, base_unit: i.base_unit }]));
+      nameMap = new Map((ings ?? []).map((i) => [i.id, { name: i.canonical_name, base_unit: i.base_unit }]));
     }
     const recent = (recentRaw ?? []).map((r) => ({
       ...r,
