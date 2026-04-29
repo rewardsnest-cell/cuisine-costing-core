@@ -225,6 +225,15 @@ function UserManagementPage() {
                       {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                       <CalendarDays className="w-3 h-3" /> Events
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNavOpen((p) => ({ ...p, [profile.user_id]: !p[profile.user_id] }))}
+                      className="gap-1"
+                    >
+                      {navOpen[profile.user_id] ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      <Compass className="w-3 h-3" /> Navigation
+                    </Button>
                     {hasAdmin ? (
                       <Button variant="outline" size="sm" onClick={() => revokeAdmin(profile.user_id)} className="gap-1 text-destructive hover:text-destructive">
                         <Trash2 className="w-3 h-3" /> Revoke Admin
