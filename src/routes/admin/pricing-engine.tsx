@@ -45,10 +45,11 @@ function PricingEnginePage() {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="status">API Status</TabsTrigger>
           <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
           <TabsTrigger value="prices">Ingredient Prices</TabsTrigger>
+          <TabsTrigger value="import">CSV Import</TabsTrigger>
           <TabsTrigger value="history">Price History</TabsTrigger>
           <TabsTrigger value="inspector">Recipe Cost Inspector</TabsTrigger>
         </TabsList>
@@ -56,6 +57,7 @@ function PricingEnginePage() {
         <TabsContent value="status" className="mt-4"><StatusPanel /></TabsContent>
         <TabsContent value="ingredients" className="mt-4"><IngredientsPanel /></TabsContent>
         <TabsContent value="prices" className="mt-4"><PricesPanel /></TabsContent>
+        <TabsContent value="import" className="mt-4"><CsvImportPanel /></TabsContent>
         <TabsContent value="history" className="mt-4"><HistoryPanel /></TabsContent>
         <TabsContent value="inspector" className="mt-4"><InspectorPanel /></TabsContent>
       </Tabs>
