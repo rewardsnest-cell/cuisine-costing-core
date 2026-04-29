@@ -622,6 +622,9 @@ export const peMergeIngredients = createServerFn({ method: "POST" })
     z.object({
       canonical_id: z.string().uuid(),
       losing_ids: z.array(z.string().uuid()).min(1).max(50),
+      /** Optional hint: if supplied AND tied with the top-scored candidate,
+       * this inventory_item_id is chosen as canonical. */
+      preferred_inventory_id: z.string().uuid().optional().nullable(),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
