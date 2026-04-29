@@ -3033,6 +3033,42 @@ export type Database = {
           },
         ]
       }
+      pe_unit_synonyms: {
+        Row: {
+          canonical: string
+          created_at: string
+          created_by: string | null
+          dimension: string
+          factor: number
+          id: string
+          notes: string | null
+          synonym: string
+          updated_at: string
+        }
+        Insert: {
+          canonical: string
+          created_at?: string
+          created_by?: string | null
+          dimension: string
+          factor?: number
+          id?: string
+          notes?: string | null
+          synonym: string
+          updated_at?: string
+        }
+        Update: {
+          canonical?: string
+          created_at?: string
+          created_by?: string | null
+          dimension?: string
+          factor?: number
+          id?: string
+          notes?: string | null
+          synonym?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing_v2_alert_config: {
         Row: {
           banner_enabled: boolean
