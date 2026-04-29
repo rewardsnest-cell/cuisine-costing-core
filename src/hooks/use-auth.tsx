@@ -60,9 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void syncAuthState(nextSession);
     });
 
-    void supabase.auth.getSession().then(({ data: { session: nextSession } }) => {
-      return syncAuthState(nextSession);
-    });
+    void supabase.auth.getSession()
+      .then(({ data: { session: nextSession } }) => syncAuthState(nextSession))
+      .catch(() => syncAuthState(null));
 
     return () => subscription.unsubscribe();
   }, []);
