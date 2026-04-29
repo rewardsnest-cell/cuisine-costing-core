@@ -433,6 +433,7 @@ export function LifecyclePanel() {
         onClose={() => setIngestDialogFor(null)}
         onCreated={async () => { setIngestDialogFor(null); await refresh(); }}
         ingestFn={ingest}
+        ocrFn={ocrFiles}
       />
     </div>
   );
