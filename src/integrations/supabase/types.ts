@@ -2627,6 +2627,47 @@ export type Database = {
           },
         ]
       }
+      lead_interactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          occurred_at: string
+          outcome: string | null
+          type: Database["public"]["Enums"]["lead_interaction_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          occurred_at?: string
+          outcome?: string | null
+          type: Database["public"]["Enums"]["lead_interaction_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          occurred_at?: string
+          outcome?: string | null
+          type?: Database["public"]["Enums"]["lead_interaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_notes: {
         Row: {
           body: string
@@ -2727,6 +2768,45 @@ export type Database = {
           },
         ]
       }
+      lead_prize_spins: {
+        Row: {
+          id: string
+          lead_id: string
+          prize_id: string | null
+          prize_name_snapshot: string
+          spun_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          prize_id?: string | null
+          prize_name_snapshot: string
+          spun_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          prize_id?: string | null
+          prize_name_snapshot?: string
+          spun_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_prize_spins_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_prize_spins_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "show_prizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           address_city: string | null
@@ -2736,6 +2816,7 @@ export type Database = {
           assigned_to: string | null
           catering_use_cases: string[]
           company: string | null
+          consent_contact: boolean
           created_at: string
           created_by: string | null
           distance_miles: number | null
@@ -2743,11 +2824,15 @@ export type Database = {
           est_budget: number | null
           event_date: string | null
           event_type: string | null
+          first_name: string | null
           first_outreach_date: string | null
           guest_count: number | null
+          guest_count_band: string | null
           id: string
           last_channel: string | null
           last_contact_date: string | null
+          last_contacted_at: string | null
+          last_name: string | null
           last_outreach_date: string | null
           lead_type: string
           metadata: Json
@@ -2757,12 +2842,16 @@ export type Database = {
           organization_type: string | null
           phone: string | null
           priority: string
+          priority_level: Database["public"]["Enums"]["lead_priority"]
           role_department: string | null
           source: string | null
+          source_event_id: string | null
+          source_type: Database["public"]["Enums"]["lead_source_type"] | null
           status: string
           tags: string[]
           updated_at: string
           venue: string | null
+          venue_selected: boolean | null
           verification_issues: string[]
           verification_notes: string | null
           verification_status: string
@@ -2778,6 +2867,7 @@ export type Database = {
           assigned_to?: string | null
           catering_use_cases?: string[]
           company?: string | null
+          consent_contact?: boolean
           created_at?: string
           created_by?: string | null
           distance_miles?: number | null
@@ -2785,11 +2875,15 @@ export type Database = {
           est_budget?: number | null
           event_date?: string | null
           event_type?: string | null
+          first_name?: string | null
           first_outreach_date?: string | null
           guest_count?: number | null
+          guest_count_band?: string | null
           id?: string
           last_channel?: string | null
           last_contact_date?: string | null
+          last_contacted_at?: string | null
+          last_name?: string | null
           last_outreach_date?: string | null
           lead_type?: string
           metadata?: Json
@@ -2799,12 +2893,16 @@ export type Database = {
           organization_type?: string | null
           phone?: string | null
           priority?: string
+          priority_level?: Database["public"]["Enums"]["lead_priority"]
           role_department?: string | null
           source?: string | null
+          source_event_id?: string | null
+          source_type?: Database["public"]["Enums"]["lead_source_type"] | null
           status?: string
           tags?: string[]
           updated_at?: string
           venue?: string | null
+          venue_selected?: boolean | null
           verification_issues?: string[]
           verification_notes?: string | null
           verification_status?: string
@@ -2820,6 +2918,7 @@ export type Database = {
           assigned_to?: string | null
           catering_use_cases?: string[]
           company?: string | null
+          consent_contact?: boolean
           created_at?: string
           created_by?: string | null
           distance_miles?: number | null
@@ -2827,11 +2926,15 @@ export type Database = {
           est_budget?: number | null
           event_date?: string | null
           event_type?: string | null
+          first_name?: string | null
           first_outreach_date?: string | null
           guest_count?: number | null
+          guest_count_band?: string | null
           id?: string
           last_channel?: string | null
           last_contact_date?: string | null
+          last_contacted_at?: string | null
+          last_name?: string | null
           last_outreach_date?: string | null
           lead_type?: string
           metadata?: Json
@@ -2841,12 +2944,16 @@ export type Database = {
           organization_type?: string | null
           phone?: string | null
           priority?: string
+          priority_level?: Database["public"]["Enums"]["lead_priority"]
           role_department?: string | null
           source?: string | null
+          source_event_id?: string | null
+          source_type?: Database["public"]["Enums"]["lead_source_type"] | null
           status?: string
           tags?: string[]
           updated_at?: string
           venue?: string | null
+          venue_selected?: boolean | null
           verification_issues?: string[]
           verification_notes?: string | null
           verification_status?: string
@@ -2854,7 +2961,15 @@ export type Database = {
           verified_by?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "show_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       menu_module_items: {
         Row: {
@@ -6028,6 +6143,75 @@ export type Database = {
           },
         ]
       }
+      show_events: {
+        Row: {
+          booth_size: string | null
+          created_at: string
+          event_date: string | null
+          event_name: string
+          event_type: Database["public"]["Enums"]["show_event_type"]
+          id: string
+          kiosk_active: boolean
+          location: string | null
+          notes: string | null
+          primary_goal: string | null
+          updated_at: string
+        }
+        Insert: {
+          booth_size?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_name: string
+          event_type: Database["public"]["Enums"]["show_event_type"]
+          id?: string
+          kiosk_active?: boolean
+          location?: string | null
+          notes?: string | null
+          primary_goal?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booth_size?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_name?: string
+          event_type?: Database["public"]["Enums"]["show_event_type"]
+          id?: string
+          kiosk_active?: boolean
+          location?: string | null
+          notes?: string | null
+          primary_goal?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      show_prizes: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          prize_name: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          prize_name: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          prize_name?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       site_asset_manifest: {
         Row: {
           alt: string | null
@@ -6699,6 +6883,9 @@ export type Database = {
       cooking_guide_status: "draft" | "published"
       fred_priority: "primary" | "fallback"
       inspired_phase: "off" | "admin_preview" | "soft_launch" | "public"
+      lead_interaction_type: "call" | "text" | "email" | "meeting" | "note"
+      lead_priority: "HOT" | "WARM" | "COLD"
+      lead_source_type: "website" | "show" | "referral" | "outbound"
       menu_module_state: "active" | "seasonal" | "inactive"
       pricing_model_status: "draft" | "active" | "archived"
       pricing_v2_bootstrap_status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
@@ -6756,6 +6943,7 @@ export type Database = {
         | "blocked_unmapped_inventory"
       recipe_scope: "home_public" | "catering_internal" | "shared_controlled"
       recipe_status: "draft" | "published"
+      show_event_type: "Wedding" | "Corporate" | "Catering" | "Social"
       visibility_phase: "off" | "admin_preview" | "soft_launch" | "public"
     }
     CompositeTypes: {
@@ -6896,6 +7084,9 @@ export const Constants = {
       cooking_guide_status: ["draft", "published"],
       fred_priority: ["primary", "fallback"],
       inspired_phase: ["off", "admin_preview", "soft_launch", "public"],
+      lead_interaction_type: ["call", "text", "email", "meeting", "note"],
+      lead_priority: ["HOT", "WARM", "COLD"],
+      lead_source_type: ["website", "show", "referral", "outbound"],
       menu_module_state: ["active", "seasonal", "inactive"],
       pricing_model_status: ["draft", "active", "archived"],
       pricing_v2_bootstrap_status: ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"],
@@ -6960,6 +7151,7 @@ export const Constants = {
       ],
       recipe_scope: ["home_public", "catering_internal", "shared_controlled"],
       recipe_status: ["draft", "published"],
+      show_event_type: ["Wedding", "Corporate", "Catering", "Social"],
       visibility_phase: ["off", "admin_preview", "soft_launch", "public"],
     },
   },
