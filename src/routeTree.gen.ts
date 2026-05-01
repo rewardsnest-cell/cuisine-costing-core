@@ -44,6 +44,7 @@ import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddin
 import { Route as WeddingsSpringAuroraOhioRouteImport } from './routes/weddings.spring-aurora-ohio'
 import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fall-hudson-ohio'
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
+import { Route as ShowEventIdRouteImport } from './routes/show.$eventId'
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as QuoteStartRouteImport } from './routes/quote.start'
@@ -142,10 +143,12 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as CookingLabCSlugRouteImport } from './routes/cooking-lab.c.$slug'
 import { Route as AdminSuppliersIdRouteImport } from './routes/admin/suppliers.$id'
 import { Route as AdminSalesHubWeeklyReviewRouteImport } from './routes/admin/sales-hub.weekly-review'
+import { Route as AdminSalesHubShowEventsRouteImport } from './routes/admin/sales-hub.show-events'
 import { Route as AdminSalesHubScriptsRouteImport } from './routes/admin/sales-hub.scripts'
 import { Route as AdminSalesHubReviewsRouteImport } from './routes/admin/sales-hub.reviews'
 import { Route as AdminSalesHubReferralsRouteImport } from './routes/admin/sales-hub.referrals'
 import { Route as AdminSalesHubProspectsRouteImport } from './routes/admin/sales-hub.prospects'
+import { Route as AdminSalesHubLeadsRouteImport } from './routes/admin/sales-hub.leads'
 import { Route as AdminSalesHubFollowUpsRouteImport } from './routes/admin/sales-hub.follow-ups'
 import { Route as AdminSalesHubEventsRouteImport } from './routes/admin/sales-hub.events'
 import { Route as AdminSalesHubDailyRouteImport } from './routes/admin/sales-hub.daily'
@@ -371,6 +374,11 @@ const WeddingsBookingTimelineRoute = WeddingsBookingTimelineRouteImport.update({
   id: '/booking-timeline',
   path: '/booking-timeline',
   getParentRoute: () => WeddingsRoute,
+} as any)
+const ShowEventIdRoute = ShowEventIdRouteImport.update({
+  id: '/show/$eventId',
+  path: '/show/$eventId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const RecipesIdRoute = RecipesIdRouteImport.update({
   id: '/recipes_/$id',
@@ -873,6 +881,11 @@ const AdminSalesHubWeeklyReviewRoute =
     path: '/weekly-review',
     getParentRoute: () => AdminSalesHubRoute,
   } as any)
+const AdminSalesHubShowEventsRoute = AdminSalesHubShowEventsRouteImport.update({
+  id: '/show-events',
+  path: '/show-events',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
 const AdminSalesHubScriptsRoute = AdminSalesHubScriptsRouteImport.update({
   id: '/scripts',
   path: '/scripts',
@@ -891,6 +904,11 @@ const AdminSalesHubReferralsRoute = AdminSalesHubReferralsRouteImport.update({
 const AdminSalesHubProspectsRoute = AdminSalesHubProspectsRouteImport.update({
   id: '/prospects',
   path: '/prospects',
+  getParentRoute: () => AdminSalesHubRoute,
+} as any)
+const AdminSalesHubLeadsRoute = AdminSalesHubLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
   getParentRoute: () => AdminSalesHubRoute,
 } as any)
 const AdminSalesHubFollowUpsRoute = AdminSalesHubFollowUpsRouteImport.update({
@@ -1274,6 +1292,7 @@ export interface FileRoutesByFullPath {
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1313,10 +1332,12 @@ export interface FileRoutesByFullPath {
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
   '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
   '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/leads': typeof AdminSalesHubLeadsRoute
   '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
   '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
   '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
   '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/show-events': typeof AdminSalesHubShowEventsRoute
   '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
@@ -1459,6 +1480,7 @@ export interface FileRoutesByTo {
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1498,10 +1520,12 @@ export interface FileRoutesByTo {
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
   '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
   '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/leads': typeof AdminSalesHubLeadsRoute
   '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
   '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
   '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
   '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/show-events': typeof AdminSalesHubShowEventsRoute
   '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
@@ -1647,6 +1671,7 @@ export interface FileRoutesById {
   '/quote/start': typeof QuoteStartRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1686,10 +1711,12 @@ export interface FileRoutesById {
   '/admin/sales-hub/daily': typeof AdminSalesHubDailyRoute
   '/admin/sales-hub/events': typeof AdminSalesHubEventsRoute
   '/admin/sales-hub/follow-ups': typeof AdminSalesHubFollowUpsRoute
+  '/admin/sales-hub/leads': typeof AdminSalesHubLeadsRoute
   '/admin/sales-hub/prospects': typeof AdminSalesHubProspectsRoute
   '/admin/sales-hub/referrals': typeof AdminSalesHubReferralsRoute
   '/admin/sales-hub/reviews': typeof AdminSalesHubReviewsRoute
   '/admin/sales-hub/scripts': typeof AdminSalesHubScriptsRoute
+  '/admin/sales-hub/show-events': typeof AdminSalesHubShowEventsRoute
   '/admin/sales-hub/weekly-review': typeof AdminSalesHubWeeklyReviewRoute
   '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/cooking-lab/c/$slug': typeof CookingLabCSlugRoute
@@ -1836,6 +1863,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -1875,10 +1903,12 @@ export interface FileRouteTypes {
     | '/admin/sales-hub/daily'
     | '/admin/sales-hub/events'
     | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/leads'
     | '/admin/sales-hub/prospects'
     | '/admin/sales-hub/referrals'
     | '/admin/sales-hub/reviews'
     | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/show-events'
     | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
@@ -2021,6 +2051,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -2060,10 +2091,12 @@ export interface FileRouteTypes {
     | '/admin/sales-hub/daily'
     | '/admin/sales-hub/events'
     | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/leads'
     | '/admin/sales-hub/prospects'
     | '/admin/sales-hub/referrals'
     | '/admin/sales-hub/reviews'
     | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/show-events'
     | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
@@ -2208,6 +2241,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote_/ai'
     | '/recipes_/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -2247,10 +2281,12 @@ export interface FileRouteTypes {
     | '/admin/sales-hub/daily'
     | '/admin/sales-hub/events'
     | '/admin/sales-hub/follow-ups'
+    | '/admin/sales-hub/leads'
     | '/admin/sales-hub/prospects'
     | '/admin/sales-hub/referrals'
     | '/admin/sales-hub/reviews'
     | '/admin/sales-hub/scripts'
+    | '/admin/sales-hub/show-events'
     | '/admin/sales-hub/weekly-review'
     | '/admin/suppliers/$id'
     | '/cooking-lab/c/$slug'
@@ -2323,6 +2359,7 @@ export interface RootRouteChildren {
   QReferenceRoute: typeof QReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
   RecipesIdRoute: typeof RecipesIdRoute
+  ShowEventIdRoute: typeof ShowEventIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -2590,6 +2627,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/weddings/booking-timeline'
       preLoaderRoute: typeof WeddingsBookingTimelineRouteImport
       parentRoute: typeof WeddingsRoute
+    }
+    '/show/$eventId': {
+      id: '/show/$eventId'
+      path: '/show/$eventId'
+      fullPath: '/show/$eventId'
+      preLoaderRoute: typeof ShowEventIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/recipes_/$id': {
       id: '/recipes_/$id'
@@ -3277,6 +3321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSalesHubWeeklyReviewRouteImport
       parentRoute: typeof AdminSalesHubRoute
     }
+    '/admin/sales-hub/show-events': {
+      id: '/admin/sales-hub/show-events'
+      path: '/show-events'
+      fullPath: '/admin/sales-hub/show-events'
+      preLoaderRoute: typeof AdminSalesHubShowEventsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
     '/admin/sales-hub/scripts': {
       id: '/admin/sales-hub/scripts'
       path: '/scripts'
@@ -3303,6 +3354,13 @@ declare module '@tanstack/react-router' {
       path: '/prospects'
       fullPath: '/admin/sales-hub/prospects'
       preLoaderRoute: typeof AdminSalesHubProspectsRouteImport
+      parentRoute: typeof AdminSalesHubRoute
+    }
+    '/admin/sales-hub/leads': {
+      id: '/admin/sales-hub/leads'
+      path: '/leads'
+      fullPath: '/admin/sales-hub/leads'
+      preLoaderRoute: typeof AdminSalesHubLeadsRouteImport
       parentRoute: typeof AdminSalesHubRoute
     }
     '/admin/sales-hub/follow-ups': {
@@ -3750,10 +3808,12 @@ interface AdminSalesHubRouteChildren {
   AdminSalesHubDailyRoute: typeof AdminSalesHubDailyRoute
   AdminSalesHubEventsRoute: typeof AdminSalesHubEventsRoute
   AdminSalesHubFollowUpsRoute: typeof AdminSalesHubFollowUpsRoute
+  AdminSalesHubLeadsRoute: typeof AdminSalesHubLeadsRoute
   AdminSalesHubProspectsRoute: typeof AdminSalesHubProspectsRoute
   AdminSalesHubReferralsRoute: typeof AdminSalesHubReferralsRoute
   AdminSalesHubReviewsRoute: typeof AdminSalesHubReviewsRoute
   AdminSalesHubScriptsRoute: typeof AdminSalesHubScriptsRoute
+  AdminSalesHubShowEventsRoute: typeof AdminSalesHubShowEventsRoute
   AdminSalesHubWeeklyReviewRoute: typeof AdminSalesHubWeeklyReviewRoute
 }
 
@@ -3761,10 +3821,12 @@ const AdminSalesHubRouteChildren: AdminSalesHubRouteChildren = {
   AdminSalesHubDailyRoute: AdminSalesHubDailyRoute,
   AdminSalesHubEventsRoute: AdminSalesHubEventsRoute,
   AdminSalesHubFollowUpsRoute: AdminSalesHubFollowUpsRoute,
+  AdminSalesHubLeadsRoute: AdminSalesHubLeadsRoute,
   AdminSalesHubProspectsRoute: AdminSalesHubProspectsRoute,
   AdminSalesHubReferralsRoute: AdminSalesHubReferralsRoute,
   AdminSalesHubReviewsRoute: AdminSalesHubReviewsRoute,
   AdminSalesHubScriptsRoute: AdminSalesHubScriptsRoute,
+  AdminSalesHubShowEventsRoute: AdminSalesHubShowEventsRoute,
   AdminSalesHubWeeklyReviewRoute: AdminSalesHubWeeklyReviewRoute,
 }
 
@@ -4065,6 +4127,7 @@ const rootRouteChildren: RootRouteChildren = {
   QReferenceRoute: QReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
   RecipesIdRoute: RecipesIdRoute,
+  ShowEventIdRoute: ShowEventIdRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
