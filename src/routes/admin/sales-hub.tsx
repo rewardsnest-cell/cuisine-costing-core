@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Phone, Mail, Star, ListChecks, Users, MessageSquareQuote,
-  CalendarCheck, Repeat, ClipboardList, BookOpenCheck,
+  CalendarCheck, Repeat, ClipboardList, BookOpenCheck, UserPlus, Tent,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/sales-hub")({
@@ -16,6 +16,8 @@ export const Route = createFileRoute("/admin/sales-hub")({
 
 const SUB_NAV = [
   { to: "/admin/sales-hub", label: "Dashboard", icon: ListChecks, exact: true },
+  { to: "/admin/sales-hub/leads", label: "Leads", icon: UserPlus },
+  { to: "/admin/sales-hub/show-events", label: "Show Events", icon: Tent },
   { to: "/admin/sales-hub/prospects", label: "Prospects", icon: Users },
   { to: "/admin/sales-hub/scripts", label: "Scripts", icon: MessageSquareQuote },
   { to: "/admin/sales-hub/daily", label: "Daily Checklist", icon: ClipboardList },

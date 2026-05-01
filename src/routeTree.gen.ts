@@ -44,6 +44,7 @@ import { Route as WeddingsWinterClevelandOhioRouteImport } from './routes/weddin
 import { Route as WeddingsSpringAuroraOhioRouteImport } from './routes/weddings.spring-aurora-ohio'
 import { Route as WeddingsFallHudsonOhioRouteImport } from './routes/weddings.fall-hudson-ohio'
 import { Route as WeddingsBookingTimelineRouteImport } from './routes/weddings.booking-timeline'
+import { Route as ShowEventIdRouteImport } from './routes/show.$eventId'
 import { Route as RecipesIdRouteImport } from './routes/recipes_.$id'
 import { Route as QuoteAiRouteImport } from './routes/quote_.ai'
 import { Route as QuoteStartRouteImport } from './routes/quote.start'
@@ -373,6 +374,11 @@ const WeddingsBookingTimelineRoute = WeddingsBookingTimelineRouteImport.update({
   id: '/booking-timeline',
   path: '/booking-timeline',
   getParentRoute: () => WeddingsRoute,
+} as any)
+const ShowEventIdRoute = ShowEventIdRouteImport.update({
+  id: '/show/$eventId',
+  path: '/show/$eventId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const RecipesIdRoute = RecipesIdRouteImport.update({
   id: '/recipes_/$id',
@@ -1286,6 +1292,7 @@ export interface FileRoutesByFullPath {
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1473,6 +1480,7 @@ export interface FileRoutesByTo {
   '/quote/start': typeof QuoteStartRoute
   '/quote/ai': typeof QuoteAiRoute
   '/recipes/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1663,6 +1671,7 @@ export interface FileRoutesById {
   '/quote/start': typeof QuoteStartRoute
   '/quote_/ai': typeof QuoteAiRoute
   '/recipes_/$id': typeof RecipesIdRoute
+  '/show/$eventId': typeof ShowEventIdRoute
   '/weddings/booking-timeline': typeof WeddingsBookingTimelineRoute
   '/weddings/fall-hudson-ohio': typeof WeddingsFallHudsonOhioRoute
   '/weddings/spring-aurora-ohio': typeof WeddingsSpringAuroraOhioRoute
@@ -1854,6 +1863,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -2041,6 +2051,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote/ai'
     | '/recipes/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -2230,6 +2241,7 @@ export interface FileRouteTypes {
     | '/quote/start'
     | '/quote_/ai'
     | '/recipes_/$id'
+    | '/show/$eventId'
     | '/weddings/booking-timeline'
     | '/weddings/fall-hudson-ohio'
     | '/weddings/spring-aurora-ohio'
@@ -2347,6 +2359,7 @@ export interface RootRouteChildren {
   QReferenceRoute: typeof QReferenceRoute
   QuoteAiRoute: typeof QuoteAiRoute
   RecipesIdRoute: typeof RecipesIdRoute
+  ShowEventIdRoute: typeof ShowEventIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
   GuidesIndexRoute: typeof GuidesIndexRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -2614,6 +2627,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/weddings/booking-timeline'
       preLoaderRoute: typeof WeddingsBookingTimelineRouteImport
       parentRoute: typeof WeddingsRoute
+    }
+    '/show/$eventId': {
+      id: '/show/$eventId'
+      path: '/show/$eventId'
+      fullPath: '/show/$eventId'
+      preLoaderRoute: typeof ShowEventIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/recipes_/$id': {
       id: '/recipes_/$id'
@@ -4107,6 +4127,7 @@ const rootRouteChildren: RootRouteChildren = {
   QReferenceRoute: QReferenceRoute,
   QuoteAiRoute: QuoteAiRoute,
   RecipesIdRoute: RecipesIdRoute,
+  ShowEventIdRoute: ShowEventIdRoute,
   BlogIndexRoute: BlogIndexRoute,
   GuidesIndexRoute: GuidesIndexRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
